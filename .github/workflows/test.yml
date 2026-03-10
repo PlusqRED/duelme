@@ -39,23 +39,32 @@ jobs:
         id: coverage
         working-directory: contracts
         run: |
-          # Extract DuelMe.sol line coverage (the main contract)
-          DUELME_LINE=$(grep 'src/DuelMe.sol' coverage-output.txt | head -1)
-          DUELME_PCT=$(echo "$DUELME_LINE" | grep -oP '\d+\.\d+%' | head -1 | tr -d '%')
+          # Extract per-contract line coverage for all src/*.sol files
+          # and compute total from src/ files only
+          COVERED=0
+          TOTAL=0
+          while IFS= read -r line; do
+            nums=$(echo "$line" | grep -oP '\d+/\d+' | head -1)
+            c=$(echo "$nums" | cut -d'/' -f1)
+            t=$(echo "$nums" | cut -d'/' -f2)
+            COVERED=$((COVERED + c))
+            TOTAL=$((TOTAL + t))
+          done < <(grep '| src/' coverage-output.txt)
 
-          # Extract total line coverage
-          TOTAL_LINE=$(grep '| Total' coverage-output.txt | head -1)
-          TOTAL_PCT=$(echo "$TOTAL_LINE" | grep -oP '\d+\.\d+%' | head -1 | tr -d '%')
+          if [ "$TOTAL" -gt 0 ]; then
+            PCT=$(echo "scale=2; $COVERED * 100 / $TOTAL" | bc)
+          else
+            PCT="0"
+          fi
 
-          echo "duelme_coverage=$DUELME_PCT" >> "$GITHUB_OUTPUT"
-          echo "total_coverage=$TOTAL_PCT" >> "$GITHUB_OUTPUT"
+          echo "total_coverage=$PCT" >> "$GITHUB_OUTPUT"
 
-          # Determine color based on total coverage
-          if (( $(echo "$TOTAL_PCT >= 90" | bc -l) )); then
+          # Determine color
+          if (( $(echo "$PCT >= 90" | bc -l) )); then
             echo "color=brightgreen" >> "$GITHUB_OUTPUT"
-          elif (( $(echo "$TOTAL_PCT >= 75" | bc -l) )); then
+          elif (( $(echo "$PCT >= 75" | bc -l) )); then
             echo "color=green" >> "$GITHUB_OUTPUT"
-          elif (( $(echo "$TOTAL_PCT >= 60" | bc -l) )); then
+          elif (( $(echo "$PCT >= 60" | bc -l) )); then
             echo "color=yellow" >> "$GITHUB_OUTPUT"
           else
             echo "color=red" >> "$GITHUB_OUTPUT"
@@ -63,11 +72,13 @@ jobs:
 
       - name: Coverage summary
         run: |
-          echo "### Test Coverage" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Test Coverage (src/*.sol)" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Contract | Lines |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| DuelMe.sol | ${{ steps.coverage.outputs.duelme_coverage }}% |" >> "$GITHUB_STEP_SUMMARY"
+          grep '| src/' coverage-output.txt | while IFS= read -r line; do
+            FILE=$(echo "$line" | awk -F'|' '{print $2}' | xargs)
+            PCT=$(echo "$line" | grep -oP '\d+\.\d+%' | head -1)
+            echo "| $FILE | $PCT |" >> "$GITHUB_STEP_SUMMARY"
+          done
           echo "| **Total** | **${{ steps.coverage.outputs.total_coverage }}%** |" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Update coverage badge
