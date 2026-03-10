@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslation } from '@/i18n/useTranslation';
-import { UserCheck, Link2, Trophy } from 'lucide-react';
+import { UserCheck, Link2, Trophy, Fuel, DollarSign, Info } from 'lucide-react';
 
 const steps = [
   {
@@ -24,6 +24,21 @@ const steps = [
     descKey: 'howItWorks.step3.desc' as const,
     color: 'bg-emerald-100 text-emerald-600 border-emerald-200',
     number: '03',
+  },
+];
+
+const fundingSteps = [
+  {
+    icon: Fuel,
+    titleKey: 'howItWorks.fundEth' as const,
+    descKey: 'howItWorks.fundEthDesc' as const,
+    color: 'border-amber-200 bg-amber-50 text-amber-600',
+  },
+  {
+    icon: DollarSign,
+    titleKey: 'howItWorks.fundUsdt' as const,
+    descKey: 'howItWorks.fundUsdtDesc' as const,
+    color: 'border-blue-200 bg-blue-50 text-blue-600',
   },
 ];
 
@@ -70,6 +85,47 @@ export function HowItWorks() {
               </div>
             );
           })}
+        </div>
+
+        {/* Funding note for new wallets */}
+        <div className="mx-auto mt-12 max-w-3xl">
+          <div className="rounded-2xl border border-dashed border-amber-300 bg-amber-50/50 px-6 py-5">
+            <div className="flex items-start gap-3">
+              <Info className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+              <div>
+                <h4 className="text-sm font-semibold text-amber-900">
+                  {t('howItWorks.newWallet')}
+                </h4>
+                <p className="mt-1 text-sm leading-relaxed text-amber-800/80">
+                  {t('howItWorks.newWalletDesc')}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {fundingSteps.map((step) => {
+                const Icon = step.icon;
+                return (
+                  <div
+                    key={step.titleKey}
+                    className={`flex items-start gap-3 rounded-xl border bg-white px-4 py-3 ${step.color.split(' ').filter(c => c.startsWith('border-')).join(' ')}`}
+                  >
+                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${step.color}`}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <span className="text-sm font-semibold text-slate-900">
+                        {t(step.titleKey)}
+                      </span>
+                      <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
+                        {t(step.descKey)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
     </section>
