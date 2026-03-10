@@ -31,7 +31,7 @@ export function OnboardingSection() {
             {/* Vertical line */}
             <div className="absolute left-5 top-6 bottom-6 w-px bg-slate-200 sm:left-6" />
 
-            {steps.map((step, i) => {
+            {steps.map((step) => {
               const Icon = step.icon;
               return (
                 <div key={step.key} className="group relative flex items-start gap-4 py-4 sm:gap-5">

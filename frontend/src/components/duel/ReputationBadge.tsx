@@ -53,7 +53,7 @@ interface ReputationBadgeProps {
 
 export function ReputationBadge({ address, chainId, showStats = false }: ReputationBadgeProps) {
   const { t } = useTranslation();
-  const { honored, abandoned, total, score, level, isLoading } = useReputation(address, chainId);
+  const { honored, total, score, level, isLoading } = useReputation(address, chainId);
 
   if (isLoading || !address) {
     return (

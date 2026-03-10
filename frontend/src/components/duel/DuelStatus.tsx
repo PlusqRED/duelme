@@ -3,7 +3,7 @@
 import { DuelState, type Duel } from '@/lib/contracts';
 import { formatUSDT, truncateAddress } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/translations';
 

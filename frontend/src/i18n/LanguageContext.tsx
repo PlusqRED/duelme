@@ -3,7 +3,6 @@
 import {
   createContext,
   useCallback,
-  useEffect,
   useState,
   type ReactNode,
 } from 'react';
@@ -27,15 +26,14 @@ export const LanguageContext = createContext<LanguageContextValue>({
 
 const STORAGE_KEY = 'duelme-lang';
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>('en');
+function getStoredLanguage(): Language {
+  if (typeof window === 'undefined') return 'en';
+  const stored = localStorage.getItem(STORAGE_KEY);
+  return stored === 'en' || stored === 'ru' ? stored : 'en';
+}
 
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === 'en' || stored === 'ru') {
-      setLanguageState(stored);
-    }
-  }, []);
+export function LanguageProvider({ children }: { children: ReactNode }) {
+  const [language, setLanguageState] = useState<Language>(getStoredLanguage);
 
   const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);

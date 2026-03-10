@@ -22,7 +22,6 @@ export function formatUSDT(amount: bigint): string {
 }
 
 export function parseUSDT(amount: number): bigint {
-  const multiplier = BigInt(10 ** USDT_DECIMALS);
   // Handle floating point by rounding to 6 decimal places
   const rounded = Math.round(amount * 10 ** USDT_DECIMALS);
   return BigInt(rounded);

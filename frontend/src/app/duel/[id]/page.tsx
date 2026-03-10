@@ -53,7 +53,7 @@ export default function DuelPage({
   const { wallets } = useWallets();
   const walletAddress = wallets[0]?.address?.toLowerCase();
 
-  const { duel, isLoading, isError, refetch } = useDuel(BigInt(duelId), DEFAULT_CHAIN_ID);
+  const { duel, isLoading, isError } = useDuel(BigInt(duelId), DEFAULT_CHAIN_ID);
   const {
     joinDuel,
     claimVictory,
