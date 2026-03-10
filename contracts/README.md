@@ -1,8 +1,7 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/Solidity-0.8.24-363636?style=flat-square&logo=solidity" alt="Solidity" />
+  <img src="https://img.shields.io/badge/Solidity-0.8.34-363636?style=flat-square&logo=solidity" alt="Solidity" />
   <img src="https://img.shields.io/badge/Foundry-forge-orange?style=flat-square" alt="Foundry" />
-  <img src="https://img.shields.io/badge/OpenZeppelin-5.x-4E5EE4?style=flat-square" alt="OpenZeppelin" />
-  <img src="https://img.shields.io/badge/Tests-77%20passed-brightgreen?style=flat-square" alt="Tests" />
+  <img src="https://img.shields.io/badge/OpenZeppelin-5.6.1-4E5EE4?style=flat-square" alt="OpenZeppelin" />
 </p>
 
 # DuelMe — Smart Contracts
