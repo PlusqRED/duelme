@@ -1,13 +1,14 @@
 'use client';
 
 import { useTranslation } from '@/i18n/useTranslation';
-import { Chrome, Wallet, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
+import { Chrome, Wallet, ArrowDownToLine, Fuel, ArrowUpFromLine } from 'lucide-react';
 
 const steps = [
   { icon: Chrome, key: 'onboarding.step1' as const, color: 'bg-indigo-600' },
   { icon: Wallet, key: 'onboarding.step2' as const, color: 'bg-violet-600' },
   { icon: ArrowDownToLine, key: 'onboarding.step3' as const, color: 'bg-blue-600' },
-  { icon: ArrowUpFromLine, key: 'onboarding.step4' as const, color: 'bg-emerald-600' },
+  { icon: Fuel, key: 'onboarding.step4' as const, color: 'bg-amber-600' },
+  { icon: ArrowUpFromLine, key: 'onboarding.step5' as const, color: 'bg-emerald-600' },
 ];
 
 export function OnboardingSection() {
@@ -48,6 +49,14 @@ export function OnboardingSection() {
                 </div>
               );
             })}
+          </div>
+
+          {/* Gas note */}
+          <div className="mt-6 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <Fuel className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+            <p className="text-xs leading-relaxed text-amber-800">
+              {t('onboarding.gasNote')}
+            </p>
           </div>
         </div>
       </div>
