@@ -9,7 +9,12 @@ import "../src/DuelMe.sol";
 /// Usage: forge script script/Deploy.s.sol --rpc-url $ARBITRUM_SEPOLIA_RPC_URL --broadcast --verify
 contract DeployAll is Script {
     function run() external {
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        uint256 deployerPrivateKey = vm.envOr("PRIVATE_KEY", uint256(0));
+        if (deployerPrivateKey == 0) {
+            // Try reading as hex string without 0x prefix
+            string memory pkStr = vm.envString("PRIVATE_KEY");
+            deployerPrivateKey = vm.parseUint(string.concat("0x", pkStr));
+        }
 
         vm.startBroadcast(deployerPrivateKey);
 

@@ -1,4 +1,11 @@
 export const SUPPORTED_CHAINS = {
+  arbitrumSepolia: {
+    id: 421614,
+    name: 'Arbitrum Sepolia',
+    usdt: '0xA1CFe4be56481d624cBbeC0312Ee9D1E786A20bF' as `0x${string}`,
+    explorer: 'https://sepolia.arbiscan.io',
+    rpc: 'https://sepolia-rollup.arbitrum.io/rpc',
+  },
   arbitrum: {
     id: 42161,
     name: 'Arbitrum One',
@@ -20,10 +27,10 @@ export const MIN_WAGER_RAW = 3_000_000n; // 3 USDT in 6 decimals
 export const CLAIM_TIMEOUT = 3600; // 1 hour in seconds
 export const USDT_DECIMALS = 6;
 
-// Contract addresses (placeholder — will be updated after deployment)
 export const DUELME_ADDRESSES: Record<number, `0x${string}`> = {
-  42161: '0x0000000000000000000000000000000000000000', // Arbitrum
-  137: '0x0000000000000000000000000000000000000000', // Polygon
+  421614: '0x830D99B25A2C9103501de19DE7a7eE4525c619Ab', // Arbitrum Sepolia
+  42161: '0x0000000000000000000000000000000000000000', // Arbitrum One (TBD)
+  137: '0x0000000000000000000000000000000000000000', // Polygon (TBD)
 };
 
 export const SITE_URL = 'https://duelme.fun';

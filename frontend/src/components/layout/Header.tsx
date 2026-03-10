@@ -14,11 +14,13 @@ import { SUPPORTED_CHAINS, USDT_DECIMALS } from '@/lib/constants';
 import { toast } from 'sonner';
 
 const CHAIN_NAMES: Record<number, string> = {
+  421614: 'Arb Sepolia',
   42161: 'Arbitrum',
   137: 'Polygon',
 };
 
 function getUsdtAddress(chainId: number | undefined) {
+  if (chainId === 421614) return SUPPORTED_CHAINS.arbitrumSepolia.usdt;
   if (chainId === 42161) return SUPPORTED_CHAINS.arbitrum.usdt;
   if (chainId === 137) return SUPPORTED_CHAINS.polygon.usdt;
   return undefined;

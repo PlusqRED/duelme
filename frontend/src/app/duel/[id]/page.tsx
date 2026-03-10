@@ -38,7 +38,7 @@ const STATUS_LABELS: Record<DuelState, string> = {
 };
 
 // TODO: detect chain from URL param or duel lookup across chains
-const DEFAULT_CHAIN_ID = SUPPORTED_CHAINS.arbitrum.id;
+const DEFAULT_CHAIN_ID = SUPPORTED_CHAINS.arbitrumSepolia.id;
 
 export default function DuelPage({
   params,

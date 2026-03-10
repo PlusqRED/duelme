@@ -18,8 +18,8 @@ const PRESETS = [5, 10, 25, 50, 100];
 export function CreateDuelForm() {
   const { t } = useTranslation();
   const [amount, setAmount] = useState('');
-  const [selectedChain, setSelectedChain] = useState<'arbitrum' | 'polygon'>(
-    'arbitrum'
+  const [selectedChain, setSelectedChain] = useState<keyof typeof SUPPORTED_CHAINS>(
+    'arbitrumSepolia'
   );
 
   const { ready, authenticated, login } = usePrivy();
@@ -183,7 +183,7 @@ export function CreateDuelForm() {
               (key) => {
                 const chain = SUPPORTED_CHAINS[key];
                 const isSelected = selectedChain === key;
-                const isArbitrum = key === 'arbitrum';
+                const isArbitrum = key === 'arbitrum' || key === 'arbitrumSepolia';
                 return (
                   <button
                     key={key}
