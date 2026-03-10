@@ -32,19 +32,19 @@ export function ShareLink({ duelId }: ShareLinkProps) {
 
   return (
     <div className="flex flex-col gap-2">
-      <label className="text-sm font-medium text-gray-700">
+      <label className="text-sm font-medium text-slate-700">
         {t('action.share')}
       </label>
       <div className="flex gap-2">
         <Input
           readOnly
           value={url}
-          className="h-10 flex-1 border-gray-300 bg-gray-50 font-mono text-sm"
+          className="h-10 flex-1 border-slate-300 bg-slate-50 font-mono text-sm"
         />
         <Button
           size="lg"
           variant="outline"
-          className="h-10 shrink-0 border-gray-300"
+          className="h-10 shrink-0 border-slate-300"
           onClick={handleCopy}
         >
           {copied ? (

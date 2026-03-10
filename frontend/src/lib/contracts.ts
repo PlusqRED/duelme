@@ -23,11 +23,24 @@ export const duelMeAbi = [
     ],
   },
   {
-    name: 'getDuelRep',
+    name: 'getPlayerStats',
     type: 'function',
     stateMutability: 'view',
     inputs: [{ name: 'user', type: 'address' }],
-    outputs: [{ name: '', type: 'uint256' }],
+    outputs: [
+      { name: 'honored', type: 'uint32' },
+      { name: 'abandoned', type: 'uint32' },
+    ],
+  },
+  {
+    name: 'playerStats',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: '', type: 'address' }],
+    outputs: [
+      { name: 'duelsHonored', type: 'uint32' },
+      { name: 'duelsAbandoned', type: 'uint32' },
+    ],
   },
   {
     name: 'duelCount',
@@ -51,13 +64,6 @@ export const duelMeAbi = [
       { name: 'claimTimestamp', type: 'uint256' },
       { name: 'token', type: 'address' },
     ],
-  },
-  {
-    name: 'duelRep',
-    type: 'function',
-    stateMutability: 'view',
-    inputs: [{ name: '', type: 'address' }],
-    outputs: [{ name: '', type: 'uint256' }],
   },
 
   // Write functions

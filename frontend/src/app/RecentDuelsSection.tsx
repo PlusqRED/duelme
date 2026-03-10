@@ -9,12 +9,17 @@ export function RecentDuelsSection() {
   return (
     <section
       id="recent-duels"
-      className="border-t border-gray-200 bg-[#FAFAFA] py-16 sm:py-24"
+      className="relative bg-slate-50 bg-dots py-16 sm:py-24"
     >
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <h2 className="mb-8 text-center text-2xl font-bold text-gray-900 sm:text-3xl">
-          {t('recent.title')}
-        </h2>
+        <div className="mb-10 text-center">
+          <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+            {t('recent.title')}
+          </h2>
+          <p className="mt-3 text-base text-slate-500">
+            {t('recent.subtitle')}
+          </p>
+        </div>
         <RecentDuels />
       </div>
     </section>

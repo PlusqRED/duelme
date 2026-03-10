@@ -26,8 +26,8 @@ const STATUS_COLORS: Record<DuelState, string> = {
   [DuelState.Funded]: 'bg-green-50 text-green-700 border-green-200',
   [DuelState.WinnerClaimed]: 'bg-amber-50 text-amber-700 border-amber-200',
   [DuelState.Resolved]: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  [DuelState.Refunded]: 'bg-gray-50 text-gray-600 border-gray-200',
-  [DuelState.Cancelled]: 'bg-gray-50 text-gray-500 border-gray-200',
+  [DuelState.Refunded]: 'bg-slate-50 text-slate-600 border-slate-200',
+  [DuelState.Cancelled]: 'bg-slate-50 text-slate-500 border-slate-200',
 };
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -41,9 +41,9 @@ export function DuelStatus({ duel, duelId }: DuelStatusProps) {
     : wagerDisplay;
 
   return (
-    <Card className="border-gray-200 bg-white shadow-sm">
+    <Card className="border-slate-200 bg-white shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-lg font-semibold text-gray-900">
+        <CardTitle className="text-lg font-semibold text-slate-900">
           Duel #{duelId}
         </CardTitle>
         <span
@@ -58,17 +58,17 @@ export function DuelStatus({ duel, duelId }: DuelStatusProps) {
         <div className="grid grid-cols-2 gap-4">
           {/* Wager */}
           <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-gray-400">
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
               {t('duel.wager')}
             </span>
-            <span className="text-xl font-bold text-gray-900">
+            <span className="text-xl font-bold text-slate-900">
               {wagerDisplay} USDT
             </span>
           </div>
 
           {/* Total Pot */}
           <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-gray-400">
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
               {t('duel.pot')}
             </span>
             <span className="text-xl font-bold text-indigo-600">
@@ -78,20 +78,20 @@ export function DuelStatus({ duel, duelId }: DuelStatusProps) {
 
           {/* Creator */}
           <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-gray-400">
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
               {t('duel.creator')}
             </span>
-            <span className="font-mono text-sm text-gray-700">
+            <span className="font-mono text-sm text-slate-700">
               {truncateAddress(duel.creator)}
             </span>
           </div>
 
           {/* Opponent */}
           <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-gray-400">
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
               {t('duel.opponent')}
             </span>
-            <span className="font-mono text-sm text-gray-700">
+            <span className="font-mono text-sm text-slate-700">
               {duel.opponent === ZERO_ADDRESS
                 ? '...'
                 : truncateAddress(duel.opponent)}
@@ -102,7 +102,7 @@ export function DuelStatus({ duel, duelId }: DuelStatusProps) {
           {duel.state === DuelState.Resolved &&
             duel.winner !== ZERO_ADDRESS && (
               <div className="col-span-2 flex flex-col gap-1">
-                <span className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
                   {t('duel.winner')}
                 </span>
                 <span className="font-mono text-sm font-semibold text-emerald-600">

@@ -1,6 +1,11 @@
+import { SideNav } from './SideNav';
 import { HeroSection } from './HeroSection';
 import { HowItWorks } from './HowItWorks';
+import { OnboardingSection } from './OnboardingSection';
+import { TrustSection } from './TrustSection';
 import { RecentDuelsSection } from './RecentDuelsSection';
+import { HonorSection } from './HonorSection';
+import { ReputationSection } from './ReputationSection';
 import { CtaSection } from './CtaSection';
 import { JsonLd } from '@/components/seo/JsonLd';
 
@@ -13,9 +18,14 @@ export default function HomePage() {
           items: [{ name: 'Home', url: '/' }],
         }}
       />
+      <SideNav />
       <HeroSection />
       <HowItWorks />
       <RecentDuelsSection />
+      <TrustSection />
+      <OnboardingSection />
+      <HonorSection />
+      <ReputationSection />
       <CtaSection />
     </>
   );

@@ -34,8 +34,8 @@ const STATUS_CONFIG: Record<
   [DuelState.Funded]: { icon: Clock, colorClass: 'bg-green-50 text-green-700 border-green-200' },
   [DuelState.WinnerClaimed]: { icon: Clock, colorClass: 'bg-amber-50 text-amber-700 border-amber-200' },
   [DuelState.Resolved]: { icon: Trophy, colorClass: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  [DuelState.Refunded]: { icon: RotateCcw, colorClass: 'bg-gray-50 text-gray-600 border-gray-200' },
-  [DuelState.Cancelled]: { icon: XCircle, colorClass: 'bg-gray-50 text-gray-500 border-gray-200' },
+  [DuelState.Refunded]: { icon: RotateCcw, colorClass: 'bg-slate-50 text-slate-600 border-slate-200' },
+  [DuelState.Cancelled]: { icon: XCircle, colorClass: 'bg-slate-50 text-slate-500 border-slate-200' },
 };
 
 const STATUS_LABELS: Record<DuelState, string> = {
@@ -74,16 +74,16 @@ export default function DuelPage({
       {/* Back link */}
       <Link
         href="/dashboard"
-        className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-gray-900"
+        className="mb-6 inline-flex items-center gap-1.5 text-sm text-slate-500 transition-colors hover:text-slate-900"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         {t('nav.dashboard')}
       </Link>
 
       {/* Duel card */}
-      <Card className="border-gray-200 bg-white shadow-sm">
+      <Card className="border-slate-200 bg-white shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-xl font-semibold text-gray-900">
+          <CardTitle className="text-xl font-semibold text-slate-900">
             Duel #{duelId}
           </CardTitle>
           <span
@@ -97,11 +97,11 @@ export default function DuelPage({
         <CardContent className="flex flex-col gap-6">
           {/* Wager info */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1 rounded-lg bg-gray-50 p-3">
-              <span className="text-xs font-medium uppercase tracking-wide text-gray-400">
+            <div className="flex flex-col gap-1 rounded-lg bg-slate-50 p-3">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
                 {t('duel.wager')}
               </span>
-              <span className="text-xl font-bold text-gray-900">
+              <span className="text-xl font-bold text-slate-900">
                 {duel.amount} USDT
               </span>
             </div>
@@ -118,18 +118,18 @@ export default function DuelPage({
           {/* Players */}
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-gray-400">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
                 {t('duel.creator')}
               </span>
-              <span className="font-mono text-sm text-gray-700">
+              <span className="font-mono text-sm text-slate-700">
                 {truncateAddress(duel.creator)}
               </span>
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-gray-400">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
                 {t('duel.opponent')}
               </span>
-              <span className="font-mono text-sm text-gray-700">
+              <span className="font-mono text-sm text-slate-700">
                 {duel.opponent === ZERO ? '...' : truncateAddress(duel.opponent)}
               </span>
             </div>
@@ -146,7 +146,7 @@ export default function DuelPage({
 
           {/* Created — show share link and join button */}
           {isWaitingOpponent && (
-            <div className="flex flex-col gap-4 border-t border-gray-100 pt-4">
+            <div className="flex flex-col gap-4 border-t border-slate-100 pt-4">
               <ShareLink duelId={duelId} />
               <Button
                 size="lg"
@@ -159,7 +159,7 @@ export default function DuelPage({
 
           {/* Funded — show claim buttons */}
           {isFunded && (
-            <div className="border-t border-gray-100 pt-4">
+            <div className="border-t border-slate-100 pt-4">
               <ClaimButtons
                 onClaimVictory={() => {}}
                 onAdmitDefeat={() => {}}
@@ -170,7 +170,7 @@ export default function DuelPage({
 
           {/* WinnerClaimed — show confirm result */}
           {isWinnerClaimed && (
-            <div className="border-t border-gray-100 pt-4">
+            <div className="border-t border-slate-100 pt-4">
               <ConfirmResult
                 claimedBy={duel.claimedBy}
                 claimTimestamp={duel.claimTimestamp}
@@ -182,7 +182,7 @@ export default function DuelPage({
 
           {/* Resolved — show winner and claim */}
           {isResolved && duel.winner !== ZERO && (
-            <div className="flex flex-col gap-3 border-t border-gray-100 pt-4">
+            <div className="flex flex-col gap-3 border-t border-slate-100 pt-4">
               <div className="flex items-center gap-2 rounded-lg bg-emerald-50 p-3">
                 <Trophy className="h-5 w-5 text-emerald-600" />
                 <div className="flex flex-col">
@@ -205,17 +205,17 @@ export default function DuelPage({
 
           {/* Refunded */}
           {isRefunded && (
-            <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-3 border-t border-gray-100 mt-0">
-              <RotateCcw className="h-5 w-5 text-gray-500" />
-              <span className="text-sm text-gray-600">{t('duel.refunded')}</span>
+            <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-3 border-t border-slate-100 mt-0">
+              <RotateCcw className="h-5 w-5 text-slate-500" />
+              <span className="text-sm text-slate-600">{t('duel.refunded')}</span>
             </div>
           )}
 
           {/* Cancelled */}
           {isCancelled && (
-            <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-3 border-t border-gray-100 mt-0">
-              <XCircle className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-500">{t('duel.cancelled')}</span>
+            <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-3 border-t border-slate-100 mt-0">
+              <XCircle className="h-5 w-5 text-slate-400" />
+              <span className="text-sm text-slate-500">{t('duel.cancelled')}</span>
             </div>
           )}
 

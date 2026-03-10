@@ -31,7 +31,7 @@ export function ClaimButtons({
       <Button
         size="lg"
         variant="outline"
-        className="flex-1 border-gray-300 text-gray-600 hover:bg-gray-50"
+        className="flex-1 border-slate-300 text-slate-600 hover:bg-slate-50"
         onClick={onAdmitDefeat}
         disabled={isPending}
       >

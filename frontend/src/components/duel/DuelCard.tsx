@@ -7,6 +7,7 @@ import { DuelState } from '@/lib/contracts';
 import { truncateAddress } from '@/lib/utils';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/translations';
+import { ReputationBadge } from './ReputationBadge';
 
 interface DuelCardProps {
   duelId: number;
@@ -15,6 +16,7 @@ interface DuelCardProps {
   wager: number;
   state: DuelState;
   chain: string;
+  chainId: number;
 }
 
 const STATUS_CONFIG: Record<
@@ -39,11 +41,11 @@ const STATUS_CONFIG: Record<
   },
   [DuelState.Refunded]: {
     key: 'duel.refunded',
-    colorClass: 'bg-gray-50 text-gray-600 border-gray-200',
+    colorClass: 'bg-slate-50 text-slate-600 border-slate-200',
   },
   [DuelState.Cancelled]: {
     key: 'duel.cancelled',
-    colorClass: 'bg-gray-50 text-gray-500 border-gray-200',
+    colorClass: 'bg-slate-50 text-slate-500 border-slate-200',
   },
 };
 
@@ -54,17 +56,18 @@ export function DuelCard({
   wager,
   state,
   chain,
+  chainId,
 }: DuelCardProps) {
   const { t } = useTranslation();
   const config = STATUS_CONFIG[state];
 
   return (
     <Link href={`/duel/${duelId}`}>
-      <Card className="border-gray-200 bg-white shadow-sm transition-all hover:border-gray-300 hover:shadow-md">
+      <Card className="card-glow border-slate-200 bg-white shadow-sm">
         <CardContent className="flex items-center justify-between gap-4">
           <div className="flex flex-col gap-1.5 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-lg font-semibold text-gray-900">
+              <span className="text-lg font-semibold text-slate-900">
                 {wager} USDT
               </span>
               <span
@@ -73,14 +76,18 @@ export function DuelCard({
                 {t(config.key)}
               </span>
             </div>
-            <div className="flex items-center gap-1.5 text-sm text-gray-500">
+            <div className="flex flex-wrap items-center gap-1.5 text-sm text-slate-500">
               <span className="font-mono">{truncateAddress(creator)}</span>
-              <span>{t('recent.vs')}</span>
-              <span className="font-mono">
-                {opponent === '0x0000000000000000000000000000000000000000'
-                  ? '...'
-                  : truncateAddress(opponent)}
-              </span>
+              <ReputationBadge address={creator as `0x${string}`} chainId={chainId} />
+              <span className="vs-badge">VS</span>
+              {opponent === '0x0000000000000000000000000000000000000000' ? (
+                <span>...</span>
+              ) : (
+                <>
+                  <span className="font-mono">{truncateAddress(opponent)}</span>
+                  <ReputationBadge address={opponent as `0x${string}`} chainId={chainId} />
+                </>
+              )}
             </div>
           </div>
           <Badge variant="outline" className="shrink-0 text-xs">

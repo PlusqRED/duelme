@@ -39,8 +39,13 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
         DuelState state;
     }
 
+    struct PlayerStats {
+        uint32 duelsHonored;   // resolved normally (both confirmed)
+        uint32 duelsAbandoned; // this player was the non-responder in a refund
+    }
+
     mapping(uint256 => Duel) public duels;
-    mapping(address => int256) public duelRep;
+    mapping(address => PlayerStats) public playerStats;
 
     event DuelCreated(uint256 indexed duelId, address indexed creator, uint256 wagerAmount);
     event DuelJoined(uint256 indexed duelId, address indexed opponent);
@@ -145,8 +150,8 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
 
         duel.state = DuelState.Resolved;
 
-        duelRep[duel.creator] += 1;
-        duelRep[duel.opponent] += 1;
+        playerStats[duel.creator].duelsHonored += 1;
+        playerStats[duel.opponent].duelsHonored += 1;
 
         uint256 payout = duel.wagerAmount * 2;
         usdt.safeTransfer(duel.claimedWinner, payout);
@@ -167,12 +172,12 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
 
         duel.state = DuelState.Refunded;
 
-        // The player who made the claim gets +1 rep
-        duelRep[duel.claimedBy] += 1;
+        // The player who made the claim behaved correctly
+        playerStats[duel.claimedBy].duelsHonored += 1;
 
-        // The non-responding player gets -3 rep
+        // The non-responding player abandoned the duel
         address nonResponder = duel.claimedBy == duel.creator ? duel.opponent : duel.creator;
-        duelRep[nonResponder] -= 3;
+        playerStats[nonResponder].duelsAbandoned += 1;
 
         usdt.safeTransfer(duel.creator, duel.wagerAmount);
         usdt.safeTransfer(duel.opponent, duel.wagerAmount);
@@ -201,10 +206,12 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
         return duels[duelId];
     }
 
-    /// @notice Get a user's on-chain duel reputation
+    /// @notice Get a user's on-chain reputation stats
     /// @param user The address to query
-    /// @return The user's duelRep score (can be negative)
-    function getDuelRep(address user) external view returns (int256) {
-        return duelRep[user];
+    /// @return honored Number of duels resolved normally
+    /// @return abandoned Number of duels where user was the non-responder
+    function getPlayerStats(address user) external view returns (uint32 honored, uint32 abandoned) {
+        PlayerStats memory s = playerStats[user];
+        return (s.duelsHonored, s.duelsAbandoned);
     }
 }

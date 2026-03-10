@@ -3,6 +3,7 @@
 import { useRecentDuels } from '@/hooks/useRecentDuels';
 import { useTranslation } from '@/i18n/useTranslation';
 import { truncateAddress } from '@/lib/utils';
+import { ReputationBadge } from './ReputationBadge';
 import { Trophy } from 'lucide-react';
 
 export function RecentDuels() {
@@ -19,63 +20,74 @@ export function RecentDuels() {
 
   return (
     <div className="w-full">
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+      {/* Desktop table (md+) */}
+      <div className="card-glow hidden overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm md:block">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-gray-100 bg-gray-50/50">
-              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-gray-400">
+            <tr className="border-b border-slate-100 bg-slate-50/50">
+              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-slate-400">
                 Players
               </th>
-              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-gray-400">
+              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-slate-400">
                 {t('duel.wager')}
               </th>
-              <th className="hidden px-4 py-3 text-xs font-medium uppercase tracking-wide text-gray-400 sm:table-cell">
+              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-slate-400">
                 {t('duel.winner')}
               </th>
-              <th className="hidden px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-400 md:table-cell">
+              <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-400">
                 {t('create.chain')}
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-slate-100">
             {duels.map((duel) => {
               const isPlayer1Winner = duel.winner === duel.player1;
               return (
                 <tr
                   key={duel.id}
-                  className="transition-colors hover:bg-gray-50/50"
+                  className="transition-colors hover:bg-slate-50/50"
                 >
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className={`font-mono text-sm ${
-                          isPlayer1Winner
-                            ? 'font-semibold text-gray-900'
-                            : 'text-gray-500'
-                        }`}
-                      >
-                        {truncateAddress(duel.player1)}
-                      </span>
-                      <span className="text-xs text-gray-400">
-                        {t('recent.vs')}
-                      </span>
-                      <span
-                        className={`font-mono text-sm ${
-                          !isPlayer1Winner
-                            ? 'font-semibold text-gray-900'
-                            : 'text-gray-500'
-                        }`}
-                      >
-                        {truncateAddress(duel.player2)}
-                      </span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <ReputationBadge
+                          address={duel.player1 as `0x${string}`}
+                          chainId={duel.chain === 'Arbitrum One' ? 42161 : 137}
+                        />
+                        <span
+                          className={`font-mono text-sm ${
+                            isPlayer1Winner
+                              ? 'font-semibold text-slate-900'
+                              : 'text-slate-500'
+                          }`}
+                        >
+                          {truncateAddress(duel.player1)}
+                        </span>
+                      </div>
+                      <span className="vs-badge">VS</span>
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`font-mono text-sm ${
+                            !isPlayer1Winner
+                              ? 'font-semibold text-slate-900'
+                              : 'text-slate-500'
+                          }`}
+                        >
+                          {truncateAddress(duel.player2)}
+                        </span>
+                        <ReputationBadge
+                          address={duel.player2 as `0x${string}`}
+                          chainId={duel.chain === 'Arbitrum One' ? 42161 : 137}
+                        />
+                      </div>
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="font-semibold text-gray-900">
+                    <span className="font-semibold text-slate-900">
                       {duel.wager} USDT
                     </span>
                   </td>
-                  <td className="hidden px-4 py-3 sm:table-cell">
+                  <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
                       <Trophy className="h-3.5 w-3.5 text-amber-500" />
                       <span className="font-mono text-sm font-medium text-emerald-600">
@@ -83,8 +95,8 @@ export function RecentDuels() {
                       </span>
                     </div>
                   </td>
-                  <td className="hidden px-4 py-3 text-right md:table-cell">
-                    <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600">
+                  <td className="px-4 py-3 text-right">
+                    <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600">
                       {duel.chain}
                     </span>
                   </td>
@@ -93,6 +105,71 @@ export function RecentDuels() {
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile cards (< md) */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {duels.map((duel) => {
+          const isPlayer1Winner = duel.winner === duel.player1;
+          return (
+            <div
+              key={duel.id}
+              className="card-glow rounded-xl border border-slate-200 bg-white p-4"
+            >
+              {/* Players row */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-col items-start gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <ReputationBadge
+                      address={duel.player1 as `0x${string}`}
+                      chainId={duel.chain === 'Arbitrum One' ? 42161 : 137}
+                    />
+                    <span
+                      className={`font-mono text-sm ${
+                        isPlayer1Winner
+                          ? 'font-semibold text-slate-900'
+                          : 'text-slate-500'
+                      }`}
+                    >
+                      {truncateAddress(duel.player1)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <ReputationBadge
+                      address={duel.player2 as `0x${string}`}
+                      chainId={duel.chain === 'Arbitrum One' ? 42161 : 137}
+                    />
+                    <span
+                      className={`font-mono text-sm ${
+                        !isPlayer1Winner
+                          ? 'font-semibold text-slate-900'
+                          : 'text-slate-500'
+                      }`}
+                    >
+                      {truncateAddress(duel.player2)}
+                    </span>
+                  </div>
+                </div>
+                <span className="vs-badge shrink-0">VS</span>
+              </div>
+              {/* Bottom row: wager, winner, chain */}
+              <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
+                <span className="text-sm font-semibold text-slate-900">
+                  {duel.wager} USDT
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <Trophy className="h-3.5 w-3.5 text-amber-500" />
+                  <span className="font-mono text-xs font-medium text-emerald-600">
+                    {truncateAddress(duel.winner)}
+                  </span>
+                </div>
+                <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                  {duel.chain === 'Arbitrum One' ? 'Arbitrum' : 'Polygon'}
+                </span>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
