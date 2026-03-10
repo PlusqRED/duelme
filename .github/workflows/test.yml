@@ -75,7 +75,7 @@ jobs:
         uses: schneegans/dynamic-badges-action@v1.7.0
         with:
           auth: ${{ secrets.GIST_TOKEN }}
-          gistID: 69b27e3902f28e6b5fd2495fc2143f18
+          gistID: ${{ secrets.COVERAGE_GIST_ID }}
           filename: duelme-coverage.json
           label: coverage
           message: ${{ steps.coverage.outputs.total_coverage }}%
