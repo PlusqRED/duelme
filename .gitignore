@@ -1,7 +1,7 @@
 # Foundry
 contracts/out/
 contracts/cache/
-contracts/lib/
+# contracts/lib/ — tracked as git submodules
 
 # Node
 node_modules/
