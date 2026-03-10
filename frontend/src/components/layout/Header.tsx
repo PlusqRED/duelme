@@ -3,12 +3,12 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
-import { Menu, X, Swords, LogOut, User, Wallet, Globe, Send, Copy, Check, ChevronDown, KeyRound } from 'lucide-react';
+import { Menu, X, Swords, LogOut, User, Wallet, Globe, Send, Copy, Check, ChevronDown, KeyRound, Fuel } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/i18n/useTranslation';
 import { usePrivy, useWallets, useExportWallet } from '@privy-io/react-auth';
-import { useReadContract } from 'wagmi';
+import { useReadContract, useBalance } from 'wagmi';
 import { formatUnits, parseUnits, encodeFunctionData } from 'viem';
 import { SUPPORTED_CHAINS, USDT_DECIMALS } from '@/lib/constants';
 import { toast } from 'sonner';
@@ -103,6 +103,17 @@ export function Header() {
     chainId: 137,
     query: { enabled: !!walletAddress },
   });
+
+  // Read ETH balance on selected chain (for gas)
+  const { data: ethBalanceData } = useBalance({
+    address: walletAddress,
+    chainId: selectedChain,
+    query: { enabled: !!walletAddress },
+  });
+
+  const ethBalance = ethBalanceData ? parseFloat(formatUnits(ethBalanceData.value, 18)) : 0;
+  const formattedEth = ethBalance < 0.0001 && ethBalance > 0 ? '<0.0001' : ethBalance.toFixed(4);
+  const lowGas = ethBalance < 0.0005;
 
   const balances: Record<number, number> = {
     421614: arbSepoliaRaw !== undefined ? parseFloat(formatUnits(arbSepoliaRaw, USDT_DECIMALS)) : 0,
@@ -259,7 +270,24 @@ export function Header() {
           </div>
         </div>
         <span className="text-lg font-bold text-slate-900">{formattedUsdt} <span className="text-sm font-normal text-slate-400">USDT</span></span>
-        <div className="mt-1 flex items-center gap-1.5 border-t border-slate-200 pt-1.5">
+
+        {/* ETH for gas */}
+        <div className="mt-1.5 flex items-center justify-between">
+          <div className="flex items-center gap-1">
+            <Fuel className={`h-3 w-3 ${lowGas ? 'text-red-500' : 'text-slate-400'}`} />
+            <span className={`text-xs font-medium ${lowGas ? 'text-red-600' : 'text-slate-600'}`}>{formattedEth} ETH</span>
+          </div>
+          <span className="text-[10px] text-slate-400">gas</span>
+        </div>
+        {lowGas && (
+          <p className="mt-1 text-[10px] text-red-500">
+            {language === 'ru'
+              ? 'Мало ETH для газа — нужен для создания дуэлей, принятия вызовов и отправки USDT'
+              : 'Low ETH for gas — needed to create duels, accept challenges & send USDT'}
+          </p>
+        )}
+
+        <div className="mt-1.5 flex items-center gap-1.5 border-t border-slate-200 pt-1.5">
           <span className="text-[10px] text-slate-400">{t('wallet.totalChains')}</span>
           <span className="text-[10px] font-semibold text-slate-500">{totalUsdt} USDT</span>
         </div>
