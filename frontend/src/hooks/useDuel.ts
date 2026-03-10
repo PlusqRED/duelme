@@ -29,12 +29,11 @@ export function useDuel(duelId: bigint, chainId: number): UseDuelResult {
     ? {
         creator: data.creator,
         opponent: data.opponent,
-        amount: data.amount,
-        state: data.state as DuelState,
-        winner: data.winner,
+        wagerAmount: data.wagerAmount,
+        claimedWinner: data.claimedWinner,
         claimedBy: data.claimedBy,
         claimTimestamp: data.claimTimestamp,
-        token: data.token,
+        state: data.state as DuelState,
       }
     : undefined;
 

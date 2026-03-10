@@ -34,10 +34,10 @@ const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 export function DuelStatus({ duel, duelId }: DuelStatusProps) {
   const { t } = useTranslation();
-  const wagerDisplay = formatUSDT(duel.amount);
+  const wagerDisplay = formatUSDT(duel.wagerAmount);
   const isFundedOrBeyond = duel.state >= DuelState.Funded;
   const potDisplay = isFundedOrBeyond
-    ? formatUSDT(duel.amount * 2n)
+    ? formatUSDT(duel.wagerAmount * 2n)
     : wagerDisplay;
 
   return (
@@ -100,13 +100,13 @@ export function DuelStatus({ duel, duelId }: DuelStatusProps) {
 
           {/* Winner (if resolved) */}
           {duel.state === DuelState.Resolved &&
-            duel.winner !== ZERO_ADDRESS && (
+            duel.claimedWinner !== ZERO_ADDRESS && (
               <div className="col-span-2 flex flex-col gap-1">
                 <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
                   {t('duel.winner')}
                 </span>
                 <span className="font-mono text-sm font-semibold text-emerald-600">
-                  {truncateAddress(duel.winner)}
+                  {truncateAddress(duel.claimedWinner)}
                 </span>
               </div>
             )}

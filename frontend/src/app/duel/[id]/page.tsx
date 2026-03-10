@@ -3,28 +3,18 @@
 import { use } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { ShareLink } from '@/components/duel/ShareLink';
 import { ClaimButtons } from '@/components/duel/ClaimButtons';
 import { ConfirmResult } from '@/components/duel/ConfirmResult';
 import { useTranslation } from '@/i18n/useTranslation';
 import { DuelState } from '@/lib/contracts';
 import { truncateAddress } from '@/lib/utils';
+import { SUPPORTED_CHAINS } from '@/lib/constants';
+import { useDuel } from '@/hooks/useDuel';
+import { useDuelActions } from '@/hooks/useDuelActions';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { Clock, Trophy, ArrowLeft, XCircle, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
-
-// Mock duel data for demonstration
-const MOCK_DUEL = {
-  id: 1,
-  creator: '0x1a2B3c4D5e6F7890abCDeF1234567890AbCdEf12',
-  opponent: '0x0000000000000000000000000000000000000000',
-  amount: 50,
-  state: DuelState.Created,
-  winner: '0x0000000000000000000000000000000000000000',
-  claimedBy: '0x0000000000000000000000000000000000000000',
-  claimTimestamp: 0,
-  chain: 'Arbitrum One',
-};
 
 const STATUS_CONFIG: Record<
   DuelState,
@@ -47,6 +37,9 @@ const STATUS_LABELS: Record<DuelState, string> = {
   [DuelState.Cancelled]: 'duel.cancelled',
 };
 
+// TODO: detect chain from URL param or duel lookup across chains
+const DEFAULT_CHAIN_ID = SUPPORTED_CHAINS.arbitrum.id;
+
 export default function DuelPage({
   params,
 }: {
@@ -56,8 +49,44 @@ export default function DuelPage({
   const { t } = useTranslation();
   const duelId = parseInt(id, 10);
 
-  // Using mock data for now — will be replaced with useDuel hook when contract is deployed
-  const duel = { ...MOCK_DUEL, id: duelId };
+  const { authenticated } = usePrivy();
+  const { wallets } = useWallets();
+  const walletAddress = wallets[0]?.address?.toLowerCase();
+
+  const { duel, isLoading, isError, refetch } = useDuel(BigInt(duelId), DEFAULT_CHAIN_ID);
+  const {
+    joinDuel,
+    claimVictory,
+    admitDefeat,
+    confirmResult,
+    refund,
+    cancelDuel,
+    isPending,
+    isConfirming,
+  } = useDuelActions(DEFAULT_CHAIN_ID);
+
+  const txPending = isPending || isConfirming;
+  const ZERO = '0x0000000000000000000000000000000000000000';
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <span className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (isError || !duel) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-12 text-center">
+        <p className="text-slate-500">Duel not found or contract not deployed yet.</p>
+        <Link href="/" className="mt-4 inline-block text-sm text-indigo-600 hover:underline">
+          Back to home
+        </Link>
+      </div>
+    );
+  }
+
   const state = duel.state;
   const statusConfig = STATUS_CONFIG[state];
   const StatusIcon = statusConfig.icon;
@@ -67,7 +96,15 @@ export default function DuelPage({
   const isResolved = state === DuelState.Resolved;
   const isRefunded = state === DuelState.Refunded;
   const isCancelled = state === DuelState.Cancelled;
-  const ZERO = '0x0000000000000000000000000000000000000000';
+
+  const isCreator = walletAddress === duel.creator.toLowerCase();
+  const isOpponent = walletAddress === duel.opponent.toLowerCase();
+  const isParticipant = isCreator || isOpponent;
+  const isClaimAuthor = walletAddress === duel.claimedBy.toLowerCase();
+
+  // Convert wagerAmount from raw (6 decimals) to display
+  const wagerDisplay = Number(duel.wagerAmount) / 1e6;
+  const potDisplay = duel.opponent !== ZERO ? wagerDisplay * 2 : wagerDisplay;
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
@@ -81,7 +118,7 @@ export default function DuelPage({
       </Link>
 
       {/* Duel card */}
-      <Card className="border-slate-200 bg-white shadow-sm">
+      <Card className="card-glow border-slate-200 bg-white shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-xl font-semibold text-slate-900">
             Duel #{duelId}
@@ -102,7 +139,7 @@ export default function DuelPage({
                 {t('duel.wager')}
               </span>
               <span className="text-xl font-bold text-slate-900">
-                {duel.amount} USDT
+                {wagerDisplay} USDT
               </span>
             </div>
             <div className="flex flex-col gap-1 rounded-lg bg-indigo-50 p-3">
@@ -110,7 +147,7 @@ export default function DuelPage({
                 {t('duel.pot')}
               </span>
               <span className="text-xl font-bold text-indigo-600">
-                {duel.opponent !== ZERO ? duel.amount * 2 : duel.amount} USDT
+                {potDisplay} USDT
               </span>
             </div>
           </div>
@@ -135,53 +172,60 @@ export default function DuelPage({
             </div>
           </div>
 
-          {/* Chain */}
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">
-              {duel.chain}
-            </Badge>
-          </div>
-
           {/* Conditional sections based on state */}
 
           {/* Created — show share link and join button */}
           {isWaitingOpponent && (
             <div className="flex flex-col gap-4 border-t border-slate-100 pt-4">
               <ShareLink duelId={duelId} />
-              <Button
-                size="lg"
-                className="w-full bg-indigo-600 text-white hover:bg-indigo-700"
-              >
-                {t('action.join')}
-              </Button>
+              {authenticated && !isCreator && (
+                <Button
+                  size="lg"
+                  className="w-full bg-indigo-600 text-white hover:bg-indigo-700"
+                  onClick={() => joinDuel(BigInt(duelId))}
+                  disabled={txPending}
+                >
+                  {txPending ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      Joining...
+                    </span>
+                  ) : (
+                    t('action.join')
+                  )}
+                </Button>
+              )}
             </div>
           )}
 
-          {/* Funded — show claim buttons */}
-          {isFunded && (
+          {/* Funded — show claim buttons (only for participants) */}
+          {isFunded && isParticipant && (
             <div className="border-t border-slate-100 pt-4">
               <ClaimButtons
-                onClaimVictory={() => {}}
-                onAdmitDefeat={() => {}}
-                isPending={false}
+                onClaimVictory={() => claimVictory(BigInt(duelId))}
+                onAdmitDefeat={() => admitDefeat(BigInt(duelId))}
+                isPending={txPending}
               />
             </div>
           )}
 
-          {/* WinnerClaimed — show confirm result */}
+          {/* WinnerClaimed — show confirm result (only for the OTHER player) */}
           {isWinnerClaimed && (
             <div className="border-t border-slate-100 pt-4">
               <ConfirmResult
                 claimedBy={duel.claimedBy}
-                claimTimestamp={duel.claimTimestamp}
-                onConfirm={() => {}}
-                isPending={false}
+                claimTimestamp={Number(duel.claimTimestamp)}
+                onConfirm={() => confirmResult(BigInt(duelId))}
+                onRefund={() => refund(BigInt(duelId))}
+                isPending={txPending}
+                canConfirm={isParticipant && !isClaimAuthor}
+                canRefund={true}
               />
             </div>
           )}
 
-          {/* Resolved — show winner and claim */}
-          {isResolved && duel.winner !== ZERO && (
+          {/* Resolved — show winner */}
+          {isResolved && duel.claimedWinner !== ZERO && (
             <div className="flex flex-col gap-3 border-t border-slate-100 pt-4">
               <div className="flex items-center gap-2 rounded-lg bg-emerald-50 p-3">
                 <Trophy className="h-5 w-5 text-emerald-600" />
@@ -190,22 +234,16 @@ export default function DuelPage({
                     {t('duel.winner')}
                   </span>
                   <span className="font-mono text-sm font-semibold text-emerald-700">
-                    {truncateAddress(duel.winner)}
+                    {truncateAddress(duel.claimedWinner)}
                   </span>
                 </div>
               </div>
-              <Button
-                size="lg"
-                className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
-              >
-                {t('action.claimPrize')}
-              </Button>
             </div>
           )}
 
           {/* Refunded */}
           {isRefunded && (
-            <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-3 border-t border-slate-100 mt-0">
+            <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-3 border-t border-slate-100">
               <RotateCcw className="h-5 w-5 text-slate-500" />
               <span className="text-sm text-slate-600">{t('duel.refunded')}</span>
             </div>
@@ -213,15 +251,21 @@ export default function DuelPage({
 
           {/* Cancelled */}
           {isCancelled && (
-            <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-3 border-t border-slate-100 mt-0">
+            <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-3 border-t border-slate-100">
               <XCircle className="h-5 w-5 text-slate-400" />
               <span className="text-sm text-slate-500">{t('duel.cancelled')}</span>
             </div>
           )}
 
-          {/* Cancel button (only for creator when waiting) */}
-          {isWaitingOpponent && (
-            <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600 hover:bg-red-50">
+          {/* Cancel button (only for creator when waiting for opponent) */}
+          {isWaitingOpponent && isCreator && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-red-500 hover:text-red-600 hover:bg-red-50"
+              onClick={() => cancelDuel(BigInt(duelId))}
+              disabled={txPending}
+            >
               {t('action.cancel')}
             </Button>
           )}

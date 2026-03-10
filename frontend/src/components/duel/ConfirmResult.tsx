@@ -6,20 +6,26 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTranslation } from '@/i18n/useTranslation';
 import { truncateAddress, formatTimeRemaining } from '@/lib/utils';
 import { CLAIM_TIMEOUT } from '@/lib/constants';
-import { CheckCircle, Clock } from 'lucide-react';
+import { CheckCircle, Clock, RotateCcw } from 'lucide-react';
 
 interface ConfirmResultProps {
   claimedBy: string;
   claimTimestamp: number;
   onConfirm: () => void;
+  onRefund: () => void;
   isPending: boolean;
+  canConfirm: boolean;
+  canRefund: boolean;
 }
 
 export function ConfirmResult({
   claimedBy,
   claimTimestamp,
   onConfirm,
+  onRefund,
   isPending,
+  canConfirm,
+  canRefund,
 }: ConfirmResultProps) {
   const { t } = useTranslation();
   const [remaining, setRemaining] = useState(0);
@@ -35,6 +41,8 @@ export function ConfirmResult({
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
   }, [claimTimestamp]);
+
+  const timedOut = remaining <= 0;
 
   return (
     <Card className="border-amber-200 bg-amber-50 shadow-sm">
@@ -60,22 +68,35 @@ export function ConfirmResult({
         </div>
 
         <div className="flex gap-3">
-          <Button
-            size="lg"
-            className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700"
-            onClick={onConfirm}
-            disabled={isPending}
-          >
-            <CheckCircle className="mr-2 h-4 w-4" />
-            {t('action.confirm')}
-          </Button>
+          {canConfirm && !timedOut && (
+            <Button
+              size="lg"
+              className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700"
+              onClick={onConfirm}
+              disabled={isPending}
+            >
+              <CheckCircle className="mr-2 h-4 w-4" />
+              {t('action.confirm')}
+            </Button>
+          )}
+          {canRefund && timedOut && (
+            <Button
+              size="lg"
+              variant="outline"
+              className="flex-1 border-slate-300"
+              onClick={onRefund}
+              disabled={isPending}
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Refund
+            </Button>
+          )}
         </div>
 
         <p className="text-xs text-amber-600">
-          {t('action.deny')} &mdash;{' '}
-          {remaining <= 0
+          {timedOut
             ? 'Timeout reached. Both players can claim a refund.'
-            : 'If you do not confirm, both players will be refunded after the timeout.'}
+            : 'If the result is not confirmed within 1 hour, both players will be refunded.'}
         </p>
       </CardContent>
     </Card>

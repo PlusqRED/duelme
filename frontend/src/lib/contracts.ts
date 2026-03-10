@@ -12,12 +12,11 @@ export const duelMeAbi = [
         components: [
           { name: 'creator', type: 'address' },
           { name: 'opponent', type: 'address' },
-          { name: 'amount', type: 'uint256' },
-          { name: 'state', type: 'uint8' },
-          { name: 'winner', type: 'address' },
+          { name: 'wagerAmount', type: 'uint256' },
+          { name: 'claimedWinner', type: 'address' },
           { name: 'claimedBy', type: 'address' },
           { name: 'claimTimestamp', type: 'uint256' },
-          { name: 'token', type: 'address' },
+          { name: 'state', type: 'uint8' },
         ],
       },
     ],
@@ -57,13 +56,33 @@ export const duelMeAbi = [
     outputs: [
       { name: 'creator', type: 'address' },
       { name: 'opponent', type: 'address' },
-      { name: 'amount', type: 'uint256' },
-      { name: 'state', type: 'uint8' },
-      { name: 'winner', type: 'address' },
+      { name: 'wagerAmount', type: 'uint256' },
+      { name: 'claimedWinner', type: 'address' },
       { name: 'claimedBy', type: 'address' },
       { name: 'claimTimestamp', type: 'uint256' },
-      { name: 'token', type: 'address' },
+      { name: 'state', type: 'uint8' },
     ],
+  },
+  {
+    name: 'usdt',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'address' }],
+  },
+  {
+    name: 'MIN_WAGER',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    name: 'CLAIM_TIMEOUT',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
   },
 
   // Write functions
@@ -71,10 +90,7 @@ export const duelMeAbi = [
     name: 'createDuel',
     type: 'function',
     stateMutability: 'nonpayable',
-    inputs: [
-      { name: 'amount', type: 'uint256' },
-      { name: 'token', type: 'address' },
-    ],
+    inputs: [{ name: 'amount', type: 'uint256' }],
     outputs: [{ name: 'duelId', type: 'uint256' }],
   },
   {
@@ -127,8 +143,7 @@ export const duelMeAbi = [
     inputs: [
       { name: 'duelId', type: 'uint256', indexed: true },
       { name: 'creator', type: 'address', indexed: true },
-      { name: 'amount', type: 'uint256', indexed: false },
-      { name: 'token', type: 'address', indexed: false },
+      { name: 'wagerAmount', type: 'uint256', indexed: false },
     ],
   },
   {
@@ -145,6 +160,7 @@ export const duelMeAbi = [
     inputs: [
       { name: 'duelId', type: 'uint256', indexed: true },
       { name: 'claimedBy', type: 'address', indexed: true },
+      { name: 'claimedWinner', type: 'address', indexed: true },
     ],
   },
   {
@@ -153,7 +169,7 @@ export const duelMeAbi = [
     inputs: [
       { name: 'duelId', type: 'uint256', indexed: true },
       { name: 'winner', type: 'address', indexed: true },
-      { name: 'payout', type: 'uint256', indexed: false },
+      { name: 'amount', type: 'uint256', indexed: false },
     ],
   },
   {
@@ -208,10 +224,9 @@ export enum DuelState {
 export interface Duel {
   creator: `0x${string}`;
   opponent: `0x${string}`;
-  amount: bigint;
-  state: DuelState;
-  winner: `0x${string}`;
+  wagerAmount: bigint;
+  claimedWinner: `0x${string}`;
   claimedBy: `0x${string}`;
   claimTimestamp: bigint;
-  token: `0x${string}`;
+  state: DuelState;
 }

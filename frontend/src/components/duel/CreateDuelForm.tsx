@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { parseUnits } from 'viem';
+import { useReadContract } from 'wagmi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/i18n/useTranslation';
-import { SUPPORTED_CHAINS, MIN_WAGER, USDT_DECIMALS } from '@/lib/constants';
+import { SUPPORTED_CHAINS, MIN_WAGER, USDT_DECIMALS, DUELME_ADDRESSES } from '@/lib/constants';
+import { erc20Abi } from '@/lib/contracts';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useDuelActions } from '@/hooks/useDuelActions';
 import { Swords, Shield, Zap, DollarSign } from 'lucide-react';
@@ -25,8 +27,43 @@ export function CreateDuelForm() {
   const activeWallet = wallets[0];
 
   const chainConfig = SUPPORTED_CHAINS[selectedChain];
-  const { createDuel, approveToken, isPending, isConfirming, isSuccess, error } =
+  const contractAddress = DUELME_ADDRESSES[chainConfig.id];
+  const { createDuel, approveToken, isPending, isConfirming, isSuccess, error, reset } =
     useDuelActions(chainConfig.id);
+
+  // Track whether we're in the approve step or create step
+  const [step, setStep] = useState<'idle' | 'approving' | 'creating'>('idle');
+  const pendingAmount = useRef<bigint>(0n);
+
+  // Check current allowance
+  const walletAddress = activeWallet?.address as `0x${string}` | undefined;
+  const { data: currentAllowance, refetch: refetchAllowance } = useReadContract({
+    address: chainConfig.usdt,
+    abi: erc20Abi,
+    functionName: 'allowance',
+    args: walletAddress && contractAddress ? [walletAddress, contractAddress] : undefined,
+    chainId: chainConfig.id,
+    query: { enabled: !!walletAddress && !!contractAddress },
+  });
+
+  // When approval tx confirms, proceed to createDuel
+  useEffect(() => {
+    if (isSuccess && step === 'approving') {
+      refetchAllowance();
+      reset();
+      setStep('creating');
+      toast.info('Creating duel...');
+      createDuel(pendingAmount.current);
+    }
+  }, [isSuccess, step, refetchAllowance, reset, createDuel]);
+
+  // When create tx confirms, redirect
+  useEffect(() => {
+    if (isSuccess && step === 'creating') {
+      setStep('idle');
+      toast.success('Duel created!');
+    }
+  }, [isSuccess, step]);
 
   const numericAmount = parseFloat(amount) || 0;
   const isValidAmount = numericAmount >= MIN_WAGER;
@@ -52,13 +89,17 @@ export function CreateDuelForm() {
     }
 
     const rawAmount = parseUnits(amount, USDT_DECIMALS);
-    const token = chainConfig.usdt;
+    pendingAmount.current = rawAmount;
 
-    try {
-      approveToken(token, rawAmount);
+    // Check if we already have sufficient allowance
+    if (currentAllowance !== undefined && currentAllowance >= rawAmount) {
+      setStep('creating');
+      toast.info('Creating duel...');
+      createDuel(rawAmount);
+    } else {
+      setStep('approving');
       toast.info('Approve USDT spending first...');
-    } catch {
-      toast.error('Failed to create duel');
+      approveToken(chainConfig.usdt, rawAmount);
     }
   }
 

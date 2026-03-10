@@ -29,6 +29,7 @@ contract DuelMeTest is Test {
     address public alice = makeAddr("alice");
     address public bob = makeAddr("bob");
     address public charlie = makeAddr("charlie");
+    address public dave = makeAddr("dave");
 
     uint256 public constant WAGER = 10_000_000; // 10 USDT
     uint256 public constant MIN_WAGER = 3_000_000; // 3 USDT
@@ -41,32 +42,73 @@ contract DuelMeTest is Test {
         usdt.mint(alice, 1_000_000_000); // 1000 USDT
         usdt.mint(bob, 1_000_000_000);
         usdt.mint(charlie, 1_000_000_000);
+        usdt.mint(dave, 1_000_000_000);
 
         // Approve DuelMe contract
         vm.prank(alice);
         usdt.approve(address(duelMe), type(uint256).max);
-
         vm.prank(bob);
         usdt.approve(address(duelMe), type(uint256).max);
-
         vm.prank(charlie);
+        usdt.approve(address(duelMe), type(uint256).max);
+        vm.prank(dave);
         usdt.approve(address(duelMe), type(uint256).max);
     }
 
-    // ---------------------------------------------------------------
-    // Helper: create and fund a duel between alice (creator) and bob (opponent)
-    // ---------------------------------------------------------------
+    // =====================================================================
+    // Helpers
+    // =====================================================================
+
+    function _assertStats(address player, uint32 expectedHonored, uint32 expectedAbandoned, string memory label) internal view {
+        (uint32 honored, uint32 abandoned) = duelMe.getPlayerStats(player);
+        assertEq(honored, expectedHonored, string.concat(label, " - honored"));
+        assertEq(abandoned, expectedAbandoned, string.concat(label, " - abandoned"));
+    }
+
     function _createAndFundDuel() internal returns (uint256 duelId) {
         vm.prank(alice);
         duelId = duelMe.createDuel(WAGER);
-
         vm.prank(bob);
         duelMe.joinDuel(duelId);
     }
 
-    // ---------------------------------------------------------------
-    // 1. testCreateDuel
-    // ---------------------------------------------------------------
+    function _createFundAndClaim() internal returns (uint256 duelId) {
+        duelId = _createAndFundDuel();
+        vm.prank(alice);
+        duelMe.claimVictory(duelId);
+    }
+
+    function _createFundClaimAndResolve() internal returns (uint256 duelId) {
+        duelId = _createFundAndClaim();
+        vm.prank(bob);
+        duelMe.confirmResult(duelId);
+    }
+
+    function _createFundClaimAndRefund() internal returns (uint256 duelId) {
+        duelId = _createFundAndClaim();
+        vm.warp(block.timestamp + 3601);
+        duelMe.refund(duelId);
+    }
+
+    // =====================================================================
+    // Constructor
+    // =====================================================================
+
+    function testConstructor() public view {
+        assertEq(address(duelMe.usdt()), address(usdt));
+        assertEq(duelMe.owner(), address(this));
+        assertEq(duelMe.duelCount(), 0);
+    }
+
+    function testConstructorRejectsZeroAddress() public {
+        vm.expectRevert("Invalid USDT address");
+        new DuelMe(address(0));
+    }
+
+    // =====================================================================
+    // createDuel
+    // =====================================================================
+
     function testCreateDuel() public {
         uint256 aliceBalBefore = usdt.balanceOf(alice);
 
@@ -77,27 +119,95 @@ contract DuelMeTest is Test {
         assertEq(duelMe.duelCount(), 1, "duelCount should be 1");
 
         DuelMe.Duel memory d = duelMe.getDuel(duelId);
-        assertEq(d.creator, alice, "Creator should be alice");
-        assertEq(d.opponent, address(0), "Opponent should be zero");
-        assertEq(d.wagerAmount, WAGER, "Wager amount mismatch");
-        assertEq(uint256(d.state), uint256(DuelMe.DuelState.Created), "State should be Created");
+        assertEq(d.creator, alice);
+        assertEq(d.opponent, address(0));
+        assertEq(d.wagerAmount, WAGER);
+        assertEq(d.claimedWinner, address(0));
+        assertEq(d.claimedBy, address(0));
+        assertEq(d.claimTimestamp, 0);
+        assertEq(uint256(d.state), uint256(DuelMe.DuelState.Created));
 
-        assertEq(usdt.balanceOf(alice), aliceBalBefore - WAGER, "Alice balance should decrease");
-        assertEq(usdt.balanceOf(address(duelMe)), WAGER, "Contract should hold wager");
+        assertEq(usdt.balanceOf(alice), aliceBalBefore - WAGER);
+        assertEq(usdt.balanceOf(address(duelMe)), WAGER);
     }
 
-    // ---------------------------------------------------------------
-    // 2. testCreateDuelBelowMinimum
-    // ---------------------------------------------------------------
+    function testCreateDuelExactMinimum() public {
+        vm.prank(alice);
+        uint256 duelId = duelMe.createDuel(MIN_WAGER);
+
+        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        assertEq(d.wagerAmount, MIN_WAGER);
+    }
+
     function testCreateDuelBelowMinimum() public {
         vm.prank(alice);
         vm.expectRevert("Wager below minimum");
         duelMe.createDuel(MIN_WAGER - 1);
     }
 
-    // ---------------------------------------------------------------
-    // 3. testJoinDuel
-    // ---------------------------------------------------------------
+    function testCreateDuelZeroAmount() public {
+        vm.prank(alice);
+        vm.expectRevert("Wager below minimum");
+        duelMe.createDuel(0);
+    }
+
+    function testCreateDuelLargeWager() public {
+        uint256 largeWager = 1_000_000_000_000; // 1M USDT
+        usdt.mint(alice, largeWager);
+
+        vm.prank(alice);
+        uint256 duelId = duelMe.createDuel(largeWager);
+
+        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        assertEq(d.wagerAmount, largeWager);
+    }
+
+    function testCreateDuelInsufficientBalance() public {
+        address broke = makeAddr("broke");
+        usdt.mint(broke, WAGER - 1);
+        vm.prank(broke);
+        usdt.approve(address(duelMe), type(uint256).max);
+
+        vm.prank(broke);
+        vm.expectRevert();
+        duelMe.createDuel(WAGER);
+    }
+
+    function testCreateDuelNoApproval() public {
+        address noApproval = makeAddr("noApproval");
+        usdt.mint(noApproval, WAGER);
+        // No approve call
+
+        vm.prank(noApproval);
+        vm.expectRevert();
+        duelMe.createDuel(WAGER);
+    }
+
+    function testCreateDuelIncrementsId() public {
+        vm.prank(alice);
+        uint256 id0 = duelMe.createDuel(WAGER);
+        vm.prank(alice);
+        uint256 id1 = duelMe.createDuel(WAGER);
+        vm.prank(bob);
+        uint256 id2 = duelMe.createDuel(WAGER);
+
+        assertEq(id0, 0);
+        assertEq(id1, 1);
+        assertEq(id2, 2);
+        assertEq(duelMe.duelCount(), 3);
+    }
+
+    function testCreateDuelEmitsEvent() public {
+        vm.prank(alice);
+        vm.expectEmit(true, true, false, true);
+        emit DuelMe.DuelCreated(0, alice, WAGER);
+        duelMe.createDuel(WAGER);
+    }
+
+    // =====================================================================
+    // joinDuel
+    // =====================================================================
+
     function testJoinDuel() public {
         vm.prank(alice);
         uint256 duelId = duelMe.createDuel(WAGER);
@@ -108,15 +218,12 @@ contract DuelMeTest is Test {
         duelMe.joinDuel(duelId);
 
         DuelMe.Duel memory d = duelMe.getDuel(duelId);
-        assertEq(d.opponent, bob, "Opponent should be bob");
-        assertEq(uint256(d.state), uint256(DuelMe.DuelState.Funded), "State should be Funded");
-        assertEq(usdt.balanceOf(bob), bobBalBefore - WAGER, "Bob balance should decrease");
-        assertEq(usdt.balanceOf(address(duelMe)), WAGER * 2, "Contract should hold both wagers");
+        assertEq(d.opponent, bob);
+        assertEq(uint256(d.state), uint256(DuelMe.DuelState.Funded));
+        assertEq(usdt.balanceOf(bob), bobBalBefore - WAGER);
+        assertEq(usdt.balanceOf(address(duelMe)), WAGER * 2);
     }
 
-    // ---------------------------------------------------------------
-    // 4. testJoinDuelSelf
-    // ---------------------------------------------------------------
     function testJoinDuelSelf() public {
         vm.prank(alice);
         uint256 duelId = duelMe.createDuel(WAGER);
@@ -126,118 +233,410 @@ contract DuelMeTest is Test {
         duelMe.joinDuel(duelId);
     }
 
-    // ---------------------------------------------------------------
-    // 5. testClaimVictory
-    // ---------------------------------------------------------------
-    function testClaimVictory() public {
+    function testJoinDuelAlreadyFunded() public {
         uint256 duelId = _createAndFundDuel();
 
-        uint256 claimTime = block.timestamp;
+        vm.prank(charlie);
+        vm.expectRevert("Duel not in Created state");
+        duelMe.joinDuel(duelId);
+    }
+
+    function testJoinDuelCancelled() public {
+        vm.prank(alice);
+        uint256 duelId = duelMe.createDuel(WAGER);
+        vm.prank(alice);
+        duelMe.cancelDuel(duelId);
+
+        vm.prank(bob);
+        vm.expectRevert("Duel not in Created state");
+        duelMe.joinDuel(duelId);
+    }
+
+    function testJoinDuelResolved() public {
+        uint256 duelId = _createFundClaimAndResolve();
+
+        vm.prank(charlie);
+        vm.expectRevert("Duel not in Created state");
+        duelMe.joinDuel(duelId);
+    }
+
+    function testJoinDuelNoApproval() public {
+        vm.prank(alice);
+        uint256 duelId = duelMe.createDuel(WAGER);
+
+        address noApproval = makeAddr("noApproval");
+        usdt.mint(noApproval, WAGER);
+
+        vm.prank(noApproval);
+        vm.expectRevert();
+        duelMe.joinDuel(duelId);
+    }
+
+    function testJoinDuelEmitsEvent() public {
+        vm.prank(alice);
+        uint256 duelId = duelMe.createDuel(WAGER);
+
+        vm.prank(bob);
+        vm.expectEmit(true, true, false, true);
+        emit DuelMe.DuelJoined(duelId, bob);
+        duelMe.joinDuel(duelId);
+    }
+
+    // =====================================================================
+    // claimVictory
+    // =====================================================================
+
+    function testClaimVictoryByCreator() public {
+        uint256 duelId = _createAndFundDuel();
+
         vm.prank(alice);
         duelMe.claimVictory(duelId);
 
         DuelMe.Duel memory d = duelMe.getDuel(duelId);
-        assertEq(uint256(d.state), uint256(DuelMe.DuelState.WinnerClaimed), "State should be WinnerClaimed");
-        assertEq(d.claimedWinner, alice, "Claimed winner should be alice");
-        assertEq(d.claimedBy, alice, "Claimed by should be alice");
-        assertEq(d.claimTimestamp, claimTime, "Claim timestamp mismatch");
+        assertEq(uint256(d.state), uint256(DuelMe.DuelState.WinnerClaimed));
+        assertEq(d.claimedWinner, alice);
+        assertEq(d.claimedBy, alice);
+        assertEq(d.claimTimestamp, block.timestamp);
     }
 
-    // ---------------------------------------------------------------
-    // 6. testAdmitDefeat
-    // ---------------------------------------------------------------
-    function testAdmitDefeat() public {
+    function testClaimVictoryByOpponent() public {
+        uint256 duelId = _createAndFundDuel();
+
+        vm.prank(bob);
+        duelMe.claimVictory(duelId);
+
+        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        assertEq(d.claimedWinner, bob);
+        assertEq(d.claimedBy, bob);
+    }
+
+    function testClaimVictoryNotParticipant() public {
+        uint256 duelId = _createAndFundDuel();
+
+        vm.prank(charlie);
+        vm.expectRevert("Not a participant");
+        duelMe.claimVictory(duelId);
+    }
+
+    function testClaimVictoryNotFunded() public {
+        vm.prank(alice);
+        uint256 duelId = duelMe.createDuel(WAGER);
+
+        vm.prank(alice);
+        vm.expectRevert("Duel not in Funded state");
+        duelMe.claimVictory(duelId);
+    }
+
+    function testClaimVictoryAlreadyClaimed() public {
+        uint256 duelId = _createFundAndClaim();
+
+        vm.prank(bob);
+        vm.expectRevert("Duel not in Funded state");
+        duelMe.claimVictory(duelId);
+    }
+
+    function testClaimVictoryOnResolved() public {
+        uint256 duelId = _createFundClaimAndResolve();
+
+        vm.prank(alice);
+        vm.expectRevert("Duel not in Funded state");
+        duelMe.claimVictory(duelId);
+    }
+
+    function testClaimVictoryOnRefunded() public {
+        uint256 duelId = _createFundClaimAndRefund();
+
+        vm.prank(alice);
+        vm.expectRevert("Duel not in Funded state");
+        duelMe.claimVictory(duelId);
+    }
+
+    function testClaimVictoryEmitsEvent() public {
+        uint256 duelId = _createAndFundDuel();
+
+        vm.prank(alice);
+        vm.expectEmit(true, true, true, true);
+        emit DuelMe.VictoryClaimed(duelId, alice, alice);
+        duelMe.claimVictory(duelId);
+    }
+
+    // =====================================================================
+    // admitDefeat
+    // =====================================================================
+
+    function testAdmitDefeatByOpponent() public {
         uint256 duelId = _createAndFundDuel();
 
         vm.prank(bob);
         duelMe.admitDefeat(duelId);
 
         DuelMe.Duel memory d = duelMe.getDuel(duelId);
-        assertEq(uint256(d.state), uint256(DuelMe.DuelState.WinnerClaimed), "State should be WinnerClaimed");
-        assertEq(d.claimedWinner, alice, "Claimed winner should be alice (opponent of bob)");
-        assertEq(d.claimedBy, bob, "Claimed by should be bob (the one admitting defeat)");
+        assertEq(d.claimedWinner, alice);
+        assertEq(d.claimedBy, bob);
+        assertEq(uint256(d.state), uint256(DuelMe.DuelState.WinnerClaimed));
     }
 
-    // ---------------------------------------------------------------
-    // 7. testConfirmResult (full happy path)
-    // ---------------------------------------------------------------
-    function testConfirmResult() public {
+    function testAdmitDefeatByCreator() public {
         uint256 duelId = _createAndFundDuel();
 
-        // Alice claims victory
         vm.prank(alice);
-        duelMe.claimVictory(duelId);
+        duelMe.admitDefeat(duelId);
+
+        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        assertEq(d.claimedWinner, bob);
+        assertEq(d.claimedBy, alice);
+    }
+
+    function testAdmitDefeatNotParticipant() public {
+        uint256 duelId = _createAndFundDuel();
+
+        vm.prank(charlie);
+        vm.expectRevert("Not a participant");
+        duelMe.admitDefeat(duelId);
+    }
+
+    function testAdmitDefeatNotFunded() public {
+        vm.prank(alice);
+        uint256 duelId = duelMe.createDuel(WAGER);
+
+        vm.prank(alice);
+        vm.expectRevert("Duel not in Funded state");
+        duelMe.admitDefeat(duelId);
+    }
+
+    function testAdmitDefeatAlreadyClaimed() public {
+        uint256 duelId = _createFundAndClaim();
+
+        vm.prank(bob);
+        vm.expectRevert("Duel not in Funded state");
+        duelMe.admitDefeat(duelId);
+    }
+
+    function testAdmitDefeatEmitsEvent() public {
+        uint256 duelId = _createAndFundDuel();
+
+        vm.prank(bob);
+        vm.expectEmit(true, true, true, true);
+        emit DuelMe.VictoryClaimed(duelId, bob, alice);
+        duelMe.admitDefeat(duelId);
+    }
+
+    // =====================================================================
+    // confirmResult
+    // =====================================================================
+
+    function testConfirmResultAfterClaimVictory() public {
+        uint256 duelId = _createFundAndClaim();
 
         uint256 aliceBalBefore = usdt.balanceOf(alice);
 
-        // Bob confirms
         vm.prank(bob);
         duelMe.confirmResult(duelId);
 
         DuelMe.Duel memory d = duelMe.getDuel(duelId);
-        assertEq(uint256(d.state), uint256(DuelMe.DuelState.Resolved), "State should be Resolved");
+        assertEq(uint256(d.state), uint256(DuelMe.DuelState.Resolved));
+        assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER * 2);
+        assertEq(usdt.balanceOf(address(duelMe)), 0);
 
-        // Winner gets 2x wager
-        assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER * 2, "Alice should receive 2x wager");
-        assertEq(usdt.balanceOf(address(duelMe)), 0, "Contract should be empty");
-
-        // Both players get +1 rep
-        assertEq(duelMe.getDuelRep(alice), int256(1), "Alice rep should be +1");
-        assertEq(duelMe.getDuelRep(bob), int256(1), "Bob rep should be +1");
+        _assertStats(alice, 1, 0, "Alice");
+        _assertStats(bob, 1, 0, "Bob");
     }
 
-    // ---------------------------------------------------------------
-    // 8. testRefundAfterTimeout
-    // ---------------------------------------------------------------
-    function testRefundAfterTimeout() public {
+    function testConfirmResultAfterAdmitDefeat() public {
         uint256 duelId = _createAndFundDuel();
 
-        // Alice claims victory
+        // Bob admits defeat → alice is claimed winner
+        vm.prank(bob);
+        duelMe.admitDefeat(duelId);
+
+        uint256 aliceBalBefore = usdt.balanceOf(alice);
+
+        // Alice confirms (she is the other participant)
         vm.prank(alice);
+        duelMe.confirmResult(duelId);
+
+        assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER * 2);
+        _assertStats(alice, 1, 0, "Alice");
+        _assertStats(bob, 1, 0, "Bob");
+    }
+
+    function testConfirmResultOpponentClaimsVictory() public {
+        uint256 duelId = _createAndFundDuel();
+
+        // Bob (opponent) claims victory
+        vm.prank(bob);
         duelMe.claimVictory(duelId);
+
+        uint256 bobBalBefore = usdt.balanceOf(bob);
+
+        // Alice confirms
+        vm.prank(alice);
+        duelMe.confirmResult(duelId);
+
+        assertEq(usdt.balanceOf(bob), bobBalBefore + WAGER * 2);
+    }
+
+    function testConfirmOwnClaimReverts() public {
+        uint256 duelId = _createFundAndClaim();
+
+        vm.prank(alice);
+        vm.expectRevert("Cannot confirm own claim");
+        duelMe.confirmResult(duelId);
+    }
+
+    function testConfirmResultNotParticipant() public {
+        uint256 duelId = _createFundAndClaim();
+
+        vm.prank(charlie);
+        vm.expectRevert("Not a participant");
+        duelMe.confirmResult(duelId);
+    }
+
+    function testConfirmResultWrongState() public {
+        // Created state
+        vm.prank(alice);
+        uint256 duelId = duelMe.createDuel(WAGER);
+        vm.prank(bob);
+        vm.expectRevert("Duel not in WinnerClaimed state");
+        duelMe.confirmResult(duelId);
+
+        // Funded state
+        uint256 duelId2 = _createAndFundDuel();
+        vm.prank(bob);
+        vm.expectRevert("Duel not in WinnerClaimed state");
+        duelMe.confirmResult(duelId2);
+    }
+
+    function testConfirmResultOnResolved() public {
+        uint256 duelId = _createFundClaimAndResolve();
+
+        vm.prank(bob);
+        vm.expectRevert("Duel not in WinnerClaimed state");
+        duelMe.confirmResult(duelId);
+    }
+
+    function testConfirmResultOnRefunded() public {
+        uint256 duelId = _createFundClaimAndRefund();
+
+        vm.prank(bob);
+        vm.expectRevert("Duel not in WinnerClaimed state");
+        duelMe.confirmResult(duelId);
+    }
+
+    function testConfirmResultEmitsEvent() public {
+        uint256 duelId = _createFundAndClaim();
+
+        vm.prank(bob);
+        vm.expectEmit(true, true, false, true);
+        emit DuelMe.DuelResolved(duelId, alice, WAGER * 2);
+        duelMe.confirmResult(duelId);
+    }
+
+    // =====================================================================
+    // refund
+    // =====================================================================
+
+    function testRefundAfterTimeout() public {
+        uint256 duelId = _createFundAndClaim();
 
         uint256 aliceBalBefore = usdt.balanceOf(alice);
         uint256 bobBalBefore = usdt.balanceOf(bob);
 
-        // Warp past timeout
         vm.warp(block.timestamp + 3601);
 
-        // Anyone can trigger refund
-        vm.prank(charlie);
+        vm.prank(charlie); // anyone can trigger
         duelMe.refund(duelId);
 
         DuelMe.Duel memory d = duelMe.getDuel(duelId);
-        assertEq(uint256(d.state), uint256(DuelMe.DuelState.Refunded), "State should be Refunded");
+        assertEq(uint256(d.state), uint256(DuelMe.DuelState.Refunded));
+        assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER);
+        assertEq(usdt.balanceOf(bob), bobBalBefore + WAGER);
+        assertEq(usdt.balanceOf(address(duelMe)), 0);
 
-        // Both get their wager back
-        assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER, "Alice should get wager back");
-        assertEq(usdt.balanceOf(bob), bobBalBefore + WAGER, "Bob should get wager back");
-        assertEq(usdt.balanceOf(address(duelMe)), 0, "Contract should be empty");
-
-        // Alice (claimer) gets +1 rep, Bob (non-responder) gets -3 rep
-        assertEq(duelMe.getDuelRep(alice), int256(1), "Alice (claimer) rep should be +1");
-        assertEq(duelMe.getDuelRep(bob), int256(-3), "Bob (non-responder) rep should be -3");
+        // Alice was claimer → honored; Bob non-responder → abandoned
+        _assertStats(alice, 1, 0, "Alice (claimer)");
+        _assertStats(bob, 0, 1, "Bob (non-responder)");
     }
 
-    // ---------------------------------------------------------------
-    // 9. testRefundBeforeTimeout
-    // ---------------------------------------------------------------
-    function testRefundBeforeTimeout() public {
+    function testRefundOpponentIsClaimer() public {
         uint256 duelId = _createAndFundDuel();
 
-        vm.prank(alice);
+        // Bob claims victory this time
+        vm.prank(bob);
         duelMe.claimVictory(duelId);
 
-        // Try refund before timeout (only warp 30 minutes)
-        vm.warp(block.timestamp + 1800);
+        vm.warp(block.timestamp + 3601);
+        duelMe.refund(duelId);
+
+        // Bob was claimer → honored; Alice non-responder → abandoned
+        _assertStats(bob, 1, 0, "Bob (claimer)");
+        _assertStats(alice, 0, 1, "Alice (non-responder)");
+    }
+
+    function testRefundExactTimeout() public {
+        uint256 duelId = _createFundAndClaim();
+
+        // Warp to exactly CLAIM_TIMEOUT (should succeed)
+        vm.warp(block.timestamp + 3600);
+        duelMe.refund(duelId);
+
+        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        assertEq(uint256(d.state), uint256(DuelMe.DuelState.Refunded));
+    }
+
+    function testRefundBeforeTimeout() public {
+        uint256 duelId = _createFundAndClaim();
+
+        vm.warp(block.timestamp + 3599);
 
         vm.expectRevert("Claim timeout not reached");
         duelMe.refund(duelId);
     }
 
-    // ---------------------------------------------------------------
-    // 10. testCancelDuel
-    // ---------------------------------------------------------------
+    function testRefundWrongState() public {
+        // Created
+        vm.prank(alice);
+        uint256 id1 = duelMe.createDuel(WAGER);
+        vm.expectRevert("Duel not in WinnerClaimed state");
+        duelMe.refund(id1);
+
+        // Funded
+        uint256 id2 = _createAndFundDuel();
+        vm.expectRevert("Duel not in WinnerClaimed state");
+        duelMe.refund(id2);
+    }
+
+    function testRefundOnResolved() public {
+        uint256 duelId = _createFundClaimAndResolve();
+
+        vm.warp(block.timestamp + 3601);
+        vm.expectRevert("Duel not in WinnerClaimed state");
+        duelMe.refund(duelId);
+    }
+
+    function testRefundDoubleCallReverts() public {
+        uint256 duelId = _createFundAndClaim();
+        vm.warp(block.timestamp + 3601);
+
+        duelMe.refund(duelId);
+
+        vm.expectRevert("Duel not in WinnerClaimed state");
+        duelMe.refund(duelId);
+    }
+
+    function testRefundEmitsEvent() public {
+        uint256 duelId = _createFundAndClaim();
+        vm.warp(block.timestamp + 3601);
+
+        vm.expectEmit(true, false, false, true);
+        emit DuelMe.DuelRefunded(duelId);
+        duelMe.refund(duelId);
+    }
+
+    // =====================================================================
+    // cancelDuel
+    // =====================================================================
+
     function testCancelDuel() public {
         vm.prank(alice);
         uint256 duelId = duelMe.createDuel(WAGER);
@@ -248,14 +647,20 @@ contract DuelMeTest is Test {
         duelMe.cancelDuel(duelId);
 
         DuelMe.Duel memory d = duelMe.getDuel(duelId);
-        assertEq(uint256(d.state), uint256(DuelMe.DuelState.Cancelled), "State should be Cancelled");
-        assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER, "Alice should get wager back");
+        assertEq(uint256(d.state), uint256(DuelMe.DuelState.Cancelled));
+        assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER);
     }
 
-    // ---------------------------------------------------------------
-    // 11. testCancelFundedDuel
-    // ---------------------------------------------------------------
-    function testCancelFundedDuel() public {
+    function testCancelDuelNotCreator() public {
+        vm.prank(alice);
+        uint256 duelId = duelMe.createDuel(WAGER);
+
+        vm.prank(bob);
+        vm.expectRevert("Only creator can cancel");
+        duelMe.cancelDuel(duelId);
+    }
+
+    function testCancelDuelFunded() public {
         uint256 duelId = _createAndFundDuel();
 
         vm.prank(alice);
@@ -263,49 +668,64 @@ contract DuelMeTest is Test {
         duelMe.cancelDuel(duelId);
     }
 
-    // ---------------------------------------------------------------
-    // 12. testDoubleJoin
-    // ---------------------------------------------------------------
-    function testDoubleJoin() public {
+    function testCancelDuelWinnerClaimed() public {
+        uint256 duelId = _createFundAndClaim();
+
+        vm.prank(alice);
+        vm.expectRevert("Duel not in Created state");
+        duelMe.cancelDuel(duelId);
+    }
+
+    function testCancelDuelAlreadyCancelled() public {
+        vm.prank(alice);
+        uint256 duelId = duelMe.createDuel(WAGER);
+        vm.prank(alice);
+        duelMe.cancelDuel(duelId);
+
+        vm.prank(alice);
+        vm.expectRevert("Duel not in Created state");
+        duelMe.cancelDuel(duelId);
+    }
+
+    function testCancelDoesNotAffectStats() public {
+        vm.prank(alice);
+        uint256 duelId = duelMe.createDuel(WAGER);
+        vm.prank(alice);
+        duelMe.cancelDuel(duelId);
+
+        _assertStats(alice, 0, 0, "Alice after cancel");
+    }
+
+    function testCancelEmitsEvent() public {
         vm.prank(alice);
         uint256 duelId = duelMe.createDuel(WAGER);
 
-        vm.prank(bob);
-        duelMe.joinDuel(duelId);
-
-        // Charlie tries to join an already-funded duel
-        vm.prank(charlie);
-        vm.expectRevert("Duel not in Created state");
-        duelMe.joinDuel(duelId);
+        vm.prank(alice);
+        vm.expectEmit(true, false, false, true);
+        emit DuelMe.DuelCancelled(duelId);
+        duelMe.cancelDuel(duelId);
     }
 
-    // ---------------------------------------------------------------
-    // 13. testUnauthorizedClaim
-    // ---------------------------------------------------------------
-    function testUnauthorizedClaim() public {
-        uint256 duelId = _createAndFundDuel();
+    // =====================================================================
+    // PlayerStats tracking
+    // =====================================================================
 
-        // Charlie is not a participant
-        vm.prank(charlie);
-        vm.expectRevert("Not a participant");
-        duelMe.claimVictory(duelId);
+    function testNewPlayerStatsAreZero() public view {
+        _assertStats(charlie, 0, 0, "Charlie (no duels)");
     }
 
-    // ---------------------------------------------------------------
-    // 14. testDuelRepTracking
-    // ---------------------------------------------------------------
-    function testDuelRepTracking() public {
-        // Scenario 1: Completed duel - both players get +1
+    function testPlayerStatsCumulative() public {
+        // Duel 1: normal resolve
         uint256 duel1 = _createAndFundDuel();
         vm.prank(alice);
         duelMe.claimVictory(duel1);
         vm.prank(bob);
         duelMe.confirmResult(duel1);
 
-        assertEq(duelMe.getDuelRep(alice), int256(1), "Alice rep after duel 1");
-        assertEq(duelMe.getDuelRep(bob), int256(1), "Bob rep after duel 1");
+        _assertStats(alice, 1, 0, "Alice after duel 1");
+        _assertStats(bob, 1, 0, "Bob after duel 1");
 
-        // Scenario 2: Another completed duel - cumulative rep
+        // Duel 2: admit defeat + confirm
         vm.prank(alice);
         uint256 duel2 = duelMe.createDuel(WAGER);
         vm.prank(bob);
@@ -315,65 +735,308 @@ contract DuelMeTest is Test {
         vm.prank(alice);
         duelMe.confirmResult(duel2);
 
-        assertEq(duelMe.getDuelRep(alice), int256(2), "Alice rep after duel 2");
-        assertEq(duelMe.getDuelRep(bob), int256(2), "Bob rep after duel 2");
+        _assertStats(alice, 2, 0, "Alice after duel 2");
+        _assertStats(bob, 2, 0, "Bob after duel 2");
 
-        // Scenario 3: Timeout refund - claimer +1, non-responder -3
+        // Duel 3: timeout refund
         vm.prank(alice);
         uint256 duel3 = duelMe.createDuel(WAGER);
         vm.prank(bob);
         duelMe.joinDuel(duel3);
         vm.prank(alice);
         duelMe.claimVictory(duel3);
-
         vm.warp(block.timestamp + 3601);
         duelMe.refund(duel3);
 
-        // Alice: 2 (previous) + 1 (claimer) = 3
-        // Bob: 2 (previous) - 3 (non-responder) = -1
-        assertEq(duelMe.getDuelRep(alice), int256(3), "Alice rep after timeout refund");
-        assertEq(duelMe.getDuelRep(bob), int256(-1), "Bob rep after timeout refund");
+        _assertStats(alice, 3, 0, "Alice after duel 3 (claimer)");
+        _assertStats(bob, 2, 1, "Bob after duel 3 (non-responder)");
     }
 
-    // ---------------------------------------------------------------
-    // Additional edge case tests
-    // ---------------------------------------------------------------
-
-    function testConfirmOwnClaimReverts() public {
-        uint256 duelId = _createAndFundDuel();
-
+    function testPlayerStatsIndependentPerPlayer() public {
+        // Alice vs Bob: normal resolve
+        uint256 duel1 = _createAndFundDuel();
         vm.prank(alice);
-        duelMe.claimVictory(duelId);
+        duelMe.claimVictory(duel1);
+        vm.prank(bob);
+        duelMe.confirmResult(duel1);
 
-        // Alice cannot confirm her own claim
-        vm.prank(alice);
-        vm.expectRevert("Cannot confirm own claim");
-        duelMe.confirmResult(duelId);
+        // Charlie vs Dave: timeout refund (charlie claims, dave doesn't respond)
+        vm.prank(charlie);
+        uint256 duel2 = duelMe.createDuel(WAGER);
+        vm.prank(dave);
+        duelMe.joinDuel(duel2);
+        vm.prank(charlie);
+        duelMe.claimVictory(duel2);
+        vm.warp(block.timestamp + 3601);
+        duelMe.refund(duel2);
+
+        // Stats are independent
+        _assertStats(alice, 1, 0, "Alice");
+        _assertStats(bob, 1, 0, "Bob");
+        _assertStats(charlie, 1, 0, "Charlie (claimer)");
+        _assertStats(dave, 0, 1, "Dave (non-responder)");
     }
 
-    function testNonCreatorCannotCancel() public {
+    // =====================================================================
+    // Pausable
+    // =====================================================================
+
+    function testPauseByOwner() public {
+        duelMe.pause();
+        assertTrue(duelMe.paused());
+    }
+
+    function testUnpauseByOwner() public {
+        duelMe.pause();
+        duelMe.unpause();
+        assertFalse(duelMe.paused());
+    }
+
+    function testPauseByNonOwnerReverts() public {
+        vm.prank(alice);
+        vm.expectRevert();
+        duelMe.pause();
+    }
+
+    function testUnpauseByNonOwnerReverts() public {
+        duelMe.pause();
+
+        vm.prank(alice);
+        vm.expectRevert();
+        duelMe.unpause();
+    }
+
+    function testCreateDuelWhenPausedReverts() public {
+        duelMe.pause();
+
+        vm.prank(alice);
+        vm.expectRevert();
+        duelMe.createDuel(WAGER);
+    }
+
+    function testJoinDuelWhenPausedReverts() public {
         vm.prank(alice);
         uint256 duelId = duelMe.createDuel(WAGER);
 
+        duelMe.pause();
+
         vm.prank(bob);
-        vm.expectRevert("Only creator can cancel");
+        vm.expectRevert();
+        duelMe.joinDuel(duelId);
+    }
+
+    function testClaimVictoryWhenPausedReverts() public {
+        uint256 duelId = _createAndFundDuel();
+        duelMe.pause();
+
+        vm.prank(alice);
+        vm.expectRevert();
+        duelMe.claimVictory(duelId);
+    }
+
+    function testAdmitDefeatWhenPausedReverts() public {
+        uint256 duelId = _createAndFundDuel();
+        duelMe.pause();
+
+        vm.prank(bob);
+        vm.expectRevert();
+        duelMe.admitDefeat(duelId);
+    }
+
+    function testConfirmResultWhenPausedReverts() public {
+        uint256 duelId = _createFundAndClaim();
+        duelMe.pause();
+
+        vm.prank(bob);
+        vm.expectRevert();
+        duelMe.confirmResult(duelId);
+    }
+
+    function testRefundWhenPausedReverts() public {
+        uint256 duelId = _createFundAndClaim();
+        vm.warp(block.timestamp + 3601);
+        duelMe.pause();
+
+        vm.expectRevert();
+        duelMe.refund(duelId);
+    }
+
+    function testCancelDuelWhenPausedReverts() public {
+        vm.prank(alice);
+        uint256 duelId = duelMe.createDuel(WAGER);
+        duelMe.pause();
+
+        vm.prank(alice);
+        vm.expectRevert();
         duelMe.cancelDuel(duelId);
     }
 
-    function testAdmitDefeatByCreator() public {
-        uint256 duelId = _createAndFundDuel();
+    function testUnpauseRestoresFunctionality() public {
+        duelMe.pause();
+        duelMe.unpause();
 
-        // Creator admits defeat, opponent should be the winner
+        // Should work after unpause
         vm.prank(alice);
-        duelMe.admitDefeat(duelId);
+        uint256 duelId = duelMe.createDuel(WAGER);
+        assertEq(duelMe.duelCount(), 1);
+
+        vm.prank(bob);
+        duelMe.joinDuel(duelId);
 
         DuelMe.Duel memory d = duelMe.getDuel(duelId);
-        assertEq(d.claimedWinner, bob, "Winner should be bob when alice admits defeat");
-        assertEq(d.claimedBy, alice, "ClaimedBy should be alice");
+        assertEq(uint256(d.state), uint256(DuelMe.DuelState.Funded));
     }
 
-    function testConstructorRejectsZeroAddress() public {
-        vm.expectRevert("Invalid USDT address");
-        new DuelMe(address(0));
+    // =====================================================================
+    // getDuel / view functions
+    // =====================================================================
+
+    function testGetDuelNonexistent() public view {
+        DuelMe.Duel memory d = duelMe.getDuel(999);
+        assertEq(d.creator, address(0));
+        assertEq(d.wagerAmount, 0);
+        assertEq(uint256(d.state), uint256(DuelMe.DuelState.Created)); // default is 0
+    }
+
+    function testConstants() public view {
+        assertEq(duelMe.MIN_WAGER(), 3_000_000);
+        assertEq(duelMe.CLAIM_TIMEOUT(), 3600);
+    }
+
+    // =====================================================================
+    // Multiple concurrent duels
+    // =====================================================================
+
+    function testConcurrentDuelsDoNotInterfere() public {
+        // Duel 0: alice vs bob
+        vm.prank(alice);
+        uint256 duel0 = duelMe.createDuel(WAGER);
+        vm.prank(bob);
+        duelMe.joinDuel(duel0);
+
+        // Duel 1: charlie vs dave
+        vm.prank(charlie);
+        uint256 duel1 = duelMe.createDuel(WAGER * 2);
+        vm.prank(dave);
+        duelMe.joinDuel(duel1);
+
+        // Resolve duel 0
+        vm.prank(alice);
+        duelMe.claimVictory(duel0);
+        vm.prank(bob);
+        duelMe.confirmResult(duel0);
+
+        // Duel 1 should still be Funded
+        DuelMe.Duel memory d1 = duelMe.getDuel(duel1);
+        assertEq(uint256(d1.state), uint256(DuelMe.DuelState.Funded));
+
+        // Resolve duel 1
+        vm.prank(dave);
+        duelMe.admitDefeat(duel1);
+        vm.prank(charlie);
+        duelMe.confirmResult(duel1);
+
+        // Verify payouts are correct
+        DuelMe.Duel memory d0 = duelMe.getDuel(duel0);
+        assertEq(uint256(d0.state), uint256(DuelMe.DuelState.Resolved));
+        assertEq(uint256(d1.state), uint256(DuelMe.DuelState.Funded)); // re-read d1
+        d1 = duelMe.getDuel(duel1);
+        assertEq(uint256(d1.state), uint256(DuelMe.DuelState.Resolved));
+
+        assertEq(usdt.balanceOf(address(duelMe)), 0, "Contract should be empty");
+    }
+
+    // =====================================================================
+    // Full lifecycle: admit defeat → other player confirms
+    // =====================================================================
+
+    function testFullFlowAdmitDefeatThenConfirm() public {
+        uint256 duelId = _createAndFundDuel();
+        uint256 aliceBalBefore = usdt.balanceOf(alice);
+
+        // Bob admits defeat → alice wins
+        vm.prank(bob);
+        duelMe.admitDefeat(duelId);
+
+        // Alice (the other player) confirms
+        vm.prank(alice);
+        duelMe.confirmResult(duelId);
+
+        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        assertEq(uint256(d.state), uint256(DuelMe.DuelState.Resolved));
+        assertEq(d.claimedWinner, alice);
+        assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER * 2);
+    }
+
+    // =====================================================================
+    // Full lifecycle: claim → timeout → refund with opponent as claimer
+    // =====================================================================
+
+    function testFullFlowOpponentClaimsTimeout() public {
+        uint256 duelId = _createAndFundDuel();
+
+        uint256 aliceBalBefore = usdt.balanceOf(alice);
+        uint256 bobBalBefore = usdt.balanceOf(bob);
+
+        // Bob claims victory
+        vm.prank(bob);
+        duelMe.claimVictory(duelId);
+
+        // Alice doesn't respond, timeout
+        vm.warp(block.timestamp + 3601);
+        duelMe.refund(duelId);
+
+        // Both get money back
+        assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER);
+        assertEq(usdt.balanceOf(bob), bobBalBefore + WAGER);
+
+        // Bob (claimer) → honored, Alice (non-responder) → abandoned
+        _assertStats(bob, 1, 0, "Bob (claimer)");
+        _assertStats(alice, 0, 1, "Alice (non-responder)");
+    }
+
+    // =====================================================================
+    // Contract balance integrity
+    // =====================================================================
+
+    function testContractBalanceAfterMultipleOperations() public {
+        // Create 3 duels
+        vm.prank(alice);
+        uint256 d0 = duelMe.createDuel(WAGER);
+        vm.prank(alice);
+        uint256 d1 = duelMe.createDuel(WAGER * 2);
+        vm.prank(alice);
+        uint256 d2 = duelMe.createDuel(WAGER * 3);
+
+        assertEq(usdt.balanceOf(address(duelMe)), WAGER * 6);
+
+        // Cancel d2
+        vm.prank(alice);
+        duelMe.cancelDuel(d2);
+        assertEq(usdt.balanceOf(address(duelMe)), WAGER * 3);
+
+        // Fund d0
+        vm.prank(bob);
+        duelMe.joinDuel(d0);
+        assertEq(usdt.balanceOf(address(duelMe)), WAGER * 4);
+
+        // Resolve d0
+        vm.prank(alice);
+        duelMe.claimVictory(d0);
+        vm.prank(bob);
+        duelMe.confirmResult(d0);
+        assertEq(usdt.balanceOf(address(duelMe)), WAGER * 2); // d1 remains
+
+        // Fund d1 and refund
+        vm.prank(charlie);
+        duelMe.joinDuel(d1);
+        assertEq(usdt.balanceOf(address(duelMe)), WAGER * 4);
+
+        vm.prank(alice);
+        duelMe.claimVictory(d1);
+        vm.warp(block.timestamp + 3601);
+        duelMe.refund(d1);
+
+        assertEq(usdt.balanceOf(address(duelMe)), 0, "Contract should be fully drained");
     }
 }

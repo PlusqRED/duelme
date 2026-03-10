@@ -19,12 +19,12 @@ export function useDuelActions(chainId: number) {
     hash,
   });
 
-  function createDuel(amount: bigint, token: `0x${string}`) {
+  function createDuel(amount: bigint) {
     writeContract({
       address: contractAddress,
       abi: duelMeAbi,
       functionName: 'createDuel',
-      args: [amount, token],
+      args: [amount],
       chainId,
     });
   }

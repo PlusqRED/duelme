@@ -199,6 +199,16 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
         emit DuelCancelled(duelId);
     }
 
+    /// @notice Pause all duel operations (owner only)
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /// @notice Unpause all duel operations (owner only)
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
     /// @notice Get full duel info
     /// @param duelId The ID of the duel
     /// @return The Duel struct
