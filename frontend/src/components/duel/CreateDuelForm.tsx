@@ -1,14 +1,15 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { parseUnits } from 'viem';
-import { useReadContract } from 'wagmi';
+import { parseUnits, decodeEventLog } from 'viem';
+import { useReadContract, useSwitchChain, useAccount } from 'wagmi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/i18n/useTranslation';
 import { SUPPORTED_CHAINS, MIN_WAGER, USDT_DECIMALS, DUELME_ADDRESSES } from '@/lib/constants';
-import { erc20Abi } from '@/lib/contracts';
+import { erc20Abi, duelMeAbi } from '@/lib/contracts';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useDuelActions } from '@/hooks/useDuelActions';
 import { Swords, Shield, Zap, DollarSign } from 'lucide-react';
@@ -17,6 +18,7 @@ const PRESETS = [5, 10, 25, 50, 100];
 
 export function CreateDuelForm() {
   const { t } = useTranslation();
+  const router = useRouter();
   const [amount, setAmount] = useState('');
   const [selectedChain, setSelectedChain] = useState<keyof typeof SUPPORTED_CHAINS>(
     'arbitrumSepolia'
@@ -28,7 +30,9 @@ export function CreateDuelForm() {
 
   const chainConfig = SUPPORTED_CHAINS[selectedChain];
   const contractAddress = DUELME_ADDRESSES[chainConfig.id];
-  const { createDuel, approveToken, isPending, isConfirming, isSuccess, error, reset } =
+  const { switchChainAsync } = useSwitchChain();
+  const { chainId: connectedChainId } = useAccount();
+  const { createDuel, approveToken, isPending, isConfirming, isSuccess, receipt, error, reset } =
     useDuelActions(chainConfig.id);
 
   // Track whether we're in the approve step or create step
@@ -57,13 +61,37 @@ export function CreateDuelForm() {
     }
   }, [isSuccess, step, refetchAllowance, reset, createDuel]);
 
-  // When create tx confirms, redirect
+  // When create tx confirms, parse duel ID from logs and redirect
   useEffect(() => {
-    if (isSuccess && step === 'creating') {
+    if (isSuccess && step === 'creating' && receipt) {
       setStep('idle');
-      toast.success('Duel created!');
+
+      // Parse DuelCreated event to get the duel ID
+      let duelId: string | null = null;
+      for (const log of receipt.logs) {
+        try {
+          const decoded = decodeEventLog({
+            abi: duelMeAbi,
+            data: log.data,
+            topics: log.topics,
+          });
+          if (decoded.eventName === 'DuelCreated') {
+            duelId = String((decoded.args as { duelId: bigint }).duelId);
+            break;
+          }
+        } catch {
+          // Not a DuelCreated event, skip
+        }
+      }
+
+      if (duelId) {
+        toast.success('Duel created!');
+        router.push(`/duel/${duelId}`);
+      } else {
+        toast.success('Duel created!');
+      }
     }
-  }, [isSuccess, step]);
+  }, [isSuccess, step, receipt, router]);
 
   const numericAmount = parseFloat(amount) || 0;
   const isValidAmount = numericAmount >= MIN_WAGER;
@@ -86,6 +114,17 @@ export function CreateDuelForm() {
     if (!isValidAmount) {
       toast.error(t('create.min'));
       return;
+    }
+
+    // Ensure wallet is on the correct chain before sending transactions
+    if (connectedChainId !== chainConfig.id) {
+      try {
+        toast.info(`Switching to ${chainConfig.name}...`);
+        await switchChainAsync({ chainId: chainConfig.id });
+      } catch {
+        toast.error(`Failed to switch to ${chainConfig.name}`);
+        return;
+      }
     }
 
     const rawAmount = parseUnits(amount, USDT_DECIMALS);
@@ -270,9 +309,9 @@ export function CreateDuelForm() {
 
         {error && (
           <p className="mt-3 text-xs text-red-500 text-center">
-            {error.message.includes('User rejected')
+            {error.message.includes('User rejected') || error.message.includes('denied')
               ? 'Transaction rejected'
-              : 'Transaction failed'}
+              : `Transaction failed: ${'shortMessage' in error ? String(error.shortMessage) : error.message}`}
           </p>
         )}
       </div>

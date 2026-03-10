@@ -1,7 +1,7 @@
 'use client';
 
-import { type ReactNode } from 'react';
-import { PrivyProvider } from '@privy-io/react-auth';
+import { type ReactNode, useCallback } from 'react';
+import { PrivyProvider, type ConnectedWallet } from '@privy-io/react-auth';
 import { WagmiProvider } from '@privy-io/wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { wagmiConfig, supportedChains } from '@/lib/wagmi';
@@ -19,6 +19,14 @@ const queryClient = new QueryClient({
 });
 
 export function Providers({ children }: { children: ReactNode }) {
+  // Pick the wallet wagmi should use: prefer embedded Privy wallet, fall back to first
+  const selectActiveWallet = useCallback(
+    ({ wallets }: { wallets: ConnectedWallet[] }) => {
+      return wallets.find((w) => w.walletClientType === 'privy') ?? wallets[0] ?? null;
+    },
+    []
+  );
+
   return (
     <PrivyProvider
       appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID!}
@@ -39,7 +47,7 @@ export function Providers({ children }: { children: ReactNode }) {
       }}
     >
       <QueryClientProvider client={queryClient}>
-        <WagmiProvider config={wagmiConfig}>
+        <WagmiProvider config={wagmiConfig} setActiveWalletForWagmi={selectActiveWallet}>
           <LanguageProvider>
             <TooltipProvider>
               {children}

@@ -1,0 +1,151 @@
+'use client';
+
+import { useMemo } from 'react';
+import { useReadContract, useReadContracts } from 'wagmi';
+import { formatUnits } from 'viem';
+import { duelMeAbi, DuelState } from '@/lib/contracts';
+import { DUELME_ADDRESSES, USDT_DECIMALS } from '@/lib/constants';
+
+export interface PlayerDuel {
+  id: number;
+  creator: `0x${string}`;
+  opponent: `0x${string}`;
+  wager: number;
+  state: DuelState;
+  claimedWinner: `0x${string}`;
+  chainId: number;
+  chainName: string;
+}
+
+export interface PlayerStats {
+  wins: number;
+  losses: number;
+  totalWagered: number;
+  activeDuels: PlayerDuel[];
+  historyDuels: PlayerDuel[];
+}
+
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+const ACTIVE_STATES = new Set([DuelState.Created, DuelState.Funded, DuelState.WinnerClaimed]);
+
+const CHAIN_NAMES: Record<number, string> = {
+  421614: 'Arb Sepolia',
+  42161: 'Arbitrum One',
+  137: 'Polygon',
+};
+
+export function usePlayerDuels(
+  address: `0x${string}` | undefined,
+  chainId: number
+) {
+  const contractAddress = DUELME_ADDRESSES[chainId];
+  const enabled =
+    !!address &&
+    !!contractAddress &&
+    contractAddress !== ZERO_ADDRESS;
+
+  // 1. Read total duel count (poll every 10s)
+  const { data: duelCount, isLoading: isCountLoading } = useReadContract({
+    address: contractAddress,
+    abi: duelMeAbi,
+    functionName: 'duelCount',
+    chainId,
+    query: { enabled, refetchInterval: 10_000, staleTime: 0 },
+  });
+
+  // 2. Build multicall to read all duels
+  const count = duelCount ? Number(duelCount) : 0;
+  const duelContracts = useMemo(() => {
+    if (!count || !enabled) return [];
+    return Array.from({ length: count }, (_, i) => ({
+      address: contractAddress,
+      abi: duelMeAbi,
+      functionName: 'getDuel' as const,
+      args: [BigInt(i)] as const,
+      chainId,
+    }));
+  }, [count, contractAddress, chainId, enabled]);
+
+  const { data: duelResults, isLoading: isDuelsLoading } = useReadContracts({
+    contracts: duelContracts,
+    query: { enabled: duelContracts.length > 0, refetchInterval: 10_000, staleTime: 0 },
+  });
+
+  // 3. Parse and filter duels for this player
+  const result = useMemo<PlayerStats>(() => {
+    const activeDuels: PlayerDuel[] = [];
+    const historyDuels: PlayerDuel[] = [];
+    let wins = 0;
+    let losses = 0;
+    let totalWagered = 0;
+
+    if (!duelResults || !address) {
+      return { wins, losses, totalWagered, activeDuels, historyDuels };
+    }
+
+    const addr = address.toLowerCase();
+
+    for (let i = 0; i < duelResults.length; i++) {
+      const res = duelResults[i];
+      if (res.status !== 'success' || !res.result) continue;
+
+      const d = res.result as {
+        creator: `0x${string}`;
+        opponent: `0x${string}`;
+        wagerAmount: bigint;
+        claimedWinner: `0x${string}`;
+        claimedBy: `0x${string}`;
+        claimTimestamp: bigint;
+        state: number;
+      };
+
+      const isCreator = d.creator.toLowerCase() === addr;
+      const isOpponent = d.opponent.toLowerCase() === addr;
+      if (!isCreator && !isOpponent) continue;
+
+      const wager = parseFloat(formatUnits(d.wagerAmount, USDT_DECIMALS));
+      const state = d.state as DuelState;
+
+      const duel: PlayerDuel = {
+        id: i,
+        creator: d.creator,
+        opponent: d.opponent,
+        wager,
+        state,
+        claimedWinner: d.claimedWinner,
+        chainId,
+        chainName: CHAIN_NAMES[chainId] ?? `Chain ${chainId}`,
+      };
+
+      if (ACTIVE_STATES.has(state)) {
+        activeDuels.push(duel);
+      } else {
+        historyDuels.push(duel);
+      }
+
+      // Compute wins/losses from resolved duels
+      if (state === DuelState.Resolved) {
+        totalWagered += wager;
+        if (d.claimedWinner.toLowerCase() === addr) {
+          wins++;
+        } else {
+          losses++;
+        }
+      } else if (state === DuelState.Created || state === DuelState.Funded || state === DuelState.WinnerClaimed) {
+        totalWagered += wager;
+      }
+    }
+
+    // Most recent first
+    activeDuels.reverse();
+    historyDuels.reverse();
+
+    return { wins, losses, totalWagered, activeDuels, historyDuels };
+  }, [duelResults, address]);
+
+  return {
+    ...result,
+    isLoading: isCountLoading || isDuelsLoading,
+  };
+}

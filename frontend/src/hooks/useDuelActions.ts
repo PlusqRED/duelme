@@ -15,7 +15,7 @@ export function useDuelActions(chainId: number) {
     reset,
   } = useWriteContract();
 
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+  const { isLoading: isConfirming, isSuccess, data: receipt } = useWaitForTransactionReceipt({
     hash,
   });
 
@@ -112,6 +112,7 @@ export function useDuelActions(chainId: number) {
     isPending,
     isConfirming,
     isSuccess,
+    receipt,
     error,
     reset,
   };
