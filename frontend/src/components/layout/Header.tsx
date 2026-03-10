@@ -13,10 +13,10 @@ import { formatUnits, parseUnits, encodeFunctionData } from 'viem';
 import { SUPPORTED_CHAINS, USDT_DECIMALS } from '@/lib/constants';
 import { toast } from 'sonner';
 
-const CHAIN_NAMES: Record<number, string> = {
-  421614: 'Arb Sepolia',
-  42161: 'Arbitrum',
-  137: 'Polygon',
+const CHAIN_META: Record<number, { name: string; testnet?: boolean }> = {
+  421614: { name: 'Arb Sepolia', testnet: true },
+  42161: { name: 'Arbitrum' },
+  137: { name: 'Polygon' },
 };
 
 function getUsdtAddress(chainId: number | undefined) {
@@ -58,7 +58,7 @@ export function Header() {
   const [sendAmount, setSendAmount] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [selectedChain, setSelectedChain] = useState<42161 | 137>(42161);
+  const [selectedChain, setSelectedChain] = useState<number>(421614);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { ready, authenticated, login, logout, user } = usePrivy();
@@ -76,7 +76,16 @@ export function Header() {
     ?? walletShort
     ?? '';
 
-  // Read balances from both chains
+  // Read balances from all chains
+  const { data: arbSepoliaRaw, refetch: refetchArbSepolia } = useReadContract({
+    address: SUPPORTED_CHAINS.arbitrumSepolia.usdt,
+    abi: balanceOfAbi,
+    functionName: 'balanceOf',
+    args: walletAddress ? [walletAddress] : undefined,
+    chainId: 421614,
+    query: { enabled: !!walletAddress },
+  });
+
   const { data: arbRaw, refetch: refetchArb } = useReadContract({
     address: SUPPORTED_CHAINS.arbitrum.usdt,
     abi: balanceOfAbi,
@@ -95,16 +104,20 @@ export function Header() {
     query: { enabled: !!walletAddress },
   });
 
-  const arbBalance = arbRaw !== undefined ? parseFloat(formatUnits(arbRaw, USDT_DECIMALS)) : 0;
-  const polyBalance = polyRaw !== undefined ? parseFloat(formatUnits(polyRaw, USDT_DECIMALS)) : 0;
+  const balances: Record<number, number> = {
+    421614: arbSepoliaRaw !== undefined ? parseFloat(formatUnits(arbSepoliaRaw, USDT_DECIMALS)) : 0,
+    42161: arbRaw !== undefined ? parseFloat(formatUnits(arbRaw, USDT_DECIMALS)) : 0,
+    137: polyRaw !== undefined ? parseFloat(formatUnits(polyRaw, USDT_DECIMALS)) : 0,
+  };
 
-  const balance = selectedChain === 42161 ? arbBalance : polyBalance;
+  const balance = balances[selectedChain] ?? 0;
   const formattedUsdt = balance.toFixed(2);
-  const totalUsdt = (arbBalance + polyBalance).toFixed(2);
-  const chainName = CHAIN_NAMES[selectedChain];
+  const totalUsdt = Object.values(balances).reduce((a, b) => a + b, 0).toFixed(2);
+  const chainMeta = CHAIN_META[selectedChain];
   const usdtAddress = getUsdtAddress(selectedChain);
 
   function refetch() {
+    refetchArbSepolia();
     refetchArb();
     refetchPoly();
   }
@@ -202,36 +215,47 @@ export function Header() {
       </div>
 
       {/* Chain switcher */}
-      <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-0.5">
-        <button
-          onClick={() => setSelectedChain(42161)}
-          className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-            selectedChain === 42161
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          Arbitrum
-        </button>
-        <button
-          onClick={() => setSelectedChain(137)}
-          className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-            selectedChain === 137
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          Polygon
-        </button>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-0.5">
+          {Object.entries(CHAIN_META).map(([id, meta]) => {
+            const chainId = Number(id);
+            const isActive = selectedChain === chainId;
+            return (
+              <button
+                key={id}
+                onClick={() => setSelectedChain(chainId)}
+                className={`flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
+                  isActive
+                    ? meta.testnet
+                      ? 'bg-amber-50 text-amber-800 shadow-sm ring-1 ring-amber-200'
+                      : 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {meta.name}
+              </button>
+            );
+          })}
+        </div>
+        {chainMeta?.testnet && (
+          <div className="flex items-center justify-center gap-1 rounded-md bg-amber-50 px-2 py-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+            <span className="text-[10px] font-medium text-amber-700">Testnet</span>
+          </div>
+        )}
       </div>
 
       {/* Balance */}
       <div className="rounded-lg bg-slate-50 px-3 py-2.5">
         <div className="flex items-center justify-between">
           <span className="text-xs text-slate-500">{t('wallet.balance')}</span>
-          <div className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5">
-            <Globe className="h-3 w-3 text-emerald-600" />
-            <span className="text-xs font-medium text-emerald-700">{chainName}</span>
+          <div className={`flex items-center gap-1 rounded-full px-2 py-0.5 ${
+            chainMeta?.testnet
+              ? 'bg-amber-50'
+              : 'bg-emerald-50'
+          }`}>
+            <Globe className={`h-3 w-3 ${chainMeta?.testnet ? 'text-amber-600' : 'text-emerald-600'}`} />
+            <span className={`text-xs font-medium ${chainMeta?.testnet ? 'text-amber-700' : 'text-emerald-700'}`}>{chainMeta?.name}</span>
           </div>
         </div>
         <span className="text-lg font-bold text-slate-900">{formattedUsdt} <span className="text-sm font-normal text-slate-400">USDT</span></span>
