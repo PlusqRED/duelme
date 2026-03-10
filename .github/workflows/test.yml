@@ -30,3 +30,54 @@ jobs:
 
       - name: Run tests
         run: forge test -v
+
+      - name: Run coverage
+        run: |
+          forge coverage --report summary 2>&1 | tee coverage-output.txt
+
+      - name: Parse coverage
+        id: coverage
+        working-directory: contracts
+        run: |
+          # Extract DuelMe.sol line coverage (the main contract)
+          DUELME_LINE=$(grep 'src/DuelMe.sol' coverage-output.txt | head -1)
+          DUELME_PCT=$(echo "$DUELME_LINE" | grep -oP '\d+\.\d+%' | head -1 | tr -d '%')
+
+          # Extract total line coverage
+          TOTAL_LINE=$(grep '| Total' coverage-output.txt | head -1)
+          TOTAL_PCT=$(echo "$TOTAL_LINE" | grep -oP '\d+\.\d+%' | head -1 | tr -d '%')
+
+          echo "duelme_coverage=$DUELME_PCT" >> "$GITHUB_OUTPUT"
+          echo "total_coverage=$TOTAL_PCT" >> "$GITHUB_OUTPUT"
+
+          # Determine color based on total coverage
+          if (( $(echo "$TOTAL_PCT >= 90" | bc -l) )); then
+            echo "color=brightgreen" >> "$GITHUB_OUTPUT"
+          elif (( $(echo "$TOTAL_PCT >= 75" | bc -l) )); then
+            echo "color=green" >> "$GITHUB_OUTPUT"
+          elif (( $(echo "$TOTAL_PCT >= 60" | bc -l) )); then
+            echo "color=yellow" >> "$GITHUB_OUTPUT"
+          else
+            echo "color=red" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Coverage summary
+        run: |
+          echo "### Test Coverage" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Contract | Lines |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| DuelMe.sol | ${{ steps.coverage.outputs.duelme_coverage }}% |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Total** | **${{ steps.coverage.outputs.total_coverage }}%** |" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Update coverage badge
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_TOKEN }}
+          gistID: 69b27e3902f28e6b5fd2495fc2143f18
+          filename: duelme-coverage.json
+          label: coverage
+          message: ${{ steps.coverage.outputs.total_coverage }}%
+          color: ${{ steps.coverage.outputs.color }}
+          namedLogo: solidity

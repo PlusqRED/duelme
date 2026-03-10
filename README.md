@@ -3,6 +3,7 @@
   <img src="https://img.shields.io/badge/Solidity-0.8.24-363636?style=flat-square&logo=solidity" alt="Solidity" />
   <img src="https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js" alt="Next.js" />
   <img src="https://img.shields.io/badge/Tests-77%20passed-brightgreen?style=flat-square" alt="Tests" />
+  <img src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/PlusqRED/69b27e3902f28e6b5fd2495fc2143f18/raw/duelme-coverage.json&style=flat-square" alt="Coverage" />
   <img src="https://github.com/PlusqRED/duelme/actions/workflows/test.yml/badge.svg" alt="CI" />
 </p>
 
