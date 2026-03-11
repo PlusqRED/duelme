@@ -18,6 +18,14 @@ export function RecentDuels() {
     );
   }
 
+  if (duels.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <p className="text-sm text-slate-400">{t('dashboard.noDuels')}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full">
       {/* Desktop table (md+) */}
@@ -41,7 +49,7 @@ export function RecentDuels() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {duels.map((duel) => {
-              const isPlayer1Winner = duel.winner === duel.player1;
+              const isPlayer1Winner = duel.winner.toLowerCase() === duel.player1.toLowerCase();
               return (
                 <tr
                   key={duel.id}
@@ -51,8 +59,8 @@ export function RecentDuels() {
                     <div className="flex items-center gap-2">
                       <div className="flex items-center gap-1.5">
                         <ReputationBadge
-                          address={duel.player1 as `0x${string}`}
-                          chainId={duel.chain === 'Arbitrum One' ? 42161 : 137}
+                          address={duel.player1}
+                          chainId={duel.chainId}
                         />
                         <span
                           className={`font-mono text-sm ${
@@ -76,8 +84,8 @@ export function RecentDuels() {
                           {truncateAddress(duel.player2)}
                         </span>
                         <ReputationBadge
-                          address={duel.player2 as `0x${string}`}
-                          chainId={duel.chain === 'Arbitrum One' ? 42161 : 137}
+                          address={duel.player2}
+                          chainId={duel.chainId}
                         />
                       </div>
                     </div>
@@ -97,7 +105,7 @@ export function RecentDuels() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600">
-                      {duel.chain}
+                      {duel.chainName}
                     </span>
                   </td>
                 </tr>
@@ -110,7 +118,7 @@ export function RecentDuels() {
       {/* Mobile cards (< md) */}
       <div className="flex flex-col gap-3 md:hidden">
         {duels.map((duel) => {
-          const isPlayer1Winner = duel.winner === duel.player1;
+          const isPlayer1Winner = duel.winner.toLowerCase() === duel.player1.toLowerCase();
           return (
             <div
               key={duel.id}
@@ -121,8 +129,8 @@ export function RecentDuels() {
                 <div className="flex flex-col items-start gap-1">
                   <div className="flex items-center gap-1.5">
                     <ReputationBadge
-                      address={duel.player1 as `0x${string}`}
-                      chainId={duel.chain === 'Arbitrum One' ? 42161 : 137}
+                      address={duel.player1}
+                      chainId={duel.chainId}
                     />
                     <span
                       className={`font-mono text-sm ${
@@ -136,8 +144,8 @@ export function RecentDuels() {
                   </div>
                   <div className="flex items-center gap-1.5">
                     <ReputationBadge
-                      address={duel.player2 as `0x${string}`}
-                      chainId={duel.chain === 'Arbitrum One' ? 42161 : 137}
+                      address={duel.player2}
+                      chainId={duel.chainId}
                     />
                     <span
                       className={`font-mono text-sm ${
@@ -164,7 +172,7 @@ export function RecentDuels() {
                   </span>
                 </div>
                 <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-500">
-                  {duel.chain === 'Arbitrum One' ? 'Arbitrum' : 'Polygon'}
+                  {duel.chainName}
                 </span>
               </div>
             </div>

@@ -37,8 +37,13 @@ function wilsonScore(honored: number, abandoned: number): number {
   return Math.max(0, numerator / denominator);
 }
 
-function getLevel(score: number, total: number): ReputationLevel {
+function getLevel(score: number, honored: number, abandoned: number): ReputationLevel {
+  const total = honored + abandoned;
   if (total === 0) return 'new';
+  // Players with zero abandoned duels should never be "unreliable"
+  if (abandoned === 0) {
+    return honored >= 5 ? 'honorable' : 'fair';
+  }
   if (score >= 0.75) return 'honorable';
   if (score >= 0.4) return 'fair';
   return 'unreliable';
@@ -68,7 +73,7 @@ export function useReputation(
   const abandoned = data ? Number((data as [number, number])[1]) : 0;
   const total = honored + abandoned;
   const score = wilsonScore(honored, abandoned);
-  const level = getLevel(score, total);
+  const level = getLevel(score, honored, abandoned);
 
   return { honored, abandoned, total, score, level, isLoading };
 }

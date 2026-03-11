@@ -17,8 +17,20 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
 
     uint256 public constant MIN_WAGER = 3_000_000; // 3 USDT (6 decimals)
     uint256 public constant CLAIM_TIMEOUT = 3600; // 1 hour
+    uint256 public constant EMERGENCY_DELAY = 30 days;
 
     uint256 public duelCount;
+
+    struct EmergencyRequest {
+        address token;
+        address recipient;
+        uint256 amount;
+        uint256 requestedAt;
+    }
+
+    /// @notice Pending emergency withdrawal requests, keyed by a unique nonce
+    mapping(uint256 => EmergencyRequest) public emergencyRequests;
+    uint256 public emergencyNonce;
 
     enum DuelState {
         Created,
@@ -53,6 +65,9 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
     event DuelResolved(uint256 indexed duelId, address indexed winner, uint256 amount);
     event DuelRefunded(uint256 indexed duelId);
     event DuelCancelled(uint256 indexed duelId);
+    event EmergencyRequested(uint256 indexed requestId, address indexed token, address indexed recipient, uint256 amount, uint256 executeAfter);
+    event EmergencyCancelled(uint256 indexed requestId);
+    event EmergencyExecuted(uint256 indexed requestId, address indexed token, address indexed recipient, uint256 amount);
 
     constructor(address _usdt) Ownable(msg.sender) {
         require(_usdt != address(0), "Invalid USDT address");
@@ -101,7 +116,7 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
 
     /// @notice Claim victory in a funded duel. Starts a 1-hour countdown for the opponent to confirm or dispute.
     /// @param duelId The ID of the duel
-    function claimVictory(uint256 duelId) external whenNotPaused {
+    function claimVictory(uint256 duelId) external whenNotPaused nonReentrant {
         Duel storage duel = duels[duelId];
         require(duel.state == DuelState.Funded, "Duel not in Funded state");
         require(
@@ -119,7 +134,7 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
 
     /// @notice Admit defeat in a funded duel. Sets the other player as the winner.
     /// @param duelId The ID of the duel
-    function admitDefeat(uint256 duelId) external whenNotPaused {
+    function admitDefeat(uint256 duelId) external whenNotPaused nonReentrant {
         Duel storage duel = duels[duelId];
         require(duel.state == DuelState.Funded, "Duel not in Funded state");
         require(
@@ -198,6 +213,75 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
 
         emit DuelCancelled(duelId);
     }
+
+    /// @notice Rescue any ERC20 token accidentally sent to this contract (except USDT)
+    /// @param token The ERC20 token to rescue
+    /// @param to The recipient address
+    /// @param amount The amount to transfer
+    function rescueToken(IERC20 token, address to, uint256 amount) external onlyOwner {
+        require(address(token) != address(usdt), "Cannot rescue USDT");
+        require(to != address(0), "Invalid recipient");
+        token.safeTransfer(to, amount);
+    }
+
+    /// @notice Rescue ETH accidentally sent to this contract
+    /// @param to The recipient address
+    function rescueETH(address payable to) external onlyOwner {
+        require(to != address(0), "Invalid recipient");
+        uint256 balance = address(this).balance;
+        require(balance > 0, "No ETH to rescue");
+        (bool success,) = to.call{value: balance}("");
+        require(success, "ETH transfer failed");
+    }
+
+    // ─── Emergency token rescue (30-day timelock) ───
+
+    /// @notice Request emergency withdrawal of any ERC20 token. Starts a 30-day countdown.
+    /// @param token The ERC20 token address to withdraw
+    /// @param recipient The address that will receive the funds
+    /// @param amount The amount to withdraw
+    /// @return requestId The unique ID of this emergency request
+    function requestEmergencyWithdraw(address token, address recipient, uint256 amount) external onlyOwner returns (uint256) {
+        require(token != address(0), "Invalid token");
+        require(recipient != address(0), "Invalid recipient");
+        require(amount > 0, "Invalid amount");
+
+        uint256 requestId = emergencyNonce++;
+        emergencyRequests[requestId] = EmergencyRequest({
+            token: token,
+            recipient: recipient,
+            amount: amount,
+            requestedAt: block.timestamp
+        });
+
+        emit EmergencyRequested(requestId, token, recipient, amount, block.timestamp + EMERGENCY_DELAY);
+        return requestId;
+    }
+
+    /// @notice Cancel a pending emergency withdrawal
+    /// @param requestId The ID of the request to cancel
+    function cancelEmergencyWithdraw(uint256 requestId) external onlyOwner {
+        require(emergencyRequests[requestId].requestedAt > 0, "Request not found");
+        delete emergencyRequests[requestId];
+        emit EmergencyCancelled(requestId);
+    }
+
+    /// @notice Execute emergency withdrawal after the 30-day timelock
+    /// @param requestId The ID of the request to execute
+    function executeEmergencyWithdraw(uint256 requestId) external onlyOwner {
+        EmergencyRequest memory req = emergencyRequests[requestId];
+        require(req.requestedAt > 0, "Request not found");
+        require(
+            block.timestamp >= req.requestedAt + EMERGENCY_DELAY,
+            "Timelock not expired"
+        );
+
+        delete emergencyRequests[requestId];
+        IERC20(req.token).safeTransfer(req.recipient, req.amount);
+        emit EmergencyExecuted(requestId, req.token, req.recipient, req.amount);
+    }
+
+    // ─── Admin ───
 
     /// @notice Pause all duel operations (owner only)
     function pause() external onlyOwner {

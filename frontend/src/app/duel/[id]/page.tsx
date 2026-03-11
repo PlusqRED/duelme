@@ -431,8 +431,8 @@ export default function DuelPage({
                 onConfirm={async () => { await ensureChain(); confirmResult(BigInt(duelId)); }}
                 onRefund={async () => { await ensureChain(); refund(BigInt(duelId)); }}
                 isPending={txPending}
-                canConfirm={isParticipant && !isClaimAuthor}
-                canRefund={true}
+                canConfirm={authenticated && isParticipant && !isClaimAuthor}
+                canRefund={authenticated && isParticipant}
               />
             </div>
           )}
