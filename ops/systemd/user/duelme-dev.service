@@ -22,7 +22,6 @@ PrivateTmp=yes
 ProtectSystem=full
 ProtectControlGroups=yes
 ProtectKernelTunables=yes
-ProtectKernelModules=yes
 RestrictNamespaces=yes
 RestrictRealtime=yes
 LockPersonality=yes
