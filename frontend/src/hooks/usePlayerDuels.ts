@@ -15,8 +15,10 @@ export interface PlayerDuel {
   state: DuelState;
   claimedWinner: `0x${string}`;
   claimedBy: `0x${string}`;
+  cancelRequestedBy: `0x${string}`;
   createdAt: bigint;
   fundedAt: bigint;
+  cancelRequestedAt: bigint;
   claimTimestamp: bigint;
   finalizedAt: bigint;
   creatorPayout: bigint;
@@ -38,7 +40,12 @@ export interface PlayerStats {
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-const ACTIVE_STATES = new Set([DuelState.Created, DuelState.Funded, DuelState.WinnerClaimed]);
+const ACTIVE_STATES = new Set([
+  DuelState.Created,
+  DuelState.Funded,
+  DuelState.WinnerClaimed,
+  DuelState.MutualCancelRequested,
+]);
 
 const CHAIN_NAMES: Record<number, string> = {
   421614: 'Arb Sepolia',
@@ -109,8 +116,10 @@ export function usePlayerDuels(
         inviteHash: `0x${string}`;
         claimedWinner: `0x${string}`;
         claimedBy: `0x${string}`;
+        cancelRequestedBy: `0x${string}`;
         createdAt: bigint;
         fundedAt: bigint;
+        cancelRequestedAt: bigint;
         claimTimestamp: bigint;
         finalizedAt: bigint;
         creatorPayout: bigint;
@@ -144,8 +153,10 @@ export function usePlayerDuels(
         state,
         claimedWinner: d.claimedWinner,
         claimedBy: d.claimedBy,
+        cancelRequestedBy: d.cancelRequestedBy,
         createdAt: d.createdAt,
         fundedAt: d.fundedAt,
+        cancelRequestedAt: d.cancelRequestedAt,
         claimTimestamp: d.claimTimestamp,
         finalizedAt: d.finalizedAt,
         creatorPayout: d.creatorPayout,
@@ -170,7 +181,12 @@ export function usePlayerDuels(
         } else {
           losses++;
         }
-      } else if (state === DuelState.Created || state === DuelState.Funded || state === DuelState.WinnerClaimed) {
+      } else if (
+        state === DuelState.Created
+        || state === DuelState.Funded
+        || state === DuelState.WinnerClaimed
+        || state === DuelState.MutualCancelRequested
+      ) {
         totalWagered += wager;
       }
     }

@@ -13,7 +13,7 @@ import { useWallets } from '@privy-io/react-auth';
 import { usePlayerDuels } from '@/hooks/usePlayerDuels';
 import { DuelState } from '@/lib/contracts';
 import { SUPPORTED_CHAINS } from '@/lib/constants';
-import { getClaimableAmountForAddress } from '@/lib/duel';
+import { getClaimableAmountForAddress, getRelevantDuelTimestamp } from '@/lib/duel';
 import { formatUSDT } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAccount, useSwitchChain } from 'wagmi';
@@ -99,6 +99,10 @@ export default function DashboardPage() {
         return 'duel.timelineRefunded' as const;
       case DuelState.Disputed:
         return 'duel.timelineDisputed' as const;
+      case DuelState.MutualCancelRequested:
+        return 'duel.timelineCancellationRequested' as const;
+      case DuelState.MutuallyCancelled:
+        return 'duel.timelineMutuallyCancelled' as const;
       case DuelState.WinnerClaimed:
         return 'duel.timelineResultSubmitted' as const;
       case DuelState.Funded:
@@ -255,15 +259,7 @@ export default function DashboardPage() {
               chain={duel.chainName}
               chainId={duel.chainId}
               lastEventLabelKey={getLastEventLabelKey(duel.state)}
-              lastEventAt={
-                duel.finalizedAt > 0n
-                  ? duel.finalizedAt
-                  : duel.claimTimestamp > 0n
-                    ? duel.claimTimestamp
-                    : duel.fundedAt > 0n
-                      ? duel.fundedAt
-                      : duel.createdAt
-              }
+              lastEventAt={getRelevantDuelTimestamp(duel)}
               claimableAmount={getClaimableAmountForAddress(duel, walletAddress)}
               onClaim={
                 getClaimableAmountForAddress(duel, walletAddress) > 0n

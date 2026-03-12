@@ -40,7 +40,9 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
         Refunded,
         Cancelled,
         Declined,
-        Disputed
+        Disputed,
+        MutualCancelRequested,
+        MutuallyCancelled
     }
 
     struct Duel {
@@ -50,8 +52,10 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
         bytes32 inviteHash;
         address claimedWinner;
         address claimedBy;
+        address cancelRequestedBy;
         uint256 createdAt;
         uint256 fundedAt;
+        uint256 cancelRequestedAt;
         uint256 claimTimestamp;
         uint256 finalizedAt;
         uint256 creatorPayout;
@@ -77,6 +81,10 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
     event DuelCancelled(uint256 indexed duelId);
     event DuelDeclined(uint256 indexed duelId, address indexed declinedBy);
     event DuelDisputed(uint256 indexed duelId, address indexed disputedBy);
+    event DuelMutualCancellationRequested(uint256 indexed duelId, address indexed requestedBy);
+    event DuelMutualCancellationDeclined(uint256 indexed duelId, address indexed declinedBy);
+    event DuelMutualCancellationWithdrawn(uint256 indexed duelId, address indexed withdrawnBy);
+    event DuelMutuallyCancelled(uint256 indexed duelId, address indexed requestedBy, address indexed acceptedBy);
     event DuelPayoutClaimed(uint256 indexed duelId, address indexed player, uint256 amount);
     event EmergencyRequested(uint256 indexed requestId, address indexed token, address indexed recipient, uint256 amount, uint256 executeAfter);
     event EmergencyCancelled(uint256 indexed requestId);
@@ -107,8 +115,10 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
         duel.inviteHash = inviteHash;
         duel.claimedWinner = address(0);
         duel.claimedBy = address(0);
+        duel.cancelRequestedBy = address(0);
         duel.createdAt = block.timestamp;
         duel.fundedAt = 0;
+        duel.cancelRequestedAt = 0;
         duel.claimTimestamp = 0;
         duel.finalizedAt = 0;
         duel.creatorPayout = 0;
@@ -194,6 +204,71 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
         emit VictoryClaimed(duelId, msg.sender, winner);
     }
 
+    /// @notice Request cancellation of a funded duel by mutual agreement.
+    /// @param duelId The ID of the duel
+    function requestMutualCancellation(uint256 duelId) external whenNotPaused nonReentrant {
+        Duel storage duel = duels[duelId];
+        require(duel.state == DuelState.Funded, "Duel not in Funded state");
+        require(
+            msg.sender == duel.creator || msg.sender == duel.opponent,
+            "Not a participant"
+        );
+
+        duel.cancelRequestedBy = msg.sender;
+        duel.cancelRequestedAt = block.timestamp;
+        duel.state = DuelState.MutualCancelRequested;
+
+        emit DuelMutualCancellationRequested(duelId, msg.sender);
+    }
+
+    /// @notice Accept a pending mutual cancellation request and unlock full refunds for both players.
+    /// @param duelId The ID of the duel
+    function acceptMutualCancellation(uint256 duelId) external whenNotPaused nonReentrant {
+        Duel storage duel = duels[duelId];
+        require(duel.state == DuelState.MutualCancelRequested, "Duel not in MutualCancelRequested state");
+        require(
+            msg.sender == duel.creator || msg.sender == duel.opponent,
+            "Not a participant"
+        );
+        require(msg.sender != duel.cancelRequestedBy, "Requester cannot accept");
+
+        duel.finalizedAt = block.timestamp;
+        duel.state = DuelState.MutuallyCancelled;
+        _setPayouts(duel, duel.wagerAmount, duel.wagerAmount);
+
+        emit DuelMutuallyCancelled(duelId, duel.cancelRequestedBy, msg.sender);
+    }
+
+    /// @notice Decline a pending mutual cancellation request and resume the duel.
+    /// @param duelId The ID of the duel
+    function declineMutualCancellation(uint256 duelId) external whenNotPaused nonReentrant {
+        Duel storage duel = duels[duelId];
+        require(duel.state == DuelState.MutualCancelRequested, "Duel not in MutualCancelRequested state");
+        require(
+            msg.sender == duel.creator || msg.sender == duel.opponent,
+            "Not a participant"
+        );
+        require(msg.sender != duel.cancelRequestedBy, "Requester cannot decline");
+
+        _clearMutualCancellationRequest(duel);
+        duel.state = DuelState.Funded;
+
+        emit DuelMutualCancellationDeclined(duelId, msg.sender);
+    }
+
+    /// @notice Withdraw your own pending mutual cancellation request and resume the duel.
+    /// @param duelId The ID of the duel
+    function withdrawMutualCancellationRequest(uint256 duelId) external whenNotPaused nonReentrant {
+        Duel storage duel = duels[duelId];
+        require(duel.state == DuelState.MutualCancelRequested, "Duel not in MutualCancelRequested state");
+        require(msg.sender == duel.cancelRequestedBy, "Only requester can withdraw");
+
+        _clearMutualCancellationRequest(duel);
+        duel.state = DuelState.Funded;
+
+        emit DuelMutualCancellationWithdrawn(duelId, msg.sender);
+    }
+
     /// @notice Confirm the claimed result. Must be called by the OTHER player (not the one who called claimVictory/admitDefeat).
     /// @param duelId The ID of the duel
     function confirmResult(uint256 duelId) external whenNotPaused nonReentrant {
@@ -221,7 +296,7 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
         emit DuelResolved(duelId, duel.claimedWinner, payout);
     }
 
-    /// @notice Dispute a claimed result. Refunds both players immediately with no reputation changes.
+    /// @notice Dispute a claimed result. Unlocks full refunds for both players with no reputation changes.
     /// @param duelId The ID of the duel
     function disputeResult(uint256 duelId) external whenNotPaused nonReentrant {
         Duel storage duel = duels[duelId];
@@ -410,6 +485,11 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
         duel.opponentPayout = opponentAmount;
         duel.creatorClaimed = false;
         duel.opponentClaimed = false;
+    }
+
+    function _clearMutualCancellationRequest(Duel storage duel) internal {
+        duel.cancelRequestedBy = address(0);
+        duel.cancelRequestedAt = 0;
     }
 
     function _claimSinglePayout(Duel storage duel, uint256 duelId, address player) internal returns (uint256 amount) {

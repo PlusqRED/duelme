@@ -69,6 +69,46 @@ export function useDuelActions(chainId: number) {
     });
   }
 
+  function requestMutualCancellation(duelId: bigint) {
+    writeContract({
+      address: contractAddress,
+      abi: duelMeAbi,
+      functionName: 'requestMutualCancellation',
+      args: [duelId],
+      chainId,
+    });
+  }
+
+  function acceptMutualCancellation(duelId: bigint) {
+    writeContract({
+      address: contractAddress,
+      abi: duelMeAbi,
+      functionName: 'acceptMutualCancellation',
+      args: [duelId],
+      chainId,
+    });
+  }
+
+  function declineMutualCancellation(duelId: bigint) {
+    writeContract({
+      address: contractAddress,
+      abi: duelMeAbi,
+      functionName: 'declineMutualCancellation',
+      args: [duelId],
+      chainId,
+    });
+  }
+
+  function withdrawMutualCancellationRequest(duelId: bigint) {
+    writeContract({
+      address: contractAddress,
+      abi: duelMeAbi,
+      functionName: 'withdrawMutualCancellationRequest',
+      args: [duelId],
+      chainId,
+    });
+  }
+
   function claimPayout(duelId: bigint) {
     writeContract({
       address: contractAddress,
@@ -145,6 +185,10 @@ export function useDuelActions(chainId: number) {
     joinDuel,
     declineDuel,
     claimVictory,
+    requestMutualCancellation,
+    acceptMutualCancellation,
+    declineMutualCancellation,
+    withdrawMutualCancellationRequest,
     claimPayout,
     claimPayouts,
     admitDefeat,

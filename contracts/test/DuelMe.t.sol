@@ -147,8 +147,10 @@ contract DuelMeTest is Test {
         assertEq(d.inviteHash, DEFAULT_INVITE_HASH);
         assertEq(d.claimedWinner, address(0));
         assertEq(d.claimedBy, address(0));
+        assertEq(d.cancelRequestedBy, address(0));
         assertEq(d.createdAt, block.timestamp);
         assertEq(d.fundedAt, 0);
+        assertEq(d.cancelRequestedAt, 0);
         assertEq(d.claimTimestamp, 0);
         assertEq(d.finalizedAt, 0);
         assertEq(d.creatorPayout, 0);

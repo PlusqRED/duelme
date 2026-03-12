@@ -2,7 +2,7 @@ export const SUPPORTED_CHAINS = {
   arbitrumSepolia: {
     id: 421614,
     name: 'Arbitrum Sepolia',
-    usdt: '0x05167e85e53a8D53c85dBB17D061FBA1BAD09d4d' as `0x${string}`,
+    usdt: '0xA3B04548Fce97260Ee32666AB2A2Fa61E57B078b' as `0x${string}`,
     explorer: 'https://sepolia.arbiscan.io',
     rpc: 'https://sepolia-rollup.arbitrum.io/rpc',
   },
@@ -28,7 +28,7 @@ export const CLAIM_TIMEOUT = 3600; // 1 hour in seconds
 export const USDT_DECIMALS = 6;
 
 export const DUELME_ADDRESSES: Record<number, `0x${string}`> = {
-  421614: '0xD305bF0DfD5DDFE999930F02Dcc81301Ad1818D2', // Arbitrum Sepolia
+  421614: '0x2789741566bc98b4f7C15BBdE84d511BE62eA200', // Arbitrum Sepolia
   42161: '0x0000000000000000000000000000000000000000', // Arbitrum One (TBD)
   137: '0x0000000000000000000000000000000000000000', // Polygon (TBD)
 };

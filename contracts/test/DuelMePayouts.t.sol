@@ -189,4 +189,133 @@ contract DuelMePayoutsTest is Test {
         assertEq(resolved.claimTimestamp, claimed.claimTimestamp);
         assertEq(resolved.finalizedAt, block.timestamp);
     }
+
+    function testRequestMutualCancellationPausesDuelAndStoresRequester() public {
+        uint256 duelId = _createAndFundDuel();
+
+        vm.warp(block.timestamp + 10);
+        vm.prank(alice);
+        vm.expectEmit(true, true, false, true);
+        emit DuelMe.DuelMutualCancellationRequested(duelId, alice);
+        duelMe.requestMutualCancellation(duelId);
+
+        DuelMe.Duel memory duel = duelMe.getDuel(duelId);
+        assertEq(uint256(duel.state), uint256(DuelMe.DuelState.MutualCancelRequested));
+        assertEq(duel.cancelRequestedBy, alice);
+        assertEq(duel.cancelRequestedAt, block.timestamp);
+        assertEq(duel.finalizedAt, 0);
+
+        vm.prank(bob);
+        vm.expectRevert("Duel not in Funded state");
+        duelMe.claimVictory(duelId);
+    }
+
+    function testAcceptMutualCancellationUnlocksFullRefundsWithoutReputationChange() public {
+        uint256 duelId = _createAndFundDuel();
+
+        vm.warp(block.timestamp + 10);
+        vm.prank(alice);
+        duelMe.requestMutualCancellation(duelId);
+
+        uint256 requestedAt = block.timestamp;
+
+        vm.warp(block.timestamp + 25);
+        vm.prank(bob);
+        vm.expectEmit(true, true, true, true);
+        emit DuelMe.DuelMutuallyCancelled(duelId, alice, bob);
+        duelMe.acceptMutualCancellation(duelId);
+
+        DuelMe.Duel memory duel = duelMe.getDuel(duelId);
+        assertEq(uint256(duel.state), uint256(DuelMe.DuelState.MutuallyCancelled));
+        assertEq(duel.cancelRequestedBy, alice);
+        assertEq(duel.cancelRequestedAt, requestedAt);
+        assertEq(duel.finalizedAt, block.timestamp);
+        _assertPayouts(duelId, WAGER, WAGER, false, false);
+
+        (uint32 aliceHonored, uint32 aliceAbandoned) = duelMe.getPlayerStats(alice);
+        (uint32 bobHonored, uint32 bobAbandoned) = duelMe.getPlayerStats(bob);
+        assertEq(aliceHonored, 0);
+        assertEq(aliceAbandoned, 0);
+        assertEq(bobHonored, 0);
+        assertEq(bobAbandoned, 0);
+    }
+
+    function testDeclineMutualCancellationRestoresFundedStateAndClearsRequest() public {
+        uint256 duelId = _createAndFundDuel();
+
+        vm.prank(alice);
+        duelMe.requestMutualCancellation(duelId);
+
+        vm.prank(bob);
+        vm.expectEmit(true, true, false, true);
+        emit DuelMe.DuelMutualCancellationDeclined(duelId, bob);
+        duelMe.declineMutualCancellation(duelId);
+
+        DuelMe.Duel memory duel = duelMe.getDuel(duelId);
+        assertEq(uint256(duel.state), uint256(DuelMe.DuelState.Funded));
+        assertEq(duel.cancelRequestedBy, address(0));
+        assertEq(duel.cancelRequestedAt, 0);
+        assertEq(duel.finalizedAt, 0);
+        _assertPayouts(duelId, 0, 0, false, false);
+    }
+
+    function testWithdrawMutualCancellationRestoresFundedStateAndClearsRequest() public {
+        uint256 duelId = _createAndFundDuel();
+
+        vm.prank(alice);
+        duelMe.requestMutualCancellation(duelId);
+
+        vm.prank(alice);
+        vm.expectEmit(true, true, false, true);
+        emit DuelMe.DuelMutualCancellationWithdrawn(duelId, alice);
+        duelMe.withdrawMutualCancellationRequest(duelId);
+
+        DuelMe.Duel memory duel = duelMe.getDuel(duelId);
+        assertEq(uint256(duel.state), uint256(DuelMe.DuelState.Funded));
+        assertEq(duel.cancelRequestedBy, address(0));
+        assertEq(duel.cancelRequestedAt, 0);
+        assertEq(duel.finalizedAt, 0);
+    }
+
+    function testOnlyOtherParticipantCanAcceptOrDeclineMutualCancellation() public {
+        uint256 duelId = _createAndFundDuel();
+
+        vm.prank(alice);
+        duelMe.requestMutualCancellation(duelId);
+
+        vm.prank(alice);
+        vm.expectRevert("Requester cannot accept");
+        duelMe.acceptMutualCancellation(duelId);
+
+        vm.prank(alice);
+        vm.expectRevert("Requester cannot decline");
+        duelMe.declineMutualCancellation(duelId);
+
+        vm.prank(address(0xBEEF));
+        vm.expectRevert("Not a participant");
+        duelMe.acceptMutualCancellation(duelId);
+    }
+
+    function testMutuallyCancelledDuelsCanBeClaimedByBothPlayers() public {
+        uint256 duelId = _createAndFundDuel();
+
+        vm.prank(alice);
+        duelMe.requestMutualCancellation(duelId);
+
+        vm.prank(bob);
+        duelMe.acceptMutualCancellation(duelId);
+
+        uint256 aliceBalBefore = usdt.balanceOf(alice);
+        uint256 bobBalBefore = usdt.balanceOf(bob);
+
+        vm.prank(alice);
+        duelMe.claimPayout(duelId);
+
+        vm.prank(bob);
+        duelMe.claimPayout(duelId);
+
+        assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER);
+        assertEq(usdt.balanceOf(bob), bobBalBefore + WAGER);
+        _assertPayouts(duelId, WAGER, WAGER, true, true);
+    }
 }

@@ -61,6 +61,14 @@ const STATUS_CONFIG: Record<
     key: 'duel.disputed',
     colorClass: 'bg-orange-50 text-orange-700 border-orange-200',
   },
+  [DuelState.MutualCancelRequested]: {
+    key: 'duel.cancellationPending',
+    colorClass: 'bg-violet-50 text-violet-700 border-violet-200',
+  },
+  [DuelState.MutuallyCancelled]: {
+    key: 'duel.mutuallyCancelled',
+    colorClass: 'bg-sky-50 text-sky-700 border-sky-200',
+  },
 };
 
 export function DuelCard({

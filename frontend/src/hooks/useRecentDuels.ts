@@ -83,6 +83,7 @@ export function useRecentDuels() {
         claimedWinner: `0x${string}`;
         createdAt: bigint;
         fundedAt: bigint;
+        cancelRequestedAt: bigint;
         claimTimestamp: bigint;
         finalizedAt: bigint;
         state: number;
@@ -95,6 +96,8 @@ export function useRecentDuels() {
       const lastEventAt =
         d.finalizedAt > 0n
           ? d.finalizedAt
+          : d.cancelRequestedAt > 0n
+            ? d.cancelRequestedAt
           : d.claimTimestamp > 0n
             ? d.claimTimestamp
             : d.fundedAt > 0n

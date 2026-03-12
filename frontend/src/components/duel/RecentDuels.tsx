@@ -16,6 +16,8 @@ const STATUS_KEY: Record<DuelState, string> = {
   [DuelState.Cancelled]: 'duel.cancelled',
   [DuelState.Declined]: 'duel.declined',
   [DuelState.Disputed]: 'duel.disputed',
+  [DuelState.MutualCancelRequested]: 'duel.cancellationPending',
+  [DuelState.MutuallyCancelled]: 'duel.mutuallyCancelled',
 };
 
 export function RecentDuels() {
@@ -64,7 +66,8 @@ export function RecentDuels() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {duels.map((duel) => {
-              const isPlayer1Winner = duel.winner.toLowerCase() === duel.player1.toLowerCase();
+              const hasWinner = duel.state === DuelState.Resolved;
+              const isPlayer1Winner = hasWinner && duel.winner.toLowerCase() === duel.player1.toLowerCase();
               return (
                 <tr
                   key={duel.id}
@@ -81,7 +84,9 @@ export function RecentDuels() {
                           className={`font-mono text-sm ${
                             isPlayer1Winner
                               ? 'font-semibold text-slate-900'
-                              : 'text-slate-500'
+                              : hasWinner
+                                ? 'text-slate-500'
+                                : 'text-slate-700'
                           }`}
                         >
                           {truncateAddress(duel.player1)}
@@ -91,9 +96,11 @@ export function RecentDuels() {
                       <div className="flex items-center gap-1.5">
                         <span
                           className={`font-mono text-sm ${
-                            !isPlayer1Winner
-                              ? 'font-semibold text-slate-900'
-                              : 'text-slate-500'
+                            hasWinner
+                              ? !isPlayer1Winner
+                                ? 'font-semibold text-slate-900'
+                                : 'text-slate-500'
+                              : 'text-slate-700'
                           }`}
                         >
                           {truncateAddress(duel.player2)}
@@ -143,7 +150,8 @@ export function RecentDuels() {
       {/* Mobile cards (< md) */}
       <div className="flex flex-col gap-3 md:hidden">
         {duels.map((duel) => {
-          const isPlayer1Winner = duel.winner.toLowerCase() === duel.player1.toLowerCase();
+          const hasWinner = duel.state === DuelState.Resolved;
+          const isPlayer1Winner = hasWinner && duel.winner.toLowerCase() === duel.player1.toLowerCase();
           return (
             <div
               key={duel.id}
@@ -157,14 +165,16 @@ export function RecentDuels() {
                       address={duel.player1}
                       chainId={duel.chainId}
                     />
-                    <span
-                      className={`font-mono text-sm ${
-                        isPlayer1Winner
-                          ? 'font-semibold text-slate-900'
-                          : 'text-slate-500'
-                      }`}
-                    >
-                      {truncateAddress(duel.player1)}
+                     <span
+                       className={`font-mono text-sm ${
+                         isPlayer1Winner
+                           ? 'font-semibold text-slate-900'
+                           : hasWinner
+                             ? 'text-slate-500'
+                             : 'text-slate-700'
+                       }`}
+                     >
+                       {truncateAddress(duel.player1)}
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -172,14 +182,16 @@ export function RecentDuels() {
                       address={duel.player2}
                       chainId={duel.chainId}
                     />
-                    <span
-                      className={`font-mono text-sm ${
-                        !isPlayer1Winner
-                          ? 'font-semibold text-slate-900'
-                          : 'text-slate-500'
-                      }`}
-                    >
-                      {truncateAddress(duel.player2)}
+                     <span
+                       className={`font-mono text-sm ${
+                         hasWinner
+                           ? !isPlayer1Winner
+                             ? 'font-semibold text-slate-900'
+                             : 'text-slate-500'
+                           : 'text-slate-700'
+                       }`}
+                     >
+                       {truncateAddress(duel.player2)}
                     </span>
                   </div>
                 </div>

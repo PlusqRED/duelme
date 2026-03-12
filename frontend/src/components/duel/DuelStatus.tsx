@@ -21,6 +21,8 @@ const STATUS_LABELS: Record<DuelState, TranslationKey> = {
   [DuelState.Cancelled]: 'duel.cancelled',
   [DuelState.Declined]: 'duel.declined',
   [DuelState.Disputed]: 'duel.disputed',
+  [DuelState.MutualCancelRequested]: 'duel.cancellationPending',
+  [DuelState.MutuallyCancelled]: 'duel.mutuallyCancelled',
 };
 
 const STATUS_COLORS: Record<DuelState, string> = {
@@ -32,6 +34,8 @@ const STATUS_COLORS: Record<DuelState, string> = {
   [DuelState.Cancelled]: 'bg-slate-50 text-slate-500 border-slate-200',
   [DuelState.Declined]: 'bg-rose-50 text-rose-700 border-rose-200',
   [DuelState.Disputed]: 'bg-orange-50 text-orange-700 border-orange-200',
+  [DuelState.MutualCancelRequested]: 'bg-violet-50 text-violet-700 border-violet-200',
+  [DuelState.MutuallyCancelled]: 'bg-sky-50 text-sky-700 border-sky-200',
 };
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -40,10 +44,12 @@ export function DuelStatus({ duel, duelId }: DuelStatusProps) {
   const { t } = useTranslation();
   const wagerDisplay = formatUSDT(duel.wagerAmount);
   const isFundedOrBeyond = duel.state === DuelState.Funded
+    || duel.state === DuelState.MutualCancelRequested
     || duel.state === DuelState.WinnerClaimed
     || duel.state === DuelState.Resolved
     || duel.state === DuelState.Refunded
-    || duel.state === DuelState.Disputed;
+    || duel.state === DuelState.Disputed
+    || duel.state === DuelState.MutuallyCancelled;
   const potDisplay = isFundedOrBeyond
     ? formatUSDT(duel.wagerAmount * 2n)
     : wagerDisplay;
