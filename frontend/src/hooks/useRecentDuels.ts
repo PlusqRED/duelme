@@ -11,6 +11,7 @@ export interface RecentDuel {
   player1: `0x${string}`;
   player2: `0x${string}`;
   wager: number;
+  message: string;
   winner: `0x${string}`;
   lastEventAt: bigint;
   chainId: number;
@@ -25,11 +26,6 @@ const CHAIN_NAMES: Record<number, string> = {
   42161: 'Arbitrum One',
   137: 'Polygon',
 };
-
-// How many recent duels to scan (from the end)
-const SCAN_LIMIT = 50;
-// How many recent duels to show
-const DISPLAY_LIMIT = 10;
 
 const DEFAULT_CHAIN_ID = 421614;
 
@@ -47,15 +43,13 @@ export function useRecentDuels() {
 
   const count = duelCount ? Number(duelCount) : 0;
 
-  // Read only the last SCAN_LIMIT duels (most recent first)
   const duelContracts = useMemo(() => {
     if (!count || !enabled) return [];
-    const start = Math.max(0, count - SCAN_LIMIT);
-    return Array.from({ length: count - start }, (_, i) => ({
+    return Array.from({ length: count }, (_, i) => ({
       address: contractAddress,
       abi: duelMeAbi,
       functionName: 'getDuel' as const,
-      args: [BigInt(start + i)] as const,
+      args: [BigInt(i)] as const,
       chainId: DEFAULT_CHAIN_ID,
     }));
   }, [count, contractAddress, enabled]);
@@ -68,11 +62,9 @@ export function useRecentDuels() {
   const duels = useMemo<RecentDuel[]>(() => {
     if (!duelResults) return [];
 
-    const startIndex = Math.max(0, count - SCAN_LIMIT);
     const recent: RecentDuel[] = [];
 
-    // Iterate backwards (most recent first)
-    for (let i = duelResults.length - 1; i >= 0; i--) {
+    for (let i = 0; i < duelResults.length; i++) {
       const res = duelResults[i];
       if (res.status !== 'success' || !res.result) continue;
 
@@ -80,6 +72,7 @@ export function useRecentDuels() {
         creator: `0x${string}`;
         opponent: `0x${string}`;
         wagerAmount: bigint;
+        message: string;
         claimedWinner: `0x${string}`;
         createdAt: bigint;
         fundedAt: bigint;
@@ -105,10 +98,11 @@ export function useRecentDuels() {
               : d.createdAt;
 
       recent.push({
-        id: startIndex + i,
+        id: i,
         player1: d.creator,
         player2: d.opponent,
         wager: parseFloat(formatUnits(d.wagerAmount, USDT_DECIMALS)),
+        message: d.message,
         winner: d.claimedWinner,
         lastEventAt,
         chainId: DEFAULT_CHAIN_ID,
@@ -124,9 +118,8 @@ export function useRecentDuels() {
         }
 
         return a.lastEventAt > b.lastEventAt ? -1 : 1;
-      })
-      .slice(0, DISPLAY_LIMIT);
-  }, [duelResults, count]);
+      });
+  }, [duelResults]);
 
   return {
     duels,

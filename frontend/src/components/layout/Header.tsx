@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Menu, X, Swords, LogOut, User, Wallet, Globe, Send, Copy, Check, ChevronDown, KeyRound, Fuel } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { usePrivy, useWallets, useExportWallet } from '@privy-io/react-auth';
 import { useReadContract, useBalance } from 'wagmi';
 import { formatUnits, parseUnits, encodeFunctionData } from 'viem';
 import { SUPPORTED_CHAINS, USDT_DECIMALS } from '@/lib/constants';
+import { emitBalanceRefreshBurst, subscribeToBalanceRefresh } from '@/lib/balanceRefresh';
 
 const CHAIN_META: Record<number, { name: string; testnet?: boolean }> = {
   421614: { name: 'Arb Sepolia', testnet: true },
@@ -60,8 +61,10 @@ export function Header() {
   const [isSending, setIsSending] = useState(false);
   const [copied, setCopied] = useState(false);
   const [selectedChain, setSelectedChain] = useState<number>(421614);
+  const [balanceFlash, setBalanceFlash] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const previousTotalUsdtRef = useRef<string | null>(null);
   const { ready, authenticated, login, logout, user } = usePrivy();
   const { wallets } = useWallets();
   const { exportWallet } = useExportWallet();
@@ -106,7 +109,7 @@ export function Header() {
   });
 
   // Read ETH balance on selected chain (for gas)
-  const { data: ethBalanceData } = useBalance({
+  const { data: ethBalanceData, refetch: refetchEthBalance } = useBalance({
     address: walletAddress,
     chainId: selectedChain,
     query: { enabled: !!walletAddress, refetchInterval: 30_000, staleTime: 0 },
@@ -128,11 +131,12 @@ export function Header() {
   const chainMeta = CHAIN_META[selectedChain];
   const usdtAddress = getUsdtAddress(selectedChain);
 
-  function refetch() {
-    refetchArbSepolia();
-    refetchArb();
-    refetchPoly();
-  }
+  const refetchBalances = useCallback(() => {
+    void refetchArbSepolia();
+    void refetchArb();
+    void refetchPoly();
+    void refetchEthBalance();
+  }, [refetchArbSepolia, refetchArb, refetchPoly, refetchEthBalance]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -144,6 +148,28 @@ export function Header() {
     if (walletOpen) document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [walletOpen]);
+
+  useEffect(() => subscribeToBalanceRefresh(() => {
+    refetchBalances();
+  }), [refetchBalances]);
+
+  useEffect(() => {
+    if (!authenticated) {
+      previousTotalUsdtRef.current = null;
+      setBalanceFlash(false);
+      return;
+    }
+
+    if (previousTotalUsdtRef.current && previousTotalUsdtRef.current !== totalUsdt) {
+      setBalanceFlash(true);
+      const timeout = window.setTimeout(() => setBalanceFlash(false), 1400);
+      previousTotalUsdtRef.current = totalUsdt;
+      return () => window.clearTimeout(timeout);
+    }
+
+    previousTotalUsdtRef.current = totalUsdt;
+    return undefined;
+  }, [authenticated, totalUsdt]);
 
   async function handleCopy() {
     if (!walletAddress) return;
@@ -184,7 +210,7 @@ export function Header() {
       setToAddress('');
       setSendAmount('');
       setWalletOpen(false);
-      refetch();
+      emitBalanceRefreshBurst();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '';
       if (msg.includes('reject') || msg.includes('denied')) {
@@ -262,7 +288,9 @@ export function Header() {
       </div>
 
       {/* Balance */}
-      <div className="rounded-lg bg-slate-50 px-3 py-2.5">
+      <div className={`rounded-lg px-3 py-2.5 transition-colors ${
+        balanceFlash ? 'bg-emerald-50/80 ring-1 ring-emerald-200' : 'bg-slate-50'
+      }`}>
         <div className="flex items-center justify-between">
           <span className="text-xs text-slate-500">{t('wallet.balance')}</span>
           <div className={`flex items-center gap-1 rounded-full px-2 py-0.5 ${
@@ -386,7 +414,11 @@ export function Header() {
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setWalletOpen(!walletOpen)}
-                  className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 transition-colors hover:border-indigo-300 hover:bg-indigo-50"
+                  className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 transition-all ${
+                    balanceFlash
+                      ? 'border-emerald-300 bg-emerald-50 text-emerald-900 shadow-sm shadow-emerald-100'
+                      : 'border-slate-200 hover:border-indigo-300 hover:bg-indigo-50'
+                  }`}
                 >
                   <Wallet className="h-3.5 w-3.5 text-indigo-500" />
                   <span className="text-xs font-bold text-slate-700">{totalUsdt}</span>

@@ -18,6 +18,8 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
     uint256 public constant MIN_WAGER = 3_000_000; // 3 USDT (6 decimals)
     uint256 public constant CLAIM_TIMEOUT = 3600; // 1 hour
     uint256 public constant EMERGENCY_DELAY = 30 days;
+    uint256 public constant MAX_MESSAGE_CODEPOINTS = 32;
+    uint256 public constant MAX_MESSAGE_BYTES = 128;
 
     uint256 public duelCount;
 
@@ -50,6 +52,7 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
         address opponent;
         uint256 wagerAmount;
         bytes32 inviteHash;
+        string message;
         address claimedWinner;
         address claimedBy;
         address cancelRequestedBy;
@@ -100,12 +103,26 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
     /// @param inviteHash The hash of the secret invite token required to accept or decline this duel
     /// @return duelId The unique identifier for the created duel
     function createDuel(uint256 amount, bytes32 inviteHash) external whenNotPaused nonReentrant returns (uint256) {
+        return _createDuel(amount, inviteHash, "");
+    }
+
+    /// @notice Create a new duel by depositing a USDT wager and attaching an optional short message
+    /// @param amount The wager amount in USDT (6 decimals)
+    /// @param inviteHash The hash of the secret invite token required to accept or decline this duel
+    /// @param message Optional short duel message shown in the UI
+    /// @return duelId The unique identifier for the created duel
+    function createDuel(uint256 amount, bytes32 inviteHash, string calldata message) external whenNotPaused nonReentrant returns (uint256) {
+        return _createDuel(amount, inviteHash, message);
+    }
+
+    function _createDuel(uint256 amount, bytes32 inviteHash, string memory message) internal returns (uint256 duelId) {
         require(amount >= MIN_WAGER, "Wager below minimum");
         require(inviteHash != bytes32(0), "Invalid invite hash");
+        _validateMessage(message);
 
         usdt.safeTransferFrom(msg.sender, address(this), amount);
 
-        uint256 duelId = duelCount;
+        duelId = duelCount;
         duelCount++;
 
         Duel storage duel = duels[duelId];
@@ -113,6 +130,7 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
         duel.opponent = address(0);
         duel.wagerAmount = amount;
         duel.inviteHash = inviteHash;
+        duel.message = message;
         duel.claimedWinner = address(0);
         duel.claimedBy = address(0);
         duel.cancelRequestedBy = address(0);
@@ -128,7 +146,6 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
         duel.state = DuelState.Created;
 
         emit DuelCreated(duelId, msg.sender, amount);
-        return duelId;
     }
 
     /// @notice Join an existing duel by depositing the matching wager
@@ -478,6 +495,69 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
 
     function _hashInviteSecret(bytes32 inviteSecret) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(inviteSecret));
+    }
+
+    function _validateMessage(string memory message) internal pure {
+        bytes memory data = bytes(message);
+        uint256 byteLength = data.length;
+        require(byteLength <= MAX_MESSAGE_BYTES, "Message too long");
+
+        uint256 i;
+        uint256 codePoints;
+
+        while (i < byteLength) {
+            uint8 leading = uint8(data[i]);
+            uint256 sequenceLength;
+
+            if (leading < 0x80) {
+                sequenceLength = 1;
+            } else if (leading < 0xC2) {
+                revert("Invalid UTF-8");
+            } else if (leading < 0xE0) {
+                sequenceLength = 2;
+            } else if (leading < 0xF0) {
+                sequenceLength = 3;
+            } else if (leading < 0xF5) {
+                sequenceLength = 4;
+            } else {
+                revert("Invalid UTF-8");
+            }
+
+            require(i + sequenceLength <= byteLength, "Invalid UTF-8");
+
+            if (sequenceLength > 1) {
+                uint8 b1 = uint8(data[i + 1]);
+                require((b1 & 0xC0) == 0x80, "Invalid UTF-8");
+
+                if (sequenceLength == 2) {
+                    // No additional checks required beyond the leading-byte guard above.
+                } else if (sequenceLength == 3) {
+                    uint8 b2 = uint8(data[i + 2]);
+                    require((b2 & 0xC0) == 0x80, "Invalid UTF-8");
+
+                    if (leading == 0xE0) {
+                        require(b1 >= 0xA0, "Invalid UTF-8");
+                    } else if (leading == 0xED) {
+                        require(b1 < 0xA0, "Invalid UTF-8");
+                    }
+                } else {
+                    uint8 b2 = uint8(data[i + 2]);
+                    uint8 b3 = uint8(data[i + 3]);
+                    require((b2 & 0xC0) == 0x80, "Invalid UTF-8");
+                    require((b3 & 0xC0) == 0x80, "Invalid UTF-8");
+
+                    if (leading == 0xF0) {
+                        require(b1 >= 0x90, "Invalid UTF-8");
+                    } else if (leading == 0xF4) {
+                        require(b1 < 0x90, "Invalid UTF-8");
+                    }
+                }
+            }
+
+            codePoints++;
+            require(codePoints <= MAX_MESSAGE_CODEPOINTS, "Message too long");
+            i += sequenceLength;
+        }
     }
 
     function _setPayouts(Duel storage duel, uint256 creatorAmount, uint256 opponentAmount) internal {

@@ -36,6 +36,7 @@ contract DuelMeTest is Test {
     bytes32 public constant DEFAULT_INVITE_SECRET = bytes32(uint256(1));
     bytes32 public constant DEFAULT_INVITE_HASH = keccak256(abi.encodePacked(DEFAULT_INVITE_SECRET));
     bytes32 public constant OTHER_INVITE_SECRET = bytes32(uint256(2));
+    string internal constant UNICODE_MESSAGE = unicode"АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
 
     function setUp() public {
         usdt = new MockERC20("Tether USD", "USDT", 6);
@@ -145,6 +146,7 @@ contract DuelMeTest is Test {
         assertEq(d.opponent, address(0));
         assertEq(d.wagerAmount, WAGER);
         assertEq(d.inviteHash, DEFAULT_INVITE_HASH);
+        assertEq(d.message, "");
         assertEq(d.claimedWinner, address(0));
         assertEq(d.claimedBy, address(0));
         assertEq(d.cancelRequestedBy, address(0));
@@ -198,6 +200,28 @@ contract DuelMeTest is Test {
 
         DuelMe.Duel memory d = duelMe.getDuel(duelId);
         assertEq(d.wagerAmount, largeWager);
+    }
+
+    function testCreateDuelStoresUnicodeMessage() public {
+        vm.prank(alice);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH, UNICODE_MESSAGE);
+
+        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        assertEq(d.message, UNICODE_MESSAGE);
+    }
+
+    function testCreateDuelRejectsTooManyMessageCodepoints() public {
+        vm.prank(alice);
+        vm.expectRevert("Message too long");
+        duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH, "123456789012345678901234567890123");
+    }
+
+    function testCreateDuelRejectsInvalidUtf8Message() public {
+        bytes memory invalidBytes = hex"f0288c28";
+
+        vm.prank(alice);
+        vm.expectRevert("Invalid UTF-8");
+        duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH, string(invalidBytes));
     }
 
     function testCreateDuelInsufficientBalance() public {

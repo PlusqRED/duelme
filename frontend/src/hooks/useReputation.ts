@@ -3,8 +3,11 @@
 import { useReadContract } from 'wagmi';
 import { duelMeAbi } from '@/lib/contracts';
 import { DUELME_ADDRESSES } from '@/lib/constants';
-
-export type ReputationLevel = 'new' | 'honorable' | 'fair' | 'unreliable';
+import {
+  getReputationLevel,
+  wilsonScore,
+  type ReputationLevel,
+} from '@/lib/reputation';
 
 export interface ReputationData {
   honored: number;
@@ -15,39 +18,7 @@ export interface ReputationData {
   isLoading: boolean;
 }
 
-/**
- * Wilson Score Lower Bound (95% confidence).
- * Same algorithm Reddit uses for ranking.
- * Returns a value between 0 and 1 that accounts for both
- * success rate AND sample size (confidence).
- */
-function wilsonScore(honored: number, abandoned: number): number {
-  const total = honored + abandoned;
-  if (total === 0) return -1;
-
-  const p = honored / total;
-  const z = 1.96; // 95% confidence
-  const z2 = z * z;
-  const n = total;
-
-  const numerator =
-    p + z2 / (2 * n) - z * Math.sqrt((p * (1 - p) + z2 / (4 * n)) / n);
-  const denominator = 1 + z2 / n;
-
-  return Math.max(0, numerator / denominator);
-}
-
-function getLevel(score: number, honored: number, abandoned: number): ReputationLevel {
-  const total = honored + abandoned;
-  if (total === 0) return 'new';
-  // Players with zero abandoned duels should never be "unreliable"
-  if (abandoned === 0) {
-    return honored >= 5 ? 'honorable' : 'fair';
-  }
-  if (score >= 0.75) return 'honorable';
-  if (score >= 0.4) return 'fair';
-  return 'unreliable';
-}
+export type { ReputationLevel } from '@/lib/reputation';
 
 export function useReputation(
   address: `0x${string}` | undefined,
@@ -73,7 +44,7 @@ export function useReputation(
   const abandoned = data ? Number((data as [number, number])[1]) : 0;
   const total = honored + abandoned;
   const score = wilsonScore(honored, abandoned);
-  const level = getLevel(score, honored, abandoned);
+  const level = getReputationLevel(score, honored, abandoned);
 
   return { honored, abandoned, total, score, level, isLoading };
 }

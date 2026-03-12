@@ -31,6 +31,7 @@ export function useDuel(duelId: bigint, chainId: number): UseDuelResult {
           opponent: data.opponent,
           wagerAmount: data.wagerAmount,
           inviteHash: data.inviteHash,
+          message: data.message,
           claimedWinner: data.claimedWinner,
           claimedBy: data.claimedBy,
           cancelRequestedBy: data.cancelRequestedBy,

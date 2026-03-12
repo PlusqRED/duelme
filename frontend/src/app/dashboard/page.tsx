@@ -1,46 +1,87 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { DuelCard } from '@/components/duel/DuelCard';
 import { useAppToast } from '@/hooks/useAppToast';
 import { useDuelActions } from '@/hooks/useDuelActions';
 import { useTranslation } from '@/i18n/useTranslation';
 import { ReputationBadge } from '@/components/duel/ReputationBadge';
-import { useWallets } from '@privy-io/react-auth';
+import { useReputationLevels } from '@/hooks/useReputationLevels';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { usePlayerDuels } from '@/hooks/usePlayerDuels';
-import { DuelState } from '@/lib/contracts';
 import { SUPPORTED_CHAINS } from '@/lib/constants';
-import { getClaimableAmountForAddress, getRelevantDuelTimestamp } from '@/lib/duel';
+import { getClaimableAmountForAddress } from '@/lib/duel';
+import { buildDashboardDuelSearchText } from '@/lib/duelSearch';
 import { formatUSDT } from '@/lib/utils';
+import { emitBalanceRefresh } from '@/lib/balanceRefresh';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAccount, useSwitchChain } from 'wagmi';
-import { Swords, Trophy, XCircle, BarChart3, Info, Wallet } from 'lucide-react';
+import { Swords, Trophy, XCircle, BarChart3, Info, Wallet, Search } from 'lucide-react';
 
 const DASHBOARD_CHAIN = SUPPORTED_CHAINS.arbitrumSepolia;
+const PAGE_SIZE = 20;
 
 export default function DashboardPage() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const appToast = useAppToast();
+  const { authenticated } = usePrivy();
   const { wallets } = useWallets();
   const walletAddress = wallets[0]?.address as `0x${string}` | undefined;
   const { chainId } = useAccount();
   const { switchChainAsync } = useSwitchChain();
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activePage, setActivePage] = useState(1);
+  const [historyPage, setHistoryPage] = useState(1);
   const [claimTarget, setClaimTarget] = useState<'all' | number | null>(null);
 
   const { wins, losses, totalWagered, totalWithdrawn, activeDuels, historyDuels, isLoading, refetch } =
     usePlayerDuels(walletAddress, DASHBOARD_CHAIN.id);
   const { claimPayouts, isPending, isConfirming, isSuccess, error, reset } = useDuelActions(DASHBOARD_CHAIN.id);
 
-  const displayDuels = activeTab === 'active' ? activeDuels : historyDuels;
-  const claimableDuels = historyDuels.filter((duel) => getClaimableAmountForAddress(duel, walletAddress) > 0n);
+  const claimableDuels = authenticated
+    ? historyDuels.filter((duel) => getClaimableAmountForAddress(duel, walletAddress) > 0n)
+    : [];
   const totalClaimable = claimableDuels.reduce(
     (sum, duel) => sum + getClaimableAmountForAddress(duel, walletAddress),
     0n
   );
+  const duelParticipantAddresses = useMemo(
+    () => [...activeDuels, ...historyDuels].flatMap((duel) => [duel.creator, duel.opponent]),
+    [activeDuels, historyDuels]
+  );
+  const { reputationByAddress } = useReputationLevels(duelParticipantAddresses, DASHBOARD_CHAIN.id);
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+
+  const filteredActiveDuels = useMemo(
+    () => activeDuels.filter((duel) => (
+      !normalizedSearchQuery
+      || buildDashboardDuelSearchText(duel, walletAddress, t, language, reputationByAddress)
+        .includes(normalizedSearchQuery)
+    )),
+    [activeDuels, normalizedSearchQuery, walletAddress, t, language, reputationByAddress]
+  );
+  const filteredHistoryDuels = useMemo(
+    () => historyDuels.filter((duel) => (
+      !normalizedSearchQuery
+      || buildDashboardDuelSearchText(duel, walletAddress, t, language, reputationByAddress)
+        .includes(normalizedSearchQuery)
+    )),
+    [historyDuels, normalizedSearchQuery, walletAddress, t, language, reputationByAddress]
+  );
+
+  const activeTotalPages = Math.max(1, Math.ceil(filteredActiveDuels.length / PAGE_SIZE));
+  const historyTotalPages = Math.max(1, Math.ceil(filteredHistoryDuels.length / PAGE_SIZE));
+  const safeActivePage = Math.min(activePage, activeTotalPages);
+  const safeHistoryPage = Math.min(historyPage, historyTotalPages);
+  const displayDuels = activeTab === 'active' ? filteredActiveDuels : filteredHistoryDuels;
+  const currentPage = activeTab === 'active' ? safeActivePage : safeHistoryPage;
+  const totalPages = activeTab === 'active' ? activeTotalPages : historyTotalPages;
+  const paginatedDuels = displayDuels.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   async function ensureChain() {
     if (chainId !== DASHBOARD_CHAIN.id) {
@@ -76,6 +117,7 @@ export default function DashboardPage() {
     appToast.success(claimTarget === 'all' ? 'toast.payoutsClaimed' : 'toast.payoutClaimed');
     reset();
     setClaimTarget(null);
+    emitBalanceRefresh();
     void refetch();
   }, [isSuccess, claimTarget, appToast, reset, refetch]);
 
@@ -87,30 +129,18 @@ export default function DashboardPage() {
     setClaimTarget(null);
   }, [error, appToast, reset]);
 
-  function getLastEventLabelKey(state: DuelState) {
-    switch (state) {
-      case DuelState.Cancelled:
-        return 'duel.timelineCancelled' as const;
-      case DuelState.Declined:
-        return 'duel.timelineDeclined' as const;
-      case DuelState.Resolved:
-        return 'duel.timelineResolved' as const;
-      case DuelState.Refunded:
-        return 'duel.timelineRefunded' as const;
-      case DuelState.Disputed:
-        return 'duel.timelineDisputed' as const;
-      case DuelState.MutualCancelRequested:
-        return 'duel.timelineCancellationRequested' as const;
-      case DuelState.MutuallyCancelled:
-        return 'duel.timelineMutuallyCancelled' as const;
-      case DuelState.WinnerClaimed:
-        return 'duel.timelineResultSubmitted' as const;
-      case DuelState.Funded:
-        return 'duel.timelineAccepted' as const;
-      default:
-        return 'duel.timelineCreated' as const;
-    }
-  }
+  useEffect(() => {
+    setActivePage(1);
+    setHistoryPage(1);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    setActivePage((page) => Math.min(page, activeTotalPages));
+  }, [activeTotalPages]);
+
+  useEffect(() => {
+    setHistoryPage((page) => Math.min(page, historyTotalPages));
+  }, [historyTotalPages]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
@@ -189,15 +219,15 @@ export default function DashboardPage() {
         <Card className="mt-6 border-emerald-200 bg-emerald-50 shadow-sm">
           <CardContent className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
-              <p className="text-sm font-semibold text-emerald-900">
-                {t('dashboard.availableToClaim')}: {formatUSDT(totalClaimable)} USDT
+              <p className="text-2xl font-bold text-emerald-950 sm:text-3xl">
+                {formatUSDT(totalClaimable)} USDT
               </p>
               <p className="text-sm text-emerald-800">{t('dashboard.claimAllHint')}</p>
             </div>
 
             <Button
               size="lg"
-              className="w-full bg-emerald-600 text-white hover:bg-emerald-700 sm:w-auto"
+              className="w-full bg-gradient-to-r from-emerald-500 via-emerald-600 to-green-600 text-white shadow-sm shadow-emerald-200 hover:from-emerald-600 hover:via-emerald-700 hover:to-green-700 sm:w-auto"
               onClick={handleClaimAll}
               disabled={isPending || isConfirming}
             >
@@ -231,38 +261,49 @@ export default function DashboardPage() {
         </button>
       </div>
 
+      {(activeDuels.length > 0 || historyDuels.length > 0) && (
+        <div className="mt-4">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Input
+              id="duel-search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder={t('dashboard.searchPlaceholder')}
+              className="h-11 border-slate-200 bg-white pl-10"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Duels list */}
       <div className="mt-6 flex flex-col gap-3">
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
             <span className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
           </div>
-        ) : displayDuels.length === 0 ? (
+        ) : paginatedDuels.length === 0 ? (
           <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-slate-300 bg-white py-16">
             <Swords className="h-10 w-10 text-slate-300" />
-            <p className="text-sm text-slate-500">{t('dashboard.noDuels')}</p>
-            <Link href="/duel/create">
-              <Button className="bg-indigo-600 text-white hover:bg-indigo-700">
-                {t('hero.cta')}
-              </Button>
-            </Link>
+            <p className="text-sm text-slate-500">
+              {searchQuery ? t('dashboard.noMatches') : t('dashboard.noDuels')}
+            </p>
+            {!searchQuery && (
+              <Link href="/duel/create">
+                <Button className="bg-indigo-600 text-white hover:bg-indigo-700">
+                  {t('hero.cta')}
+                </Button>
+              </Link>
+            )}
           </div>
         ) : (
-          displayDuels.map((duel) => (
+          paginatedDuels.map((duel) => (
             <DuelCard
               key={duel.id}
-              duelId={duel.id}
-              creator={duel.creator}
-              opponent={duel.opponent}
-              wager={duel.wager}
-              state={duel.state}
-              chain={duel.chainName}
-              chainId={duel.chainId}
-              lastEventLabelKey={getLastEventLabelKey(duel.state)}
-              lastEventAt={getRelevantDuelTimestamp(duel)}
-              claimableAmount={getClaimableAmountForAddress(duel, walletAddress)}
+              duel={duel}
+              viewerAddress={walletAddress}
               onClaim={
-                getClaimableAmountForAddress(duel, walletAddress) > 0n
+                authenticated && getClaimableAmountForAddress(duel, walletAddress) > 0n
                   ? () => handleClaimSingle(duel.id)
                   : undefined
               }
@@ -271,6 +312,32 @@ export default function DashboardPage() {
           ))
         )}
       </div>
+
+      {displayDuels.length > 0 && totalPages > 1 && (
+        <div className="mt-6 flex flex-col items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 sm:flex-row">
+          <span>{t('dashboard.pageSummary', { current: currentPage, total: totalPages })}</span>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => (activeTab === 'active' ? setActivePage((page) => Math.max(1, page - 1)) : setHistoryPage((page) => Math.max(1, page - 1)))}
+              disabled={currentPage <= 1}
+            >
+              {t('action.previous')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => (activeTab === 'active'
+                ? setActivePage((page) => Math.min(activeTotalPages, page + 1))
+                : setHistoryPage((page) => Math.min(historyTotalPages, page + 1)))}
+              disabled={currentPage >= totalPages}
+            >
+              {t('action.next')}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

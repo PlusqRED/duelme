@@ -12,6 +12,7 @@ interface ConfirmResultProps {
   claimedBy: string;
   claimedWinner: string;
   viewerAddress?: string;
+  isParticipantViewer: boolean;
   claimTimestamp: number;
   onConfirm: () => void;
   onDispute: () => void;
@@ -26,6 +27,7 @@ export function ConfirmResult({
   claimedBy,
   claimedWinner,
   viewerAddress,
+  isParticipantViewer,
   claimTimestamp,
   onConfirm,
   onDispute,
@@ -56,19 +58,29 @@ export function ConfirmResult({
   }, [claimTimestamp]);
 
   const timedOut = remaining <= 0;
-  const title = isClaimer ? t('duel.awaitingOpponentResponse') : t('duel.reviewReportedResult');
-  const summary = isClaimer
-    ? viewerIsReportedWinner
-      ? t('duel.youReportedYouWon')
-      : t('duel.youReportedOpponentWon')
-    : viewerIsReportedWinner
-      ? t('duel.opponentReportedYouWon')
-      : t('duel.opponentReportedThemWon');
 
   const formatParticipant = (address: string) =>
     normalizedViewer === address.toLowerCase()
       ? `${t('duel.you')} • ${truncateAddress(address)}`
       : truncateAddress(address);
+
+  const title = !isParticipantViewer
+    ? t('duel.resultUnderReview')
+    : isClaimer
+      ? t('duel.awaitingOpponentResponse')
+      : t('duel.reviewReportedResult');
+  const summary = !isParticipantViewer
+    ? t('duel.spectatorResultSummary', {
+        claimedBy: formatParticipant(claimedBy),
+        claimedWinner: formatParticipant(claimedWinner),
+      })
+    : isClaimer
+      ? viewerIsReportedWinner
+        ? t('duel.youReportedYouWon')
+        : t('duel.youReportedOpponentWon')
+      : viewerIsReportedWinner
+        ? t('duel.opponentReportedYouWon')
+        : t('duel.opponentReportedThemWon');
 
   return (
     <Card className="border-amber-200 bg-amber-50 shadow-sm">
@@ -152,6 +164,8 @@ export function ConfirmResult({
 
         {timedOut ? (
           <p className="text-xs text-amber-700">{t('duel.timeoutReached')}</p>
+        ) : !isParticipantViewer ? (
+          <p className="text-xs text-amber-700">{t('duel.spectatorResultHint')}</p>
         ) : isClaimer ? (
           <p className="text-xs text-amber-700">{t('duel.waitingOpponentReviewHint')}</p>
         ) : (

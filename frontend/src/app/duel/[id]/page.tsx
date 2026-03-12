@@ -10,6 +10,7 @@ import { useAppToast } from '@/hooks/useAppToast';
 import { useTranslation } from '@/i18n/useTranslation';
 import { DuelState, erc20Abi } from '@/lib/contracts';
 import { getClaimableAmountForAddress } from '@/lib/duel';
+import { hasVisibleDuelMessage } from '@/lib/duelMessage';
 import { hashInviteSecret, readInviteSecretFromHash, readStoredInviteSecret, storeInviteSecret } from '@/lib/invite';
 import { SUPPORTED_CHAINS, DUELME_ADDRESSES } from '@/lib/constants';
 import { useDuel } from '@/hooks/useDuel';
@@ -17,6 +18,7 @@ import { useDuelActions } from '@/hooks/useDuelActions';
 import { formatDateTime, formatUSDT, truncateAddress } from '@/lib/utils';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useSwitchChain, useAccount, useReadContract } from 'wagmi';
+import { emitBalanceRefresh } from '@/lib/balanceRefresh';
 import {
   Clock, Trophy, ArrowLeft, XCircle, RotateCcw,
   Swords, LogIn, Copy, Check, User, Hourglass, Shield, Handshake, Undo2,
@@ -413,6 +415,9 @@ export default function DuelPage({
               : 'toast.transactionConfirmed';
 
     appToast.success(successToastKey);
+    if (pendingAction === 'joining' || pendingAction === 'claimingPayout') {
+      emitBalanceRefresh();
+    }
     refetch();
     reset();
     setPendingAction('idle');
@@ -592,12 +597,16 @@ export default function DuelPage({
   const isCreator = walletAddress === duel.creator.toLowerCase();
   const isOpponent = walletAddress === duel.opponent.toLowerCase();
   const isParticipant = isCreator || isOpponent;
+  const canManageParticipantDuel = authenticated && isParticipant;
   const isClaimAuthor = walletAddress === duel.claimedBy.toLowerCase();
   const isCancelRequester = walletAddress === duel.cancelRequestedBy.toLowerCase();
   const hasInviteAccess = !!inviteSecret
     && hashInviteSecret(inviteSecret).toLowerCase() === duel.inviteHash.toLowerCase();
   const claimableAmount = getClaimableAmountForAddress(duel, walletAddress);
   const hasClaimablePayout = claimableAmount > 0n;
+  const hasMessage = hasVisibleDuelMessage(duel.message);
+  const backHref = authenticated ? '/dashboard' : '/';
+  const backLabel = authenticated ? t('nav.dashboard') : t('sidenav.hero');
 
   const wagerDisplay = Number(duel.wagerAmount) / 1e6;
   const hasOpponent = duel.opponent !== ZERO;
@@ -658,11 +667,11 @@ export default function DuelPage({
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
       {/* Back link */}
       <Link
-        href="/dashboard"
+        href={backHref}
         className="mb-6 inline-flex items-center gap-1.5 text-sm text-slate-500 transition-colors hover:text-slate-900"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        {t('nav.dashboard')}
+        {backLabel}
       </Link>
 
       <div className="animate-fade-in overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -727,6 +736,17 @@ export default function DuelPage({
             </div>
           </div>
 
+          {hasMessage && (
+            <div className="border-t border-slate-100 px-6 py-5">
+              <div className="rounded-2xl border border-indigo-200 bg-indigo-50/70 p-4">
+                <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-indigo-500">
+                  {t('duel.messageTitle')}
+                </div>
+                <p className="text-base font-medium leading-relaxed text-slate-900">{duel.message}</p>
+              </div>
+            </div>
+          )}
+
           <div className="border-t border-slate-100 px-6 py-5">
             <div className="mb-3 flex items-center gap-2">
               <Clock className="h-4 w-4 text-slate-400" />
@@ -751,7 +771,7 @@ export default function DuelPage({
           <div className="flex flex-col gap-4 border-t border-slate-100 px-6 py-5">
 
             {/* Created → Creator: share + cancel */}
-            {isWaitingOpponent && isCreator && (
+            {isWaitingOpponent && isCreator && authenticated && (
               <>
                 <ShareLink duelId={duelId} inviteSecret={inviteSecret} />
                 <Button
@@ -831,7 +851,7 @@ export default function DuelPage({
             )}
 
             {/* Funded → claim buttons */}
-            {isFunded && isParticipant && (
+            {isFunded && canManageParticipantDuel && (
               <>
                 <ClaimButtons
                   onClaimVictory={handleClaimVictory}
@@ -850,10 +870,20 @@ export default function DuelPage({
               </>
             )}
 
+            {isFunded && !canManageParticipantDuel && (
+              <div className="rounded-2xl border border-indigo-200 bg-indigo-50/70 p-4">
+                <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-indigo-900">
+                  <Shield className="h-4 w-4" />
+                  <span>{t('duel.spectatorFundedTitle')}</span>
+                </div>
+                <p className="text-sm leading-relaxed text-indigo-800">{t('duel.spectatorFundedHint')}</p>
+              </div>
+            )}
+
             {isMutualCancelRequested && (
               <MutualCancellationCard
                 mode={
-                  isParticipant
+                  canManageParticipantDuel
                     ? isCancelRequester
                       ? 'requester'
                       : 'responder'
@@ -876,14 +906,15 @@ export default function DuelPage({
                 claimedBy={duel.claimedBy}
                 claimedWinner={duel.claimedWinner}
                 viewerAddress={walletAddress}
+                isParticipantViewer={canManageParticipantDuel}
                 claimTimestamp={Number(duel.claimTimestamp)}
                 onConfirm={handleConfirmResult}
                 onDispute={handleDispute}
                 onRefund={handleRefund}
                 isPending={txPending}
-                canConfirm={authenticated && isParticipant && !isClaimAuthor}
-                canDispute={authenticated && isParticipant && !isClaimAuthor}
-                canRefund={authenticated && isParticipant}
+                canConfirm={canManageParticipantDuel && !isClaimAuthor}
+                canDispute={canManageParticipantDuel && !isClaimAuthor}
+                canRefund={canManageParticipantDuel}
               />
             )}
 
@@ -943,18 +974,18 @@ export default function DuelPage({
               <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="space-y-1">
-                    {authenticated && isParticipant && hasClaimablePayout && (
-                      <p className="text-sm font-semibold text-slate-900">
-                        {t('dashboard.availableToClaim')}: {formatUSDT(claimableAmount)} USDT
+                    {canManageParticipantDuel && hasClaimablePayout && (
+                      <p className="text-lg font-bold text-slate-900">
+                        {formatUSDT(claimableAmount)} USDT
                       </p>
                     )}
                     <p className="text-sm text-slate-600">{t(claimHintKey as Parameters<typeof t>[0])}</p>
                   </div>
 
-                  {authenticated && isParticipant && hasClaimablePayout && (
+                  {canManageParticipantDuel && hasClaimablePayout && (
                     <Button
                       size="lg"
-                      className="w-full sm:w-auto"
+                      className="w-full bg-gradient-to-r from-emerald-500 via-emerald-600 to-green-600 text-white shadow-sm shadow-emerald-200 hover:from-emerald-600 hover:via-emerald-700 hover:to-green-700 sm:w-auto"
                       onClick={handleClaimPayout}
                       disabled={txPending}
                     >

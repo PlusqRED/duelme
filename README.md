@@ -13,8 +13,8 @@ _Auto-generated from `contracts/broadcast/Deploy.s.sol/421614/run-latest.json`. 
 
 | Network | Contract | Address |
 |---|---|---|
-| Arbitrum Sepolia | `MockUSDT` | `0xa3b04548fce97260ee32666ab2a2fa61e57b078b` |
-| Arbitrum Sepolia | `DuelMe` | `0x2789741566bc98b4f7c15bbde84d511be62ea200` |
+| Arbitrum Sepolia | `MockUSDT` | `0xff2405132f2c13099a68759d38bb812505e970c0` |
+| Arbitrum Sepolia | `DuelMe` | `0xab4d602f74ea2eb31336f163dce5ee7c9983e4b9` |
 
 > Dev note: run `git config core.hooksPath .githooks` once in your clone to auto-refresh this block on every commit.
 

@@ -11,6 +11,7 @@ export interface PlayerDuel {
   creator: `0x${string}`;
   opponent: `0x${string}`;
   inviteHash: `0x${string}`;
+  message: string;
   wager: number;
   state: DuelState;
   claimedWinner: `0x${string}`;
@@ -109,13 +110,14 @@ export function usePlayerDuels(
       const res = duelResults[i];
       if (res.status !== 'success' || !res.result) continue;
 
-      const d = res.result as {
-        creator: `0x${string}`;
-        opponent: `0x${string}`;
-        wagerAmount: bigint;
-        inviteHash: `0x${string}`;
-        claimedWinner: `0x${string}`;
-        claimedBy: `0x${string}`;
+        const d = res.result as {
+          creator: `0x${string}`;
+          opponent: `0x${string}`;
+          wagerAmount: bigint;
+          inviteHash: `0x${string}`;
+          message: string;
+          claimedWinner: `0x${string}`;
+          claimedBy: `0x${string}`;
         cancelRequestedBy: `0x${string}`;
         createdAt: bigint;
         fundedAt: bigint;
@@ -144,13 +146,14 @@ export function usePlayerDuels(
         totalWithdrawn += d.opponentPayout;
       }
 
-      const duel: PlayerDuel = {
-        id: i,
-        creator: d.creator,
-        opponent: d.opponent,
-        inviteHash: d.inviteHash,
-        wager,
-        state,
+        const duel: PlayerDuel = {
+          id: i,
+          creator: d.creator,
+          opponent: d.opponent,
+          inviteHash: d.inviteHash,
+          message: d.message,
+          wager,
+          state,
         claimedWinner: d.claimedWinner,
         claimedBy: d.claimedBy,
         cancelRequestedBy: d.cancelRequestedBy,

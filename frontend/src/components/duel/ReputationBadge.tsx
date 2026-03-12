@@ -1,8 +1,9 @@
 'use client';
 
-import { useReputation, type ReputationLevel } from '@/hooks/useReputation';
+import { useReputation } from '@/hooks/useReputation';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/translations';
+import type { ReputationLevel } from '@/lib/reputation';
 import { Shield, ShieldCheck, ShieldAlert, ShieldQuestion, Sparkles } from 'lucide-react';
 
 const CONFIG: Record<

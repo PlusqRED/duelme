@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { parseUnits, encodeFunctionData } from 'viem';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { useReadContract, useChainId } from 'wagmi';
 import { formatUnits } from 'viem';
 import { SUPPORTED_CHAINS, USDT_DECIMALS } from '@/lib/constants';
 import { Send, KeyRound, Wallet, Copy, Check } from 'lucide-react';
+import { emitBalanceRefreshBurst, subscribeToBalanceRefresh } from '@/lib/balanceRefresh';
 
 const balanceOfAbi = [
   {
@@ -74,6 +75,14 @@ export function WalletSection() {
 
   const formattedBalance = balance.toFixed(2);
 
+  const refetchBalance = useCallback(() => {
+    void refetch();
+  }, [refetch]);
+
+  useEffect(() => subscribeToBalanceRefresh(() => {
+    refetchBalance();
+  }), [refetchBalance]);
+
   if (!authenticated || !walletAddress) return null;
 
   async function handleWithdraw() {
@@ -112,7 +121,7 @@ export function WalletSection() {
       appToast.success('toast.sentUsdt', { amount });
       setToAddress('');
       setAmount('');
-      refetch();
+      emitBalanceRefreshBurst();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '';
       if (msg.includes('rejected') || msg.includes('denied')) {
