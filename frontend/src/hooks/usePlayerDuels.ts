@@ -10,9 +10,19 @@ export interface PlayerDuel {
   id: number;
   creator: `0x${string}`;
   opponent: `0x${string}`;
+  inviteHash: `0x${string}`;
   wager: number;
   state: DuelState;
   claimedWinner: `0x${string}`;
+  claimedBy: `0x${string}`;
+  createdAt: bigint;
+  fundedAt: bigint;
+  claimTimestamp: bigint;
+  finalizedAt: bigint;
+  creatorPayout: bigint;
+  opponentPayout: bigint;
+  creatorClaimed: boolean;
+  opponentClaimed: boolean;
   chainId: number;
   chainName: string;
 }
@@ -21,6 +31,7 @@ export interface PlayerStats {
   wins: number;
   losses: number;
   totalWagered: number;
+  totalWithdrawn: bigint;
   activeDuels: PlayerDuel[];
   historyDuels: PlayerDuel[];
 }
@@ -46,7 +57,7 @@ export function usePlayerDuels(
     contractAddress !== ZERO_ADDRESS;
 
   // 1. Read total duel count (poll every 10s)
-  const { data: duelCount, isLoading: isCountLoading } = useReadContract({
+  const { data: duelCount, isLoading: isCountLoading, refetch: refetchCount } = useReadContract({
     address: contractAddress,
     abi: duelMeAbi,
     functionName: 'duelCount',
@@ -67,7 +78,7 @@ export function usePlayerDuels(
     }));
   }, [count, contractAddress, chainId, enabled]);
 
-  const { data: duelResults, isLoading: isDuelsLoading } = useReadContracts({
+  const { data: duelResults, isLoading: isDuelsLoading, refetch: refetchDuels } = useReadContracts({
     contracts: duelContracts,
     query: { enabled: duelContracts.length > 0, refetchInterval: 10_000, staleTime: 0 },
   });
@@ -79,9 +90,10 @@ export function usePlayerDuels(
     let wins = 0;
     let losses = 0;
     let totalWagered = 0;
+    let totalWithdrawn = 0n;
 
     if (!duelResults || !address) {
-      return { wins, losses, totalWagered, activeDuels, historyDuels };
+      return { wins, losses, totalWagered, totalWithdrawn, activeDuels, historyDuels };
     }
 
     const addr = address.toLowerCase();
@@ -94,9 +106,17 @@ export function usePlayerDuels(
         creator: `0x${string}`;
         opponent: `0x${string}`;
         wagerAmount: bigint;
+        inviteHash: `0x${string}`;
         claimedWinner: `0x${string}`;
         claimedBy: `0x${string}`;
+        createdAt: bigint;
+        fundedAt: bigint;
         claimTimestamp: bigint;
+        finalizedAt: bigint;
+        creatorPayout: bigint;
+        opponentPayout: bigint;
+        creatorClaimed: boolean;
+        opponentClaimed: boolean;
         state: number;
       };
 
@@ -107,13 +127,31 @@ export function usePlayerDuels(
       const wager = parseFloat(formatUnits(d.wagerAmount, USDT_DECIMALS));
       const state = d.state as DuelState;
 
+      if (isCreator && d.creatorClaimed) {
+        totalWithdrawn += d.creatorPayout;
+      }
+
+      if (isOpponent && d.opponentClaimed) {
+        totalWithdrawn += d.opponentPayout;
+      }
+
       const duel: PlayerDuel = {
         id: i,
         creator: d.creator,
         opponent: d.opponent,
+        inviteHash: d.inviteHash,
         wager,
         state,
         claimedWinner: d.claimedWinner,
+        claimedBy: d.claimedBy,
+        createdAt: d.createdAt,
+        fundedAt: d.fundedAt,
+        claimTimestamp: d.claimTimestamp,
+        finalizedAt: d.finalizedAt,
+        creatorPayout: d.creatorPayout,
+        opponentPayout: d.opponentPayout,
+        creatorClaimed: d.creatorClaimed,
+        opponentClaimed: d.opponentClaimed,
         chainId,
         chainName: CHAIN_NAMES[chainId] ?? `Chain ${chainId}`,
       };
@@ -141,11 +179,14 @@ export function usePlayerDuels(
     activeDuels.reverse();
     historyDuels.reverse();
 
-    return { wins, losses, totalWagered, activeDuels, historyDuels };
-  }, [duelResults, address]);
+    return { wins, losses, totalWagered, totalWithdrawn, activeDuels, historyDuels };
+  }, [duelResults, address, chainId]);
 
   return {
     ...result,
     isLoading: isCountLoading || isDuelsLoading,
+    refetch: async () => {
+      await Promise.all([refetchCount(), refetchDuels()]);
+    },
   };
 }

@@ -1,32 +1,40 @@
 'use client';
 
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/i18n/useTranslation';
+import { useAppToast } from '@/hooks/useAppToast';
+import { buildInviteLink } from '@/lib/invite';
 import { Copy, Check } from 'lucide-react';
 
 interface ShareLinkProps {
   duelId: number;
+  inviteSecret: `0x${string}` | null;
 }
 
-export function ShareLink({ duelId }: ShareLinkProps) {
+export function ShareLink({ duelId, inviteSecret }: ShareLinkProps) {
   const { t } = useTranslation();
+  const appToast = useAppToast();
   const [copied, setCopied] = useState(false);
   const url =
-    typeof window !== 'undefined'
-      ? `${window.location.origin}/duel/${duelId}`
-      : `/duel/${duelId}`;
+    typeof window !== 'undefined' && inviteSecret
+      ? buildInviteLink(duelId, inviteSecret)
+      : '';
 
   async function handleCopy() {
+    if (!url) {
+      appToast.error('duel.privateInviteUnavailable');
+      return;
+    }
+
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      toast.success(t('action.copied'));
+      appToast.success('action.copied');
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error('Failed to copy link');
+      appToast.error('toast.copyFailed');
     }
   }
 
@@ -38,7 +46,7 @@ export function ShareLink({ duelId }: ShareLinkProps) {
       <div className="flex gap-2">
         <Input
           readOnly
-          value={url}
+          value={url || t('duel.privateInviteUnavailable')}
           className="h-10 flex-1 border-slate-300 bg-slate-50 font-mono text-sm"
         />
         <Button
@@ -46,6 +54,7 @@ export function ShareLink({ duelId }: ShareLinkProps) {
           variant="outline"
           className="h-10 shrink-0 border-slate-300"
           onClick={handleCopy}
+          disabled={!inviteSecret}
         >
           {copied ? (
             <Check className="h-4 w-4 text-emerald-600" />
@@ -54,6 +63,9 @@ export function ShareLink({ duelId }: ShareLinkProps) {
           )}
         </Button>
       </div>
+      <p className="text-xs text-slate-500">
+        {inviteSecret ? t('duel.privateInviteRequired') : t('duel.privateInviteUnavailable')}
+      </p>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { USDT_DECIMALS } from './constants';
+import type { Language } from '@/i18n/translations';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -35,4 +36,15 @@ export function formatTimeRemaining(seconds: number): string {
     return `${minutes}m ${secs}s`;
   }
   return `${secs}s`;
+}
+
+export function formatDateTime(timestamp: bigint | number, language: Language): string {
+  const seconds = typeof timestamp === 'bigint' ? Number(timestamp) : timestamp;
+  if (!seconds) return '—';
+
+  const locale = language === 'ru' ? 'ru-RU' : 'en-US';
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(seconds * 1000));
 }

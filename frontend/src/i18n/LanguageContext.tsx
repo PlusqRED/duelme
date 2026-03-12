@@ -10,18 +10,24 @@ import {
   translations,
   type Language,
   type TranslationKey,
+  type TranslationParams,
 } from './translations';
 
 interface LanguageContextValue {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (key: TranslationKey) => string;
+  t: (key: TranslationKey, params?: TranslationParams) => string;
 }
 
 export const LanguageContext = createContext<LanguageContextValue>({
   language: 'en',
   setLanguage: () => {},
-  t: (key: TranslationKey) => translations.en[key],
+  t: (key: TranslationKey, params?: TranslationParams) => {
+    const template = translations.en[key] ?? key;
+    return params
+      ? template.replace(/\{(\w+)\}/g, (_, token: string) => String(params[token] ?? `{${token}}`))
+      : template;
+  },
 });
 
 const STORAGE_KEY = 'duelme-lang';
@@ -41,8 +47,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const t = useCallback(
-    (key: TranslationKey): string => {
-      return translations[language][key] ?? translations.en[key] ?? key;
+    (key: TranslationKey, params?: TranslationParams): string => {
+      const template = translations[language][key] ?? translations.en[key] ?? key;
+      return params
+        ? template.replace(/\{(\w+)\}/g, (_, token: string) => String(params[token] ?? `{${token}}`))
+        : template;
     },
     [language]
   );

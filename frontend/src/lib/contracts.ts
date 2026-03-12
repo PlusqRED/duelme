@@ -1,191 +1,884 @@
 export const duelMeAbi = [
-  // Read functions
   {
-    name: 'getDuel',
     type: 'function',
-    stateMutability: 'view',
-    inputs: [{ name: 'duelId', type: 'uint256' }],
+    name: 'CLAIM_TIMEOUT',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256'
+      }
+    ],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    name: 'EMERGENCY_DELAY',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256'
+      }
+    ],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    name: 'MIN_WAGER',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256'
+      }
+    ],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    name: 'admitDefeat',
+    inputs: [
+      {
+        name: 'duelId',
+        type: 'uint256',
+        internalType: 'uint256'
+      }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'cancelDuel',
+    inputs: [
+      {
+        name: 'duelId',
+        type: 'uint256',
+        internalType: 'uint256'
+      }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'cancelEmergencyWithdraw',
+    inputs: [
+      {
+        name: 'requestId',
+        type: 'uint256',
+        internalType: 'uint256'
+      }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'claimPayout',
+    inputs: [
+      {
+        name: 'duelId',
+        type: 'uint256',
+        internalType: 'uint256'
+      }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'claimPayouts',
+    inputs: [
+      {
+        name: 'duelIds',
+        type: 'uint256[]',
+        internalType: 'uint256[]'
+      }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'claimVictory',
+    inputs: [
+      {
+        name: 'duelId',
+        type: 'uint256',
+        internalType: 'uint256'
+      }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'confirmResult',
+    inputs: [
+      {
+        name: 'duelId',
+        type: 'uint256',
+        internalType: 'uint256'
+      }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'createDuel',
+    inputs: [
+      {
+        name: 'amount',
+        type: 'uint256',
+        internalType: 'uint256'
+      },
+      {
+        name: 'inviteHash',
+        type: 'bytes32',
+        internalType: 'bytes32'
+      }
+    ],
+    outputs: [
+      {
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256'
+      }
+    ],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'declineDuel',
+    inputs: [
+      {
+        name: 'duelId',
+        type: 'uint256',
+        internalType: 'uint256'
+      },
+      {
+        name: 'inviteSecret',
+        type: 'bytes32',
+        internalType: 'bytes32'
+      }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'disputeResult',
+    inputs: [
+      {
+        name: 'duelId',
+        type: 'uint256',
+        internalType: 'uint256'
+      }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'duelCount',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256'
+      }
+    ],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    name: 'emergencyNonce',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256'
+      }
+    ],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    name: 'emergencyRequests',
+    inputs: [
+      {
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256'
+      }
+    ],
+    outputs: [
+      {
+        name: 'token',
+        type: 'address',
+        internalType: 'address'
+      },
+      {
+        name: 'recipient',
+        type: 'address',
+        internalType: 'address'
+      },
+      {
+        name: 'amount',
+        type: 'uint256',
+        internalType: 'uint256'
+      },
+      {
+        name: 'requestedAt',
+        type: 'uint256',
+        internalType: 'uint256'
+      }
+    ],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    name: 'executeEmergencyWithdraw',
+    inputs: [
+      {
+        name: 'requestId',
+        type: 'uint256',
+        internalType: 'uint256'
+      }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'getDuel',
+    inputs: [
+      {
+        name: 'duelId',
+        type: 'uint256',
+        internalType: 'uint256'
+      }
+    ],
     outputs: [
       {
         name: '',
         type: 'tuple',
+        internalType: 'struct DuelMe.Duel',
         components: [
-          { name: 'creator', type: 'address' },
-          { name: 'opponent', type: 'address' },
-          { name: 'wagerAmount', type: 'uint256' },
-          { name: 'claimedWinner', type: 'address' },
-          { name: 'claimedBy', type: 'address' },
-          { name: 'claimTimestamp', type: 'uint256' },
-          { name: 'state', type: 'uint8' },
-        ],
-      },
+          {
+            name: 'creator',
+            type: 'address',
+            internalType: 'address'
+          },
+          {
+            name: 'opponent',
+            type: 'address',
+            internalType: 'address'
+          },
+          {
+            name: 'wagerAmount',
+            type: 'uint256',
+            internalType: 'uint256'
+          },
+          {
+            name: 'inviteHash',
+            type: 'bytes32',
+            internalType: 'bytes32'
+          },
+          {
+            name: 'claimedWinner',
+            type: 'address',
+            internalType: 'address'
+          },
+          {
+            name: 'claimedBy',
+            type: 'address',
+            internalType: 'address'
+          },
+          {
+            name: 'createdAt',
+            type: 'uint256',
+            internalType: 'uint256'
+          },
+          {
+            name: 'fundedAt',
+            type: 'uint256',
+            internalType: 'uint256'
+          },
+          {
+            name: 'claimTimestamp',
+            type: 'uint256',
+            internalType: 'uint256'
+          },
+          {
+            name: 'finalizedAt',
+            type: 'uint256',
+            internalType: 'uint256'
+          },
+          {
+            name: 'creatorPayout',
+            type: 'uint256',
+            internalType: 'uint256'
+          },
+          {
+            name: 'opponentPayout',
+            type: 'uint256',
+            internalType: 'uint256'
+          },
+          {
+            name: 'creatorClaimed',
+            type: 'bool',
+            internalType: 'bool'
+          },
+          {
+            name: 'opponentClaimed',
+            type: 'bool',
+            internalType: 'bool'
+          },
+          {
+            name: 'state',
+            type: 'uint8',
+            internalType: 'enum DuelMe.DuelState'
+          }
+        ]
+      }
     ],
+    stateMutability: 'view'
   },
   {
+    type: 'function',
     name: 'getPlayerStats',
-    type: 'function',
-    stateMutability: 'view',
-    inputs: [{ name: 'user', type: 'address' }],
-    outputs: [
-      { name: 'honored', type: 'uint32' },
-      { name: 'abandoned', type: 'uint32' },
+    inputs: [
+      {
+        name: 'user',
+        type: 'address',
+        internalType: 'address'
+      }
     ],
-  },
-  {
-    name: 'playerStats',
-    type: 'function',
-    stateMutability: 'view',
-    inputs: [{ name: '', type: 'address' }],
     outputs: [
-      { name: 'duelsHonored', type: 'uint32' },
-      { name: 'duelsAbandoned', type: 'uint32' },
+      {
+        name: 'honored',
+        type: 'uint32',
+        internalType: 'uint32'
+      },
+      {
+        name: 'abandoned',
+        type: 'uint32',
+        internalType: 'uint32'
+      }
     ],
+    stateMutability: 'view'
   },
   {
-    name: 'duelCount',
     type: 'function',
-    stateMutability: 'view',
-    inputs: [],
-    outputs: [{ name: '', type: 'uint256' }],
-  },
-  {
-    name: 'duels',
-    type: 'function',
-    stateMutability: 'view',
-    inputs: [{ name: '', type: 'uint256' }],
-    outputs: [
-      { name: 'creator', type: 'address' },
-      { name: 'opponent', type: 'address' },
-      { name: 'wagerAmount', type: 'uint256' },
-      { name: 'claimedWinner', type: 'address' },
-      { name: 'claimedBy', type: 'address' },
-      { name: 'claimTimestamp', type: 'uint256' },
-      { name: 'state', type: 'uint8' },
-    ],
-  },
-  {
-    name: 'usdt',
-    type: 'function',
-    stateMutability: 'view',
-    inputs: [],
-    outputs: [{ name: '', type: 'address' }],
-  },
-  {
-    name: 'MIN_WAGER',
-    type: 'function',
-    stateMutability: 'view',
-    inputs: [],
-    outputs: [{ name: '', type: 'uint256' }],
-  },
-  {
-    name: 'CLAIM_TIMEOUT',
-    type: 'function',
-    stateMutability: 'view',
-    inputs: [],
-    outputs: [{ name: '', type: 'uint256' }],
-  },
-
-  // Write functions
-  {
-    name: 'createDuel',
-    type: 'function',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'amount', type: 'uint256' }],
-    outputs: [{ name: 'duelId', type: 'uint256' }],
-  },
-  {
     name: 'joinDuel',
-    type: 'function',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'duelId', type: 'uint256' }],
+    inputs: [
+      {
+        name: 'duelId',
+        type: 'uint256',
+        internalType: 'uint256'
+      },
+      {
+        name: 'inviteSecret',
+        type: 'bytes32',
+        internalType: 'bytes32'
+      }
+    ],
     outputs: [],
+    stateMutability: 'nonpayable'
   },
   {
-    name: 'claimVictory',
     type: 'function',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'duelId', type: 'uint256' }],
-    outputs: [],
+    name: 'owner',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'address',
+        internalType: 'address'
+      }
+    ],
+    stateMutability: 'view'
   },
   {
-    name: 'admitDefeat',
     type: 'function',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'duelId', type: 'uint256' }],
+    name: 'pause',
+    inputs: [],
     outputs: [],
+    stateMutability: 'nonpayable'
   },
   {
-    name: 'confirmResult',
     type: 'function',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'duelId', type: 'uint256' }],
-    outputs: [],
+    name: 'paused',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'bool',
+        internalType: 'bool'
+      }
+    ],
+    stateMutability: 'view'
   },
   {
+    type: 'function',
+    name: 'playerStats',
+    inputs: [
+      {
+        name: '',
+        type: 'address',
+        internalType: 'address'
+      }
+    ],
+    outputs: [
+      {
+        name: 'duelsHonored',
+        type: 'uint32',
+        internalType: 'uint32'
+      },
+      {
+        name: 'duelsAbandoned',
+        type: 'uint32',
+        internalType: 'uint32'
+      }
+    ],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
     name: 'refund',
-    type: 'function',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'duelId', type: 'uint256' }],
+    inputs: [
+      {
+        name: 'duelId',
+        type: 'uint256',
+        internalType: 'uint256'
+      }
+    ],
     outputs: [],
+    stateMutability: 'nonpayable'
   },
   {
-    name: 'cancelDuel',
     type: 'function',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'duelId', type: 'uint256' }],
+    name: 'renounceOwnership',
+    inputs: [],
     outputs: [],
+    stateMutability: 'nonpayable'
   },
-
-  // Events
   {
-    name: 'DuelCreated',
-    type: 'event',
+    type: 'function',
+    name: 'requestEmergencyWithdraw',
     inputs: [
-      { name: 'duelId', type: 'uint256', indexed: true },
-      { name: 'creator', type: 'address', indexed: true },
-      { name: 'wagerAmount', type: 'uint256', indexed: false },
+      {
+        name: 'token',
+        type: 'address',
+        internalType: 'address'
+      },
+      {
+        name: 'recipient',
+        type: 'address',
+        internalType: 'address'
+      },
+      {
+        name: 'amount',
+        type: 'uint256',
+        internalType: 'uint256'
+      }
     ],
+    outputs: [
+      {
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256'
+      }
+    ],
+    stateMutability: 'nonpayable'
   },
   {
-    name: 'DuelJoined',
-    type: 'event',
+    type: 'function',
+    name: 'rescueETH',
     inputs: [
-      { name: 'duelId', type: 'uint256', indexed: true },
-      { name: 'opponent', type: 'address', indexed: true },
+      {
+        name: 'to',
+        type: 'address',
+        internalType: 'address payable'
+      }
     ],
+    outputs: [],
+    stateMutability: 'nonpayable'
   },
   {
-    name: 'VictoryClaimed',
-    type: 'event',
+    type: 'function',
+    name: 'rescueToken',
     inputs: [
-      { name: 'duelId', type: 'uint256', indexed: true },
-      { name: 'claimedBy', type: 'address', indexed: true },
-      { name: 'claimedWinner', type: 'address', indexed: true },
+      {
+        name: 'token',
+        type: 'address',
+        internalType: 'contract IERC20'
+      },
+      {
+        name: 'to',
+        type: 'address',
+        internalType: 'address'
+      },
+      {
+        name: 'amount',
+        type: 'uint256',
+        internalType: 'uint256'
+      }
     ],
+    outputs: [],
+    stateMutability: 'nonpayable'
   },
   {
-    name: 'DuelResolved',
-    type: 'event',
+    type: 'function',
+    name: 'transferOwnership',
     inputs: [
-      { name: 'duelId', type: 'uint256', indexed: true },
-      { name: 'winner', type: 'address', indexed: true },
-      { name: 'amount', type: 'uint256', indexed: false },
+      {
+        name: 'newOwner',
+        type: 'address',
+        internalType: 'address'
+      }
     ],
+    outputs: [],
+    stateMutability: 'nonpayable'
   },
   {
-    name: 'DuelRefunded',
+    type: 'function',
+    name: 'unpause',
+    inputs: [],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'usdt',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'address',
+        internalType: 'contract IERC20'
+      }
+    ],
+    stateMutability: 'view'
+  },
+  {
     type: 'event',
-    inputs: [
-      { name: 'duelId', type: 'uint256', indexed: true },
-    ],
-  },
-  {
     name: 'DuelCancelled',
-    type: 'event',
     inputs: [
-      { name: 'duelId', type: 'uint256', indexed: true },
+      {
+        name: 'duelId',
+        type: 'uint256',
+        indexed: true,
+        internalType: 'uint256'
+      }
     ],
+    anonymous: false
   },
+  {
+    type: 'event',
+    name: 'DuelCreated',
+    inputs: [
+      {
+        name: 'duelId',
+        type: 'uint256',
+        indexed: true,
+        internalType: 'uint256'
+      },
+      {
+        name: 'creator',
+        type: 'address',
+        indexed: true,
+        internalType: 'address'
+      },
+      {
+        name: 'wagerAmount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256'
+      }
+    ],
+    anonymous: false
+  },
+  {
+    type: 'event',
+    name: 'DuelDeclined',
+    inputs: [
+      {
+        name: 'duelId',
+        type: 'uint256',
+        indexed: true,
+        internalType: 'uint256'
+      },
+      {
+        name: 'declinedBy',
+        type: 'address',
+        indexed: true,
+        internalType: 'address'
+      }
+    ],
+    anonymous: false
+  },
+  {
+    type: 'event',
+    name: 'DuelDisputed',
+    inputs: [
+      {
+        name: 'duelId',
+        type: 'uint256',
+        indexed: true,
+        internalType: 'uint256'
+      },
+      {
+        name: 'disputedBy',
+        type: 'address',
+        indexed: true,
+        internalType: 'address'
+      }
+    ],
+    anonymous: false
+  },
+  {
+    type: 'event',
+    name: 'DuelJoined',
+    inputs: [
+      {
+        name: 'duelId',
+        type: 'uint256',
+        indexed: true,
+        internalType: 'uint256'
+      },
+      {
+        name: 'opponent',
+        type: 'address',
+        indexed: true,
+        internalType: 'address'
+      }
+    ],
+    anonymous: false
+  },
+  {
+    type: 'event',
+    name: 'DuelPayoutClaimed',
+    inputs: [
+      {
+        name: 'duelId',
+        type: 'uint256',
+        indexed: true,
+        internalType: 'uint256'
+      },
+      {
+        name: 'player',
+        type: 'address',
+        indexed: true,
+        internalType: 'address'
+      },
+      {
+        name: 'amount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256'
+      }
+    ],
+    anonymous: false
+  },
+  {
+    type: 'event',
+    name: 'DuelRefunded',
+    inputs: [
+      {
+        name: 'duelId',
+        type: 'uint256',
+        indexed: true,
+        internalType: 'uint256'
+      }
+    ],
+    anonymous: false
+  },
+  {
+    type: 'event',
+    name: 'DuelResolved',
+    inputs: [
+      {
+        name: 'duelId',
+        type: 'uint256',
+        indexed: true,
+        internalType: 'uint256'
+      },
+      {
+        name: 'winner',
+        type: 'address',
+        indexed: true,
+        internalType: 'address'
+      },
+      {
+        name: 'amount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256'
+      }
+    ],
+    anonymous: false
+  },
+  {
+    type: 'event',
+    name: 'EmergencyCancelled',
+    inputs: [
+      {
+        name: 'requestId',
+        type: 'uint256',
+        indexed: true,
+        internalType: 'uint256'
+      }
+    ],
+    anonymous: false
+  },
+  {
+    type: 'event',
+    name: 'EmergencyExecuted',
+    inputs: [
+      {
+        name: 'requestId',
+        type: 'uint256',
+        indexed: true,
+        internalType: 'uint256'
+      },
+      {
+        name: 'token',
+        type: 'address',
+        indexed: true,
+        internalType: 'address'
+      },
+      {
+        name: 'recipient',
+        type: 'address',
+        indexed: true,
+        internalType: 'address'
+      },
+      {
+        name: 'amount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256'
+      }
+    ],
+    anonymous: false
+  },
+  {
+    type: 'event',
+    name: 'EmergencyRequested',
+    inputs: [
+      {
+        name: 'requestId',
+        type: 'uint256',
+        indexed: true,
+        internalType: 'uint256'
+      },
+      {
+        name: 'token',
+        type: 'address',
+        indexed: true,
+        internalType: 'address'
+      },
+      {
+        name: 'recipient',
+        type: 'address',
+        indexed: true,
+        internalType: 'address'
+      },
+      {
+        name: 'amount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256'
+      },
+      {
+        name: 'executeAfter',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256'
+      }
+    ],
+    anonymous: false
+  },
+  {
+    type: 'event',
+    name: 'OwnershipTransferred',
+    inputs: [
+      {
+        name: 'previousOwner',
+        type: 'address',
+        indexed: true,
+        internalType: 'address'
+      },
+      {
+        name: 'newOwner',
+        type: 'address',
+        indexed: true,
+        internalType: 'address'
+      }
+    ],
+    anonymous: false
+  },
+  {
+    type: 'event',
+    name: 'Paused',
+    inputs: [
+      {
+        name: 'account',
+        type: 'address',
+        indexed: false,
+        internalType: 'address'
+      }
+    ],
+    anonymous: false
+  },
+  {
+    type: 'event',
+    name: 'Unpaused',
+    inputs: [
+      {
+        name: 'account',
+        type: 'address',
+        indexed: false,
+        internalType: 'address'
+      }
+    ],
+    anonymous: false
+  },
+  {
+    type: 'event',
+    name: 'VictoryClaimed',
+    inputs: [
+      {
+        name: 'duelId',
+        type: 'uint256',
+        indexed: true,
+        internalType: 'uint256'
+      },
+      {
+        name: 'claimedBy',
+        type: 'address',
+        indexed: true,
+        internalType: 'address'
+      },
+      {
+        name: 'claimedWinner',
+        type: 'address',
+        indexed: true,
+        internalType: 'address'
+      }
+    ],
+    anonymous: false
+  }
 ] as const;
 
 export const erc20Abi = [
@@ -219,14 +912,24 @@ export enum DuelState {
   Resolved = 3,
   Refunded = 4,
   Cancelled = 5,
+  Declined = 6,
+  Disputed = 7,
 }
 
 export interface Duel {
   creator: `0x${string}`;
   opponent: `0x${string}`;
   wagerAmount: bigint;
+  inviteHash: `0x${string}`;
   claimedWinner: `0x${string}`;
   claimedBy: `0x${string}`;
+  createdAt: bigint;
+  fundedAt: bigint;
   claimTimestamp: bigint;
+  finalizedAt: bigint;
+  creatorPayout: bigint;
+  opponentPayout: bigint;
+  creatorClaimed: boolean;
+  opponentClaimed: boolean;
   state: DuelState;
 }

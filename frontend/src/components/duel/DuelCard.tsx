@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { DuelState } from '@/lib/contracts';
-import { truncateAddress } from '@/lib/utils';
+import { formatDateTime, formatUSDT, truncateAddress } from '@/lib/utils';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/translations';
 import { ReputationBadge } from './ReputationBadge';
@@ -17,6 +18,11 @@ interface DuelCardProps {
   state: DuelState;
   chain: string;
   chainId: number;
+  lastEventLabelKey: TranslationKey;
+  lastEventAt: bigint;
+  claimableAmount: bigint;
+  onClaim?: () => void;
+  isClaiming?: boolean;
 }
 
 const STATUS_CONFIG: Record<
@@ -47,6 +53,14 @@ const STATUS_CONFIG: Record<
     key: 'duel.cancelled',
     colorClass: 'bg-slate-50 text-slate-500 border-slate-200',
   },
+  [DuelState.Declined]: {
+    key: 'duel.declined',
+    colorClass: 'bg-rose-50 text-rose-700 border-rose-200',
+  },
+  [DuelState.Disputed]: {
+    key: 'duel.disputed',
+    colorClass: 'bg-orange-50 text-orange-700 border-orange-200',
+  },
 };
 
 export function DuelCard({
@@ -57,16 +71,22 @@ export function DuelCard({
   state,
   chain,
   chainId,
+  lastEventLabelKey,
+  lastEventAt,
+  claimableAmount,
+  onClaim,
+  isClaiming = false,
 }: DuelCardProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const config = STATUS_CONFIG[state];
+  const hasClaimableAmount = claimableAmount > 0n;
 
   return (
-    <Link href={`/duel/${duelId}`}>
-      <Card className="card-glow border-slate-200 bg-white shadow-sm">
-        <CardContent className="flex items-center justify-between gap-4">
-          <div className="flex flex-col gap-1.5 min-w-0">
-            <div className="flex items-center gap-2">
+    <Card className="card-glow border-slate-200 bg-white shadow-sm">
+      <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <Link href={`/duel/${duelId}`} className="min-w-0 flex-1">
+          <div className="flex min-w-0 flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-lg font-semibold text-slate-900">
                 {wager} USDT
               </span>
@@ -76,6 +96,7 @@ export function DuelCard({
                 {t(config.key)}
               </span>
             </div>
+
             <div className="flex flex-wrap items-center gap-1.5 text-sm text-slate-500">
               <span className="font-mono">{truncateAddress(creator)}</span>
               <ReputationBadge address={creator as `0x${string}`} chainId={chainId} />
@@ -89,12 +110,41 @@ export function DuelCard({
                 </>
               )}
             </div>
+
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+              <Badge variant="outline" className="shrink-0 text-xs">
+                {chain}
+              </Badge>
+              <span>
+                {t(lastEventLabelKey)}: {formatDateTime(lastEventAt, language)}
+              </span>
+            </div>
           </div>
-          <Badge variant="outline" className="shrink-0 text-xs">
-            {chain}
-          </Badge>
-        </CardContent>
-      </Card>
-    </Link>
+        </Link>
+
+        <div className="flex flex-col items-start gap-2 sm:items-end">
+          {hasClaimableAmount && (
+            <div className="text-sm font-semibold text-slate-900">
+              {t('dashboard.availableToClaim')}: {formatUSDT(claimableAmount)} USDT
+            </div>
+          )}
+
+          {hasClaimableAmount && onClaim && (
+            <Button
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onClaim();
+              }}
+              disabled={isClaiming}
+            >
+              {isClaiming ? t('status.claiming') : t('action.claimFunds')}
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

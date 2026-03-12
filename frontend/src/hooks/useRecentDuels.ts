@@ -12,6 +12,7 @@ export interface RecentDuel {
   player2: `0x${string}`;
   wager: number;
   winner: `0x${string}`;
+  lastEventAt: bigint;
   chainId: number;
   chainName: string;
   state: DuelState;
@@ -27,7 +28,7 @@ const CHAIN_NAMES: Record<number, string> = {
 
 // How many recent duels to scan (from the end)
 const SCAN_LIMIT = 50;
-// How many resolved duels to show
+// How many recent duels to show
 const DISPLAY_LIMIT = 10;
 
 const DEFAULT_CHAIN_ID = 421614;
@@ -68,10 +69,10 @@ export function useRecentDuels() {
     if (!duelResults) return [];
 
     const startIndex = Math.max(0, count - SCAN_LIMIT);
-    const resolved: RecentDuel[] = [];
+    const recent: RecentDuel[] = [];
 
     // Iterate backwards (most recent first)
-    for (let i = duelResults.length - 1; i >= 0 && resolved.length < DISPLAY_LIMIT; i--) {
+    for (let i = duelResults.length - 1; i >= 0; i--) {
       const res = duelResults[i];
       if (res.status !== 'success' || !res.result) continue;
 
@@ -80,25 +81,48 @@ export function useRecentDuels() {
         opponent: `0x${string}`;
         wagerAmount: bigint;
         claimedWinner: `0x${string}`;
+        createdAt: bigint;
+        fundedAt: bigint;
+        claimTimestamp: bigint;
+        finalizedAt: bigint;
         state: number;
       };
 
-      if (d.state !== DuelState.Resolved) continue;
       if (d.opponent === ZERO_ADDRESS) continue;
+      if (d.state === DuelState.Created) continue;
 
-      resolved.push({
+      const state = d.state as DuelState;
+      const lastEventAt =
+        d.finalizedAt > 0n
+          ? d.finalizedAt
+          : d.claimTimestamp > 0n
+            ? d.claimTimestamp
+            : d.fundedAt > 0n
+              ? d.fundedAt
+              : d.createdAt;
+
+      recent.push({
         id: startIndex + i,
         player1: d.creator,
         player2: d.opponent,
         wager: parseFloat(formatUnits(d.wagerAmount, USDT_DECIMALS)),
         winner: d.claimedWinner,
+        lastEventAt,
         chainId: DEFAULT_CHAIN_ID,
         chainName: CHAIN_NAMES[DEFAULT_CHAIN_ID] ?? `Chain ${DEFAULT_CHAIN_ID}`,
-        state: d.state as DuelState,
+        state,
       });
     }
 
-    return resolved;
+    return recent
+      .sort((a, b) => {
+        if (a.lastEventAt === b.lastEventAt) {
+          return b.id - a.id;
+        }
+
+        return a.lastEventAt > b.lastEventAt ? -1 : 1;
+      })
+      .slice(0, DISPLAY_LIMIT);
   }, [duelResults, count]);
 
   return {

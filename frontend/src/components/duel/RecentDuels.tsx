@@ -2,12 +2,24 @@
 
 import { useRecentDuels } from '@/hooks/useRecentDuels';
 import { useTranslation } from '@/i18n/useTranslation';
-import { truncateAddress } from '@/lib/utils';
+import { DuelState } from '@/lib/contracts';
+import { formatDateTime, truncateAddress } from '@/lib/utils';
 import { ReputationBadge } from './ReputationBadge';
 import { Trophy } from 'lucide-react';
 
+const STATUS_KEY: Record<DuelState, string> = {
+  [DuelState.Created]: 'duel.waiting',
+  [DuelState.Funded]: 'duel.inProgress',
+  [DuelState.WinnerClaimed]: 'duel.waitingConfirm',
+  [DuelState.Resolved]: 'duel.resolved',
+  [DuelState.Refunded]: 'duel.refunded',
+  [DuelState.Cancelled]: 'duel.cancelled',
+  [DuelState.Declined]: 'duel.declined',
+  [DuelState.Disputed]: 'duel.disputed',
+};
+
 export function RecentDuels() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { duels, isLoading } = useRecentDuels();
 
   if (isLoading) {
@@ -21,7 +33,7 @@ export function RecentDuels() {
   if (duels.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-sm text-slate-400">{t('dashboard.noDuels')}</p>
+        <p className="text-sm text-slate-400">{t('recent.noActivity')}</p>
       </div>
     );
   }
@@ -34,13 +46,16 @@ export function RecentDuels() {
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/50">
               <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-slate-400">
-                Players
+                {t('recent.players')}
               </th>
               <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-slate-400">
                 {t('duel.wager')}
               </th>
               <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-slate-400">
-                {t('duel.winner')}
+                {t('recent.status')}
+              </th>
+              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wide text-slate-400">
+                {t('recent.updated')}
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-400">
                 {t('create.chain')}
@@ -95,16 +110,26 @@ export function RecentDuels() {
                       {duel.wager} USDT
                     </span>
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5">
-                      <Trophy className="h-3.5 w-3.5 text-amber-500" />
-                      <span className="font-mono text-sm font-medium text-emerald-600">
-                        {truncateAddress(duel.winner)}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600">
+                   <td className="px-4 py-3">
+                     <div className="space-y-1">
+                       <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700">
+                         {t(STATUS_KEY[duel.state] as Parameters<typeof t>[0])}
+                       </span>
+                       {duel.state === DuelState.Resolved && (
+                         <div className="flex items-center gap-1.5">
+                           <Trophy className="h-3.5 w-3.5 text-amber-500" />
+                           <span className="font-mono text-sm font-medium text-emerald-600">
+                             {truncateAddress(duel.winner)}
+                           </span>
+                         </div>
+                       )}
+                     </div>
+                   </td>
+                   <td className="px-4 py-3 text-sm text-slate-500">
+                     {formatDateTime(duel.lastEventAt, language)}
+                   </td>
+                   <td className="px-4 py-3 text-right">
+                     <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600">
                       {duel.chainName}
                     </span>
                   </td>
@@ -165,16 +190,26 @@ export function RecentDuels() {
                 <span className="text-sm font-semibold text-slate-900">
                   {duel.wager} USDT
                 </span>
-                <div className="flex items-center gap-1.5">
-                  <Trophy className="h-3.5 w-3.5 text-amber-500" />
-                  <span className="font-mono text-xs font-medium text-emerald-600">
-                    {truncateAddress(duel.winner)}
+                <div className="flex flex-col items-center gap-1">
+                  <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                    {t(STATUS_KEY[duel.state] as Parameters<typeof t>[0])}
                   </span>
+                  {duel.state === DuelState.Resolved && (
+                    <div className="flex items-center gap-1.5">
+                      <Trophy className="h-3.5 w-3.5 text-amber-500" />
+                      <span className="font-mono text-xs font-medium text-emerald-600">
+                        {truncateAddress(duel.winner)}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-500">
                   {duel.chainName}
                 </span>
               </div>
+              <p className="mt-3 text-xs text-slate-500">
+                {t('recent.updated')}: {formatDateTime(duel.lastEventAt, language)}
+              </p>
             </div>
           );
         })}

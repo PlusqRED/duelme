@@ -26,16 +26,24 @@ export function useDuel(duelId: bigint, chainId: number): UseDuelResult {
   });
 
   const duel: Duel | undefined = data
-    ? {
-        creator: data.creator,
-        opponent: data.opponent,
-        wagerAmount: data.wagerAmount,
-        claimedWinner: data.claimedWinner,
-        claimedBy: data.claimedBy,
-        claimTimestamp: data.claimTimestamp,
-        state: data.state as DuelState,
-      }
-    : undefined;
+      ? {
+          creator: data.creator,
+          opponent: data.opponent,
+          wagerAmount: data.wagerAmount,
+          inviteHash: data.inviteHash,
+          claimedWinner: data.claimedWinner,
+          claimedBy: data.claimedBy,
+          createdAt: data.createdAt,
+          fundedAt: data.fundedAt,
+          claimTimestamp: data.claimTimestamp,
+          finalizedAt: data.finalizedAt,
+          creatorPayout: data.creatorPayout,
+          opponentPayout: data.opponentPayout,
+          creatorClaimed: data.creatorClaimed,
+          opponentClaimed: data.opponentClaimed,
+          state: data.state as DuelState,
+        }
+      : undefined;
 
   return { duel, isLoading, isError, refetch };
 }

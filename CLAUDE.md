@@ -42,7 +42,7 @@ forge coverage --report summary  # Coverage
 - Chain switching must use `useSwitchChain` from wagmi (not Privy's `switchChain`)
 
 ### Transaction Pattern
-All write operations follow: check chain → check allowance → approve if needed → execute. Both `createDuel` and `joinDuel` use this two-step approve+action flow.
+All write operations follow: check chain → check allowance → approve if needed → execute. `createDuel` now generates a private invite secret client-side and sends only its hash on-chain; `joinDuel` uses the shared invite secret to accept the duel.
 
 ### Data Fetching
 - wagmi `useReadContract` / `useReadContracts` (multicall) for on-chain reads
@@ -75,7 +75,9 @@ All write operations follow: check chain → check allowance → approve if need
 ```
 Created(0) → Funded(1) → WinnerClaimed(2) → Resolved(3)
                                            → Refunded(4)
+                                           → Disputed(7)
 Created(0) → Cancelled(5)
+           → Declined(6)
 ```
 
 ## Code Style
@@ -95,5 +97,6 @@ Created(0) → Cancelled(5)
 
 - Importing `createConfig` from `wagmi` instead of `@privy-io/wagmi` breaks wallet routing silently
 - `useSetActiveWallet` in useEffect is too late — use `setActiveWalletForWagmi` sync callback
+- Invite-only duels rely on the full private link (URL fragment) — do not fall back to sharing plain `/duel/{id}` URLs
 - USDT has a blocklist — push payments can permanently lock funds (contract uses push pattern currently)
 - Wilson Score gives low scores for small sample sizes — players with 0 abandoned duels are never "unreliable"

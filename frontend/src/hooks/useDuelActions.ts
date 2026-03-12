@@ -19,12 +19,12 @@ export function useDuelActions(chainId: number) {
     hash,
   });
 
-  function createDuel(amount: bigint) {
+  function createDuel(amount: bigint, inviteHash: `0x${string}`) {
     writeContract({
       address: contractAddress,
       abi: duelMeAbi,
       functionName: 'createDuel',
-      args: [amount],
+      args: [amount, inviteHash],
       chainId,
     });
   }
@@ -39,12 +39,22 @@ export function useDuelActions(chainId: number) {
     });
   }
 
-  function joinDuel(duelId: bigint) {
+  function joinDuel(duelId: bigint, inviteSecret: `0x${string}`) {
     writeContract({
       address: contractAddress,
       abi: duelMeAbi,
       functionName: 'joinDuel',
-      args: [duelId],
+      args: [duelId, inviteSecret],
+      chainId,
+    });
+  }
+
+  function declineDuel(duelId: bigint, inviteSecret: `0x${string}`) {
+    writeContract({
+      address: contractAddress,
+      abi: duelMeAbi,
+      functionName: 'declineDuel',
+      args: [duelId, inviteSecret],
       chainId,
     });
   }
@@ -55,6 +65,26 @@ export function useDuelActions(chainId: number) {
       abi: duelMeAbi,
       functionName: 'claimVictory',
       args: [duelId],
+      chainId,
+    });
+  }
+
+  function claimPayout(duelId: bigint) {
+    writeContract({
+      address: contractAddress,
+      abi: duelMeAbi,
+      functionName: 'claimPayout',
+      args: [duelId],
+      chainId,
+    });
+  }
+
+  function claimPayouts(duelIds: bigint[]) {
+    writeContract({
+      address: contractAddress,
+      abi: duelMeAbi,
+      functionName: 'claimPayouts',
+      args: [duelIds],
       chainId,
     });
   }
@@ -74,6 +104,16 @@ export function useDuelActions(chainId: number) {
       address: contractAddress,
       abi: duelMeAbi,
       functionName: 'confirmResult',
+      args: [duelId],
+      chainId,
+    });
+  }
+
+  function disputeResult(duelId: bigint) {
+    writeContract({
+      address: contractAddress,
+      abi: duelMeAbi,
+      functionName: 'disputeResult',
       args: [duelId],
       chainId,
     });
@@ -103,9 +143,13 @@ export function useDuelActions(chainId: number) {
     createDuel,
     approveToken,
     joinDuel,
+    declineDuel,
     claimVictory,
+    claimPayout,
+    claimPayouts,
     admitDefeat,
     confirmResult,
+    disputeResult,
     refund,
     cancelDuel,
     hash,

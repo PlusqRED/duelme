@@ -2,14 +2,15 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
 import { parseUnits, decodeEventLog } from 'viem';
 import { useReadContract, useSwitchChain, useAccount } from 'wagmi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/i18n/useTranslation';
+import { useAppToast } from '@/hooks/useAppToast';
 import { SUPPORTED_CHAINS, MIN_WAGER, USDT_DECIMALS, DUELME_ADDRESSES } from '@/lib/constants';
 import { erc20Abi, duelMeAbi } from '@/lib/contracts';
+import { generateInviteSecret, hashInviteSecret, storeInviteSecret } from '@/lib/invite';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useDuelActions } from '@/hooks/useDuelActions';
 import { Swords, Shield, Zap, DollarSign } from 'lucide-react';
@@ -18,6 +19,7 @@ const PRESETS = [5, 10, 25, 50, 100];
 
 export function CreateDuelForm() {
   const { t } = useTranslation();
+  const appToast = useAppToast();
   const router = useRouter();
   const [amount, setAmount] = useState('');
   const [selectedChain, setSelectedChain] = useState<keyof typeof SUPPORTED_CHAINS>(
@@ -38,6 +40,8 @@ export function CreateDuelForm() {
   // Track whether we're in the approve step or create step
   const [step, setStep] = useState<'idle' | 'approving' | 'creating'>('idle');
   const pendingAmount = useRef<bigint>(0n);
+  const pendingInviteHash = useRef<`0x${string}` | null>(null);
+  const pendingInviteSecret = useRef<`0x${string}` | null>(null);
 
   // Check current allowance
   const walletAddress = activeWallet?.address as `0x${string}` | undefined;
@@ -52,14 +56,14 @@ export function CreateDuelForm() {
 
   // When approval tx confirms, proceed to createDuel
   useEffect(() => {
-    if (isSuccess && step === 'approving') {
+    if (isSuccess && step === 'approving' && pendingInviteHash.current) {
       refetchAllowance();
       reset();
       setStep('creating');
-      toast.info('Creating duel...');
-      createDuel(pendingAmount.current);
+      appToast.info('toast.createDuelPending');
+      createDuel(pendingAmount.current, pendingInviteHash.current);
     }
-  }, [isSuccess, step, refetchAllowance, reset, createDuel]);
+  }, [isSuccess, step, refetchAllowance, reset, createDuel, appToast]);
 
   // When create tx confirms, parse duel ID from logs and redirect
   useEffect(() => {
@@ -85,13 +89,20 @@ export function CreateDuelForm() {
       }
 
       if (duelId) {
-        toast.success('Duel created!');
-        router.push(`/duel/${duelId}`);
+        if (pendingInviteSecret.current) {
+          storeInviteSecret(chainConfig.id, Number(duelId), pendingInviteSecret.current);
+        }
+        appToast.success('toast.duelCreated');
+        router.push(
+          pendingInviteSecret.current
+            ? `/duel/${duelId}#${pendingInviteSecret.current}`
+            : `/duel/${duelId}`
+        );
       } else {
-        toast.success('Duel created!');
+        appToast.success('toast.duelCreated');
       }
     }
-  }, [isSuccess, step, receipt, router]);
+  }, [isSuccess, step, receipt, router, chainConfig.id, appToast]);
 
   const numericAmount = parseFloat(amount) || 0;
   const isValidAmount = numericAmount >= MIN_WAGER;
@@ -107,37 +118,41 @@ export function CreateDuelForm() {
     }
 
     if (!activeWallet?.address) {
-      toast.error('Wallet not ready. Please try again.');
+      appToast.error('toast.walletNotReady');
       return;
     }
 
     if (!isValidAmount) {
-      toast.error(t('create.min'));
+      appToast.error('create.min');
       return;
     }
 
     // Ensure wallet is on the correct chain before sending transactions
     if (connectedChainId !== chainConfig.id) {
       try {
-        toast.info(`Switching to ${chainConfig.name}...`);
+        appToast.info('toast.switchingNetwork', { chain: chainConfig.name });
         await switchChainAsync({ chainId: chainConfig.id });
       } catch {
-        toast.error(`Failed to switch to ${chainConfig.name}`);
+        appToast.error('toast.switchNetworkFailed', { chain: chainConfig.name });
         return;
       }
     }
 
     const rawAmount = parseUnits(amount, USDT_DECIMALS);
+    const inviteSecret = generateInviteSecret();
+    const inviteHash = hashInviteSecret(inviteSecret);
     pendingAmount.current = rawAmount;
+    pendingInviteSecret.current = inviteSecret;
+    pendingInviteHash.current = inviteHash;
 
     // Check if we already have sufficient allowance
     if (currentAllowance !== undefined && currentAllowance >= rawAmount) {
       setStep('creating');
-      toast.info('Creating duel...');
-      createDuel(rawAmount);
+      appToast.info('toast.createDuelPending');
+      createDuel(rawAmount, inviteHash);
     } else {
       setStep('approving');
-      toast.info('Approve USDT spending first...');
+      appToast.info('toast.approveUsdtFirst');
       approveToken(chainConfig.usdt, rawAmount);
     }
   }
@@ -295,7 +310,7 @@ export function CreateDuelForm() {
           {isLoading ? (
             <span className="flex items-center gap-2">
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              {isPending ? 'Confirm in wallet...' : 'Processing...'}
+              {isPending ? t('status.confirmWallet') : t('status.processing')}
             </span>
           ) : !authenticated ? (
             t('nav.connectWallet')
@@ -307,11 +322,15 @@ export function CreateDuelForm() {
           )}
         </Button>
 
+        <p className="mt-3 text-center text-xs text-slate-500">
+          {t('create.privateInvite')}
+        </p>
+
         {error && (
           <p className="mt-3 text-xs text-red-500 text-center">
             {error.message.includes('User rejected') || error.message.includes('denied')
-              ? 'Transaction rejected'
-              : `Transaction failed: ${'shortMessage' in error ? String(error.shortMessage) : error.message}`}
+              ? t('toast.transactionRejected')
+              : t('toast.transactionFailed')}
           </p>
         )}
       </div>

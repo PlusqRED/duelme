@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { parseUnits, encodeFunctionData } from 'viem';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useTranslation } from '@/i18n/useTranslation';
+import { useAppToast } from '@/hooks/useAppToast';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useReadContract, useChainId } from 'wagmi';
 import { formatUnits } from 'viem';
@@ -43,6 +44,8 @@ function getUsdtAddress(chainId: number | undefined) {
 }
 
 export function WalletSection() {
+  const { t } = useTranslation();
+  const appToast = useAppToast();
   const { authenticated, exportWallet } = usePrivy();
   const { wallets } = useWallets();
   const chainId = useChainId();
@@ -62,7 +65,7 @@ export function WalletSection() {
     functionName: 'balanceOf',
     args: walletAddress ? [walletAddress] : undefined,
     chainId,
-    query: { enabled: !!walletAddress && !!usdtAddress },
+    query: { enabled: !!walletAddress && !!usdtAddress, refetchInterval: 30_000, staleTime: 0 },
   });
 
   const balance = usdtRaw !== undefined
@@ -78,12 +81,12 @@ export function WalletSection() {
 
     const numAmount = parseFloat(amount);
     if (numAmount <= 0 || numAmount > balance) {
-      toast.error('Invalid amount');
+      appToast.error('toast.invalidAmount');
       return;
     }
 
     if (!/^0x[a-fA-F0-9]{40}$/.test(toAddress)) {
-      toast.error('Invalid address');
+      appToast.error('toast.invalidAddress');
       return;
     }
 
@@ -106,16 +109,16 @@ export function WalletSection() {
         }],
       });
 
-      toast.success(`Sent ${amount} USDT`);
+      appToast.success('toast.sentUsdt', { amount });
       setToAddress('');
       setAmount('');
       refetch();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Transfer failed';
+      const msg = err instanceof Error ? err.message : '';
       if (msg.includes('rejected') || msg.includes('denied')) {
-        toast.error('Transaction rejected');
+        appToast.error('toast.transactionRejected');
       } else {
-        toast.error('Transfer failed');
+        appToast.error('toast.transferFailed');
       }
     } finally {
       setIsSending(false);
@@ -131,37 +134,37 @@ export function WalletSection() {
 
   return (
     <Card className="border-slate-200 bg-white shadow-sm">
-      <CardHeader>
+        <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900">
           <Wallet className="h-5 w-5 text-indigo-500" />
-          Wallet
+          {t('wallet.title')}
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
         {/* Address + balance */}
         <div className="flex flex-col gap-3 rounded-lg bg-slate-50 p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">Your address</span>
+            <span className="text-xs font-medium text-slate-500">{t('wallet.addressLabel')}</span>
             <button
               onClick={handleCopyAddress}
               className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-700"
             >
               {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-              {copied ? 'Copied' : 'Copy'}
+              {copied ? t('wallet.copied') : t('wallet.copy')}
             </button>
           </div>
           <span className="font-mono text-sm text-slate-700 break-all">{walletAddress}</span>
           <div className="flex items-center justify-between border-t border-slate-200 pt-3">
-            <span className="text-xs font-medium text-slate-500">USDT Balance</span>
+            <span className="text-xs font-medium text-slate-500">{t('wallet.usdtBalance')}</span>
             <span className="text-lg font-bold text-slate-900">{formattedBalance} USDT</span>
           </div>
         </div>
 
         {/* Withdraw */}
         <div className="flex flex-col gap-3">
-          <span className="text-sm font-medium text-slate-700">Send USDT</span>
+          <span className="text-sm font-medium text-slate-700">{t('wallet.sendUsdt')}</span>
           <Input
-            placeholder="Recipient address (0x...)"
+            placeholder={t('wallet.recipientPlaceholder')}
             value={toAddress}
             onChange={(e) => setToAddress(e.target.value)}
             className="h-10 border-slate-300 font-mono text-sm"
@@ -170,7 +173,7 @@ export function WalletSection() {
             <div className="relative flex-1">
               <Input
                 type="number"
-                placeholder="Amount"
+                placeholder={t('wallet.amountPlaceholder')}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 className="h-10 border-slate-300 pr-16 text-sm"
@@ -179,7 +182,7 @@ export function WalletSection() {
                 onClick={() => setAmount(balance.toString())}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-indigo-600 hover:text-indigo-700"
               >
-                MAX
+                {t('wallet.max')}
               </button>
             </div>
             <Button
@@ -197,14 +200,14 @@ export function WalletSection() {
         </div>
 
         {/* Export wallet */}
-        <Button
-          variant="outline"
-          onClick={exportWallet}
-          className="w-full border-slate-300 text-slate-600 hover:text-slate-900"
-        >
-          <KeyRound className="mr-2 h-4 w-4" />
-          Export Private Key
-        </Button>
+          <Button
+            variant="outline"
+            onClick={exportWallet}
+            className="w-full border-slate-300 text-slate-600 hover:text-slate-900"
+          >
+            <KeyRound className="mr-2 h-4 w-4" />
+            {t('wallet.exportKey')}
+          </Button>
       </CardContent>
     </Card>
   );

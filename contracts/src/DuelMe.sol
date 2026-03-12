@@ -38,16 +38,26 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
         WinnerClaimed,
         Resolved,
         Refunded,
-        Cancelled
+        Cancelled,
+        Declined,
+        Disputed
     }
 
     struct Duel {
         address creator;
         address opponent;
         uint256 wagerAmount;
+        bytes32 inviteHash;
         address claimedWinner;
         address claimedBy;
+        uint256 createdAt;
+        uint256 fundedAt;
         uint256 claimTimestamp;
+        uint256 finalizedAt;
+        uint256 creatorPayout;
+        uint256 opponentPayout;
+        bool creatorClaimed;
+        bool opponentClaimed;
         DuelState state;
     }
 
@@ -56,7 +66,7 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
         uint32 duelsAbandoned; // this player was the non-responder in a refund
     }
 
-    mapping(uint256 => Duel) public duels;
+    mapping(uint256 => Duel) private duels;
     mapping(address => PlayerStats) public playerStats;
 
     event DuelCreated(uint256 indexed duelId, address indexed creator, uint256 wagerAmount);
@@ -65,6 +75,9 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
     event DuelResolved(uint256 indexed duelId, address indexed winner, uint256 amount);
     event DuelRefunded(uint256 indexed duelId);
     event DuelCancelled(uint256 indexed duelId);
+    event DuelDeclined(uint256 indexed duelId, address indexed declinedBy);
+    event DuelDisputed(uint256 indexed duelId, address indexed disputedBy);
+    event DuelPayoutClaimed(uint256 indexed duelId, address indexed player, uint256 amount);
     event EmergencyRequested(uint256 indexed requestId, address indexed token, address indexed recipient, uint256 amount, uint256 executeAfter);
     event EmergencyCancelled(uint256 indexed requestId);
     event EmergencyExecuted(uint256 indexed requestId, address indexed token, address indexed recipient, uint256 amount);
@@ -76,24 +89,33 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
 
     /// @notice Create a new duel by depositing a USDT wager
     /// @param amount The wager amount in USDT (6 decimals)
+    /// @param inviteHash The hash of the secret invite token required to accept or decline this duel
     /// @return duelId The unique identifier for the created duel
-    function createDuel(uint256 amount) external whenNotPaused nonReentrant returns (uint256) {
+    function createDuel(uint256 amount, bytes32 inviteHash) external whenNotPaused nonReentrant returns (uint256) {
         require(amount >= MIN_WAGER, "Wager below minimum");
+        require(inviteHash != bytes32(0), "Invalid invite hash");
 
         usdt.safeTransferFrom(msg.sender, address(this), amount);
 
         uint256 duelId = duelCount;
         duelCount++;
 
-        duels[duelId] = Duel({
-            creator: msg.sender,
-            opponent: address(0),
-            wagerAmount: amount,
-            claimedWinner: address(0),
-            claimedBy: address(0),
-            claimTimestamp: 0,
-            state: DuelState.Created
-        });
+        Duel storage duel = duels[duelId];
+        duel.creator = msg.sender;
+        duel.opponent = address(0);
+        duel.wagerAmount = amount;
+        duel.inviteHash = inviteHash;
+        duel.claimedWinner = address(0);
+        duel.claimedBy = address(0);
+        duel.createdAt = block.timestamp;
+        duel.fundedAt = 0;
+        duel.claimTimestamp = 0;
+        duel.finalizedAt = 0;
+        duel.creatorPayout = 0;
+        duel.opponentPayout = 0;
+        duel.creatorClaimed = false;
+        duel.opponentClaimed = false;
+        duel.state = DuelState.Created;
 
         emit DuelCreated(duelId, msg.sender, amount);
         return duelId;
@@ -101,17 +123,37 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
 
     /// @notice Join an existing duel by depositing the matching wager
     /// @param duelId The ID of the duel to join
-    function joinDuel(uint256 duelId) external whenNotPaused nonReentrant {
+    /// @param inviteSecret The secret invite token shared by the creator
+    function joinDuel(uint256 duelId, bytes32 inviteSecret) external whenNotPaused nonReentrant {
         Duel storage duel = duels[duelId];
         require(duel.state == DuelState.Created, "Duel not in Created state");
         require(msg.sender != duel.creator, "Cannot join own duel");
+        require(_hashInviteSecret(inviteSecret) == duel.inviteHash, "Invalid invite");
 
         usdt.safeTransferFrom(msg.sender, address(this), duel.wagerAmount);
 
         duel.opponent = msg.sender;
+        duel.fundedAt = block.timestamp;
         duel.state = DuelState.Funded;
 
         emit DuelJoined(duelId, msg.sender);
+    }
+
+    /// @notice Decline an invite-only duel before it is funded, refunding the creator.
+    /// @param duelId The ID of the duel to decline
+    /// @param inviteSecret The secret invite token shared by the creator
+    function declineDuel(uint256 duelId, bytes32 inviteSecret) external whenNotPaused nonReentrant {
+        Duel storage duel = duels[duelId];
+        require(duel.state == DuelState.Created, "Duel not in Created state");
+        require(msg.sender != duel.creator, "Creator cannot decline");
+        require(_hashInviteSecret(inviteSecret) == duel.inviteHash, "Invalid invite");
+
+        duel.opponent = msg.sender;
+        duel.finalizedAt = block.timestamp;
+        duel.state = DuelState.Declined;
+        _setPayouts(duel, duel.wagerAmount, 0);
+
+        emit DuelDeclined(duelId, msg.sender);
     }
 
     /// @notice Claim victory in a funded duel. Starts a 1-hour countdown for the opponent to confirm or dispute.
@@ -163,15 +205,39 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
         );
         require(msg.sender != duel.claimedBy, "Cannot confirm own claim");
 
+        duel.finalizedAt = block.timestamp;
         duel.state = DuelState.Resolved;
 
         playerStats[duel.creator].duelsHonored += 1;
         playerStats[duel.opponent].duelsHonored += 1;
 
         uint256 payout = duel.wagerAmount * 2;
-        usdt.safeTransfer(duel.claimedWinner, payout);
+        if (duel.claimedWinner == duel.creator) {
+            _setPayouts(duel, payout, 0);
+        } else {
+            _setPayouts(duel, 0, payout);
+        }
 
         emit DuelResolved(duelId, duel.claimedWinner, payout);
+    }
+
+    /// @notice Dispute a claimed result. Refunds both players immediately with no reputation changes.
+    /// @param duelId The ID of the duel
+    function disputeResult(uint256 duelId) external whenNotPaused nonReentrant {
+        Duel storage duel = duels[duelId];
+        require(duel.state == DuelState.WinnerClaimed, "Duel not in WinnerClaimed state");
+        require(
+            msg.sender == duel.creator || msg.sender == duel.opponent,
+            "Not a participant"
+        );
+        require(msg.sender != duel.claimedBy, "Cannot dispute own claim");
+
+        duel.finalizedAt = block.timestamp;
+        duel.state = DuelState.Disputed;
+
+        _setPayouts(duel, duel.wagerAmount, duel.wagerAmount);
+
+        emit DuelDisputed(duelId, msg.sender);
     }
 
     /// @notice Refund both players if the claim times out without confirmation.
@@ -185,6 +251,7 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
             "Claim timeout not reached"
         );
 
+        duel.finalizedAt = block.timestamp;
         duel.state = DuelState.Refunded;
 
         // The player who made the claim behaved correctly
@@ -194,8 +261,7 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
         address nonResponder = duel.claimedBy == duel.creator ? duel.opponent : duel.creator;
         playerStats[nonResponder].duelsAbandoned += 1;
 
-        usdt.safeTransfer(duel.creator, duel.wagerAmount);
-        usdt.safeTransfer(duel.opponent, duel.wagerAmount);
+        _setPayouts(duel, duel.wagerAmount, duel.wagerAmount);
 
         emit DuelRefunded(duelId);
     }
@@ -207,11 +273,37 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
         require(duel.state == DuelState.Created, "Duel not in Created state");
         require(msg.sender == duel.creator, "Only creator can cancel");
 
+        duel.finalizedAt = block.timestamp;
         duel.state = DuelState.Cancelled;
-
-        usdt.safeTransfer(duel.creator, duel.wagerAmount);
+        _setPayouts(duel, duel.wagerAmount, 0);
 
         emit DuelCancelled(duelId);
+    }
+
+    /// @notice Claim the payout or refund assigned to the caller for a specific duel
+    /// @param duelId The ID of the duel to claim from
+    function claimPayout(uint256 duelId) external whenNotPaused nonReentrant {
+        Duel storage duel = duels[duelId];
+        require(msg.sender == duel.creator || msg.sender == duel.opponent, "Not a participant");
+
+        uint256 amount = _claimSinglePayout(duel, duelId, msg.sender);
+        require(amount > 0, "Nothing to claim");
+
+        usdt.safeTransfer(msg.sender, amount);
+    }
+
+    /// @notice Claim any available payouts for the caller across the supplied duels
+    /// @param duelIds The duel IDs to attempt to claim from
+    function claimPayouts(uint256[] calldata duelIds) external whenNotPaused nonReentrant {
+        uint256 totalAmount;
+
+        for (uint256 i = 0; i < duelIds.length; i++) {
+            totalAmount += _claimSinglePayout(duels[duelIds[i]], duelIds[i], msg.sender);
+        }
+
+        require(totalAmount > 0, "Nothing to claim");
+
+        usdt.safeTransfer(msg.sender, totalAmount);
     }
 
     /// @notice Rescue any ERC20 token accidentally sent to this contract (except USDT)
@@ -307,5 +399,38 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
     function getPlayerStats(address user) external view returns (uint32 honored, uint32 abandoned) {
         PlayerStats memory s = playerStats[user];
         return (s.duelsHonored, s.duelsAbandoned);
+    }
+
+    function _hashInviteSecret(bytes32 inviteSecret) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(inviteSecret));
+    }
+
+    function _setPayouts(Duel storage duel, uint256 creatorAmount, uint256 opponentAmount) internal {
+        duel.creatorPayout = creatorAmount;
+        duel.opponentPayout = opponentAmount;
+        duel.creatorClaimed = false;
+        duel.opponentClaimed = false;
+    }
+
+    function _claimSinglePayout(Duel storage duel, uint256 duelId, address player) internal returns (uint256 amount) {
+        if (player == duel.creator) {
+            if (duel.creatorPayout == 0 || duel.creatorClaimed) {
+                return 0;
+            }
+
+            duel.creatorClaimed = true;
+            amount = duel.creatorPayout;
+        } else if (player == duel.opponent) {
+            if (duel.opponentPayout == 0 || duel.opponentClaimed) {
+                return 0;
+            }
+
+            duel.opponentClaimed = true;
+            amount = duel.opponentPayout;
+        } else {
+            return 0;
+        }
+
+        emit DuelPayoutClaimed(duelId, player, amount);
     }
 }

@@ -33,6 +33,9 @@ contract DuelMeTest is Test {
 
     uint256 public constant WAGER = 10_000_000; // 10 USDT
     uint256 public constant MIN_WAGER = 3_000_000; // 3 USDT
+    bytes32 public constant DEFAULT_INVITE_SECRET = bytes32(uint256(1));
+    bytes32 public constant DEFAULT_INVITE_HASH = keccak256(abi.encodePacked(DEFAULT_INVITE_SECRET));
+    bytes32 public constant OTHER_INVITE_SECRET = bytes32(uint256(2));
 
     function setUp() public {
         usdt = new MockERC20("Tether USD", "USDT", 6);
@@ -65,11 +68,30 @@ contract DuelMeTest is Test {
         assertEq(abandoned, expectedAbandoned, string.concat(label, " - abandoned"));
     }
 
+    function _assertPayouts(
+        uint256 duelId,
+        uint256 expectedCreatorPayout,
+        uint256 expectedOpponentPayout,
+        bool expectedCreatorClaimed,
+        bool expectedOpponentClaimed
+    ) internal view {
+        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        assertEq(d.creatorPayout, expectedCreatorPayout, "creator payout");
+        assertEq(d.opponentPayout, expectedOpponentPayout, "opponent payout");
+        assertEq(d.creatorClaimed, expectedCreatorClaimed, "creator claimed");
+        assertEq(d.opponentClaimed, expectedOpponentClaimed, "opponent claimed");
+    }
+
+    function _claimPayout(address player, uint256 duelId) internal {
+        vm.prank(player);
+        duelMe.claimPayout(duelId);
+    }
+
     function _createAndFundDuel() internal returns (uint256 duelId) {
         vm.prank(alice);
-        duelId = duelMe.createDuel(WAGER);
+        duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
         vm.prank(bob);
-        duelMe.joinDuel(duelId);
+        duelMe.joinDuel(duelId, DEFAULT_INVITE_SECRET);
     }
 
     function _createFundAndClaim() internal returns (uint256 duelId) {
@@ -113,7 +135,7 @@ contract DuelMeTest is Test {
         uint256 aliceBalBefore = usdt.balanceOf(alice);
 
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuel(WAGER);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
 
         assertEq(duelId, 0, "First duel ID should be 0");
         assertEq(duelMe.duelCount(), 1, "duelCount should be 1");
@@ -122,9 +144,17 @@ contract DuelMeTest is Test {
         assertEq(d.creator, alice);
         assertEq(d.opponent, address(0));
         assertEq(d.wagerAmount, WAGER);
+        assertEq(d.inviteHash, DEFAULT_INVITE_HASH);
         assertEq(d.claimedWinner, address(0));
         assertEq(d.claimedBy, address(0));
+        assertEq(d.createdAt, block.timestamp);
+        assertEq(d.fundedAt, 0);
         assertEq(d.claimTimestamp, 0);
+        assertEq(d.finalizedAt, 0);
+        assertEq(d.creatorPayout, 0);
+        assertEq(d.opponentPayout, 0);
+        assertEq(d.creatorClaimed, false);
+        assertEq(d.opponentClaimed, false);
         assertEq(uint256(d.state), uint256(DuelMe.DuelState.Created));
 
         assertEq(usdt.balanceOf(alice), aliceBalBefore - WAGER);
@@ -133,7 +163,7 @@ contract DuelMeTest is Test {
 
     function testCreateDuelExactMinimum() public {
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuel(MIN_WAGER);
+        uint256 duelId = duelMe.createDuel(MIN_WAGER, DEFAULT_INVITE_HASH);
 
         DuelMe.Duel memory d = duelMe.getDuel(duelId);
         assertEq(d.wagerAmount, MIN_WAGER);
@@ -142,13 +172,19 @@ contract DuelMeTest is Test {
     function testCreateDuelBelowMinimum() public {
         vm.prank(alice);
         vm.expectRevert("Wager below minimum");
-        duelMe.createDuel(MIN_WAGER - 1);
+        duelMe.createDuel(MIN_WAGER - 1, DEFAULT_INVITE_HASH);
     }
 
     function testCreateDuelZeroAmount() public {
         vm.prank(alice);
         vm.expectRevert("Wager below minimum");
-        duelMe.createDuel(0);
+        duelMe.createDuel(0, DEFAULT_INVITE_HASH);
+    }
+
+    function testCreateDuelRejectsZeroInviteHash() public {
+        vm.prank(alice);
+        vm.expectRevert("Invalid invite hash");
+        duelMe.createDuel(WAGER, bytes32(0));
     }
 
     function testCreateDuelLargeWager() public {
@@ -156,7 +192,7 @@ contract DuelMeTest is Test {
         usdt.mint(alice, largeWager);
 
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuel(largeWager);
+        uint256 duelId = duelMe.createDuel(largeWager, DEFAULT_INVITE_HASH);
 
         DuelMe.Duel memory d = duelMe.getDuel(duelId);
         assertEq(d.wagerAmount, largeWager);
@@ -170,7 +206,7 @@ contract DuelMeTest is Test {
 
         vm.prank(broke);
         vm.expectRevert();
-        duelMe.createDuel(WAGER);
+        duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
     }
 
     function testCreateDuelNoApproval() public {
@@ -180,16 +216,16 @@ contract DuelMeTest is Test {
 
         vm.prank(noApproval);
         vm.expectRevert();
-        duelMe.createDuel(WAGER);
+        duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
     }
 
     function testCreateDuelIncrementsId() public {
         vm.prank(alice);
-        uint256 id0 = duelMe.createDuel(WAGER);
+        uint256 id0 = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
         vm.prank(alice);
-        uint256 id1 = duelMe.createDuel(WAGER);
+        uint256 id1 = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
         vm.prank(bob);
-        uint256 id2 = duelMe.createDuel(WAGER);
+        uint256 id2 = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
 
         assertEq(id0, 0);
         assertEq(id1, 1);
@@ -201,7 +237,7 @@ contract DuelMeTest is Test {
         vm.prank(alice);
         vm.expectEmit(true, true, false, true);
         emit DuelMe.DuelCreated(0, alice, WAGER);
-        duelMe.createDuel(WAGER);
+        duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
     }
 
     // =====================================================================
@@ -210,15 +246,17 @@ contract DuelMeTest is Test {
 
     function testJoinDuel() public {
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuel(WAGER);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
 
         uint256 bobBalBefore = usdt.balanceOf(bob);
 
+        vm.warp(block.timestamp + 15);
         vm.prank(bob);
-        duelMe.joinDuel(duelId);
+        duelMe.joinDuel(duelId, DEFAULT_INVITE_SECRET);
 
         DuelMe.Duel memory d = duelMe.getDuel(duelId);
         assertEq(d.opponent, bob);
+        assertEq(d.fundedAt, block.timestamp);
         assertEq(uint256(d.state), uint256(DuelMe.DuelState.Funded));
         assertEq(usdt.balanceOf(bob), bobBalBefore - WAGER);
         assertEq(usdt.balanceOf(address(duelMe)), WAGER * 2);
@@ -226,11 +264,11 @@ contract DuelMeTest is Test {
 
     function testJoinDuelSelf() public {
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuel(WAGER);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
 
         vm.prank(alice);
         vm.expectRevert("Cannot join own duel");
-        duelMe.joinDuel(duelId);
+        duelMe.joinDuel(duelId, DEFAULT_INVITE_SECRET);
     }
 
     function testJoinDuelAlreadyFunded() public {
@@ -238,18 +276,18 @@ contract DuelMeTest is Test {
 
         vm.prank(charlie);
         vm.expectRevert("Duel not in Created state");
-        duelMe.joinDuel(duelId);
+        duelMe.joinDuel(duelId, DEFAULT_INVITE_SECRET);
     }
 
     function testJoinDuelCancelled() public {
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuel(WAGER);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
         vm.prank(alice);
         duelMe.cancelDuel(duelId);
 
         vm.prank(bob);
         vm.expectRevert("Duel not in Created state");
-        duelMe.joinDuel(duelId);
+        duelMe.joinDuel(duelId, DEFAULT_INVITE_SECRET);
     }
 
     function testJoinDuelResolved() public {
@@ -257,29 +295,112 @@ contract DuelMeTest is Test {
 
         vm.prank(charlie);
         vm.expectRevert("Duel not in Created state");
-        duelMe.joinDuel(duelId);
+        duelMe.joinDuel(duelId, DEFAULT_INVITE_SECRET);
     }
 
     function testJoinDuelNoApproval() public {
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuel(WAGER);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
 
         address noApproval = makeAddr("noApproval");
         usdt.mint(noApproval, WAGER);
 
         vm.prank(noApproval);
         vm.expectRevert();
-        duelMe.joinDuel(duelId);
+        duelMe.joinDuel(duelId, DEFAULT_INVITE_SECRET);
+    }
+
+    function testJoinDuelInvalidInviteReverts() public {
+        vm.prank(alice);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
+
+        vm.prank(bob);
+        vm.expectRevert("Invalid invite");
+        duelMe.joinDuel(duelId, OTHER_INVITE_SECRET);
     }
 
     function testJoinDuelEmitsEvent() public {
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuel(WAGER);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
 
         vm.prank(bob);
         vm.expectEmit(true, true, false, true);
         emit DuelMe.DuelJoined(duelId, bob);
-        duelMe.joinDuel(duelId);
+        duelMe.joinDuel(duelId, DEFAULT_INVITE_SECRET);
+    }
+
+    // =====================================================================
+    // declineDuel
+    // =====================================================================
+
+    function testDeclineDuel() public {
+        vm.prank(alice);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
+
+        uint256 aliceBalBefore = usdt.balanceOf(alice);
+
+        vm.prank(bob);
+        duelMe.declineDuel(duelId, DEFAULT_INVITE_SECRET);
+
+        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        assertEq(d.opponent, bob);
+        assertEq(uint256(d.state), uint256(DuelMe.DuelState.Declined));
+        assertEq(usdt.balanceOf(alice), aliceBalBefore);
+        assertEq(usdt.balanceOf(address(duelMe)), WAGER);
+        _assertPayouts(duelId, WAGER, 0, false, false);
+
+        _claimPayout(alice, duelId);
+
+        assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER);
+        assertEq(usdt.balanceOf(address(duelMe)), 0);
+        _assertPayouts(duelId, WAGER, 0, true, false);
+    }
+
+    function testDeclineDuelCreatorReverts() public {
+        vm.prank(alice);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
+
+        vm.prank(alice);
+        vm.expectRevert("Creator cannot decline");
+        duelMe.declineDuel(duelId, DEFAULT_INVITE_SECRET);
+    }
+
+    function testDeclineDuelInvalidInviteReverts() public {
+        vm.prank(alice);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
+
+        vm.prank(bob);
+        vm.expectRevert("Invalid invite");
+        duelMe.declineDuel(duelId, OTHER_INVITE_SECRET);
+    }
+
+    function testDeclineDuelWrongStateReverts() public {
+        uint256 duelId = _createAndFundDuel();
+
+        vm.prank(charlie);
+        vm.expectRevert("Duel not in Created state");
+        duelMe.declineDuel(duelId, DEFAULT_INVITE_SECRET);
+    }
+
+    function testDeclineDuelDoesNotAffectStats() public {
+        vm.prank(alice);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
+
+        vm.prank(bob);
+        duelMe.declineDuel(duelId, DEFAULT_INVITE_SECRET);
+
+        _assertStats(alice, 0, 0, "Alice after decline");
+        _assertStats(bob, 0, 0, "Bob after decline");
+    }
+
+    function testDeclineDuelEmitsEvent() public {
+        vm.prank(alice);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
+
+        vm.prank(bob);
+        vm.expectEmit(true, true, false, true);
+        emit DuelMe.DuelDeclined(duelId, bob);
+        duelMe.declineDuel(duelId, DEFAULT_INVITE_SECRET);
     }
 
     // =====================================================================
@@ -320,7 +441,7 @@ contract DuelMeTest is Test {
 
     function testClaimVictoryNotFunded() public {
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuel(WAGER);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
 
         vm.prank(alice);
         vm.expectRevert("Duel not in Funded state");
@@ -397,7 +518,7 @@ contract DuelMeTest is Test {
 
     function testAdmitDefeatNotFunded() public {
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuel(WAGER);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
 
         vm.prank(alice);
         vm.expectRevert("Duel not in Funded state");
@@ -435,8 +556,15 @@ contract DuelMeTest is Test {
 
         DuelMe.Duel memory d = duelMe.getDuel(duelId);
         assertEq(uint256(d.state), uint256(DuelMe.DuelState.Resolved));
+        assertEq(usdt.balanceOf(alice), aliceBalBefore);
+        assertEq(usdt.balanceOf(address(duelMe)), WAGER * 2);
+        _assertPayouts(duelId, WAGER * 2, 0, false, false);
+
+        _claimPayout(alice, duelId);
+
         assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER * 2);
         assertEq(usdt.balanceOf(address(duelMe)), 0);
+        _assertPayouts(duelId, WAGER * 2, 0, true, false);
 
         _assertStats(alice, 1, 0, "Alice");
         _assertStats(bob, 1, 0, "Bob");
@@ -455,6 +583,10 @@ contract DuelMeTest is Test {
         vm.prank(alice);
         duelMe.confirmResult(duelId);
 
+        _assertPayouts(duelId, WAGER * 2, 0, false, false);
+
+        _claimPayout(alice, duelId);
+
         assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER * 2);
         _assertStats(alice, 1, 0, "Alice");
         _assertStats(bob, 1, 0, "Bob");
@@ -472,6 +604,10 @@ contract DuelMeTest is Test {
         // Alice confirms
         vm.prank(alice);
         duelMe.confirmResult(duelId);
+
+        _assertPayouts(duelId, 0, WAGER * 2, false, false);
+
+        _claimPayout(bob, duelId);
 
         assertEq(usdt.balanceOf(bob), bobBalBefore + WAGER * 2);
     }
@@ -495,7 +631,7 @@ contract DuelMeTest is Test {
     function testConfirmResultWrongState() public {
         // Created state
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuel(WAGER);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
         vm.prank(bob);
         vm.expectRevert("Duel not in WinnerClaimed state");
         duelMe.confirmResult(duelId);
@@ -533,6 +669,71 @@ contract DuelMeTest is Test {
     }
 
     // =====================================================================
+    // disputeResult
+    // =====================================================================
+
+    function testDisputeResultRefundsBothPlayers() public {
+        uint256 duelId = _createFundAndClaim();
+
+        uint256 aliceBalBefore = usdt.balanceOf(alice);
+        uint256 bobBalBefore = usdt.balanceOf(bob);
+
+        vm.prank(bob);
+        duelMe.disputeResult(duelId);
+
+        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        assertEq(uint256(d.state), uint256(DuelMe.DuelState.Disputed));
+        assertEq(usdt.balanceOf(alice), aliceBalBefore);
+        assertEq(usdt.balanceOf(bob), bobBalBefore);
+        assertEq(usdt.balanceOf(address(duelMe)), WAGER * 2);
+        _assertPayouts(duelId, WAGER, WAGER, false, false);
+
+        _claimPayout(alice, duelId);
+        _claimPayout(bob, duelId);
+
+        assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER);
+        assertEq(usdt.balanceOf(bob), bobBalBefore + WAGER);
+        assertEq(usdt.balanceOf(address(duelMe)), 0);
+        _assertPayouts(duelId, WAGER, WAGER, true, true);
+
+        _assertStats(alice, 0, 0, "Alice after dispute");
+        _assertStats(bob, 0, 0, "Bob after dispute");
+    }
+
+    function testDisputeResultByClaimerReverts() public {
+        uint256 duelId = _createFundAndClaim();
+
+        vm.prank(alice);
+        vm.expectRevert("Cannot dispute own claim");
+        duelMe.disputeResult(duelId);
+    }
+
+    function testDisputeResultNotParticipantReverts() public {
+        uint256 duelId = _createFundAndClaim();
+
+        vm.prank(charlie);
+        vm.expectRevert("Not a participant");
+        duelMe.disputeResult(duelId);
+    }
+
+    function testDisputeResultWrongStateReverts() public {
+        uint256 duelId = _createAndFundDuel();
+
+        vm.prank(bob);
+        vm.expectRevert("Duel not in WinnerClaimed state");
+        duelMe.disputeResult(duelId);
+    }
+
+    function testDisputeResultEmitsEvent() public {
+        uint256 duelId = _createFundAndClaim();
+
+        vm.prank(bob);
+        vm.expectEmit(true, true, false, true);
+        emit DuelMe.DuelDisputed(duelId, bob);
+        duelMe.disputeResult(duelId);
+    }
+
+    // =====================================================================
     // refund
     // =====================================================================
 
@@ -549,9 +750,18 @@ contract DuelMeTest is Test {
 
         DuelMe.Duel memory d = duelMe.getDuel(duelId);
         assertEq(uint256(d.state), uint256(DuelMe.DuelState.Refunded));
+        assertEq(usdt.balanceOf(alice), aliceBalBefore);
+        assertEq(usdt.balanceOf(bob), bobBalBefore);
+        assertEq(usdt.balanceOf(address(duelMe)), WAGER * 2);
+        _assertPayouts(duelId, WAGER, WAGER, false, false);
+
+        _claimPayout(alice, duelId);
+        _claimPayout(bob, duelId);
+
         assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER);
         assertEq(usdt.balanceOf(bob), bobBalBefore + WAGER);
         assertEq(usdt.balanceOf(address(duelMe)), 0);
+        _assertPayouts(duelId, WAGER, WAGER, true, true);
 
         // Alice was claimer → honored; Bob non-responder → abandoned
         _assertStats(alice, 1, 0, "Alice (claimer)");
@@ -596,7 +806,7 @@ contract DuelMeTest is Test {
     function testRefundWrongState() public {
         // Created
         vm.prank(alice);
-        uint256 id1 = duelMe.createDuel(WAGER);
+        uint256 id1 = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
         vm.expectRevert("Duel not in WinnerClaimed state");
         duelMe.refund(id1);
 
@@ -639,7 +849,7 @@ contract DuelMeTest is Test {
 
     function testCancelDuel() public {
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuel(WAGER);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
 
         uint256 aliceBalBefore = usdt.balanceOf(alice);
 
@@ -648,12 +858,17 @@ contract DuelMeTest is Test {
 
         DuelMe.Duel memory d = duelMe.getDuel(duelId);
         assertEq(uint256(d.state), uint256(DuelMe.DuelState.Cancelled));
+        _assertPayouts(duelId, WAGER, 0, false, false);
+        assertEq(usdt.balanceOf(alice), aliceBalBefore);
+
+        _claimPayout(alice, duelId);
+
         assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER);
     }
 
     function testCancelDuelNotCreator() public {
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuel(WAGER);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
 
         vm.prank(bob);
         vm.expectRevert("Only creator can cancel");
@@ -678,7 +893,7 @@ contract DuelMeTest is Test {
 
     function testCancelDuelAlreadyCancelled() public {
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuel(WAGER);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
         vm.prank(alice);
         duelMe.cancelDuel(duelId);
 
@@ -689,7 +904,7 @@ contract DuelMeTest is Test {
 
     function testCancelDoesNotAffectStats() public {
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuel(WAGER);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
         vm.prank(alice);
         duelMe.cancelDuel(duelId);
 
@@ -698,7 +913,7 @@ contract DuelMeTest is Test {
 
     function testCancelEmitsEvent() public {
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuel(WAGER);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
 
         vm.prank(alice);
         vm.expectEmit(true, false, false, true);
@@ -727,9 +942,9 @@ contract DuelMeTest is Test {
 
         // Duel 2: admit defeat + confirm
         vm.prank(alice);
-        uint256 duel2 = duelMe.createDuel(WAGER);
+        uint256 duel2 = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
         vm.prank(bob);
-        duelMe.joinDuel(duel2);
+        duelMe.joinDuel(duel2, DEFAULT_INVITE_SECRET);
         vm.prank(bob);
         duelMe.admitDefeat(duel2);
         vm.prank(alice);
@@ -740,9 +955,9 @@ contract DuelMeTest is Test {
 
         // Duel 3: timeout refund
         vm.prank(alice);
-        uint256 duel3 = duelMe.createDuel(WAGER);
+        uint256 duel3 = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
         vm.prank(bob);
-        duelMe.joinDuel(duel3);
+        duelMe.joinDuel(duel3, DEFAULT_INVITE_SECRET);
         vm.prank(alice);
         duelMe.claimVictory(duel3);
         vm.warp(block.timestamp + 3601);
@@ -762,9 +977,9 @@ contract DuelMeTest is Test {
 
         // Charlie vs Dave: timeout refund (charlie claims, dave doesn't respond)
         vm.prank(charlie);
-        uint256 duel2 = duelMe.createDuel(WAGER);
+        uint256 duel2 = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
         vm.prank(dave);
-        duelMe.joinDuel(duel2);
+        duelMe.joinDuel(duel2, DEFAULT_INVITE_SECRET);
         vm.prank(charlie);
         duelMe.claimVictory(duel2);
         vm.warp(block.timestamp + 3601);
@@ -811,18 +1026,29 @@ contract DuelMeTest is Test {
 
         vm.prank(alice);
         vm.expectRevert();
-        duelMe.createDuel(WAGER);
+        duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
     }
 
     function testJoinDuelWhenPausedReverts() public {
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuel(WAGER);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
 
         duelMe.pause();
 
         vm.prank(bob);
         vm.expectRevert();
-        duelMe.joinDuel(duelId);
+        duelMe.joinDuel(duelId, DEFAULT_INVITE_SECRET);
+    }
+
+    function testDeclineDuelWhenPausedReverts() public {
+        vm.prank(alice);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
+
+        duelMe.pause();
+
+        vm.prank(bob);
+        vm.expectRevert();
+        duelMe.declineDuel(duelId, DEFAULT_INVITE_SECRET);
     }
 
     function testClaimVictoryWhenPausedReverts() public {
@@ -852,6 +1078,15 @@ contract DuelMeTest is Test {
         duelMe.confirmResult(duelId);
     }
 
+    function testDisputeResultWhenPausedReverts() public {
+        uint256 duelId = _createFundAndClaim();
+        duelMe.pause();
+
+        vm.prank(bob);
+        vm.expectRevert();
+        duelMe.disputeResult(duelId);
+    }
+
     function testRefundWhenPausedReverts() public {
         uint256 duelId = _createFundAndClaim();
         vm.warp(block.timestamp + 3601);
@@ -863,7 +1098,7 @@ contract DuelMeTest is Test {
 
     function testCancelDuelWhenPausedReverts() public {
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuel(WAGER);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
         duelMe.pause();
 
         vm.prank(alice);
@@ -877,11 +1112,11 @@ contract DuelMeTest is Test {
 
         // Should work after unpause
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuel(WAGER);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
         assertEq(duelMe.duelCount(), 1);
 
         vm.prank(bob);
-        duelMe.joinDuel(duelId);
+        duelMe.joinDuel(duelId, DEFAULT_INVITE_SECRET);
 
         DuelMe.Duel memory d = duelMe.getDuel(duelId);
         assertEq(uint256(d.state), uint256(DuelMe.DuelState.Funded));
@@ -910,15 +1145,15 @@ contract DuelMeTest is Test {
     function testConcurrentDuelsDoNotInterfere() public {
         // Duel 0: alice vs bob
         vm.prank(alice);
-        uint256 duel0 = duelMe.createDuel(WAGER);
+        uint256 duel0 = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
         vm.prank(bob);
-        duelMe.joinDuel(duel0);
+        duelMe.joinDuel(duel0, DEFAULT_INVITE_SECRET);
 
         // Duel 1: charlie vs dave
         vm.prank(charlie);
-        uint256 duel1 = duelMe.createDuel(WAGER * 2);
+        uint256 duel1 = duelMe.createDuel(WAGER * 2, DEFAULT_INVITE_HASH);
         vm.prank(dave);
-        duelMe.joinDuel(duel1);
+        duelMe.joinDuel(duel1, DEFAULT_INVITE_SECRET);
 
         // Resolve duel 0
         vm.prank(alice);
@@ -939,9 +1174,13 @@ contract DuelMeTest is Test {
         // Verify payouts are correct
         DuelMe.Duel memory d0 = duelMe.getDuel(duel0);
         assertEq(uint256(d0.state), uint256(DuelMe.DuelState.Resolved));
-        assertEq(uint256(d1.state), uint256(DuelMe.DuelState.Funded)); // re-read d1
         d1 = duelMe.getDuel(duel1);
         assertEq(uint256(d1.state), uint256(DuelMe.DuelState.Resolved));
+        _assertPayouts(duel0, WAGER * 2, 0, false, false);
+        _assertPayouts(duel1, WAGER * 4, 0, false, false);
+
+        _claimPayout(alice, duel0);
+        _claimPayout(charlie, duel1);
 
         assertEq(usdt.balanceOf(address(duelMe)), 0, "Contract should be empty");
     }
@@ -965,6 +1204,10 @@ contract DuelMeTest is Test {
         DuelMe.Duel memory d = duelMe.getDuel(duelId);
         assertEq(uint256(d.state), uint256(DuelMe.DuelState.Resolved));
         assertEq(d.claimedWinner, alice);
+        _assertPayouts(duelId, WAGER * 2, 0, false, false);
+
+        _claimPayout(alice, duelId);
+
         assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER * 2);
     }
 
@@ -986,6 +1229,11 @@ contract DuelMeTest is Test {
         vm.warp(block.timestamp + 3601);
         duelMe.refund(duelId);
 
+        _assertPayouts(duelId, WAGER, WAGER, false, false);
+
+        _claimPayout(alice, duelId);
+        _claimPayout(bob, duelId);
+
         // Both get money back
         assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER);
         assertEq(usdt.balanceOf(bob), bobBalBefore + WAGER);
@@ -1002,41 +1250,62 @@ contract DuelMeTest is Test {
     function testContractBalanceAfterMultipleOperations() public {
         // Create 3 duels
         vm.prank(alice);
-        uint256 d0 = duelMe.createDuel(WAGER);
+        uint256 d0 = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
         vm.prank(alice);
-        uint256 d1 = duelMe.createDuel(WAGER * 2);
+        uint256 d1 = duelMe.createDuel(WAGER * 2, DEFAULT_INVITE_HASH);
         vm.prank(alice);
-        uint256 d2 = duelMe.createDuel(WAGER * 3);
+        uint256 d2 = duelMe.createDuel(WAGER * 3, DEFAULT_INVITE_HASH);
 
         assertEq(usdt.balanceOf(address(duelMe)), WAGER * 6);
 
         // Cancel d2
         vm.prank(alice);
         duelMe.cancelDuel(d2);
-        assertEq(usdt.balanceOf(address(duelMe)), WAGER * 3);
+        assertEq(usdt.balanceOf(address(duelMe)), WAGER * 6);
+        _assertPayouts(d2, WAGER * 3, 0, false, false);
 
         // Fund d0
         vm.prank(bob);
-        duelMe.joinDuel(d0);
-        assertEq(usdt.balanceOf(address(duelMe)), WAGER * 4);
+        duelMe.joinDuel(d0, DEFAULT_INVITE_SECRET);
+        assertEq(usdt.balanceOf(address(duelMe)), WAGER * 7);
 
         // Resolve d0
         vm.prank(alice);
         duelMe.claimVictory(d0);
         vm.prank(bob);
         duelMe.confirmResult(d0);
-        assertEq(usdt.balanceOf(address(duelMe)), WAGER * 2); // d1 remains
+        assertEq(usdt.balanceOf(address(duelMe)), WAGER * 7);
+        _assertPayouts(d0, WAGER * 2, 0, false, false);
 
         // Fund d1 and refund
         vm.prank(charlie);
-        duelMe.joinDuel(d1);
-        assertEq(usdt.balanceOf(address(duelMe)), WAGER * 4);
+        duelMe.joinDuel(d1, DEFAULT_INVITE_SECRET);
+        assertEq(usdt.balanceOf(address(duelMe)), WAGER * 9);
 
         vm.prank(alice);
         duelMe.claimVictory(d1);
         vm.warp(block.timestamp + 3601);
         duelMe.refund(d1);
 
+        assertEq(usdt.balanceOf(address(duelMe)), WAGER * 9);
+        _assertPayouts(d1, WAGER * 2, WAGER * 2, false, false);
+
+        uint256 aliceBalBefore = usdt.balanceOf(alice);
+        uint256 charlieBalBefore = usdt.balanceOf(charlie);
+
+        uint256[] memory aliceClaims = new uint256[](3);
+        aliceClaims[0] = d2;
+        aliceClaims[1] = d0;
+        aliceClaims[2] = d1;
+        vm.prank(alice);
+        duelMe.claimPayouts(aliceClaims);
+
+        assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER * 7);
+        assertEq(usdt.balanceOf(address(duelMe)), WAGER * 2);
+
+        _claimPayout(charlie, d1);
+
+        assertEq(usdt.balanceOf(charlie), charlieBalBefore + WAGER * 2);
         assertEq(usdt.balanceOf(address(duelMe)), 0, "Contract should be fully drained");
     }
 }

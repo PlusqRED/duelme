@@ -7,11 +7,11 @@ import { Menu, X, Swords, LogOut, User, Wallet, Globe, Send, Copy, Check, Chevro
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/i18n/useTranslation';
+import { useAppToast } from '@/hooks/useAppToast';
 import { usePrivy, useWallets, useExportWallet } from '@privy-io/react-auth';
 import { useReadContract, useBalance } from 'wagmi';
 import { formatUnits, parseUnits, encodeFunctionData } from 'viem';
 import { SUPPORTED_CHAINS, USDT_DECIMALS } from '@/lib/constants';
-import { toast } from 'sonner';
 
 const CHAIN_META: Record<number, { name: string; testnet?: boolean }> = {
   421614: { name: 'Arb Sepolia', testnet: true },
@@ -51,6 +51,7 @@ const transferAbi = [
 
 export function Header() {
   const { t, language, setLanguage } = useTranslation();
+  const appToast = useAppToast();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [walletOpen, setWalletOpen] = useState(false);
@@ -83,7 +84,7 @@ export function Header() {
     functionName: 'balanceOf',
     args: walletAddress ? [walletAddress] : undefined,
     chainId: 421614,
-    query: { enabled: !!walletAddress },
+    query: { enabled: !!walletAddress, refetchInterval: 30_000, staleTime: 0 },
   });
 
   const { data: arbRaw, refetch: refetchArb } = useReadContract({
@@ -92,7 +93,7 @@ export function Header() {
     functionName: 'balanceOf',
     args: walletAddress ? [walletAddress] : undefined,
     chainId: 42161,
-    query: { enabled: !!walletAddress },
+    query: { enabled: !!walletAddress, refetchInterval: 30_000, staleTime: 0 },
   });
 
   const { data: polyRaw, refetch: refetchPoly } = useReadContract({
@@ -101,14 +102,14 @@ export function Header() {
     functionName: 'balanceOf',
     args: walletAddress ? [walletAddress] : undefined,
     chainId: 137,
-    query: { enabled: !!walletAddress },
+    query: { enabled: !!walletAddress, refetchInterval: 30_000, staleTime: 0 },
   });
 
   // Read ETH balance on selected chain (for gas)
   const { data: ethBalanceData } = useBalance({
     address: walletAddress,
     chainId: selectedChain,
-    query: { enabled: !!walletAddress },
+    query: { enabled: !!walletAddress, refetchInterval: 30_000, staleTime: 0 },
   });
 
   const ethBalance = ethBalanceData ? parseFloat(formatUnits(ethBalanceData.value, 18)) : 0;
@@ -156,11 +157,11 @@ export function Header() {
 
     const num = parseFloat(sendAmount);
     if (num <= 0 || num > balance) {
-      toast.error('Invalid amount');
+      appToast.error('toast.invalidAmount');
       return;
     }
     if (!/^0x[a-fA-F0-9]{40}$/.test(toAddress)) {
-      toast.error('Invalid address');
+      appToast.error('toast.invalidAddress');
       return;
     }
 
@@ -179,14 +180,18 @@ export function Header() {
         params: [{ from: walletAddress, to: usdtAddress, data }],
       });
 
-      toast.success(`Sent ${sendAmount} USDT`);
+      appToast.success('toast.sentUsdt', { amount: sendAmount });
       setToAddress('');
       setSendAmount('');
       setWalletOpen(false);
       refetch();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '';
-      toast.error(msg.includes('reject') || msg.includes('denied') ? 'Transaction rejected' : 'Transfer failed');
+      if (msg.includes('reject') || msg.includes('denied')) {
+        appToast.error('toast.transactionRejected');
+      } else {
+        appToast.error('toast.transferFailed');
+      }
     } finally {
       setIsSending(false);
     }
@@ -281,9 +286,7 @@ export function Header() {
         </div>
         {lowGas && (
           <p className="mt-1 text-[10px] text-red-500">
-            {language === 'ru'
-              ? 'Мало ETH для газа — нужен для создания дуэлей, принятия вызовов и отправки USDT'
-              : 'Low ETH for gas — needed to create duels, accept challenges & send USDT'}
+            {t('wallet.lowGasWarning')}
           </p>
         )}
 
@@ -315,7 +318,7 @@ export function Header() {
               onClick={() => setSendAmount(balance.toString())}
               className="absolute right-2 top-1/2 -translate-y-1/2 rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-bold text-indigo-600 hover:bg-indigo-100"
             >
-              MAX
+                {t('wallet.max')}
             </button>
           </div>
           <Button

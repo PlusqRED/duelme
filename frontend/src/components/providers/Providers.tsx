@@ -52,7 +52,7 @@ export function Providers({ children }: { children: ReactNode }) {
             <TooltipProvider>
               {children}
             </TooltipProvider>
-            <Toaster position="bottom-right" />
+            <Toaster position="top-center" />
           </LanguageProvider>
         </WagmiProvider>
       </QueryClientProvider>

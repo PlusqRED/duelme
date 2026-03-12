@@ -15,20 +15,20 @@ Two players stake equal USDT amounts on a match. The winner takes the full pot. 
 ## How it works
 
 ```
-Creator deposits USDT ──► Opponent matches wager ──► Play the game off-chain
-                                                            │
-                      ┌─────────────────────────────────────┘
-                      ▼
-              Player claims result
-                      │
-           ┌──────────┴──────────┐
-           ▼                     ▼
-    Opponent confirms      No response (1h)
-           │                     │
-           ▼                     ▼
-    Winner gets 2× pot     50/50 refund
-    Both get +honored      Claimer +honored
-                           Ghost +abandoned
+Creator deposits USDT + gets private invite link ──► Opponent opens full link and matches wager ──► Play the game off-chain
+                                                                                                          │
+                                 ┌────────────────────────────────────────────────────────────────────────┘
+                                 ▼
+                         Player submits result
+                                 │
+                   ┌─────────────┼─────────────┐
+                   ▼             ▼             ▼
+            Opponent confirms  Opponent disputes  No response (1h)
+                   │             │             │
+                   ▼             ▼             ▼
+            Winner gets 2× pot  50/50 refund  50/50 refund
+            Both get +honored   No rep change  Claimer +honored
+                                               Ghost +abandoned
 ```
 
 ## Tech stack
@@ -102,10 +102,12 @@ Open [http://localhost:3000](http://localhost:3000).
 
 | State | Transition | Who |
 |---|---|---|
-| **Created** | `createDuel(amount)` — creator deposits USDT | Anyone |
-| **Funded** | `joinDuel(duelId)` — opponent matches wager | Any other wallet |
+| **Created** | `createDuel(amount, inviteHash)` — creator deposits USDT and shares a private invite link | Anyone |
+| **Funded** | `joinDuel(duelId, inviteSecret)` — invited opponent matches wager | Any other wallet with the invite secret |
+| **Declined** | `declineDuel(duelId, inviteSecret)` — invited opponent declines, creator is refunded | Any other wallet with the invite secret |
 | **WinnerClaimed** | `claimVictory(duelId)` or `admitDefeat(duelId)` | Either participant |
 | **Resolved** | `confirmResult(duelId)` — winner receives 2x pot | The other participant |
+| **Disputed** | `disputeResult(duelId)` — immediate 50/50 refund when the other participant disagrees | The other participant |
 | **Refunded** | `refund(duelId)` — 50/50 split after 1h timeout | Anyone |
 | **Cancelled** | `cancelDuel(duelId)` — full refund before join | Creator only |
 
@@ -114,8 +116,9 @@ Open [http://localhost:3000](http://localhost:3000).
 Every wallet accumulates `duelsHonored` and `duelsAbandoned` counters on-chain:
 
 - **confirmResult** — both players get `+1 honored`
+- **disputeResult** — no stats change
 - **refund** — claimer gets `+1 honored`, non-responder gets `+1 abandoned`
-- **cancel** — no stats change
+- **cancel / decline** — no stats change
 
 The frontend calculates a **Wilson Score Lower Bound** from these counters for display.
 
@@ -124,6 +127,7 @@ The frontend calculates a **Wilson Score Lower Bound** from these counters for d
 - OpenZeppelin `ReentrancyGuard` on all token-moving functions
 - `Pausable` with owner-only `pause()`/`unpause()` for emergencies
 - `SafeERC20` for all token transfers
+- Invite links use a high-entropy secret stored on-chain only as a hash; knowing the duel id alone is not enough to join or decline
 - Minimum wager of 3 USDT to prevent dust spam
 - No admin withdrawal — funds only move through duel resolution
 
