@@ -71,8 +71,10 @@ All write operations follow: check chain → check allowance → approve if need
 | `frontend/src/hooks/useDuel.ts` | Read single duel |
 | `frontend/src/hooks/useDuelActions.ts` | Write actions (join, cancel, claim, etc.) |
 | `frontend/src/hooks/usePlayerDuels.ts` | Multicall all duels, filter by player |
+| `frontend/src/hooks/usePlatformStats.ts` | Landing-page Total Volume / Duels Played stats |
 | `frontend/src/hooks/useRecentDuels.ts` | Landing-page duel feed with newest-first ordering |
 | `frontend/src/hooks/useReputation.ts` | Wilson Score reputation calculation |
+| `frontend/src/hooks/useReputationLevels.ts` | Batch reputation reads for feed and search surfaces |
 | `frontend/src/lib/invite.ts` | Secure invite-secret generation/storage helpers |
 | `frontend/src/lib/duelMessage.ts` | Frontend Unicode duel-message validation |
 | `frontend/src/lib/duelSearch.ts` | Shared visible-field search indexing for dashboard/recent duels |
@@ -124,4 +126,5 @@ Created(0) → Cancelled(5)
 - Done: spectator-safe duel details, clearer won/lost/no-winner dashboard cards, and claimed / claim-ready markers
 - Done: Unicode duel messages (up to 32 visible code points) shown in create, duel detail, dashboard, and latest-duels surfaces
 - Done: dashboard and latest-duels search now operate on visible UI concepts, not just raw addresses
+- Done: hero metrics now show live on-chain Total Volume and Duels Played values
 - Source of truth for current deploys: `contracts/broadcast/Deploy.s.sol/421614/run-latest.json`, mirrored into `README.md` and `frontend/src/lib/constants.ts`

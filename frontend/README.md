@@ -7,7 +7,7 @@
 
 # DuelMe — Frontend
 
-Next.js web app for the DuelMe P2P gaming duel platform.
+Next.js web app for the DuelMe P2P gaming duel platform. The frontend handles secure private invites, participant-only duel controls, spectator-safe public duel pages, claim-based payout UX, localized toasts, and live on-chain landing metrics.
 
 ## Tech stack
 
@@ -28,10 +28,10 @@ Next.js web app for the DuelMe P2P gaming duel platform.
 
 | Route | Description |
 |---|---|
-| `/` | Landing page — hero, how it works, trust, reputation, recent duels, CTA |
-| `/dashboard` | User dashboard — active duels overview |
-| `/duel/create` | Create a new duel — amount input, presets, chain selector, pot preview |
-| `/duel/[id]` | Duel detail — status, actions (join/claim/confirm/refund/cancel), share link |
+| `/` | Landing page — live hero stats, how it works, trust, reputation, searchable latest duels, CTA |
+| `/dashboard` | User dashboard — active/history tabs, full-text duel search, claim-all, pagination, outcome badges |
+| `/duel/create` | Create a new duel — amount input, presets, chain selector, secure invite generation, optional Unicode message |
+| `/duel/[id]` | Duel detail — spectator-safe timeline plus participant actions (join/decline/claim/confirm/dispute/refund/cancel/mutual-cancel/claim payout) |
 
 ## Project structure
 
@@ -62,14 +62,24 @@ src/
 │   └── ui/                 # Reusable UI primitives (button, card, dialog, etc.)
 │
 ├── hooks/
-│   ├── useDuel.ts          # Read single duel from contract
-│   ├── useDuelActions.ts   # Write actions (create, join, claim, confirm, refund, cancel)
-│   ├── useReputation.ts    # Read PlayerStats from contract
-│   └── useRecentDuels.ts   # Fetch recent duel list
+│   ├── useAppToast.ts         # Localized top-center toast wrapper
+│   ├── useDuel.ts             # Read single duel from contract
+│   ├── useDuelActions.ts      # Write actions (create, join, decline, claim, confirm, refund, cancel, mutual-cancel)
+│   ├── usePlayerDuels.ts      # Dashboard duel aggregation, stats, and claim data
+│   ├── usePlatformStats.ts    # Landing-page Total Volume / Duels Played stats
+│   ├── useRecentDuels.ts      # Latest duels feed data
+│   ├── useReputation.ts       # Single-address PlayerStats read
+│   └── useReputationLevels.ts # Batch reputation reads for feed/search UI
 │
 ├── lib/
-│   ├── contracts.ts        # ABI definitions + contract config
+│   ├── balanceRefresh.ts   # Event bus for instant header/wallet balance refresh
+│   ├── contracts.ts        # ABI definitions + DuelState enum
 │   ├── constants.ts        # Chain addresses, MIN_WAGER, timeouts
+│   ├── duel.ts             # Duel formatting, timestamps, claim helpers
+│   ├── duelMessage.ts      # Frontend Unicode message validation
+│   ├── duelSearch.ts       # Search indexes based on visible duel-card/feed text
+│   ├── invite.ts           # Secure invite-secret generation and local storage helpers
+│   ├── reputation.ts       # Shared Wilson-score helpers
 │   ├── wagmi.ts            # wagmi client config
 │   └── utils.ts            # Utility functions
 │
@@ -100,16 +110,29 @@ npm run build
 npm run start
 ```
 
+## Validation
+
+There is currently no dedicated frontend test script. Validate frontend changes with:
+
+```bash
+npx tsc --noEmit
+npm run lint
+npm run build
+```
+
 ## Configuration
 
 ### Contract addresses
+
+Arbitrum Sepolia is the currently active deployment target. The frontend reads deployed addresses from `src/lib/constants.ts`, which should be kept in sync with the tracked deploy artifact at `../contracts/broadcast/Deploy.s.sol/421614/run-latest.json`.
 
 After deploying smart contracts, update the addresses in `src/lib/constants.ts`:
 
 ```typescript
 export const DUELME_ADDRESSES: Record<number, `0x${string}`> = {
-  42161: '0x...', // Arbitrum
-  137: '0x...',   // Polygon
+  421614: '0x...', // Arbitrum Sepolia
+  42161: '0x...',  // Arbitrum One
+  137: '0x...',    // Polygon
 };
 ```
 
@@ -119,22 +142,42 @@ Privy and other service keys are configured through environment variables. Check
 
 ## Key patterns
 
-### Approve → Create flow
+### Approve → Create flow with private invites
 
 The `CreateDuelForm` handles the two-step ERC20 flow:
 
 1. Check existing allowance via `useReadContract`
-2. If allowance sufficient — call `createDuel` directly
-3. If not — call `approve`, then auto-trigger `createDuel` on success via `useEffect`
+2. Generate a high-entropy invite secret client-side and hash it for on-chain storage
+3. If allowance is sufficient — call `createDuel` directly (with optional Unicode challenge message)
+4. If not — call `approve`, then auto-trigger `createDuel` on success via `useEffect`
+
+The raw invite secret lives only in the shared URL fragment and local browser storage; the contract stores only its hash.
 
 ### Contract interaction hooks
 
 All blockchain interactions go through dedicated hooks in `src/hooks/`:
 
 - **`useDuel(id)`** — reads duel struct via `getDuel()`
-- **`useDuelActions()`** — exposes `createDuel`, `joinDuel`, `claimVictory`, `admitDefeat`, `confirmResult`, `refund`, `cancelDuel`
+- **`useDuelActions()`** — exposes create/join/decline/result/refund/cancel/mutual-cancel/claim actions
+- **`usePlayerDuels()`** — reads and classifies dashboard duels, stats, and claimable amounts
+- **`usePlatformStats()`** — reads landing-page hero metrics from chain state
 - **`useReputation(address)`** — reads `getPlayerStats()` → `{ honored, abandoned }`
+
+### Claim-based payouts
+
+Terminal duel outcomes do not push funds automatically. The UI surfaces claimable balances and uses:
+
+- `claimPayout(duelId)` for individual claim actions
+- `claimPayouts(duelIds)` for dashboard claim-all UX
+
+### Instant balance refresh
+
+`src/lib/balanceRefresh.ts` broadcasts successful balance-changing actions so the header and wallet balances refresh immediately instead of waiting for the polling interval.
+
+### Search semantics
+
+Dashboard and landing-page duel search are based on the same labels and values the user sees on screen (status, outcome, message, addresses, chain, claim state), not just raw addresses.
 
 ### Internationalization
 
-EN and RU supported. The `useTranslation()` hook returns `t(key)` function that resolves strings from `src/i18n/translations.ts`.
+EN and RU are supported. `useTranslation()` resolves strings from `src/i18n/translations.ts`, and all user-facing copy — including toasts and duel/search UI — should stay centralized there.

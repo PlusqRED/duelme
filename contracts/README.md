@@ -12,7 +12,7 @@ Wager escrow and on-chain reputation tracking for P2P gaming duels.
 
 | Contract | Description |
 |---|---|
-| `DuelMe.sol` | Core contract — duel creation, joining, claim/confirm flow, refunds, cancellation, PlayerStats reputation |
+| `DuelMe.sol` | Core contract — secure invite duels, claim-based payouts, mutual cancellation, timestamps, and PlayerStats reputation |
 | `MockUSDT.sol` | Testnet ERC20 with 6 decimals and public `faucet()` (mints 1000 USDT per call) |
 
 ## Prerequisites
@@ -47,40 +47,46 @@ forge test --match-test testCreateDuel
 forge test --match-test "testRefund*"
 ```
 
-### Coverage — 77 tests
+### Current test coverage — 107 tests
 
-| Area | Count | What's covered |
+| Suite | Focus | Count |
 |---|---|---|
-| createDuel | 8 | Happy path, min/zero/large wager, no balance, no approval, ID increment, event |
-| joinDuel | 7 | Happy path, self-join, wrong states, no approval, event |
-| claimVictory | 8 | By creator/opponent, non-participant, wrong states, event |
-| admitDefeat | 6 | By creator/opponent, non-participant, wrong states, event |
-| confirmResult | 8 | After claim/admit, opponent claims, own claim revert, wrong states, event |
-| refund | 8 | After timeout, exact boundary, before timeout, wrong states, double call, event |
-| cancelDuel | 7 | Happy path, non-creator, wrong states, stats unaffected, event |
-| PlayerStats | 4 | Zero default, cumulative, independent per player |
-| Pausable | 10 | Pause/unpause by owner, non-owner reverts, all functions blocked, restore |
-| Views | 2 | Nonexistent duel, constants |
-| Integration | 4 | Concurrent duels, full flows, balance integrity |
-| Constructor | 2 | Valid + zero address |
+| `test/DuelMe.t.sol` | Core lifecycle, invite security, reputation, pausable behavior, UTF-8 messages | 95 |
+| `test/DuelMePayouts.t.sol` | Claim payouts, lifecycle timestamps, mutual cancellation, batch claims | 12 |
+
+Run the full suite with:
+
+```bash
+forge test
+```
 
 ## Duel lifecycle
 
 ```
 Created ──► Funded ──► WinnerClaimed ──► Resolved
-  │                         │
-  ▼                         ▼
-Cancelled              Refunded (after 1h)
+  │           │              │
+  │           │              ├────► Disputed
+  │           │              └────► Refunded (after 1h timeout)
+  │           └────► MutualCancelRequested ──► Funded
+  │                                              └────► MutuallyCancelled
+  ├────► Cancelled
+  └────► Declined
 ```
 
 | Step | Function | Description |
 |---|---|---|
-| 1 | `createDuel(amount)` | Creator deposits USDT, state = Created |
-| 2 | `joinDuel(duelId)` | Opponent matches wager, state = Funded |
-| 3 | `claimVictory(duelId)` / `admitDefeat(duelId)` | Either participant, state = WinnerClaimed, 1h timer starts |
-| 4 | `confirmResult(duelId)` | Other participant confirms — winner gets 2x pot, state = Resolved |
-| 5 | `refund(duelId)` | After 1h timeout — 50/50 split, state = Refunded |
-| 6 | `cancelDuel(duelId)` | Creator cancels before join — full refund, state = Cancelled |
+| 1 | `createDuel(amount, inviteHash)` / `createDuel(amount, inviteHash, message)` | Creator deposits USDT, stores only the invite hash on-chain, optionally adds a short UTF-8 message |
+| 2 | `joinDuel(duelId, inviteSecret)` | Invited opponent matches the wager, state = Funded |
+| 3 | `declineDuel(duelId, inviteSecret)` | Invited opponent declines, state = Declined, creator refund becomes claimable |
+| 4 | `requestMutualCancellation(duelId)` | Either funded participant pauses the duel and asks to cancel it by agreement |
+| 5 | `acceptMutualCancellation(duelId)` | Other participant accepts, state = MutuallyCancelled, both refunds become claimable |
+| 6 | `declineMutualCancellation(duelId)` / `withdrawMutualCancellationRequest(duelId)` | Duel resumes in `Funded` |
+| 7 | `claimVictory(duelId)` / `admitDefeat(duelId)` | Either participant submits the result, state = WinnerClaimed, 1h timer starts |
+| 8 | `confirmResult(duelId)` | Other participant confirms, state = Resolved, winner payout becomes claimable |
+| 9 | `disputeResult(duelId)` | Other participant disputes, state = Disputed, both refunds become claimable |
+| 10 | `refund(duelId)` | After 1h timeout, state = Refunded, both 50/50 refunds become claimable |
+| 11 | `cancelDuel(duelId)` | Creator cancels before join, state = Cancelled, creator refund becomes claimable |
+| 12 | `claimPayout(duelId)` / `claimPayouts(duelIds)` | Withdraw claimable winnings or refunds from terminal outcomes |
 
 ## Reputation (PlayerStats)
 
@@ -90,15 +96,18 @@ On-chain counters per wallet: `duelsHonored` and `duelsAbandoned`.
 |---|---|---|
 | `confirmResult` | Both players +1 | — |
 | `refund` | Claimer +1 | Non-responder +1 |
-| `cancelDuel` | — | — |
+| `cancelDuel` / `declineDuel` / `acceptMutualCancellation` / `disputeResult` | — | — |
 
 ## Security
 
 - **ReentrancyGuard** on all token-moving functions
 - **Pausable** with owner-only `pause()`/`unpause()`
 - **SafeERC20** for all transfers
+- **Claim-based payouts** to avoid risky push-payment behavior with USDT-like tokens
+- **Invite hash model** so the duel id alone is not enough to join or decline
+- **UTF-8 message validation** capped at 32 code points / 128 bytes
 - **MIN_WAGER = 3 USDT** to prevent dust spam
-- No admin withdrawal — funds only move through duel resolution
+- **Timelocked emergency USDT withdrawal** (`30 days`) plus immediate rescue for non-USDT tokens
 
 ## Deploy to testnet
 
@@ -116,7 +125,7 @@ cp .env.example .env
 Get testnet ETH from a [faucet](https://faucets.chain.link/arbitrum-sepolia), then:
 
 ```bash
-source .env
+set -a && . ./.env && set +a
 
 forge script script/Deploy.s.sol \
   --rpc-url $ARBITRUM_SEPOLIA_RPC_URL \
@@ -127,4 +136,8 @@ forge script script/Deploy.s.sol \
 
 Deploys MockUSDT + DuelMe and mints 1000 test USDT to the deployer.
 
-After deploy, update addresses in `frontend/src/lib/constants.ts`.
+After deploy:
+
+1. keep `broadcast/Deploy.s.sol/421614/run-latest.json` as the tracked artifact,
+2. update `frontend/src/lib/constants.ts`,
+3. sync the root `README.md` contract block with `python3 ../scripts/sync_readme_contract_addresses.py` (or use the configured git hook).

@@ -24,7 +24,7 @@ _Auto-generated from `contracts/broadcast/Deploy.s.sol/421614/run-latest.json`. 
 
 Peer-to-peer gaming duel platform with USDT wagers and on-chain reputation.
 
-Two players stake equal USDT amounts on a match. The winner takes the full pot. Every outcome is recorded on-chain, building a tamper-proof reputation score for each player.
+Two players stake equal USDT amounts on a match. The winner earns the full pot through a claim-based payout flow. Every outcome is recorded on-chain, building a tamper-proof reputation score for each player.
 
 ## How it works
 
@@ -37,19 +37,19 @@ Creator deposits USDT + gets private invite link ──► Opponent opens full l
                                  │
                    ┌─────────────┼─────────────┐
                    ▼             ▼             ▼
-            Opponent confirms  Opponent disputes  No response (1h)
-                   │             │             │
-                   ▼             ▼             ▼
-            Winner gets 2× pot  50/50 refund  50/50 refund
-            Both get +honored   No rep change  Claimer +honored
-                                               Ghost +abandoned
+             Opponent confirms  Opponent disputes  No response (1h)
+                    │             │             │
+                    ▼             ▼             ▼
+          Winner can claim 2× pot  Both can claim 50/50  Both can claim 50/50
+            Both get +honored         No rep change        Claimer +honored
+                                                         Ghost +abandoned
 ```
 
 ## Tech stack
 
 | Layer | Stack |
 |---|---|
-| Smart contracts | Solidity 0.8.24, Foundry, OpenZeppelin |
+| Smart contracts | Solidity 0.8.34, Foundry, OpenZeppelin |
 | Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS 4 |
 | Wallet | Privy (embedded + external wallets), wagmi, viem |
 | Chain | Arbitrum Sepolia (testnet) |
@@ -65,7 +65,8 @@ duelme/
 │   │   ├── DuelMe.sol      # Core contract: duels, escrow, reputation
 │   │   └── MockUSDT.sol    # Testnet ERC20 with faucet
 │   ├── test/
-│   │   └── DuelMe.t.sol    # 77 tests
+│   │   ├── DuelMe.t.sol         # Main lifecycle and reputation suite
+│   │   └── DuelMePayouts.t.sol  # Claim, timestamps, and mutual-cancel coverage
 │   └── script/
 │       └── Deploy.s.sol    # Deploys MockUSDT + DuelMe
 │
@@ -116,14 +117,19 @@ Open [http://localhost:3000](http://localhost:3000).
 
 | State | Transition | Who |
 |---|---|---|
-| **Created** | `createDuel(amount, inviteHash)` — creator deposits USDT and shares a private invite link | Anyone |
+| **Created** | `createDuel(amount, inviteHash)` or `createDuel(amount, inviteHash, message)` — creator deposits USDT, adds an optional challenge note, and shares a private invite link | Anyone |
 | **Funded** | `joinDuel(duelId, inviteSecret)` — invited opponent matches wager | Any other wallet with the invite secret |
-| **Declined** | `declineDuel(duelId, inviteSecret)` — invited opponent declines, creator is refunded | Any other wallet with the invite secret |
+| **Declined** | `declineDuel(duelId, inviteSecret)` — invited opponent declines, creator gets a claimable refund | Any other wallet with the invite secret |
+| **MutualCancelRequested** | `requestMutualCancellation(duelId)` — funded duel is paused while the other player reviews the request | Either participant |
+| **Funded** | `declineMutualCancellation(duelId)` or `withdrawMutualCancellationRequest(duelId)` — duel resumes | The other participant / requester |
+| **MutuallyCancelled** | `acceptMutualCancellation(duelId)` — both players get full claimable refunds and no reputation change | The other participant |
 | **WinnerClaimed** | `claimVictory(duelId)` or `admitDefeat(duelId)` | Either participant |
-| **Resolved** | `confirmResult(duelId)` — winner receives 2x pot | The other participant |
-| **Disputed** | `disputeResult(duelId)` — immediate 50/50 refund when the other participant disagrees | The other participant |
-| **Refunded** | `refund(duelId)` — 50/50 split after 1h timeout | Anyone |
-| **Cancelled** | `cancelDuel(duelId)` — full refund before join | Creator only |
+| **Resolved** | `confirmResult(duelId)` — winner payout becomes claimable | The other participant |
+| **Disputed** | `disputeResult(duelId)` — both refunds become claimable immediately when the other participant disagrees | The other participant |
+| **Refunded** | `refund(duelId)` — 50/50 split becomes claimable after 1h timeout | Anyone |
+| **Cancelled** | `cancelDuel(duelId)` — full refund becomes claimable before join | Creator only |
+
+After any claimable terminal outcome, players withdraw funds with `claimPayout(duelId)` or batch with `claimPayouts(duelIds)`.
 
 ### Reputation (PlayerStats)
 
@@ -132,7 +138,7 @@ Every wallet accumulates `duelsHonored` and `duelsAbandoned` counters on-chain:
 - **confirmResult** — both players get `+1 honored`
 - **disputeResult** — no stats change
 - **refund** — claimer gets `+1 honored`, non-responder gets `+1 abandoned`
-- **cancel / decline** — no stats change
+- **cancel / decline / mutual cancel** — no stats change
 
 The frontend calculates a **Wilson Score Lower Bound** from these counters for display.
 
@@ -141,9 +147,11 @@ The frontend calculates a **Wilson Score Lower Bound** from these counters for d
 - OpenZeppelin `ReentrancyGuard` on all token-moving functions
 - `Pausable` with owner-only `pause()`/`unpause()` for emergencies
 - `SafeERC20` for all token transfers
+- Pull-based payouts prevent USDT push-transfer lockups and let players claim later from completed duels
 - Invite links use a high-entropy secret stored on-chain only as a hash; knowing the duel id alone is not enough to join or decline
+- Optional challenge messages are UTF-8 validated on-chain and capped at 32 code points / 128 bytes
 - Minimum wager of 3 USDT to prevent dust spam
-- No admin withdrawal — funds only move through duel resolution
+- Emergency USDT withdrawal is timelocked by 30 days; non-USDT rescue remains owner-only and immediate
 
 ## Deploy to testnet
 
@@ -152,7 +160,7 @@ cd contracts
 cp .env.example .env
 # Fill in PRIVATE_KEY, ARBITRUM_SEPOLIA_RPC_URL, ARBISCAN_API_KEY
 
-source .env
+set -a && . ./.env && set +a
 forge script script/Deploy.s.sol \
   --rpc-url $ARBITRUM_SEPOLIA_RPC_URL \
   --broadcast \
@@ -160,7 +168,11 @@ forge script script/Deploy.s.sol \
   --etherscan-api-key $ARBISCAN_API_KEY
 ```
 
-After deploy, update contract addresses in `frontend/src/lib/constants.ts`.
+After deploy:
+
+1. keep `contracts/broadcast/Deploy.s.sol/421614/run-latest.json` tracked as the source of truth,
+2. update `frontend/src/lib/constants.ts`,
+3. run `python3 scripts/sync_readme_contract_addresses.py` (or let `.githooks/pre-commit` do it automatically).
 
 ## License
 
