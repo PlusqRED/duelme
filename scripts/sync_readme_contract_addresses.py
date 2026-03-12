@@ -12,6 +12,8 @@ RUN_LATEST_PATH = ROOT / "contracts" / "broadcast" / "Deploy.s.sol" / "421614" /
 
 START_MARKER = "<!-- CONTRACT_ADDRESSES:START -->"
 END_MARKER = "<!-- CONTRACT_ADDRESSES:END -->"
+BADGE_BLOCK_END = "</p>"
+DEV_NOTE = "> Dev note: run `git config core.hooksPath .githooks` once in your clone to auto-refresh this block on every commit."
 
 
 def load_contracts() -> list[tuple[str, str]]:
@@ -53,18 +55,36 @@ def render_block(contracts: list[tuple[str, str]]) -> str:
     for contract_name, contract_address in contracts:
         lines.append(f"| Arbitrum Sepolia | `{contract_name}` | `{contract_address}` |")
 
-    lines.extend(["", END_MARKER])
+    lines.extend(["", DEV_NOTE, "", END_MARKER])
 
     return "\n".join(lines)
 
 
+def strip_existing_generated_content(readme_text: str) -> str:
+    updated = readme_text
+
+    if START_MARKER in updated and END_MARKER in updated:
+        start_index = updated.index(START_MARKER)
+        end_index = updated.index(END_MARKER) + len(END_MARKER)
+        updated = updated[:start_index] + updated[end_index:]
+
+    updated = updated.replace(f"\n\n{DEV_NOTE}\n", "\n")
+    updated = updated.replace(f"{DEV_NOTE}\n\n", "")
+    updated = updated.replace(f"\n{DEV_NOTE}\n", "\n")
+
+    return updated
+
+
 def update_readme(readme_text: str, generated_block: str) -> str:
-    if START_MARKER in readme_text and END_MARKER in readme_text:
-        start_index = readme_text.index(START_MARKER)
-        end_index = readme_text.index(END_MARKER) + len(END_MARKER)
-        updated = readme_text[:start_index] + generated_block + readme_text[end_index:]
+    cleaned_readme = strip_existing_generated_content(readme_text).lstrip()
+
+    if BADGE_BLOCK_END in cleaned_readme:
+        badge_end = cleaned_readme.index(BADGE_BLOCK_END) + len(BADGE_BLOCK_END)
+        before = cleaned_readme[:badge_end].rstrip()
+        after = cleaned_readme[badge_end:].lstrip("\n")
+        updated = f"{before}\n\n{generated_block}\n\n{after}"
     else:
-        updated = f"{generated_block}\n\n{readme_text.lstrip()}"
+        updated = f"{generated_block}\n\n{cleaned_readme.lstrip()}"
 
     return f"{updated.rstrip()}\n"
 
