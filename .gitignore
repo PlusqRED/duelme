@@ -24,3 +24,7 @@ Thumbs.db
 # Build
 dist/
 build/
+
+# Foundry broadcast artifacts
+contracts/broadcast/**/run-*.json
+!contracts/broadcast/**/run-latest.json
