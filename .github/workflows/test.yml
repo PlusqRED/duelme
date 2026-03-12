@@ -1,10 +1,17 @@
-name: Tests
+name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
-    branches: [main]
+    branches: [main, dev]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   contracts:
@@ -74,6 +81,8 @@ jobs:
         run: |
           echo "### Test Coverage (src/*.sol)" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| File | Coverage |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| --- | --- |" >> "$GITHUB_STEP_SUMMARY"
           grep '| src/' coverage-output.txt | while IFS= read -r line; do
             FILE=$(echo "$line" | awk -F'|' '{print $2}' | xargs)
             PCT=$(echo "$line" | grep -oP '\d+\.\d+%' | head -1)
@@ -92,3 +101,132 @@ jobs:
           message: ${{ steps.coverage.outputs.total_coverage }}%
           color: ${{ steps.coverage.outputs.color }}
           namedLogo: solidity
+
+  frontend:
+    name: Frontend Checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Build
+        env:
+          NEXT_PUBLIC_PRIVY_APP_ID: ci-placeholder-privy-app-id
+        run: npm run build
+
+  deploy-dev:
+    name: Deploy dev.duelme.pro
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    needs: [contracts, frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: dev
+      url: https://dev.duelme.pro
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build standalone app
+        env:
+          NEXT_PUBLIC_PRIVY_APP_ID: ${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
+        run: npm run build
+
+      - name: Package standalone release
+        id: package
+        run: |
+          RELEASE_ID="${GITHUB_SHA::12}"
+          RELEASE_DIR="$RUNNER_TEMP/duelme-dev-release"
+          ARTIFACT_PATH="$RUNNER_TEMP/duelme-dev-${RELEASE_ID}.tar.gz"
+
+          rm -rf "$RELEASE_DIR"
+          mkdir -p "$RELEASE_DIR/.next"
+
+          cp -R .next/standalone/. "$RELEASE_DIR/"
+          cp -R .next/static "$RELEASE_DIR/.next/static"
+          cp -R public "$RELEASE_DIR/public"
+
+          tar -C "$RELEASE_DIR" -czf "$ARTIFACT_PATH" .
+
+          echo "release_id=$RELEASE_ID" >> "$GITHUB_OUTPUT"
+          echo "artifact_path=$ARTIFACT_PATH" >> "$GITHUB_OUTPUT"
+          echo "artifact_name=$(basename "$ARTIFACT_PATH")" >> "$GITHUB_OUTPUT"
+          echo "artifact_sha256=$(sha256sum "$ARTIFACT_PATH" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Configure known hosts
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Upload release payload
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          ssh "$DEPLOY_USER@$DEPLOY_HOST" 'mkdir -p ~/apps/duelme-dev/incoming'
+          scp \
+            "${{ steps.package.outputs.artifact_path }}" \
+            "$GITHUB_WORKSPACE/ops/deploy/deploy-release.sh" \
+            "$GITHUB_WORKSPACE/ops/systemd/user/duelme-dev.service" \
+            "$DEPLOY_USER@$DEPLOY_HOST:~/apps/duelme-dev/incoming/"
+
+      - name: Deploy release
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          RELEASE_ID: ${{ steps.package.outputs.release_id }}
+          ARTIFACT_NAME: ${{ steps.package.outputs.artifact_name }}
+          ARTIFACT_SHA256: ${{ steps.package.outputs.artifact_sha256 }}
+        run: |
+          ssh "$DEPLOY_USER@$DEPLOY_HOST" \
+            "bash ~/apps/duelme-dev/incoming/deploy-release.sh \
+            ~/apps/duelme-dev/incoming/$ARTIFACT_NAME \
+            $RELEASE_ID \
+            $ARTIFACT_SHA256 \
+            ~/apps/duelme-dev/incoming/duelme-dev.service"
+
+      - name: Verify local health check
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          ssh "$DEPLOY_USER@$DEPLOY_HOST" \
+            'curl --fail --silent --show-error http://127.0.0.1:3001/api/health'

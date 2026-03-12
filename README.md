@@ -54,7 +54,7 @@ Creator deposits USDT + gets private invite link ──► Opponent opens full l
 | Wallet | Privy (embedded + external wallets), wagmi, viem |
 | Chain | Arbitrum Sepolia (testnet) |
 | Token | USDT (MockUSDT on testnet with public faucet) |
-| CI | GitHub Actions — forge tests on every push |
+| CI | GitHub Actions — contract checks, frontend checks, and SSH-based dev deploys |
 
 ## Project structure
 
@@ -173,6 +173,66 @@ After deploy:
 1. keep `contracts/broadcast/Deploy.s.sol/421614/run-latest.json` tracked as the source of truth,
 2. update `frontend/src/lib/constants.ts`,
 3. run `python3 scripts/sync_readme_contract_addresses.py` (or let `.githooks/pre-commit` do it automatically).
+
+## CI/CD for `dev.duelme.pro`
+
+The repository now supports a staging-style deployment flow for the `dev` branch:
+
+1. open a PR into `dev`,
+2. let GitHub Actions run contract + frontend checks,
+3. merge into `dev`,
+4. GitHub Actions builds a Next.js `standalone` release and deploys it to the server over SSH,
+5. the server switches `~/apps/duelme-dev/current` atomically and restarts a hardened `systemd --user` service.
+
+### Required GitHub environment
+
+Create a GitHub Environment named `dev` and add these secrets:
+
+- `NEXT_PUBLIC_PRIVY_APP_ID` — Privy App ID for the public dev site
+- `DEPLOY_HOST` — server hostname or IP
+- `DEPLOY_USER` — SSH user used for deploys
+- `DEPLOY_SSH_KEY` — private Ed25519 deploy key stored in GitHub Actions
+- `DEPLOY_KNOWN_HOSTS` — output of `ssh-keyscan -H <server-host-or-ip>`
+
+### Recommended GitHub branch protections
+
+- create a long-lived `dev` branch,
+- require pull requests before merging into `dev`,
+- require the `CI / Forge Tests` and `CI / Frontend Checks` status checks,
+- block direct pushes to `dev`.
+
+### One-time server steps
+
+The deploy workflow expects to own `~/apps/duelme-dev` on the target host and installs the user service from `ops/systemd/user/duelme-dev.service`.
+
+For the SSH deploy key, add the public key to `~/.ssh/authorized_keys` for the deploy user with restrictive options such as:
+
+```text
+no-agent-forwarding,no-port-forwarding,no-user-rc,no-X11-forwarding ssh-ed25519 AAAA...
+```
+
+To keep the user service alive across reboots, run once as root:
+
+```bash
+sudo loginctl enable-linger oserver
+```
+
+### Publish `dev.duelme.pro`
+
+1. Point the DNS `A`/`AAAA` record for `dev.duelme.pro` to this server.
+2. Install Caddy on the server.
+3. Copy `ops/caddy/dev.duelme.pro.Caddyfile` to `/etc/caddy/Caddyfile`.
+4. Reload Caddy:
+
+```bash
+sudo systemctl reload caddy
+```
+
+The app itself listens on `127.0.0.1:3001`, and Caddy terminates TLS publicly on `dev.duelme.pro`.
+
+### Health check
+
+The deploy pipeline verifies `http://127.0.0.1:3001/api/health` after each rollout. The endpoint returns the current environment and release id, which helps confirm that the atomically switched release is actually running.
 
 ## License
 
