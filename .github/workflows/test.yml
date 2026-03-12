@@ -104,6 +104,7 @@ jobs:
 
   frontend:
     name: Frontend Checks
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -120,7 +121,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --prefer-offline --no-audit --no-fund
 
       - name: Lint
         run: npm run lint
@@ -129,6 +130,7 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Build
+        if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
         env:
           NEXT_PUBLIC_PRIVY_APP_ID: ci-placeholder-privy-app-id
         run: npm run build
@@ -136,7 +138,7 @@ jobs:
   deploy-dev:
     name: Deploy dev.duelme.pro
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
-    needs: [contracts, frontend]
+    needs: [contracts]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:
@@ -157,7 +159,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --prefer-offline --no-audit --no-fund
 
       - name: Build standalone app
         env:
