@@ -1,3 +1,17 @@
+<!-- CONTRACT_ADDRESSES:START -->
+## Current deployed contracts
+
+_Auto-generated from `contracts/broadcast/Deploy.s.sol/421614/run-latest.json`. Updated by `.githooks/pre-commit`._
+
+| Network | Contract | Address |
+|---|---|---|
+| Arbitrum Sepolia | `MockUSDT` | `0x05167e85e53a8d53c85dbb17d061fba1bad09d4d` |
+| Arbitrum Sepolia | `DuelMe` | `0xd305bf0dfd5ddfe999930f02dcc81301ad1818d2` |
+
+<!-- CONTRACT_ADDRESSES:END -->
+
+> Dev note: run `git config core.hooksPath .githooks` once in your clone to auto-refresh this block on every commit.
+
 <p align="center">
   <img src="https://img.shields.io/badge/Arbitrum-Sepolia-blue?style=flat-square&logo=ethereum" alt="Arbitrum Sepolia" />
   <img src="https://img.shields.io/badge/Solidity-0.8.34-363636?style=flat-square&logo=solidity" alt="Solidity" />
