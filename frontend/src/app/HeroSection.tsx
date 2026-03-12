@@ -1,12 +1,32 @@
 'use client';
 
 import Link from 'next/link';
+import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/i18n/useTranslation';
+import { usePlatformStats } from '@/hooks/usePlatformStats';
+import { formatUnits } from 'viem';
+import { USDT_DECIMALS } from '@/lib/constants';
 import { Swords, Shield, Zap } from 'lucide-react';
 
 export function HeroSection() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const { duelsPlayed, totalVolumeRaw, isLoading } = usePlatformStats();
+
+  const locale = language === 'ru' ? 'ru-RU' : 'en-US';
+  const formattedVolume = useMemo(() => {
+    const value = Number(formatUnits(totalVolumeRaw, USDT_DECIMALS));
+
+    return new Intl.NumberFormat(locale, {
+      minimumFractionDigits: value > 0 && value < 100 ? 2 : 0,
+      maximumFractionDigits: 2,
+    }).format(value);
+  }, [locale, totalVolumeRaw]);
+
+  const formattedDuelsPlayed = useMemo(
+    () => new Intl.NumberFormat(locale).format(duelsPlayed),
+    [locale, duelsPlayed]
+  );
 
   return (
     <section id="hero" className="hero-gradient relative overflow-hidden">
@@ -75,23 +95,27 @@ export function HeroSection() {
           {/* Stats row */}
           <div className="mt-14 flex items-center gap-8 animate-fade-in-up animation-delay-600 sm:gap-12">
             <div className="flex flex-col items-center">
-              <span className="text-2xl font-bold text-slate-900">$0</span>
+              <span className="text-2xl font-bold text-slate-900">
+                {isLoading ? '$—' : `$${formattedVolume}`}
+              </span>
               <span className="text-xs text-slate-500 uppercase tracking-wide">
-                Total Volume
+                {t('hero.totalVolume')}
               </span>
             </div>
             <div className="h-8 w-px bg-slate-200" />
             <div className="flex flex-col items-center">
-              <span className="text-2xl font-bold text-slate-900">0</span>
+              <span className="text-2xl font-bold text-slate-900">
+                {isLoading ? '—' : formattedDuelsPlayed}
+              </span>
               <span className="text-xs text-slate-500 uppercase tracking-wide">
-                Duels Played
+                {t('hero.duelsPlayed')}
               </span>
             </div>
             <div className="h-8 w-px bg-slate-200" />
             <div className="flex flex-col items-center">
               <span className="text-2xl font-bold text-emerald-600">0%</span>
               <span className="text-xs text-slate-500 uppercase tracking-wide">
-                Fees
+                {t('hero.fees')}
               </span>
             </div>
           </div>

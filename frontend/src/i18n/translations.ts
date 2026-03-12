@@ -21,6 +21,9 @@ export const translations = {
     'hero.subtitle': 'Challenge anyone to a 1v1 duel for USDT. No middleman, no fees — just a smart contract holding the pot until someone wins.',
     'hero.cta': 'Challenge Someone',
     'hero.ctaSecondary': 'See How It Works',
+    'hero.totalVolume': 'Total Volume',
+    'hero.duelsPlayed': 'Duels Played',
+    'hero.fees': 'Fees',
 
     // Landing — How it works
     'howItWorks.title': 'Three steps. That\'s it.',
@@ -224,7 +227,7 @@ export const translations = {
     'dashboard.outcomeNoWinner': 'No winner',
     'dashboard.claimReady': 'Ready to claim',
     'dashboard.claimed': 'Claimed',
-    'dashboard.claimButton': 'Claim {amount} USDT',
+    'dashboard.claimButton': 'Claim',
 
     // Reputation
     'rep.title': 'Reputation',
@@ -345,6 +348,9 @@ export const translations = {
     'hero.subtitle': '\u0412\u044b\u0437\u043e\u0432\u0438 \u043a\u043e\u0433\u043e \u0443\u0433\u043e\u0434\u043d\u043e \u043d\u0430 \u0434\u0443\u044d\u043b\u044c 1 \u043d\u0430 1 \u0437\u0430 USDT. \u041d\u0438\u043a\u0430\u043a\u0438\u0445 \u043f\u043e\u0441\u0440\u0435\u0434\u043d\u0438\u043a\u043e\u0432, \u043d\u0438\u043a\u0430\u043a\u0438\u0445 \u043a\u043e\u043c\u0438\u0441\u0441\u0438\u0439 \u2014 \u0442\u043e\u043b\u044c\u043a\u043e \u0441\u043c\u0430\u0440\u0442-\u043a\u043e\u043d\u0442\u0440\u0430\u043a\u0442, \u043a\u043e\u0442\u043e\u0440\u044b\u0439 \u0445\u0440\u0430\u043d\u0438\u0442 \u0431\u0430\u043d\u043a, \u043f\u043e\u043a\u0430 \u043a\u0442\u043e-\u0442\u043e \u043d\u0435 \u043f\u043e\u0431\u0435\u0434\u0438\u0442.',
     'hero.cta': '\u0412\u044b\u0437\u0432\u0430\u0442\u044c \u043d\u0430 \u0434\u0443\u044d\u043b\u044c',
     'hero.ctaSecondary': '\u041a\u0430\u043a \u044d\u0442\u043e \u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442',
+    'hero.totalVolume': '\u041e\u0431\u0449\u0438\u0439 \u043e\u0431\u044a\u0451\u043c',
+    'hero.duelsPlayed': '\u0421\u044b\u0433\u0440\u0430\u043d\u043e \u0434\u0443\u044d\u043b\u0435\u0439',
+    'hero.fees': '\u041a\u043e\u043c\u0438\u0441\u0441\u0438\u044f',
 
     // Landing — How it works
     'howItWorks.title': '\u0422\u0440\u0438 \u0448\u0430\u0433\u0430. \u0412\u0441\u0451.',
@@ -547,7 +553,7 @@ export const translations = {
     'dashboard.outcomeNoWinner': 'Без победителя',
     'dashboard.claimReady': 'Можно забрать',
     'dashboard.claimed': 'Уже забрано',
-    'dashboard.claimButton': 'Забрать {amount} USDT',
+    'dashboard.claimButton': 'Забрать',
 
     // Reputation
     'rep.title': '\u0420\u0435\u043f\u0443\u0442\u0430\u0446\u0438\u044f',

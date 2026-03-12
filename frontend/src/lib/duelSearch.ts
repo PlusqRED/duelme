@@ -95,7 +95,7 @@ export function buildDashboardDuelSearchText(
     claimableAmount > 0n ? 'ready to claim' : '',
     claimableAmount > 0n ? 'claimable' : '',
     claimableAmount > 0n ? formatUSDT(claimableAmount) : '',
-    claimableAmount > 0n ? t('dashboard.claimButton', { amount: formatUSDT(claimableAmount) }) : '',
+    claimableAmount > 0n ? t('dashboard.claimButton') : '',
   ]);
 }
 
