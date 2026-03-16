@@ -1,0 +1,8 @@
+de:
+  flapdoodle:
+    mongodb:
+      embedded:
+        version: 7.0.9
+
+privy:
+  app-id: test-app-id
