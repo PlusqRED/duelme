@@ -7,6 +7,8 @@ P2P gaming duel platform — players wager USDT in 1v1 duels via smart contracts
 ```
 contracts/   — Solidity smart contracts (Foundry)
 frontend/    — Next.js web app (App Router)
+backend/     — Java 25 + Spring Boot 4 API (Gradle)
+ops/         — Docker Compose, Caddy config
 ```
 
 ## Commands
@@ -17,6 +19,17 @@ npm run dev          # Dev server (localhost:3000)
 npm run build        # Production build
 npm run lint         # ESLint
 npx tsc --noEmit     # Type-check (no emit)
+```
+
+### Backend (`backend/`)
+```bash
+./gradlew build          # Compile + test (uses JDK 25 via toolchain)
+./gradlew bootRun        # Dev server (localhost:8080, needs MongoDB)
+./gradlew test           # Run tests only (embedded MongoDB via Flapdoodle)
+./gradlew bootJar        # Build fat JAR
+./gradlew nativeCompile  # GraalVM native image (~50ms startup, ~60MB RSS)
+./gradlew nativeTest     # Run tests inside native binary
+docker compose up -d     # Local MongoDB
 ```
 
 ### Contracts (`contracts/`)
@@ -50,6 +63,22 @@ All write operations follow: check chain → check allowance → approve if need
 - Always `refetch()` + `reset()` after successful write transactions
 - Header and wallet balances also use `frontend/src/lib/balanceRefresh.ts` for event-driven refresh after balance-changing actions, while 30-second polling stays as a fallback
 
+### Backend
+- Java 25 + Spring Boot 4.0.3, Gradle 9.4 (Kotlin DSL)
+- MongoDB for profile storage, Spring Data MongoDB with auditing
+- Privy JWT authentication via JWKS — wallet address extracted from `linked_accounts` claim
+- Flapdoodle embedded MongoDB for tests — no external DB needed in CI
+- GraalVM Native Image support via `org.graalvm.buildtools.native` plugin
+- JDK 25 optimizations: Compact Object Headers (Lilliput), Generational ZGC, Virtual Threads
+- `NativeImageHints.java` registers reflection hints for nimbus-jose-jwt (JWKS/JWT verification)
+
+### Deployment
+- All services run in Docker containers (non-root, read-only FS, healthchecks)
+- Docker Compose on server: `ops/docker-compose.prod.yml` → `~/apps/duelme-dev/`
+- Images pushed to GHCR (`ghcr.io/plusqred/duelme-{backend,frontend}:dev`)
+- CI builds images via `docker/build-push-action`, then SSH `docker compose pull && up -d`
+- Caddy on host handles TLS + reverse proxy (`/api/v1/*` → backend, rest → frontend)
+
 ### Smart Contract
 - Solidity 0.8.34, OpenZeppelin (SafeERC20, ReentrancyGuard, Pausable, Ownable)
 - All state-mutating functions have `nonReentrant` + `whenNotPaused`
@@ -81,6 +110,14 @@ All write operations follow: check chain → check allowance → approve if need
 | `frontend/src/lib/balanceRefresh.ts` | Shared client-side balance refresh event bus |
 | `frontend/src/i18n/translations.ts` | EN/RU translations |
 | `scripts/sync_readme_contract_addresses.py` | Sync README contract block from `run-latest.json` |
+| `backend/src/.../controller/ProfileController.java` | Profile CRUD endpoints |
+| `backend/src/.../security/PrivyJwksService.java` | Privy JWT verification via JWKS |
+| `backend/src/.../security/PrivyJwtAuthenticationFilter.java` | Bearer token → wallet auth filter |
+| `backend/src/.../model/Profile.java` | MongoDB profile document (record) |
+| `backend/Dockerfile` | Backend container image (multi-stage, GraalVM native) |
+| `frontend/Dockerfile` | Frontend container image (multi-stage, Node 22) |
+| `ops/docker-compose.prod.yml` | Production compose stack (backend + frontend + MongoDB) |
+| `ops/caddy/dev.duelme.pro.Caddyfile` | Caddy TLS reverse proxy config |
 
 ## Duel States
 
@@ -103,7 +140,9 @@ Created(0) → Cancelled(5)
 
 ## Environment
 
-- `NEXT_PUBLIC_PRIVY_APP_ID` — Privy app ID (required)
+- `NEXT_PUBLIC_PRIVY_APP_ID` — Privy app ID (required for frontend)
+- `PRIVY_APP_ID` — Privy app ID (required for backend JWT verification)
+- `MONGODB_URI` — MongoDB connection string (default: `mongodb://localhost:27017/duelme`); Spring Boot 4 property: `spring.mongodb.uri` (not `spring.data.mongodb.uri`)
 - Currently deployed on Arbitrum Sepolia (testnet, chainId 421614)
 - Contract address in `DUELME_ADDRESSES` map in `constants.ts`
 

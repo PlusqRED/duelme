@@ -25,6 +25,13 @@ Thumbs.db
 dist/
 build/
 
+# Java / Gradle
+backend/build/
+backend/.gradle/
+*.class
+*.jar
+!backend/gradle/wrapper/gradle-wrapper.jar
+
 # Foundry broadcast artifacts
 contracts/broadcast/**/run-*.json
 !contracts/broadcast/**/run-latest.json

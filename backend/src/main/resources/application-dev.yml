@@ -1,0 +1,8 @@
+logging:
+  level:
+    pro.duelme: DEBUG
+    org.springframework.security: DEBUG
+
+spring:
+  mongodb:
+    uri: mongodb://localhost:27017/duelme-dev
