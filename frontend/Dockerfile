@@ -1,10 +1,18 @@
 FROM node:22-alpine AS build
 WORKDIR /app
 
+# Layer 1: Dependencies (changes only when package-lock.json changes)
 COPY package.json package-lock.json ./
 RUN npm ci --prefer-offline --no-audit --no-fund
 
-COPY . .
+# Layer 2: Config files (rarely change independently from source)
+COPY next.config.ts tsconfig.json postcss.config.mjs ./
+
+# Layer 3: Source code (changes frequently → layers above stay cached)
+COPY src src
+COPY public public
+
+# Layer 4: Build
 ARG NEXT_PUBLIC_PRIVY_APP_ID
 RUN npm run build
 

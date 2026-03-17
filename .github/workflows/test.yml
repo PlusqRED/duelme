@@ -30,10 +30,10 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
 
       - name: Install dependencies
-        run: forge install
+        run: forge install --quiet
 
       - name: Build
-        run: forge build
+        run: forge build --silent
 
       - name: Run tests
         run: forge test -v
@@ -46,8 +46,6 @@ jobs:
         id: coverage
         working-directory: contracts
         run: |
-          # Extract per-contract line coverage for all src/*.sol files
-          # and compute total from src/ files only
           COVERED=0
           TOTAL=0
           while IFS= read -r line; do
@@ -66,7 +64,6 @@ jobs:
 
           echo "total_coverage=$PCT" >> "$GITHUB_OUTPUT"
 
-          # Determine color
           if (( $(echo "$PCT >= 90" | bc -l) )); then
             echo "color=brightgreen" >> "$GITHUB_OUTPUT"
           elif (( $(echo "$PCT >= 75" | bc -l) )); then
@@ -122,7 +119,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build and test
-        run: ./gradlew build -Pskip.aot=true
+        run: ./gradlew build -Pskip.aot=true --quiet --console=plain
 
   frontend:
     name: Frontend Checks
@@ -143,10 +140,10 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit --no-fund
+        run: npm ci --prefer-offline --no-audit --no-fund --loglevel=warn
 
       - name: Lint
-        run: npm run lint
+        run: npm run lint --silent
 
       - name: Typecheck
         run: npx tsc --noEmit
@@ -191,6 +188,7 @@ jobs:
           tags: ghcr.io/plusqred/duelme-backend:dev
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
+          no-cache-filters: build
 
       - name: Build and push frontend
         uses: docker/build-push-action@v6
@@ -219,12 +217,11 @@ jobs:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
         run: |
-          scp ops/docker-compose.prod.yml "$DEPLOY_USER@$DEPLOY_HOST:~/apps/duelme-dev/docker-compose.yml"
-
-          ssh "$DEPLOY_USER@$DEPLOY_HOST" '
+          scp -q ops/docker-compose.prod.yml "$DEPLOY_USER@$DEPLOY_HOST:~/apps/duelme-dev/docker-compose.yml"
+          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
             cd ~/apps/duelme-dev
-            docker compose pull
-            docker compose up -d --remove-orphans
+            docker compose pull -q
+            docker compose up -d --remove-orphans --quiet-pull
           '
 
       - name: Verify health checks
@@ -233,7 +230,7 @@ jobs:
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
         run: |
           for i in $(seq 1 30); do
-            if ssh "$DEPLOY_USER@$DEPLOY_HOST" 'curl -sf http://127.0.0.1:8080/api/v1/health && curl -sf http://127.0.0.1:3001/api/health' 2>/dev/null; then
+            if ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'curl -sf http://127.0.0.1:8080/api/v1/health && curl -sf http://127.0.0.1:3001/api/health' 2>/dev/null; then
               echo "Health checks passed"
               exit 0
             fi
