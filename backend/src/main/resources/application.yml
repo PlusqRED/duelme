@@ -5,9 +5,8 @@ spring:
   threads:
     virtual:
       enabled: true
-  data:
-    mongodb:
-      uri: ${MONGODB_URI:mongodb://localhost:27017/duelme}
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017/duelme}
 
 privy:
   app-id: ${PRIVY_APP_ID:cmmj7weuk013n0cl4pgmgljq7}

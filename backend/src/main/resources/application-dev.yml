@@ -4,6 +4,5 @@ logging:
     org.springframework.security: DEBUG
 
 spring:
-  data:
-    mongodb:
-      uri: mongodb://localhost:27017/duelme-dev
+  mongodb:
+    uri: mongodb://localhost:27017/duelme-dev

@@ -37,7 +37,7 @@ tasks.withType<Test> {
 }
 
 // ---------------------------------------------------------------------------
-// JVM mode: optimization flags applied via bootRun (and systemd ExecStart)
+// JVM mode: optimization flags applied via bootRun (local development)
 // ---------------------------------------------------------------------------
 val jvmOptFlags = listOf(
     // Compact Object Headers (Project Lilliput, JEP 519) — shrinks every
@@ -53,6 +53,15 @@ val jvmOptFlags = listOf(
 
 tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
     jvmArgs = jvmOptFlags
+}
+
+// Skip AOT processing for Docker/JVM builds (AOT bakes property defaults at
+// build time, preventing runtime overrides like MONGODB_URI in containers).
+// Native image builds still use AOT via nativeCompile.
+if (project.hasProperty("skip.aot")) {
+    tasks.named("processAot") { enabled = false }
+    tasks.named("compileAotJava") { enabled = false }
+    tasks.named("processAotResources") { enabled = false }
 }
 
 // ---------------------------------------------------------------------------

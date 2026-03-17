@@ -10,7 +10,7 @@ REST API for user profiles, linked to Ethereum wallets via [Privy](https://www.p
 | Framework | Spring Boot 4.0 + Spring Security |
 | Database | MongoDB |
 | Auth | Privy JWT (JWKS / ES256) |
-| Build | Gradle 8.14 (Kotlin DSL) |
+| Build | Gradle 9.4 (Kotlin DSL) |
 | Native | GraalVM Native Image (optional) |
 | Tests | JUnit 5 + Flapdoodle embedded MongoDB |
 
