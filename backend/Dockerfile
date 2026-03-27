@@ -6,15 +6,13 @@ COPY gradle gradle
 COPY gradlew build.gradle.kts settings.gradle.kts gradle.properties ./
 
 # Layer 2: Download dependencies (changes only when build.gradle.kts changes)
-RUN --mount=type=cache,target=/root/.gradle/caches \
-    ./gradlew dependencies --no-daemon --quiet
+RUN ./gradlew dependencies --no-daemon --quiet
 
 # Layer 3: Source code (changes frequently → everything above is cached)
 COPY src src
 
-# Layer 4: Native compile (Gradle caches speed up recompilation)
-RUN --mount=type=cache,target=/root/.gradle/caches \
-    ./gradlew nativeCompile --no-daemon --console=plain
+# Layer 4: Native compile
+RUN ./gradlew nativeCompile --no-daemon --console=plain
 
 # ---
 

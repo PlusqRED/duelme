@@ -27,37 +27,15 @@ docker compose up -d
 curl http://localhost:8080/api/v1/health
 ```
 
-## API
+## API Documentation
 
-| Method | Path | Auth | Description |
-|--------|------|:----:|-------------|
-| `GET` | `/api/v1/health` | - | Health check |
-| `GET` | `/api/v1/profiles/{address}` | - | Get profile by wallet |
-| `GET` | `/api/v1/profiles?addresses=0x..,0x..` | - | Batch lookup (max 50) |
-| `GET` | `/api/v1/profiles/me` | Bearer | Own profile |
-| `PUT` | `/api/v1/profiles/me` | Bearer | Create / update own profile |
-| `DELETE` | `/api/v1/profiles/me` | Bearer | Delete own profile |
+Interactive API docs are available via Swagger UI:
 
-### Example: create a profile
-
-```bash
-curl -X PUT http://localhost:8080/api/v1/profiles/me \
-  -H "Authorization: Bearer <privy-jwt>" \
-  -H "Content-Type: application/json" \
-  -d '{"nickname":"alice","status":"ready to duel","games":["chess","valorant"]}'
-```
-
-### Profile fields
-
-| Field | Type | Max |
-|-------|------|-----|
-| `nickname` | string | 30 |
-| `status` | string | 140 |
-| `firstName` | string | 50 |
-| `lastName` | string | 50 |
-| `gender` | string | 20 |
-| `aboutMe` | string | 500 |
-| `games` | string[] | 20 items, each 30 |
+| Environment | Swagger UI | OpenAPI JSON |
+|---|---|---|
+| **Dev** | https://dev.duelme.pro/api/v1/swagger-ui | https://dev.duelme.pro/v3/api-docs |
+| **Prod** | https://duelme.pro/api/v1/swagger-ui | https://duelme.pro/v3/api-docs |
+| **Local** | http://localhost:8080/api/v1/swagger-ui | http://localhost:8080/v3/api-docs |
 
 ## Build
 
@@ -114,8 +92,8 @@ In native-image mode, GraalVM AOT compilation provides:
 ## Architecture
 
 ```
-Request → Caddy (TLS) → /api/v1/* → Spring Boot :8080
-                       → /*        → Next.js :3001
+Request → Caddy (TLS) → /api/v1/* → Spring Boot (:8080 dev / :8081 prod)
+                       → /*        → Next.js (:3001 dev / :3002 prod)
 ```
 
 ### Auth flow
@@ -151,10 +129,10 @@ Tests use Flapdoodle embedded MongoDB — no external database required.
 
 ## Deploy
 
-The CI pipeline builds a fat JAR and deploys via SSH:
+CI builds a GraalVM native image inside Docker and pushes to GHCR:
 
 ```
-CI → ./gradlew bootJar → scp → deploy-backend-release.sh → systemctl restart
+CI → docker build (native compile) → ghcr.io/plusqred/duelme-backend:{dev,latest} → SSH deploy → docker compose up
 ```
 
-The systemd unit (`ops/systemd/user/duelme-backend-dev.service`) applies all JVM optimization flags automatically.
+The native binary runs in a minimal `ubuntu:26.04` container with read-only filesystem, dropped capabilities, and healthcheck. See `Dockerfile` and `ops/docker-compose.{dev,prod}.yml`.

@@ -4,10 +4,10 @@
   <img src="https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js" alt="Next.js" />
   <img src="https://img.shields.io/badge/Java-25-ed8b00?style=flat-square&logo=openjdk&logoColor=white" alt="Java 25" />
   <img src="https://img.shields.io/badge/Spring%20Boot-4.0-6db33f?style=flat-square&logo=springboot&logoColor=white" alt="Spring Boot 4" />
-  <img src="https://img.shields.io/badge/MongoDB-8-47a248?style=flat-square&logo=mongodb&logoColor=white" alt="MongoDB 8" />
+  <img src="https://img.shields.io/badge/MongoDB-8-47a248?style=flat-square&logo=mongodb&logoColor=white" alt="MongoDB 8.2.5" />
   <img src="https://img.shields.io/badge/GraalVM-Native-e76f00?style=flat-square&logo=oracle&logoColor=white" alt="GraalVM Native" />
   <img src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/PlusqRED/69b27e3902f28e6b5fd2495fc2143f18/raw/duelme-coverage.json&style=flat-square" alt="Coverage" />
-  <img src="https://github.com/PlusqRED/duelme/actions/workflows/test.yml/badge.svg" alt="CI" />
+  <img src="https://github.com/PlusqRED/duelme/actions/workflows/ci.yml/badge.svg" alt="CI" />
 </p>
 
 <!-- CONTRACT_ADDRESSES:START -->
@@ -58,7 +58,8 @@ Creator deposits USDT + gets private invite link ──► Opponent opens full l
 | Wallet | Privy (embedded + external wallets), wagmi, viem |
 | Chain | Arbitrum Sepolia (testnet) |
 | Token | USDT (MockUSDT on testnet with public faucet) |
-| CI | GitHub Actions — contract checks, frontend checks, and SSH-based dev deploys |
+| Backend | Java 25, Spring Boot 4, MongoDB, GraalVM Native Image |
+| CI/CD | GitHub Actions — tests, Docker image builds (GHCR), SSH deploy to dev + prod |
 
 ## Project structure
 
@@ -76,14 +77,29 @@ duelme/
 │
 ├── frontend/               # Next.js app
 │   └── src/
-│       ├── app/            # Pages: home, dashboard, create duel, duel detail
+│       ├── app/            # Pages: home, dashboard, create duel, duel detail, profile
 │       ├── components/     # UI, duel, layout, wallet components
-│       ├── hooks/          # useDuel, useDuelActions, useReputation
-│       ├── lib/            # contracts ABI, wagmi config, constants
+│       ├── hooks/          # useDuel, useDuelActions, useReputation, useMyProfile, useNicknames
+│       ├── lib/            # contracts ABI, wagmi config, constants, profile API
 │       └── i18n/           # EN/RU translations
 │
-└── .github/workflows/      # CI pipeline
+├── backend/                # Java 25 + Spring Boot 4 API
+│   └── src/
+│       └── main/java/      # Profile CRUD, Privy JWT auth, MongoDB
+│
+├── ops/                    # Docker Compose, Caddy configs
+│
+└── .github/workflows/      # CI/CD pipeline
 ```
+
+## API Documentation
+
+Interactive Swagger UI and OpenAPI specs are available for both environments:
+
+| Environment | Swagger UI | OpenAPI JSON |
+|---|---|---|
+| **Dev** | https://dev.duelme.pro/api/v1/swagger-ui | https://dev.duelme.pro/v3/api-docs |
+| **Prod** | https://duelme.pro/api/v1/swagger-ui | https://duelme.pro/v3/api-docs |
 
 ## Quick start
 
@@ -178,65 +194,48 @@ After deploy:
 2. update `frontend/src/lib/constants.ts`,
 3. run `python3 scripts/sync_readme_contract_addresses.py` (or let `.githooks/pre-commit` do it automatically).
 
-## CI/CD for `dev.duelme.pro`
+## CI/CD
 
-The repository now supports a staging-style deployment flow for the `dev` branch:
+All CI/CD is in `.github/workflows/ci.yml`. Two environments are deployed automatically:
 
-1. open a PR into `dev`,
-2. let GitHub Actions run contract + frontend checks,
-3. merge into `dev`,
-4. GitHub Actions builds a Next.js `standalone` release and deploys it to the server over SSH,
-5. the server switches `~/apps/duelme-dev/current` atomically and restarts a hardened `systemd --user` service.
+| Environment | Branch | Domain | Image tags | Ports |
+|---|---|---|---|---|
+| **dev** | `dev` | dev.duelme.pro | `:dev` | 8080 / 3001 |
+| **prod** | `main` | duelme.pro | `:latest` | 8081 / 3002 |
 
-### Required GitHub environment
+### Pipeline
 
-Create a GitHub Environment named `dev` and add these secrets:
+1. Every push/PR runs **Forge Tests**, **Backend Tests**, **Frontend Checks** in parallel.
+2. Merge to `dev` → build Docker images → push to GHCR → SSH deploy to `~/apps/duelme-dev/` → health check.
+3. Merge to `main` → same flow → `~/apps/duelme-prod/` → health check.
 
-- `NEXT_PUBLIC_PRIVY_APP_ID` — Privy App ID for the public dev site
-- `DEPLOY_HOST` — server hostname or IP
-- `DEPLOY_USER` — SSH user used for deploys
-- `DEPLOY_SSH_KEY` — private Ed25519 deploy key stored in GitHub Actions
-- `DEPLOY_KNOWN_HOSTS` — output of `ssh-keyscan -H <server-host-or-ip>`
+### GitHub environments & secrets
 
-### Recommended GitHub branch protections
+Create GitHub Environments `dev` and `prod`, each with:
 
-- create a long-lived `dev` branch,
-- require pull requests before merging into `dev`,
-- require the `CI / Forge Tests` and `CI / Frontend Checks` status checks,
-- block direct pushes to `dev`.
+| Secret | Description |
+|---|---|
+| `NEXT_PUBLIC_PRIVY_APP_ID` | Privy App ID (different per env) |
+| `DEPLOY_HOST` | Server IP |
+| `DEPLOY_USER` | SSH user |
+| `DEPLOY_SSH_KEY` | Ed25519 private key |
+| `DEPLOY_KNOWN_HOSTS` | Output of `ssh-keyscan <host>` |
 
-### One-time server steps
+The backend `PRIVY_APP_ID` lives in `~/apps/duelme-{dev,prod}/.env` on the server.
 
-The deploy workflow expects to own `~/apps/duelme-dev` on the target host and installs the user service from `ops/systemd/user/duelme-dev.service`.
-
-For the SSH deploy key, add the public key to `~/.ssh/authorized_keys` for the deploy user with restrictive options such as:
-
-```text
-no-agent-forwarding,no-port-forwarding,no-user-rc,no-X11-forwarding ssh-ed25519 AAAA...
-```
-
-To keep the user service alive across reboots, run once as root:
+### Server setup
 
 ```bash
-sudo loginctl enable-linger oserver
+# Directory structure
+~/apps/duelme-dev/docker-compose.yml   # deployed by CI from ops/docker-compose.dev.yml
+~/apps/duelme-dev/.env                 # PRIVY_APP_ID=...
+~/apps/duelme-prod/docker-compose.yml  # deployed by CI from ops/docker-compose.prod.yml
+~/apps/duelme-prod/.env                # PRIVY_APP_ID=...
 ```
 
-### Publish `dev.duelme.pro`
-
-1. Point the DNS `A`/`AAAA` record for `dev.duelme.pro` to this server.
-2. Install Caddy on the server.
-3. Copy `ops/caddy/dev.duelme.pro.Caddyfile` to `/etc/caddy/Caddyfile`.
-4. Reload Caddy:
-
-```bash
-sudo systemctl reload caddy
-```
-
-The app itself listens on `127.0.0.1:3001`, and Caddy terminates TLS publicly on `dev.duelme.pro`.
-
-### Health check
-
-The deploy pipeline verifies `http://127.0.0.1:3001/api/health` after each rollout. The endpoint returns the current environment and release id, which helps confirm that the atomically switched release is actually running.
+Caddy handles TLS and reverse proxy. Both domains are configured in `/etc/caddy/Caddyfile`:
+- `dev.duelme.pro` → `127.0.0.1:8080` (backend) / `127.0.0.1:3001` (frontend)
+- `duelme.pro` → `127.0.0.1:8081` (backend) / `127.0.0.1:3002` (frontend)
 
 ## License
 

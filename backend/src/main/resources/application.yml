@@ -10,3 +10,9 @@ spring:
 
 privy:
   app-id: ${PRIVY_APP_ID:cmmj7weuk013n0cl4pgmgljq7}
+
+springdoc:
+  api-docs:
+    path: /api/v1/docs
+  swagger-ui:
+    path: /api/v1/swagger-ui

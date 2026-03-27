@@ -31,6 +31,10 @@ public class SecurityConfig {
                     response.sendError(HttpServletResponse.SC_UNAUTHORIZED)))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.GET, "/api/v1/health").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/docs/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/swagger-ui/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/swagger-ui/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/v3/api-docs/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/profiles").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/profiles/me").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/v1/profiles/{walletAddress}").permitAll()
