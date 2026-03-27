@@ -7,7 +7,7 @@
 
 # DuelMe — Frontend
 
-Next.js web app for the DuelMe P2P gaming duel platform. The frontend handles secure private invites, participant-only duel controls, spectator-safe public duel pages, claim-based payout UX, localized toasts, and live on-chain landing metrics.
+Next.js web app for the DuelMe P2P gaming duel platform. The frontend handles secure private invites, participant-only duel controls, spectator-safe public duel pages, claim-based payout UX, player profiles with nicknames, localized toasts, and live on-chain landing metrics.
 
 ## Tech stack
 
@@ -32,6 +32,8 @@ Next.js web app for the DuelMe P2P gaming duel platform. The frontend handles se
 | `/dashboard` | User dashboard — active/history tabs, full-text duel search, claim-all, pagination, outcome badges |
 | `/duel/create` | Create a new duel — amount input, presets, chain selector, secure invite generation, optional Unicode message |
 | `/duel/[id]` | Duel detail — spectator-safe timeline plus participant actions (join/decline/claim/confirm/dispute/refund/cancel/mutual-cancel/claim payout) |
+| `/profile` | My Profile — inline field editing, games, reputation badge |
+| `/profile/[address]` | Public profile — read-only view, "no profile" graceful state |
 
 ## Project structure
 
@@ -41,9 +43,12 @@ src/
 │   ├── layout.tsx          # Root layout — providers, header, footer
 │   ├── page.tsx            # Landing page
 │   ├── dashboard/          # Dashboard page
-│   └── duel/
-│       ├── create/         # Create duel page
-│       └── [id]/           # Duel detail page
+│   ├── duel/
+│   │   ├── create/         # Create duel page
+│   │   └── [id]/           # Duel detail page
+│   └── profile/
+│       ├── page.tsx         # My Profile (auth-gated, inline editing)
+│       └── [walletAddress]/ # Public profile (read-only)
 │
 ├── components/
 │   ├── duel/               # Duel-specific components
@@ -52,6 +57,7 @@ src/
 │   │   ├── DuelStatus      # State badge + info display
 │   │   ├── ClaimButtons    # claimVictory / admitDefeat actions
 │   │   ├── ConfirmResult   # confirmResult + refund (after timeout)
+│   │   ├── CopyableAddress # Copyable wallet address with optional nickname + profile link
 │   │   ├── ReputationBadge # Wilson score display
 │   │   ├── ShareLink       # Copy-to-clipboard duel link
 │   │   └── RecentDuels     # Recent duels list
@@ -68,6 +74,9 @@ src/
 │   ├── usePlayerDuels.ts      # Dashboard duel aggregation, stats, and claim data
 │   ├── usePlatformStats.ts    # Landing-page Total Volume / Duels Played stats
 │   ├── useRecentDuels.ts      # Latest duels feed data
+│   ├── useMyProfile.ts        # Own profile (React Query + mutation)
+│   ├── useProfile.ts          # Public profile read
+│   ├── useNicknames.ts        # Batch nickname resolution for duel feeds
 │   ├── useReputation.ts       # Single-address PlayerStats read
 │   └── useReputationLevels.ts # Batch reputation reads for feed/search UI
 │
@@ -79,6 +88,8 @@ src/
 │   ├── duelMessage.ts      # Frontend Unicode message validation
 │   ├── duelSearch.ts       # Search indexes based on visible duel-card/feed text
 │   ├── invite.ts           # Secure invite-secret generation and local storage helpers
+│   ├── profile.ts          # Profile types and validation constants
+│   ├── profileApi.ts       # Backend profile API client
 │   ├── reputation.ts       # Shared Wilson-score helpers
 │   ├── wagmi.ts            # wagmi client config
 │   └── utils.ts            # Utility functions

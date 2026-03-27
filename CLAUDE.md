@@ -73,11 +73,15 @@ All write operations follow: check chain → check allowance → approve if need
 - `NativeImageHints.java` registers reflection hints for nimbus-jose-jwt (JWKS/JWT verification)
 
 ### Deployment
+- Two environments: **dev** (dev.duelme.pro) and **prod** (duelme.pro)
+- CI: `.github/workflows/ci.yml` — merging to `dev` deploys dev, merging to `main` deploys prod
 - All services run in Docker containers (non-root, read-only FS, healthchecks)
-- Docker Compose on server: `ops/docker-compose.prod.yml` → `~/apps/duelme-dev/`
-- Images pushed to GHCR (`ghcr.io/plusqred/duelme-{backend,frontend}:dev`)
+- Dev: `ops/docker-compose.dev.yml` → `~/apps/duelme-dev/`, `:dev` tags, ports 8080/3001
+- Prod: `ops/docker-compose.prod.yml` → `~/apps/duelme-prod/`, `:latest` tags, ports 8081/3002
+- Images pushed to GHCR (`ghcr.io/plusqred/duelme-{backend,frontend}:{dev,latest}`)
 - CI builds images via `docker/build-push-action`, then SSH `docker compose pull && up -d`
 - Caddy on host handles TLS + reverse proxy (`/api/v1/*` → backend, rest → frontend)
+- Caddy configs: `ops/caddy/dev.duelme.pro.Caddyfile` and `ops/caddy/duelme.pro.Caddyfile`
 
 ### Smart Contract
 - Solidity 0.8.34, OpenZeppelin (SafeERC20, ReentrancyGuard, Pausable, Ownable)
@@ -114,10 +118,21 @@ All write operations follow: check chain → check allowance → approve if need
 | `backend/src/.../security/PrivyJwksService.java` | Privy JWT verification via JWKS |
 | `backend/src/.../security/PrivyJwtAuthenticationFilter.java` | Bearer token → wallet auth filter |
 | `backend/src/.../model/Profile.java` | MongoDB profile document (record) |
+| `frontend/src/lib/profile.ts` | Profile types and validation constants |
+| `frontend/src/lib/profileApi.ts` | Backend profile API client |
+| `frontend/src/hooks/useMyProfile.ts` | Current user's profile (read/write) |
+| `frontend/src/hooks/useProfile.ts` | Read any player's profile by wallet |
+| `frontend/src/hooks/useNicknames.ts` | Batch nickname resolution for duel feeds |
+| `frontend/src/components/duel/CopyableAddress.tsx` | Address display with copy + profile link |
+| `frontend/src/app/profile/page.tsx` | Own profile page |
+| `frontend/src/app/profile/[walletAddress]/page.tsx` | Public profile page |
 | `backend/Dockerfile` | Backend container image (multi-stage, GraalVM native) |
 | `frontend/Dockerfile` | Frontend container image (multi-stage, Node 22) |
-| `ops/docker-compose.prod.yml` | Production compose stack (backend + frontend + MongoDB) |
-| `ops/caddy/dev.duelme.pro.Caddyfile` | Caddy TLS reverse proxy config |
+| `.github/workflows/ci.yml` | CI pipeline: test + deploy (dev & prod) |
+| `ops/docker-compose.dev.yml` | Dev compose stack (`:dev` tags, ports 8080/3001) |
+| `ops/docker-compose.prod.yml` | Prod compose stack (`:latest` tags, ports 8081/3002) |
+| `ops/caddy/dev.duelme.pro.Caddyfile` | Caddy reverse proxy for dev.duelme.pro |
+| `ops/caddy/duelme.pro.Caddyfile` | Caddy reverse proxy for duelme.pro |
 
 ## Duel States
 
@@ -138,11 +153,32 @@ Created(0) → Cancelled(5)
 - Translations via `useTranslation()` — always add both EN and RU keys
 - `truncateAddress()` for display, full address with copy button for important contexts
 
+### Backend API Documentation (MANDATORY)
+
+Every backend REST endpoint **must** have complete OpenAPI/Swagger documentation. This is a blocking requirement — do not merge endpoints without it.
+
+When **adding** a new endpoint:
+1. Annotate the controller class with `@Tag(name = "...", description = "...")` if not already present
+2. Annotate the method with `@Operation(summary = "...")` — concise one-line description
+3. Add `security = @SecurityRequirement(name = "bearer")` to `@Operation` if the endpoint requires authentication
+4. Annotate `@AuthenticationPrincipal` parameters with `@Parameter(hidden = true)` so they don't appear in Swagger UI
+5. Add the endpoint path to `SecurityConfig.java` with `.permitAll()` or `.authenticated()` as appropriate
+6. If the endpoint is public, also add it to the Swagger UI permit list in SecurityConfig
+
+When **modifying** an existing endpoint:
+1. Update `@Operation(summary = ...)` if the behavior changed
+2. Update security annotations if auth requirements changed
+3. Update `SecurityConfig.java` if the path or HTTP method changed
+
+OpenAPI config: `backend/src/main/java/pro/duelme/backend/config/OpenApiConfig.java`
+Swagger UI: `https://dev.duelme.pro/api/v1/swagger-ui` (dev) / `https://duelme.pro/api/v1/swagger-ui` (prod) — API docs JSON: `/v3/api-docs`
+
 ## Environment
 
 - `NEXT_PUBLIC_PRIVY_APP_ID` — Privy app ID (required for frontend)
 - `PRIVY_APP_ID` — Privy app ID (required for backend JWT verification)
 - `MONGODB_URI` — MongoDB connection string (default: `mongodb://localhost:27017/duelme`); Spring Boot 4 property: `spring.mongodb.uri` (not `spring.data.mongodb.uri`)
+- `NEXT_PUBLIC_API_URL` — Backend API base URL (default: `/api/v1`)
 - Currently deployed on Arbitrum Sepolia (testnet, chainId 421614)
 - Contract address in `DUELME_ADDRESSES` map in `constants.ts`
 
@@ -166,4 +202,5 @@ Created(0) → Cancelled(5)
 - Done: Unicode duel messages (up to 32 visible code points) shown in create, duel detail, dashboard, and latest-duels surfaces
 - Done: dashboard and latest-duels search now operate on visible UI concepts, not just raw addresses
 - Done: hero metrics now show live on-chain Total Volume and Duels Played values
+- Done: personal profiles with inline editing, nickname resolution in duel components, profile links everywhere
 - Source of truth for current deploys: `contracts/broadcast/Deploy.s.sol/421614/run-latest.json`, mirrored into `README.md` and `frontend/src/lib/constants.ts`

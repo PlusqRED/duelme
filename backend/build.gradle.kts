@@ -25,6 +25,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("com.nimbusds:nimbus-jose-jwt:10.0.1")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
@@ -62,6 +63,9 @@ if (project.hasProperty("skip.aot")) {
     tasks.named("processAot") { enabled = false }
     tasks.named("compileAotJava") { enabled = false }
     tasks.named("processAotResources") { enabled = false }
+    tasks.named("processTestAot") { enabled = false }
+    tasks.named("compileAotTestJava") { enabled = false }
+    tasks.named("processAotTestResources") { enabled = false }
 }
 
 // ---------------------------------------------------------------------------

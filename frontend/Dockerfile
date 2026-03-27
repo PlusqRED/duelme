@@ -12,10 +12,10 @@ COPY next.config.ts tsconfig.json postcss.config.mjs components.json ./
 COPY src src
 COPY public public
 
-# Layer 4: Build (mount cache keeps .next/cache between builds)
+# Layer 4: Build
 ARG NEXT_PUBLIC_PRIVY_APP_ID
-RUN --mount=type=cache,target=/app/.next/cache \
-    npm run build
+ENV NEXT_PUBLIC_PRIVY_APP_ID=$NEXT_PUBLIC_PRIVY_APP_ID
+RUN npm run build
 
 # ---
 
