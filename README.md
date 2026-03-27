@@ -53,12 +53,12 @@ Creator deposits USDT → shares private invite link → Opponent matches wager 
 
 ## Project structure
 
-```
-contracts/    Solidity smart contracts (Foundry)
-frontend/     Next.js web app (App Router)
-backend/      Java 25 + Spring Boot 4 API (Gradle)
-ops/          Docker Compose, Caddy configs
-```
+| Directory | Description | Docs |
+|---|---|---|
+| [`contracts/`](contracts/) | Solidity smart contracts — duels, escrow, reputation | [README](contracts/README.md) |
+| [`frontend/`](frontend/) | Next.js web app — profiles, duels, dashboard | [README](frontend/README.md) |
+| [`backend/`](backend/) | Java 25 + Spring Boot 4 API — profiles, auth | [README](backend/README.md) |
+| `ops/` | Docker Compose, Caddy configs | — |
 
 ## Quick start
 
