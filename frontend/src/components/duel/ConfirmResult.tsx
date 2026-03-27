@@ -21,6 +21,7 @@ interface ConfirmResultProps {
   canConfirm: boolean;
   canDispute: boolean;
   canRefund: boolean;
+  resolveDisplay?: (address: string) => string;
 }
 
 export function ConfirmResult({
@@ -36,6 +37,7 @@ export function ConfirmResult({
   canConfirm,
   canDispute,
   canRefund,
+  resolveDisplay,
 }: ConfirmResultProps) {
   const { t } = useTranslation();
   const [remaining, setRemaining] = useState(0);
@@ -59,10 +61,12 @@ export function ConfirmResult({
 
   const timedOut = remaining <= 0;
 
-  const formatParticipant = (address: string) =>
-    normalizedViewer === address.toLowerCase()
-      ? `${t('duel.you')} • ${truncateAddress(address)}`
-      : truncateAddress(address);
+  const formatParticipant = (address: string) => {
+    const display = resolveDisplay?.(address) ?? truncateAddress(address);
+    return normalizedViewer === address.toLowerCase()
+      ? `${t('duel.you')} • ${display}`
+      : display;
+  };
 
   const title = !isParticipantViewer
     ? t('duel.resultUnderReview')

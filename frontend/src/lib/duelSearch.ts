@@ -55,7 +55,8 @@ export function buildDashboardDuelSearchText(
   viewerAddress: string | undefined,
   t: Translate,
   language: Language,
-  reputationByAddress: Record<string, ReputationLevel>
+  reputationByAddress: Record<string, ReputationLevel>,
+  nicknameByAddress?: Record<string, string | null>
 ) {
   const outcome = getDuelOutcomeSummary(duel, viewerAddress);
   const stateLabel = t(getDuelStateLabelKey(duel.state));
@@ -83,6 +84,8 @@ export function buildDashboardDuelSearchText(
     duel.claimedBy,
     getReputationLabel(reputationByAddress, duel.creator, t),
     getReputationLabel(reputationByAddress, duel.opponent, t),
+    nicknameByAddress?.[duel.creator.toLowerCase()] ?? '',
+    nicknameByAddress?.[duel.opponent.toLowerCase()] ?? '',
     duel.chainName,
     'arbitrum sepolia',
     'arb sepolia',
@@ -103,7 +106,8 @@ export function buildRecentDuelSearchText(
   duel: RecentDuel,
   t: Translate,
   language: Language,
-  reputationByAddress: Record<string, ReputationLevel>
+  reputationByAddress: Record<string, ReputationLevel>,
+  nicknameByAddress?: Record<string, string | null>
 ) {
   const stateLabel = t(getDuelStateLabelKey(duel.state));
 
@@ -127,5 +131,7 @@ export function buildRecentDuelSearchText(
     t('recent.updated'),
     getReputationLabel(reputationByAddress, duel.player1, t),
     getReputationLabel(reputationByAddress, duel.player2, t),
+    nicknameByAddress?.[duel.player1.toLowerCase()] ?? '',
+    nicknameByAddress?.[duel.player2.toLowerCase()] ?? '',
   ]);
 }

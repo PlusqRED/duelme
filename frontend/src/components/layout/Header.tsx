@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAppToast } from '@/hooks/useAppToast';
+import { useMyProfile } from '@/hooks/useMyProfile';
 import { usePrivy, useWallets, useExportWallet } from '@privy-io/react-auth';
 import { useReadContract, useBalance } from 'wagmi';
 import { formatUnits, parseUnits, encodeFunctionData } from 'viem';
@@ -65,7 +66,7 @@ export function Header() {
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const previousTotalUsdtRef = useRef<string | null>(null);
-  const { ready, authenticated, login, logout, user } = usePrivy();
+  const { ready, authenticated, login, logout } = usePrivy();
   const { wallets } = useWallets();
   const { exportWallet } = useExportWallet();
 
@@ -75,10 +76,8 @@ export function Header() {
     ? walletAddress.slice(0, 6) + '...' + walletAddress.slice(-4)
     : null;
 
-  const displayName = user?.google?.name
-    ?? user?.email?.address?.split('@')[0]
-    ?? walletShort
-    ?? '';
+  const { profile: myProfile } = useMyProfile();
+  const displayName = myProfile?.nickname ?? walletShort ?? '';
 
   // Read balances from all chains
   const { data: arbSepoliaRaw, refetch: refetchArbSepolia } = useReadContract({
@@ -404,11 +403,19 @@ export function Header() {
                 </button>
               </Link>
 
-              {/* User name */}
-              <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5">
-                <User className="h-3.5 w-3.5 text-slate-500" />
-                <span className="text-sm font-medium text-slate-700">{displayName}</span>
-              </div>
+              {/* Profile link */}
+              <Link href="/profile">
+                <button
+                  className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
+                    pathname.startsWith('/profile')
+                      ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                      : 'border-slate-200 text-slate-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700'
+                  }`}
+                >
+                  <User className="h-3.5 w-3.5" />
+                  {displayName || t('nav.myProfile')}
+                </button>
+              </Link>
 
               {/* Wallet button + dropdown */}
               <div className="relative" ref={dropdownRef}>
@@ -472,10 +479,16 @@ export function Header() {
                     {t('nav.dashboard')}
                   </button>
                 </Link>
-                <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5">
-                  <User className="h-3.5 w-3.5 text-slate-500" />
-                  <span className="text-sm font-medium text-slate-700 truncate">{displayName}</span>
-                </div>
+                <Link href="/profile" onClick={() => setMobileMenuOpen(false)}>
+                  <div className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 ${
+                    pathname.startsWith('/profile')
+                      ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                      : 'border-slate-200 text-slate-600'
+                  }`}>
+                    <User className="h-3.5 w-3.5" />
+                    <span className="text-sm font-medium truncate">{displayName || t('nav.myProfile')}</span>
+                  </div>
+                </Link>
                 <Button variant="ghost" size="sm" onClick={logout} className="text-slate-500 hover:text-slate-700">
                   <LogOut className="h-4 w-4" />
                 </Button>
