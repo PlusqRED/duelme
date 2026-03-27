@@ -14,7 +14,7 @@ services:
       - no-new-privileges:true
 
   backend:
-    image: ghcr.io/plusqred/duelme-backend:latest
+    image: ghcr.io/plusqred/duelme-backend:dev
     restart: unless-stopped
     depends_on:
       mongodb:
@@ -23,7 +23,7 @@ services:
       SPRING_MONGODB_URI: mongodb://mongodb:27017/duelme
       PRIVY_APP_ID: ${PRIVY_APP_ID:?PRIVY_APP_ID must be set in .env}
     ports:
-      - "127.0.0.1:8081:8080"
+      - "127.0.0.1:8080:8080"
     read_only: true
     tmpfs:
       - /tmp:noexec,nosuid,size=64m
@@ -33,10 +33,10 @@ services:
       - no-new-privileges:true
 
   frontend:
-    image: ghcr.io/plusqred/duelme-frontend:latest
+    image: ghcr.io/plusqred/duelme-frontend:dev
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3002:3001"
+      - "127.0.0.1:3001:3001"
     read_only: true
     tmpfs:
       - /tmp:noexec,nosuid,size=64m
