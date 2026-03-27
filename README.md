@@ -98,14 +98,14 @@ Interactive Swagger UI and OpenAPI specs are available for both environments:
 
 | Environment | Swagger UI | OpenAPI JSON |
 |---|---|---|
-| **Dev** | https://dev.duelme.pro/api/v1/swagger-ui | https://dev.duelme.pro/v3/api-docs |
-| **Prod** | https://duelme.pro/api/v1/swagger-ui | https://duelme.pro/v3/api-docs |
+| **Dev** | https://dev.duelme.pro/api/v1/swagger-ui | https://dev.duelme.pro/api/v1/docs |
+| **Prod** | https://duelme.pro/api/v1/swagger-ui | https://duelme.pro/api/v1/docs |
 
 ## Quick start
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) 18+
+- [Node.js](https://nodejs.org/) 22+
 - [Foundry](https://book.getfoundry.sh/getting-started/installation)
 
 ```bash

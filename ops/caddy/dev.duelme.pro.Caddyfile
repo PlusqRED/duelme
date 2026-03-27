@@ -13,14 +13,6 @@ dev.duelme.pro {
 		reverse_proxy 127.0.0.1:8080
 	}
 
-	handle /swagger-ui/* {
-		reverse_proxy 127.0.0.1:8080
-	}
-
-	handle /v3/api-docs* {
-		reverse_proxy 127.0.0.1:8080
-	}
-
 	handle {
 		reverse_proxy 127.0.0.1:3001
 	}

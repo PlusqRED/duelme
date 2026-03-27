@@ -1,7 +1,7 @@
 build/
+bin/
 .gradle/
 .env
 .env.*
-docker-compose.yml
 Dockerfile
 README.md

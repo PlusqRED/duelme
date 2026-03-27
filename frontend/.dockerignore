@@ -3,4 +3,6 @@ node_modules/
 out/
 .env
 .env.*
+.env.local
 Dockerfile
+README.md
