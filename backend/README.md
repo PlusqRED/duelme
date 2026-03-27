@@ -33,9 +33,9 @@ Interactive API docs are available via Swagger UI:
 
 | Environment | Swagger UI | OpenAPI JSON |
 |---|---|---|
-| **Dev** | https://dev.duelme.pro/api/v1/swagger-ui | https://dev.duelme.pro/v3/api-docs |
-| **Prod** | https://duelme.pro/api/v1/swagger-ui | https://duelme.pro/v3/api-docs |
-| **Local** | http://localhost:8080/api/v1/swagger-ui | http://localhost:8080/v3/api-docs |
+| **Dev** | https://dev.duelme.pro/api/v1/swagger-ui | https://dev.duelme.pro/api/v1/docs |
+| **Prod** | https://duelme.pro/api/v1/swagger-ui | https://duelme.pro/api/v1/docs |
+| **Local** | http://localhost:8080/api/v1/swagger-ui | http://localhost:8080/api/v1/docs |
 
 ## Build
 
