@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useRef, useState } from 'react';
+import { use, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ShareLink } from '@/components/duel/ShareLink';
 import { ClaimButtons } from '@/components/duel/ClaimButtons';
@@ -21,9 +21,11 @@ import { useSwitchChain, useAccount, useReadContract } from 'wagmi';
 import { emitBalanceRefresh } from '@/lib/balanceRefresh';
 import {
   Clock, Trophy, ArrowLeft, XCircle, RotateCcw,
-  Swords, LogIn, Copy, Check, User, Hourglass, Shield, Handshake, Undo2,
+  Swords, LogIn, User, Hourglass, Shield, Handshake, Undo2,
 } from 'lucide-react';
 import Link from 'next/link';
+import { CopyableAddress } from '@/components/duel/CopyableAddress';
+import { useNicknames } from '@/hooks/useNicknames';
 
 const STATUS_CONFIG: Record<
   DuelState,
@@ -60,30 +62,6 @@ type PendingAction =
   | 'refunding'
   | 'claimingPayout';
 
-/* ── Copyable address ── */
-function CopyableAddress({ address, className }: { address: string; className?: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <button
-      type="button"
-      className={`group inline-flex items-center gap-1.5 font-mono text-sm transition-colors ${className ?? 'text-slate-600 hover:text-slate-900'}`}
-      onClick={() => {
-        navigator.clipboard.writeText(address);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      }}
-      title={address}
-    >
-      <span className="truncate">{truncateAddress(address)}</span>
-      {copied ? (
-        <Check className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
-      ) : (
-        <Copy className="h-3.5 w-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" />
-      )}
-    </button>
-  );
-}
-
 /* ── Player card (VS arena) ── */
 function PlayerCard({
   address,
@@ -92,6 +70,7 @@ function PlayerCard({
   isReportedWinner,
   isYou,
   isEmpty,
+  nickname,
 }: {
   address: string;
   label: string;
@@ -99,6 +78,7 @@ function PlayerCard({
   isReportedWinner: boolean;
   isYou: boolean;
   isEmpty: boolean;
+  nickname?: string | null;
 }) {
   const { t } = useTranslation();
   const highlightClass = isWinner
@@ -143,6 +123,8 @@ function PlayerCard({
         <div className="flex flex-col items-center gap-1">
           <CopyableAddress
             address={address}
+            nickname={nickname}
+            href={`/profile/${address}`}
             className={
               isWinner
                 ? 'font-semibold text-emerald-700'
@@ -169,6 +151,7 @@ function MutualCancellationCard({
   onAccept,
   onDecline,
   onWithdraw,
+  resolveDisplay,
 }: {
   mode: 'available' | 'requester' | 'responder' | 'spectator';
   requestedBy?: string;
@@ -180,15 +163,17 @@ function MutualCancellationCard({
   onAccept?: () => void;
   onDecline?: () => void;
   onWithdraw?: () => void;
+  resolveDisplay?: (address: string) => string;
 }) {
   const { t, language } = useTranslation();
   const isRequester = mode === 'requester';
   const isResponder = mode === 'responder';
   const normalizedViewer = viewerAddress?.toLowerCase();
+  const displayRequester = requestedBy ? (resolveDisplay?.(requestedBy) ?? truncateAddress(requestedBy)) : null;
   const formattedRequester = requestedBy
     ? normalizedViewer === requestedBy.toLowerCase()
-      ? `${t('duel.you')} • ${truncateAddress(requestedBy)}`
-      : truncateAddress(requestedBy)
+      ? `${t('duel.you')} • ${displayRequester}`
+      : displayRequester
     : null;
 
   if (mode === 'available') {
@@ -348,6 +333,12 @@ export default function DuelPage({
   } = useDuelActions(DEFAULT_CHAIN_ID);
 
   const txPending = isPending || isConfirming;
+
+  const nicknameAddresses = useMemo(() => {
+    if (!duel) return [];
+    return [duel.creator, duel.opponent, duel.claimedBy, duel.claimedWinner, duel.cancelRequestedBy];
+  }, [duel]);
+  const { resolveDisplay, nicknameByAddress } = useNicknames(nicknameAddresses);
 
   const [pendingAction, setPendingAction] = useState<PendingAction>('idle');
   const pendingDuelId = useRef<bigint>(0n);
@@ -698,6 +689,7 @@ export default function DuelPage({
               isReportedWinner={creatorIsReportedWinner}
               isYou={isCreator}
               isEmpty={false}
+              nickname={nicknameByAddress[duel.creator.toLowerCase()]}
             />
 
             {/* VS badge */}
@@ -714,6 +706,7 @@ export default function DuelPage({
               isReportedWinner={opponentIsReportedWinner}
               isYou={isOpponent}
               isEmpty={!hasOpponent}
+              nickname={hasOpponent ? nicknameByAddress[duel.opponent.toLowerCase()] : undefined}
             />
           </div>
 
@@ -863,6 +856,7 @@ export default function DuelPage({
                   pendingAction={pendingAction}
                   isPending={txPending}
                   onRequest={handleRequestMutualCancellation}
+                  resolveDisplay={resolveDisplay}
                 />
                 {(pendingAction === 'claimVictory' || pendingAction === 'admitDefeat') && (
                   <p className="text-center text-xs text-slate-500">{t('status.processing')}</p>
@@ -897,6 +891,7 @@ export default function DuelPage({
                 onAccept={handleAcceptMutualCancellation}
                 onDecline={handleDeclineMutualCancellation}
                 onWithdraw={handleWithdrawMutualCancellationRequest}
+                resolveDisplay={resolveDisplay}
               />
             )}
 
@@ -915,6 +910,7 @@ export default function DuelPage({
                 canConfirm={canManageParticipantDuel && !isClaimAuthor}
                 canDispute={canManageParticipantDuel && !isClaimAuthor}
                 canRefund={canManageParticipantDuel}
+                resolveDisplay={resolveDisplay}
               />
             )}
 
@@ -923,7 +919,7 @@ export default function DuelPage({
               <div className="flex items-center justify-center gap-2 rounded-xl bg-emerald-50 p-4">
                 <Trophy className="h-5 w-5 text-emerald-500" />
                 <span className="text-sm font-semibold text-emerald-700">
-                  {truncateAddress(duel.claimedWinner)} {t('recent.won')}!
+                  {resolveDisplay(duel.claimedWinner)} {t('recent.won')}!
                 </span>
               </div>
             )}

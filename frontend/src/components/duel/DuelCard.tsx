@@ -25,6 +25,7 @@ interface DuelCardProps {
   viewerAddress?: string;
   onClaim?: () => void;
   isClaiming?: boolean;
+  resolveDisplay?: (address: string) => string;
 }
 
 const STATUS_CONFIG: Record<
@@ -93,6 +94,7 @@ export function DuelCard({
   viewerAddress,
   onClaim,
   isClaiming = false,
+  resolveDisplay,
 }: DuelCardProps) {
   const { t, language } = useTranslation();
   const stateConfig = STATUS_CONFIG[duel.state];
@@ -142,7 +144,13 @@ export function DuelCard({
                 <span className="text-slate-400">{t('dashboard.waitingOpponent')}</span>
               ) : (
                 <>
-                  <span className="font-mono font-medium text-slate-900">{truncateAddress(opponentAddress)}</span>
+                  <Link
+                    href={`/profile/${opponentAddress}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="font-mono font-medium text-slate-900 hover:text-indigo-600 transition-colors"
+                  >
+                    {resolveDisplay?.(opponentAddress) ?? truncateAddress(opponentAddress)}
+                  </Link>
                   <ReputationBadge address={opponentAddress as `0x${string}`} chainId={duel.chainId} />
                 </>
               )}

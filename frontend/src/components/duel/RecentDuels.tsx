@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useRecentDuels } from '@/hooks/useRecentDuels';
+import { useNicknames } from '@/hooks/useNicknames';
 import { useReputationLevels } from '@/hooks/useReputationLevels';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/translations';
@@ -12,7 +13,7 @@ import { DuelState } from '@/lib/contracts';
 import { buildRecentDuelSearchText } from '@/lib/duelSearch';
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
 import { truncateUnicode } from '@/lib/duel';
-import { formatDateTime, truncateAddress } from '@/lib/utils';
+import { formatDateTime } from '@/lib/utils';
 import { ReputationBadge } from './ReputationBadge';
 import { Search, Trophy } from 'lucide-react';
 
@@ -42,14 +43,15 @@ export function RecentDuels() {
     [duels]
   );
   const { reputationByAddress } = useReputationLevels(participantAddresses, 421614);
+  const { resolveDisplay, nicknameByAddress } = useNicknames(participantAddresses);
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
 
   const filteredDuels = useMemo(
     () => duels.filter((duel) => (
       !normalizedSearchQuery
-      || buildRecentDuelSearchText(duel, t, language, reputationByAddress).includes(normalizedSearchQuery)
+      || buildRecentDuelSearchText(duel, t, language, reputationByAddress, nicknameByAddress).includes(normalizedSearchQuery)
     )),
-    [duels, normalizedSearchQuery, t, language, reputationByAddress]
+    [duels, normalizedSearchQuery, t, language, reputationByAddress, nicknameByAddress]
   );
 
   const totalPages = Math.max(1, Math.ceil(filteredDuels.length / PAGE_SIZE));
@@ -136,8 +138,10 @@ export function RecentDuels() {
                           <div className="flex items-center gap-2">
                             <div className="flex items-center gap-1.5">
                               <ReputationBadge address={duel.player1} chainId={duel.chainId} />
-                              <span
-                                className={`font-mono text-sm ${
+                              <Link
+                                href={`/profile/${duel.player1}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className={`text-sm hover:text-indigo-600 transition-colors ${
                                   isPlayer1Winner
                                     ? 'font-semibold text-slate-900'
                                     : hasWinner
@@ -145,13 +149,15 @@ export function RecentDuels() {
                                       : 'text-slate-700'
                                 }`}
                               >
-                                {truncateAddress(duel.player1)}
-                              </span>
+                                {resolveDisplay(duel.player1)}
+                              </Link>
                             </div>
                             <span className="vs-badge">VS</span>
                             <div className="flex items-center gap-1.5">
-                              <span
-                                className={`font-mono text-sm ${
+                              <Link
+                                href={`/profile/${duel.player2}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className={`text-sm hover:text-indigo-600 transition-colors ${
                                   hasWinner
                                     ? !isPlayer1Winner
                                       ? 'font-semibold text-slate-900'
@@ -159,8 +165,8 @@ export function RecentDuels() {
                                     : 'text-slate-700'
                                 }`}
                               >
-                                {truncateAddress(duel.player2)}
-                              </span>
+                                {resolveDisplay(duel.player2)}
+                              </Link>
                               <ReputationBadge address={duel.player2} chainId={duel.chainId} />
                             </div>
                           </div>
@@ -184,8 +190,8 @@ export function RecentDuels() {
                           {duel.state === DuelState.Resolved && (
                             <div className="flex items-center gap-1.5">
                               <Trophy className="h-3.5 w-3.5 text-amber-500" />
-                              <span className="font-mono text-sm font-medium text-emerald-600">
-                                {truncateAddress(duel.winner)}
+                              <span className="text-sm font-medium text-emerald-600">
+                                {resolveDisplay(duel.winner)}
                               </span>
                             </div>
                           )}
@@ -226,7 +232,7 @@ export function RecentDuels() {
                       <div className="flex items-center gap-1.5">
                         <ReputationBadge address={duel.player1} chainId={duel.chainId} />
                         <span
-                          className={`font-mono text-sm ${
+                          className={`text-sm ${
                             isPlayer1Winner
                               ? 'font-semibold text-slate-900'
                               : hasWinner
@@ -234,13 +240,13 @@ export function RecentDuels() {
                                 : 'text-slate-700'
                           }`}
                         >
-                          {truncateAddress(duel.player1)}
+                          {resolveDisplay(duel.player1)}
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <ReputationBadge address={duel.player2} chainId={duel.chainId} />
                         <span
-                          className={`font-mono text-sm ${
+                          className={`text-sm ${
                             hasWinner
                               ? !isPlayer1Winner
                                 ? 'font-semibold text-slate-900'
@@ -248,7 +254,7 @@ export function RecentDuels() {
                               : 'text-slate-700'
                           }`}
                         >
-                          {truncateAddress(duel.player2)}
+                          {resolveDisplay(duel.player2)}
                         </span>
                       </div>
                     </div>
@@ -266,8 +272,8 @@ export function RecentDuels() {
                       {duel.state === DuelState.Resolved && (
                         <div className="flex items-center gap-1.5">
                           <Trophy className="h-3.5 w-3.5 text-amber-500" />
-                          <span className="font-mono text-xs font-medium text-emerald-600">
-                            {truncateAddress(duel.winner)}
+                          <span className="text-xs font-medium text-emerald-600">
+                            {resolveDisplay(duel.winner)}
                           </span>
                         </div>
                       )}

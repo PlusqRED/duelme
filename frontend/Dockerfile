@@ -6,15 +6,16 @@ COPY package.json package-lock.json ./
 RUN npm ci --prefer-offline --no-audit --no-fund
 
 # Layer 2: Config files (rarely change independently from source)
-COPY next.config.ts tsconfig.json postcss.config.mjs ./
+COPY next.config.ts tsconfig.json postcss.config.mjs components.json ./
 
 # Layer 3: Source code (changes frequently → layers above stay cached)
 COPY src src
 COPY public public
 
-# Layer 4: Build
+# Layer 4: Build (mount cache keeps .next/cache between builds)
 ARG NEXT_PUBLIC_PRIVY_APP_ID
-RUN npm run build
+RUN --mount=type=cache,target=/app/.next/cache \
+    npm run build
 
 # ---
 

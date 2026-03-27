@@ -10,6 +10,7 @@ import { useAppToast } from '@/hooks/useAppToast';
 import { useDuelActions } from '@/hooks/useDuelActions';
 import { useTranslation } from '@/i18n/useTranslation';
 import { ReputationBadge } from '@/components/duel/ReputationBadge';
+import { useNicknames } from '@/hooks/useNicknames';
 import { useReputationLevels } from '@/hooks/useReputationLevels';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { usePlayerDuels } from '@/hooks/usePlayerDuels';
@@ -55,23 +56,24 @@ export default function DashboardPage() {
     [activeDuels, historyDuels]
   );
   const { reputationByAddress } = useReputationLevels(duelParticipantAddresses, DASHBOARD_CHAIN.id);
+  const { resolveDisplay, nicknameByAddress } = useNicknames(duelParticipantAddresses);
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
 
   const filteredActiveDuels = useMemo(
     () => activeDuels.filter((duel) => (
       !normalizedSearchQuery
-      || buildDashboardDuelSearchText(duel, walletAddress, t, language, reputationByAddress)
+      || buildDashboardDuelSearchText(duel, walletAddress, t, language, reputationByAddress, nicknameByAddress)
         .includes(normalizedSearchQuery)
     )),
-    [activeDuels, normalizedSearchQuery, walletAddress, t, language, reputationByAddress]
+    [activeDuels, normalizedSearchQuery, walletAddress, t, language, reputationByAddress, nicknameByAddress]
   );
   const filteredHistoryDuels = useMemo(
     () => historyDuels.filter((duel) => (
       !normalizedSearchQuery
-      || buildDashboardDuelSearchText(duel, walletAddress, t, language, reputationByAddress)
+      || buildDashboardDuelSearchText(duel, walletAddress, t, language, reputationByAddress, nicknameByAddress)
         .includes(normalizedSearchQuery)
     )),
-    [historyDuels, normalizedSearchQuery, walletAddress, t, language, reputationByAddress]
+    [historyDuels, normalizedSearchQuery, walletAddress, t, language, reputationByAddress, nicknameByAddress]
   );
 
   const activeTotalPages = Math.max(1, Math.ceil(filteredActiveDuels.length / PAGE_SIZE));
@@ -302,6 +304,7 @@ export default function DashboardPage() {
               key={duel.id}
               duel={duel}
               viewerAddress={walletAddress}
+              resolveDisplay={resolveDisplay}
               onClaim={
                 authenticated && getClaimableAmountForAddress(duel, walletAddress) > 0n
                   ? () => handleClaimSingle(duel.id)
