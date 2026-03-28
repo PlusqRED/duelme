@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Menu, X, Swords, LogOut, User, Wallet, Globe, Send, Copy, Check, ChevronDown, KeyRound, Fuel } from 'lucide-react';
+import { Menu, X, Swords, LogOut, User, Wallet, Globe, Send, Copy, Check, ChevronDown, KeyRound, Fuel, Instagram } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -377,11 +377,33 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <Swords className="h-5 w-5 text-indigo-600" />
-          <span className="text-lg font-bold text-slate-900">DuelMe</span>
-        </Link>
+        {/* Logo + socials */}
+        <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-2">
+            <Swords className="h-5 w-5 text-indigo-600" />
+            <span className="text-lg font-bold text-slate-900">DuelMe</span>
+          </Link>
+          <div className="flex items-center gap-1">
+            <a
+              href="https://t.me/grapexel"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600"
+              title="Telegram"
+            >
+              <Send className="h-3.5 w-3.5" />
+            </a>
+            <a
+              href="https://www.instagram.com/rickes.oleg"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600"
+              title="Instagram"
+            >
+              <Instagram className="h-3.5 w-3.5" />
+            </a>
+          </div>
+        </div>
 
         {/* Right side — Desktop */}
         <div className="hidden items-center gap-2 md:flex">

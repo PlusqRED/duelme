@@ -45,7 +45,7 @@ export async function fetchProfilesByAddresses(addresses: string[]): Promise<Pro
   const results = await Promise.all(
     chunks.map(async (chunk) => {
       const res = await fetch(
-        `${API_BASE}/profiles/?addresses=${encodeURIComponent(chunk.join(','))}`
+        `${API_BASE}/profiles?addresses=${encodeURIComponent(chunk.join(','))}`
       );
       if (!res.ok) return [];
       return res.json() as Promise<Profile[]>;
