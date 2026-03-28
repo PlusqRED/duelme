@@ -166,6 +166,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+    environment: dev
     strategy:
       matrix:
         include:
@@ -286,6 +287,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+    environment: prod
     strategy:
       matrix:
         include:
