@@ -2,16 +2,35 @@ services:
   mongodb:
     image: mongo:8.2.5
     restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?MONGO_ROOT_USERNAME must be set in .env}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD must be set in .env}
+    command: ["mongod", "--auth"]
     volumes:
       - mongodb_data:/data/db
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.runCommand({ping:1}).ok", "--quiet"]
+      test: ["CMD", "mongosh", "-u", "${MONGO_ROOT_USERNAME}", "-p", "${MONGO_ROOT_PASSWORD}", "--authenticationDatabase", "admin", "--eval", "db.runCommand({ping:1}).ok", "--quiet"]
       interval: 10s
       timeout: 3s
       start_period: 10s
       retries: 3
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETUID
+      - SETGID
     security_opt:
       - no-new-privileges:true
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 256
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - backend
 
   backend:
     image: ghcr.io/plusqred/duelme-backend:dev
@@ -20,7 +39,7 @@ services:
       mongodb:
         condition: service_healthy
     environment:
-      SPRING_MONGODB_URI: mongodb://mongodb:27017/duelme
+      SPRING_MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/duelme?authSource=admin
       PRIVY_APP_ID: ${PRIVY_APP_ID:?PRIVY_APP_ID must be set in .env}
     ports:
       - "127.0.0.1:8080:8080"
@@ -31,6 +50,17 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+    mem_limit: 256m
+    cpus: 1.0
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - backend
+      - frontend
 
   frontend:
     image: ghcr.io/plusqred/duelme-frontend:dev
@@ -44,6 +74,20 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+    mem_limit: 256m
+    cpus: 0.5
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - frontend
 
 volumes:
   mongodb_data:
+
+networks:
+  backend:
+  frontend:
