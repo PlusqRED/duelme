@@ -1,5 +1,7 @@
 package pro.duelme.backend.security;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
@@ -25,6 +27,9 @@ import java.util.concurrent.atomic.AtomicReference;
 public class PrivyJwksService {
 
     private static final Logger log = LoggerFactory.getLogger(PrivyJwksService.class);
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final TypeReference<List<Map<String, Object>>> LIST_OF_MAPS = new TypeReference<>() {};
 
     private final String jwksUrl;
     private final String appId;
@@ -57,8 +62,7 @@ public class PrivyJwksService {
                 return Optional.empty();
             }
 
-            @SuppressWarnings("unchecked")
-            var linkedAccounts = (List<Map<String, Object>>) claims.getClaim("linked_accounts");
+            List<Map<String, Object>> linkedAccounts = parseLinkedAccounts(claims);
             if (linkedAccounts != null) {
                 for (Map<String, Object> account : linkedAccounts) {
                     if ("wallet".equals(account.get("type"))) {
@@ -70,11 +74,28 @@ public class PrivyJwksService {
                 }
             }
 
+            log.debug("JWT valid but no wallet found in linked_accounts");
             return Optional.empty();
         } catch (Exception e) {
             log.debug("JWT verification failed: {}", e.getMessage());
             return Optional.empty();
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> parseLinkedAccounts(JWTClaimsSet claims) {
+        try {
+            Object raw = claims.getClaim("linked_accounts");
+            if (raw instanceof List<?> list) {
+                return (List<Map<String, Object>>) list;
+            }
+            if (raw instanceof String str) {
+                return MAPPER.readValue(str, LIST_OF_MAPS);
+            }
+        } catch (Exception e) {
+            log.debug("Failed to parse linked_accounts: {}", e.getMessage());
+        }
+        return null;
     }
 
     private JWKSet getJwkSet() throws Exception {
