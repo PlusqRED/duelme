@@ -32,6 +32,7 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    stop_grace_period: 10s
     networks:
       - backend
 
@@ -61,6 +62,7 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    stop_grace_period: 5s
     networks:
       - backend
       - frontend
@@ -85,6 +87,7 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    stop_grace_period: 5s
     networks:
       - frontend
 

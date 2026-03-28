@@ -11,6 +11,10 @@ duelme.pro {
 		-Server
 	}
 
+	request_body {
+		max_size 1MB
+	}
+
 	handle /api/v1/swagger-ui* {
 		respond "Not Found" 404
 	}

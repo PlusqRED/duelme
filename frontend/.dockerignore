@@ -6,3 +6,6 @@ out/
 .env.local
 Dockerfile
 README.md
+.idea/
+.vscode/
+*.log

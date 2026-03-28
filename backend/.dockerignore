@@ -5,3 +5,7 @@ bin/
 .env.*
 Dockerfile
 README.md
+src/test/
+.idea/
+.vscode/
+*.log

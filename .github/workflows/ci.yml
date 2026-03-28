@@ -172,11 +172,13 @@ jobs:
         include:
           - service: backend
             context: backend
-            image: ghcr.io/plusqred/duelme-backend:dev
+            image: ghcr.io/plusqred/duelme-backend
+            tag: dev
             scope: backend-dev
           - service: frontend
             context: frontend
-            image: ghcr.io/plusqred/duelme-frontend:dev
+            image: ghcr.io/plusqred/duelme-frontend
+            tag: dev
             scope: frontend-dev
 
     steps:
@@ -197,7 +199,9 @@ jobs:
         with:
           context: ${{ matrix.context }}
           push: true
-          tags: ${{ matrix.image }}
+          tags: |
+            ${{ matrix.image }}:${{ matrix.tag }}
+            ${{ matrix.image }}:${{ matrix.tag }}-${{ github.sha }}
           build-args: NEXT_PUBLIC_PRIVY_APP_ID=${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
           cache-from: type=gha,scope=${{ matrix.scope }}
           cache-to: type=gha,mode=max,scope=${{ matrix.scope }}
@@ -293,11 +297,13 @@ jobs:
         include:
           - service: backend
             context: backend
-            image: ghcr.io/plusqred/duelme-backend:latest
+            image: ghcr.io/plusqred/duelme-backend
+            tag: latest
             scope: backend-prod
           - service: frontend
             context: frontend
-            image: ghcr.io/plusqred/duelme-frontend:latest
+            image: ghcr.io/plusqred/duelme-frontend
+            tag: latest
             scope: frontend-prod
 
     steps:
@@ -318,7 +324,9 @@ jobs:
         with:
           context: ${{ matrix.context }}
           push: true
-          tags: ${{ matrix.image }}
+          tags: |
+            ${{ matrix.image }}:${{ matrix.tag }}
+            ${{ matrix.image }}:${{ matrix.tag }}-${{ github.sha }}
           build-args: NEXT_PUBLIC_PRIVY_APP_ID=${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
           cache-from: type=gha,scope=${{ matrix.scope }}
           cache-to: type=gha,mode=max,scope=${{ matrix.scope }}
