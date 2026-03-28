@@ -85,6 +85,11 @@ export default function MyProfilePage() {
   }
 
   async function saveGames() {
+    const pending = gameInput.trim();
+    const games = pending && !editGames.includes(pending)
+      ? [...editGames, pending]
+      : editGames;
+
     const data: ProfileRequest = {
       nickname: profile?.nickname,
       status: profile?.status,
@@ -92,7 +97,7 @@ export default function MyProfilePage() {
       lastName: profile?.lastName,
       gender: profile?.gender,
       aboutMe: profile?.aboutMe,
-      games: editGames,
+      games,
     };
 
     try {
@@ -167,6 +172,12 @@ export default function MyProfilePage() {
                   placeholder={placeholder}
                   maxLength={limit}
                   className="h-9"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      void saveField(field);
+                    }
+                  }}
                 />
               )}
               <div className="flex items-center justify-between">
