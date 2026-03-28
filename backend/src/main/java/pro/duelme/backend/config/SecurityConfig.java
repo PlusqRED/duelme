@@ -33,11 +33,11 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/health").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/docs/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/swagger-ui/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/profiles").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/profiles/me").authenticated()
-                .requestMatchers(HttpMethod.GET, "/api/v1/profiles/{walletAddress}").permitAll()
                 .requestMatchers(HttpMethod.PUT, "/api/v1/profiles/me").authenticated()
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/profiles/me").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/v1/profiles/{walletAddress}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/profiles").permitAll()
                 .anyRequest().denyAll()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

@@ -390,6 +390,7 @@ export function Header() {
               rel="noopener noreferrer"
               className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600"
               title="Telegram"
+              aria-label="Telegram"
             >
               <Send className="h-3.5 w-3.5" />
             </a>
@@ -399,6 +400,7 @@ export function Header() {
               rel="noopener noreferrer"
               className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600"
               title="Instagram"
+              aria-label="Instagram"
             >
               <Instagram className="h-3.5 w-3.5" />
             </a>
@@ -486,6 +488,28 @@ export function Header() {
       {mobileMenuOpen && (
         <div className="border-t border-slate-200 bg-white px-4 pb-4 pt-2 md:hidden">
           <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <a
+                href="https://t.me/grapexel"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600"
+                title="Telegram"
+                aria-label="Telegram"
+              >
+                <Send className="h-3.5 w-3.5" />
+              </a>
+              <a
+                href="https://www.instagram.com/rickes.oleg"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600"
+                title="Instagram"
+                aria-label="Instagram"
+              >
+                <Instagram className="h-3.5 w-3.5" />
+              </a>
+            </div>
             {langToggle}
             {ready && authenticated ? (
               <div className="flex flex-1 items-center gap-2">
