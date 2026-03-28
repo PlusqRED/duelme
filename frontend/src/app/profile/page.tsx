@@ -86,7 +86,7 @@ export default function MyProfilePage() {
 
   async function saveGames() {
     const pending = gameInput.trim();
-    const games = pending && !editGames.includes(pending)
+    const games = pending && pending.length <= PROFILE_LIMITS.gameTag && !editGames.includes(pending)
       ? [...editGames, pending]
       : editGames;
 

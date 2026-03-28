@@ -27,8 +27,7 @@ export function useMyProfile() {
       return upsertMyProfile(identityToken, data);
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['profile', 'me'] });
-      void queryClient.invalidateQueries({ queryKey: ['profile', 'nicknames'] });
+      void queryClient.invalidateQueries({ queryKey: ['profile'] });
     },
   });
 
