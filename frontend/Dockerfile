@@ -3,7 +3,8 @@ WORKDIR /app
 
 # Layer 1: Dependencies (changes only when package-lock.json changes)
 COPY package.json package-lock.json ./
-RUN npm ci --prefer-offline --no-audit --no-fund
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline --no-audit --no-fund
 
 # Layer 2: Config files (rarely change independently from source)
 COPY next.config.ts tsconfig.json postcss.config.mjs components.json ./

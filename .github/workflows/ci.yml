@@ -17,6 +17,7 @@ jobs:
   contracts:
     name: Forge Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     defaults:
@@ -24,12 +25,12 @@ jobs:
         working-directory: contracts
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           submodules: recursive
 
       - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
+        uses: foundry-rs/foundry-toolchain@8789b3e21e6c11b2697f5eb56eddae542f746c10 # v1
 
       - name: Install dependencies
         run: forge install --quiet
@@ -91,7 +92,7 @@ jobs:
 
       - name: Update coverage badge
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        uses: schneegans/dynamic-badges-action@v1.7.0
+        uses: schneegans/dynamic-badges-action@e9a478b16159b4d31420099ba146cdc50f134483 # v1.7.0
         with:
           auth: ${{ secrets.GIST_TOKEN }}
           gistID: ${{ secrets.COVERAGE_GIST_ID }}
@@ -104,21 +105,22 @@ jobs:
   backend:
     name: Backend Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: backend
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Setup Java
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
         with:
           distribution: temurin
           java-version: 25
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@39e147cb9de83bb9910b8ef8bd7fff0ee20fcd6f # v6
 
       - name: Build and test
         run: ./gradlew build -Pskip.aot=true --quiet --console=plain
@@ -126,15 +128,16 @@ jobs:
   frontend:
     name: Frontend Checks
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: frontend
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: 22
           cache: npm
@@ -154,8 +157,8 @@ jobs:
           NEXT_PUBLIC_PRIVY_APP_ID: ci-placeholder-privy-app-id
         run: npm run build
 
-  deploy-dev:
-    name: Deploy dev.duelme.pro
+  build-dev:
+    name: Build dev ${{ matrix.service }}
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
     needs: [contracts, backend, frontend]
     runs-on: ubuntu-latest
@@ -163,45 +166,59 @@ jobs:
     permissions:
       contents: read
       packages: write
-    environment:
-      name: dev
-      url: https://dev.duelme.pro
+    strategy:
+      matrix:
+        include:
+          - service: backend
+            context: backend
+            image: ghcr.io/plusqred/duelme-backend:dev
+            scope: backend-dev
+          - service: frontend
+            context: frontend
+            image: ghcr.io/plusqred/duelme-frontend:dev
+            scope: frontend-dev
+            build-args: NEXT_PUBLIC_PRIVY_APP_ID=${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
 
       - name: Login to GHCR
-        uses: docker/login-action@v4
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push backend
-        uses: docker/build-push-action@v7
+      - name: Build and push
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
         with:
-          context: backend
+          context: ${{ matrix.context }}
           push: true
-          tags: ghcr.io/plusqred/duelme-backend:dev
-          cache-from: type=gha,scope=backend-dev
-          cache-to: type=gha,mode=max,scope=backend-dev
+          tags: ${{ matrix.image }}
+          build-args: ${{ matrix.build-args }}
+          cache-from: type=gha,scope=${{ matrix.scope }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.scope }}
 
-      - name: Build and push frontend
-        uses: docker/build-push-action@v7
-        with:
-          context: frontend
-          push: true
-          tags: ghcr.io/plusqred/duelme-frontend:dev
-          build-args: |
-            NEXT_PUBLIC_PRIVY_APP_ID=${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
-          cache-from: type=gha,scope=frontend-dev
-          cache-to: type=gha,mode=max,scope=frontend-dev
+  deploy-dev:
+    name: Deploy dev.duelme.pro
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    needs: [build-dev]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    environment:
+      name: dev
+      url: https://dev.duelme.pro
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Start SSH agent
-        uses: webfactory/ssh-agent@v0.10.0
+        uses: webfactory/ssh-agent@e83874834305fe9a4a2997156cb26c5de65a8555 # v0.10.0
         with:
           ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
 
@@ -215,8 +232,18 @@ jobs:
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          PRIVY_APP_ID: ${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
+          MONGO_ROOT_USERNAME: ${{ secrets.MONGO_ROOT_USERNAME }}
+          MONGO_ROOT_PASSWORD: ${{ secrets.MONGO_ROOT_PASSWORD }}
         run: |
+          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'mkdir -p ~/apps/duelme-dev'
           scp -q ops/docker-compose.dev.yml "$DEPLOY_USER@$DEPLOY_HOST:~/apps/duelme-dev/docker-compose.yml"
+          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" "cat > ~/apps/duelme-dev/.env << 'ENVEOF'
+          PRIVY_APP_ID=$PRIVY_APP_ID
+          MONGO_ROOT_USERNAME=$MONGO_ROOT_USERNAME
+          MONGO_ROOT_PASSWORD=$MONGO_ROOT_PASSWORD
+          ENVEOF
+          chmod 600 ~/apps/duelme-dev/.env"
           ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
             cd ~/apps/duelme-dev
             docker compose pull -q
@@ -239,8 +266,20 @@ jobs:
           ssh "$DEPLOY_USER@$DEPLOY_HOST" 'cd ~/apps/duelme-dev && docker compose ps && docker compose logs --tail=20'
           exit 1
 
-  deploy-prod:
-    name: Deploy duelme.pro
+      - name: Rollback on failure
+        if: failure()
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          echo "Stopping broken containers..."
+          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
+            cd ~/apps/duelme-dev
+            docker compose stop backend frontend
+          '
+
+  build-prod:
+    name: Build prod ${{ matrix.service }}
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [contracts, backend, frontend]
     runs-on: ubuntu-latest
@@ -248,45 +287,59 @@ jobs:
     permissions:
       contents: read
       packages: write
-    environment:
-      name: prod
-      url: https://duelme.pro
+    strategy:
+      matrix:
+        include:
+          - service: backend
+            context: backend
+            image: ghcr.io/plusqred/duelme-backend:latest
+            scope: backend-prod
+          - service: frontend
+            context: frontend
+            image: ghcr.io/plusqred/duelme-frontend:latest
+            scope: frontend-prod
+            build-args: NEXT_PUBLIC_PRIVY_APP_ID=${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
 
       - name: Login to GHCR
-        uses: docker/login-action@v4
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push backend
-        uses: docker/build-push-action@v7
+      - name: Build and push
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
         with:
-          context: backend
+          context: ${{ matrix.context }}
           push: true
-          tags: ghcr.io/plusqred/duelme-backend:latest
-          cache-from: type=gha,scope=backend-prod
-          cache-to: type=gha,mode=max,scope=backend-prod
+          tags: ${{ matrix.image }}
+          build-args: ${{ matrix.build-args }}
+          cache-from: type=gha,scope=${{ matrix.scope }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.scope }}
 
-      - name: Build and push frontend
-        uses: docker/build-push-action@v7
-        with:
-          context: frontend
-          push: true
-          tags: ghcr.io/plusqred/duelme-frontend:latest
-          build-args: |
-            NEXT_PUBLIC_PRIVY_APP_ID=${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
-          cache-from: type=gha,scope=frontend-prod
-          cache-to: type=gha,mode=max,scope=frontend-prod
+  deploy-prod:
+    name: Deploy duelme.pro
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [build-prod]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    environment:
+      name: prod
+      url: https://duelme.pro
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Start SSH agent
-        uses: webfactory/ssh-agent@v0.10.0
+        uses: webfactory/ssh-agent@e83874834305fe9a4a2997156cb26c5de65a8555 # v0.10.0
         with:
           ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
 
@@ -300,9 +353,18 @@ jobs:
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          PRIVY_APP_ID: ${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
+          MONGO_ROOT_USERNAME: ${{ secrets.MONGO_ROOT_USERNAME }}
+          MONGO_ROOT_PASSWORD: ${{ secrets.MONGO_ROOT_PASSWORD }}
         run: |
           ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'mkdir -p ~/apps/duelme-prod'
           scp -q ops/docker-compose.prod.yml "$DEPLOY_USER@$DEPLOY_HOST:~/apps/duelme-prod/docker-compose.yml"
+          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" "cat > ~/apps/duelme-prod/.env << 'ENVEOF'
+          PRIVY_APP_ID=$PRIVY_APP_ID
+          MONGO_ROOT_USERNAME=$MONGO_ROOT_USERNAME
+          MONGO_ROOT_PASSWORD=$MONGO_ROOT_PASSWORD
+          ENVEOF
+          chmod 600 ~/apps/duelme-prod/.env"
           ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
             cd ~/apps/duelme-prod
             docker compose pull -q
@@ -324,3 +386,15 @@ jobs:
           echo "Health checks failed after 60s"
           ssh "$DEPLOY_USER@$DEPLOY_HOST" 'cd ~/apps/duelme-prod && docker compose ps && docker compose logs --tail=20'
           exit 1
+
+      - name: Rollback on failure
+        if: failure()
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          echo "Stopping broken containers..."
+          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
+            cd ~/apps/duelme-prod
+            docker compose stop backend frontend
+          '
