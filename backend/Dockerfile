@@ -21,7 +21,7 @@ RUN --mount=type=cache,target=/root/.gradle \
 FROM ubuntu:26.04
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
+    && apt-get install -y --no-install-recommends curl ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --system app \
     && useradd --system --gid app --no-create-home app

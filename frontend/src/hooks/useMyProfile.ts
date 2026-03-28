@@ -1,31 +1,30 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { usePrivy } from '@privy-io/react-auth';
+import { usePrivy, useIdentityToken } from '@privy-io/react-auth';
 import { fetchMyProfile, upsertMyProfile } from '@/lib/profileApi';
 import type { Profile, ProfileRequest } from '@/lib/profile';
 
 export function useMyProfile() {
-  const { authenticated, getAccessToken } = usePrivy();
+  const { authenticated } = usePrivy();
+  const { identityToken } = useIdentityToken();
   const queryClient = useQueryClient();
 
   const { data: profile, isLoading } = useQuery<Profile | null>({
     queryKey: ['profile', 'me'],
     queryFn: async () => {
-      const token = await getAccessToken();
-      if (!token) throw new Error('No access token');
-      return fetchMyProfile(token);
+      if (!identityToken) throw new Error('No identity token');
+      return fetchMyProfile(identityToken);
     },
-    enabled: authenticated,
+    enabled: authenticated && !!identityToken,
     staleTime: 60_000,
     retry: 1,
   });
 
   const mutation = useMutation({
     mutationFn: async (data: ProfileRequest) => {
-      const token = await getAccessToken();
-      if (!token) throw new Error('Not authenticated');
-      return upsertMyProfile(token, data);
+      if (!identityToken) throw new Error('Not authenticated');
+      return upsertMyProfile(identityToken, data);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['profile', 'me'] });
