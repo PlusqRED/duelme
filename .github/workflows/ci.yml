@@ -177,7 +177,6 @@ jobs:
             context: frontend
             image: ghcr.io/plusqred/duelme-frontend:dev
             scope: frontend-dev
-            build-args: NEXT_PUBLIC_PRIVY_APP_ID=${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -198,7 +197,7 @@ jobs:
           context: ${{ matrix.context }}
           push: true
           tags: ${{ matrix.image }}
-          build-args: ${{ matrix.build-args }}
+          build-args: NEXT_PUBLIC_PRIVY_APP_ID=${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
           cache-from: type=gha,scope=${{ matrix.scope }}
           cache-to: type=gha,mode=max,scope=${{ matrix.scope }}
 
@@ -298,7 +297,6 @@ jobs:
             context: frontend
             image: ghcr.io/plusqred/duelme-frontend:latest
             scope: frontend-prod
-            build-args: NEXT_PUBLIC_PRIVY_APP_ID=${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -319,7 +317,7 @@ jobs:
           context: ${{ matrix.context }}
           push: true
           tags: ${{ matrix.image }}
-          build-args: ${{ matrix.build-args }}
+          build-args: NEXT_PUBLIC_PRIVY_APP_ID=${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
           cache-from: type=gha,scope=${{ matrix.scope }}
           cache-to: type=gha,mode=max,scope=${{ matrix.scope }}
 
