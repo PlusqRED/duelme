@@ -62,12 +62,10 @@ export default function GameDetailPage({
               <p className="text-2xl font-bold">{game.duelCount}</p>
               <p className="text-sm text-white/70">{t('games.duelsCount')}</p>
             </div>
-            {game.totalVolume > 0 && (
-              <div>
-                <p className="text-2xl font-bold">{(game.totalVolume / 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT</p>
-                <p className="text-sm text-white/70">{t('game.totalVolume')}</p>
-              </div>
-            )}
+            <div>
+              <p className="text-2xl font-bold">{(game.totalVolume / 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT</p>
+              <p className="text-sm text-white/70">{t('game.totalVolume')}</p>
+            </div>
           </div>
         </div>
 
