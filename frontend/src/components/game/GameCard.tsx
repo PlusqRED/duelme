@@ -31,6 +31,9 @@ export function GameCard({ game }: GameCardProps) {
       </div>
       <div className="mt-auto flex items-center gap-4 text-xs text-slate-500">
         <span>{game.duelCount} {t('games.duelsCount')}</span>
+        {game.totalVolume > 0 && (
+          <span>{(game.totalVolume / 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT</span>
+        )}
       </div>
     </Link>
   );

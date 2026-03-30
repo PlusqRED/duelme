@@ -24,6 +24,7 @@ export async function attachGameToDuel(
   duelId: number,
   chainId: number,
   gameName: string,
+  wagerAmount: number,
   category?: GameCategory,
 ): Promise<DuelMeta> {
   const res = await fetch(`${API_BASE}/duels/${duelId}/meta?chainId=${chainId}`, {
@@ -32,7 +33,7 @@ export async function attachGameToDuel(
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ gameName, category }),
+    body: JSON.stringify({ gameName, category, wagerAmount }),
   });
   if (!res.ok) throw new Error('Failed to attach game');
   return res.json();

@@ -79,11 +79,11 @@ public class GameService {
         return slug;
     }
 
-    public void incrementDuelCount(String slug) {
+    public void incrementStats(String slug, long wagerAmount) {
         repository.findBySlug(slug).ifPresent(game -> {
             Game updated = new Game(
                 game.id(), game.slug(), game.name(), game.iconUrl(), game.category(),
-                game.duelCount() + 1, game.totalVolume(),
+                game.duelCount() + 1, game.totalVolume() + wagerAmount,
                 game.createdAt(), null
             );
             repository.save(updated);

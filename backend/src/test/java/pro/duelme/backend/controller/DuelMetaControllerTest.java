@@ -44,7 +44,7 @@ class DuelMetaControllerTest {
                 .param("chainId", "421614")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
-                    {"gameName": "CS2"}
+                    {"gameName": "CS2", "wagerAmount": 10000000}
                     """))
             .andExpect(status().isUnauthorized());
     }
@@ -58,7 +58,7 @@ class DuelMetaControllerTest {
                 .with(authentication(auth))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
-                    {"gameName": "Counter-Strike 2", "category": "FPS"}
+                    {"gameName": "Counter-Strike 2", "category": "FPS", "wagerAmount": 5000000}
                     """))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.duelId").value(1))
@@ -81,7 +81,7 @@ class DuelMetaControllerTest {
                 .with(authentication(auth))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
-                    {"gameName": "Valorant"}
+                    {"gameName": "Valorant", "wagerAmount": 3000000}
                     """))
             .andExpect(status().isOk());
 
@@ -105,7 +105,7 @@ class DuelMetaControllerTest {
                 .with(authentication(auth))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
-                    {"gameName": "CS2"}
+                    {"gameName": "CS2", "wagerAmount": 10000000}
                     """))
             .andExpect(status().isOk());
 
@@ -114,7 +114,7 @@ class DuelMetaControllerTest {
                 .with(authentication(auth))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
-                    {"gameName": "CS2"}
+                    {"gameName": "CS2", "wagerAmount": 10000000}
                     """))
             .andExpect(status().isOk());
 
