@@ -6,7 +6,7 @@ allowed-tools: Bash, Read, Grep, Glob
 
 Deploy DuelMe smart contracts to the specified network.
 
-Arguments: $ARGUMENTS (network name: "sepolia", "arbitrum", "polygon". Default: "sepolia")
+Arguments: $ARGUMENTS (network name: "sepolia", "arbitrum". Default: "sepolia")
 
 ## Steps
 
@@ -16,7 +16,6 @@ Arguments: $ARGUMENTS (network name: "sepolia", "arbitrum", "polygon". Default: 
 4. Determine the correct RPC URL and chain config based on the network argument:
    - `sepolia` → Arbitrum Sepolia (chainId 421614)
    - `arbitrum` → Arbitrum One (chainId 42161)
-   - `polygon` → Polygon (chainId 137)
 5. Show the user the exact deploy command and ASK FOR CONFIRMATION before running
 6. After deployment, extract the deployed contract address from output
 7. Update `frontend/src/lib/constants.ts` DUELME_ADDRESSES with the new address

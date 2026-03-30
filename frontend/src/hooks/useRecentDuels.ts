@@ -24,7 +24,6 @@ const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const CHAIN_NAMES: Record<number, string> = {
   421614: 'Arb Sepolia',
   42161: 'Arbitrum One',
-  137: 'Polygon',
 };
 
 const DEFAULT_CHAIN_ID = 421614;

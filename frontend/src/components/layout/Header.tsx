@@ -18,13 +18,11 @@ import { emitBalanceRefreshBurst, subscribeToBalanceRefresh } from '@/lib/balanc
 const CHAIN_META: Record<number, { name: string; testnet?: boolean }> = {
   421614: { name: 'Arb Sepolia', testnet: true },
   42161: { name: 'Arbitrum' },
-  137: { name: 'Polygon' },
 };
 
 function getUsdtAddress(chainId: number | undefined) {
   if (chainId === 421614) return SUPPORTED_CHAINS.arbitrumSepolia.usdt;
   if (chainId === 42161) return SUPPORTED_CHAINS.arbitrum.usdt;
-  if (chainId === 137) return SUPPORTED_CHAINS.polygon.usdt;
   return undefined;
 }
 
@@ -98,15 +96,6 @@ export function Header() {
     query: { enabled: !!walletAddress, refetchInterval: 30_000, staleTime: 0 },
   });
 
-  const { data: polyRaw, refetch: refetchPoly } = useReadContract({
-    address: SUPPORTED_CHAINS.polygon.usdt,
-    abi: balanceOfAbi,
-    functionName: 'balanceOf',
-    args: walletAddress ? [walletAddress] : undefined,
-    chainId: 137,
-    query: { enabled: !!walletAddress, refetchInterval: 30_000, staleTime: 0 },
-  });
-
   // Read ETH balance on selected chain (for gas)
   const { data: ethBalanceData, refetch: refetchEthBalance } = useBalance({
     address: walletAddress,
@@ -121,7 +110,6 @@ export function Header() {
   const balances: Record<number, number> = {
     421614: arbSepoliaRaw !== undefined ? parseFloat(formatUnits(arbSepoliaRaw, USDT_DECIMALS)) : 0,
     42161: arbRaw !== undefined ? parseFloat(formatUnits(arbRaw, USDT_DECIMALS)) : 0,
-    137: polyRaw !== undefined ? parseFloat(formatUnits(polyRaw, USDT_DECIMALS)) : 0,
   };
 
   const balance = balances[selectedChain] ?? 0;
@@ -133,9 +121,8 @@ export function Header() {
   const refetchBalances = useCallback(() => {
     void refetchArbSepolia();
     void refetchArb();
-    void refetchPoly();
     void refetchEthBalance();
-  }, [refetchArbSepolia, refetchArb, refetchPoly, refetchEthBalance]);
+  }, [refetchArbSepolia, refetchArb, refetchEthBalance]);
 
   // Close dropdown on outside click
   useEffect(() => {

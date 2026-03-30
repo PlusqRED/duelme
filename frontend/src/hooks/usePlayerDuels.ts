@@ -51,7 +51,6 @@ const ACTIVE_STATES = new Set([
 const CHAIN_NAMES: Record<number, string> = {
   421614: 'Arb Sepolia',
   42161: 'Arbitrum One',
-  137: 'Polygon',
 };
 
 export function usePlayerDuels(

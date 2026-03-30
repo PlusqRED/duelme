@@ -40,7 +40,6 @@ const transferAbi = [
 function getUsdtAddress(chainId: number | undefined) {
   if (chainId === 421614) return SUPPORTED_CHAINS.arbitrumSepolia.usdt;
   if (chainId === 42161) return SUPPORTED_CHAINS.arbitrum.usdt;
-  if (chainId === 137) return SUPPORTED_CHAINS.polygon.usdt;
   return undefined;
 }
 
