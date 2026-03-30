@@ -38,6 +38,12 @@ export async function attachGameToDuel(
   return res.json();
 }
 
+export async function fetchDuelsByGame(gameSlug: string): Promise<DuelMeta[]> {
+  const res = await fetch(`${API_BASE}/duels/meta?gameSlug=${encodeURIComponent(gameSlug)}`);
+  if (!res.ok) throw new Error('Failed to fetch duels by game');
+  return res.json();
+}
+
 export async function fetchDuelMeta(duelId: number, chainId: number): Promise<DuelMeta | null> {
   const res = await fetch(`${API_BASE}/duels/${duelId}/meta?chainId=${chainId}`);
   if (res.status === 404) return null;

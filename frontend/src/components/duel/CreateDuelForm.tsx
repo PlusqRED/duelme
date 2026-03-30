@@ -102,7 +102,7 @@ export function CreateDuelForm() {
         }
         if (gameName.trim() && identityToken) {
           // Fire and forget — duel exists on-chain regardless of metadata attachment
-          attachGameToDuel(identityToken, Number(duelId), chainConfig.id, gameName.trim()).catch(() => {});
+          attachGameToDuel(identityToken, Number(duelId), chainConfig.id, gameName.trim()).catch((err) => console.warn('Failed to attach game metadata:', err));
         }
         emitBalanceRefresh();
         appToast.success('toast.duelCreated');

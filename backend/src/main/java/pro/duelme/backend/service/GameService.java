@@ -25,7 +25,8 @@ public class GameService {
         return toResponse(game);
     }
 
-    public List<GameResponse> list(GameCategory category, String search) {
+    public List<GameResponse> list(GameCategory category, String search, int limit) {
+        if (search != null && search.length() > 50) search = search.substring(0, 50);
         List<Game> games;
         if (category != null && search != null && !search.isBlank()) {
             games = repository.findByCategoryAndNameContainingIgnoreCase(category, search);
@@ -36,10 +37,13 @@ public class GameService {
         } else {
             games = repository.findAll();
         }
-        return games.stream().map(this::toResponse).toList();
+        return games.stream().map(this::toResponse).limit(limit).toList();
     }
 
     public GameResponse getOrCreate(String name, String iconUrl, GameCategory category) {
+        if (name == null || name.trim().isEmpty()) {
+            throw new IllegalArgumentException("Game name must not be empty");
+        }
         String slug = toSlug(name);
         return repository.findBySlug(slug)
             .map(this::toResponse)
@@ -63,11 +67,27 @@ public class GameService {
     }
 
     static String toSlug(String name) {
-        return name.toLowerCase()
+        String slug = name.toLowerCase()
             .replaceAll("[^a-z0-9\\s-]", "")
             .replaceAll("\\s+", "-")
             .replaceAll("-+", "-")
             .replaceAll("^-|-$", "");
+        if (slug.isEmpty()) {
+            // Fallback for non-Latin names: use hex hash of lowercased name
+            slug = "g-" + Integer.toHexString(name.trim().toLowerCase().hashCode());
+        }
+        return slug;
+    }
+
+    public void incrementDuelCount(String slug) {
+        repository.findBySlug(slug).ifPresent(game -> {
+            Game updated = new Game(
+                game.id(), game.slug(), game.name(), game.iconUrl(), game.category(),
+                game.duelCount() + 1, game.totalVolume(),
+                game.createdAt(), null
+            );
+            repository.save(updated);
+        });
     }
 
     private GameResponse toResponse(Game game) {

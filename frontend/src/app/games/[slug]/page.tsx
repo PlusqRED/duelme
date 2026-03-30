@@ -3,6 +3,7 @@
 import { use } from 'react';
 import Link from 'next/link';
 import { useGame } from '@/hooks/useGame';
+import { useDuelsByGame } from '@/hooks/useDuelsByGame';
 import { useTranslation } from '@/i18n/useTranslation';
 import { ArrowLeft, Gamepad2 } from 'lucide-react';
 
@@ -14,6 +15,7 @@ export default function GameDetailPage({
   const { slug } = use(params);
   const { t } = useTranslation();
   const { game, isLoading } = useGame(slug);
+  const { duels, isLoading: duelsLoading } = useDuelsByGame(game?.slug);
 
   if (isLoading) {
     return (
@@ -65,7 +67,24 @@ export default function GameDetailPage({
 
         <div className="p-6">
           <h2 className="mb-4 text-lg font-semibold text-slate-900">{t('game.recentDuels')}</h2>
-          <p className="text-sm text-slate-500">{t('game.noDuels')}</p>
+          {duelsLoading ? (
+            <div className="flex justify-center py-8">
+              <span className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
+            </div>
+          ) : duels.length === 0 ? (
+            <p className="text-sm text-slate-500">{t('game.noDuels')}</p>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {duels.map((d) => (
+                <li key={`${d.chainId}-${d.duelId}`} className="flex items-center justify-between py-3">
+                  <Link href={`/duel/${d.duelId}`} className="text-sm font-medium text-indigo-600 hover:underline">
+                    Duel #{d.duelId}
+                  </Link>
+                  <span className="text-xs text-slate-400">{d.creatorAddress.slice(0, 6)}...{d.creatorAddress.slice(-4)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </div>

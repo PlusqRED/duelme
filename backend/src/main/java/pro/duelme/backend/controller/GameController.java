@@ -28,8 +28,9 @@ public class GameController {
     @GetMapping
     public List<GameResponse> listGames(
             @RequestParam(required = false) GameCategory category,
-            @RequestParam(required = false) String search) {
-        return gameService.list(category, search);
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "100") int limit) {
+        return gameService.list(category, search, limit);
     }
 
     @Operation(summary = "Get game by slug")

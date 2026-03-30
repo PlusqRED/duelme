@@ -35,6 +35,9 @@ public class DuelMetaService {
 
         try {
             DuelMeta saved = repository.save(meta);
+            if (existing == null) {
+                gameService.incrementDuelCount(game.slug());
+            }
             return toResponse(saved, game.name());
         } catch (DuplicateKeyException e) {
             DuelMeta found = repository.findByDuelIdAndChainId(duelId, chainId).orElseThrow();
@@ -51,12 +54,11 @@ public class DuelMetaService {
             .orElse(null);
     }
 
-    public List<DuelMetaResponse> getByGameSlug(String gameSlug) {
+    public List<DuelMetaResponse> getByGameSlug(String gameSlug, int limit) {
+        String gameName = gameService.getBySlug(gameSlug).name();
         return repository.findByGameSlug(gameSlug).stream()
-            .map(meta -> {
-                String gameName = gameService.getBySlug(meta.gameSlug()).name();
-                return toResponse(meta, gameName);
-            })
+            .map(meta -> toResponse(meta, gameName))
+            .limit(limit)
             .toList();
     }
 

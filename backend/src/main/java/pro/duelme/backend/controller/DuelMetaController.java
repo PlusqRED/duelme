@@ -52,7 +52,9 @@ public class DuelMetaController {
 
     @Operation(summary = "List duels by game")
     @GetMapping("/meta")
-    public List<DuelMetaResponse> listByGame(@RequestParam String gameSlug) {
-        return duelMetaService.getByGameSlug(gameSlug);
+    public List<DuelMetaResponse> listByGame(
+            @RequestParam String gameSlug,
+            @RequestParam(defaultValue = "100") int limit) {
+        return duelMetaService.getByGameSlug(gameSlug, limit);
     }
 }
