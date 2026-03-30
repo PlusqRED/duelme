@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Menu, X, Swords, LogOut, User, Wallet, Globe, Send, Copy, Check, ChevronDown, KeyRound, Fuel, Instagram } from 'lucide-react';
+import { Menu, X, Swords, LogOut, User, Wallet, Globe, Send, Copy, Check, ChevronDown, KeyRound, Fuel, Instagram, Gamepad2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -411,6 +411,18 @@ export function Header() {
         <div className="hidden items-center gap-2 md:flex">
           {langToggle}
 
+          <Link
+            href="/games"
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              pathname.startsWith('/games')
+                ? 'bg-indigo-50 text-indigo-700'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+            }`}
+          >
+            <Gamepad2 className="h-4 w-4" />
+            {t('nav.games')}
+          </Link>
+
           {ready && authenticated ? (
             <div className="flex items-center gap-2">
               {/* My Duels link */}
@@ -511,6 +523,18 @@ export function Header() {
               </a>
             </div>
             {langToggle}
+            <Link
+              href="/games"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                pathname.startsWith('/games')
+                  ? 'bg-indigo-50 text-indigo-700'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              }`}
+            >
+              <Gamepad2 className="h-4 w-4" />
+              {t('nav.games')}
+            </Link>
             {ready && authenticated ? (
               <div className="flex flex-1 items-center gap-2">
                 <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="flex-1">

@@ -18,6 +18,7 @@ import {
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
 import { formatDateTime, formatUSDT, truncateAddress } from '@/lib/utils';
 import { ArrowUpRight, CheckCircle2, Coins } from 'lucide-react';
+import { GameBadge } from '@/components/game/GameBadge';
 import { ReputationBadge } from './ReputationBadge';
 
 interface DuelCardProps {
@@ -26,6 +27,8 @@ interface DuelCardProps {
   onClaim?: () => void;
   isClaiming?: boolean;
   resolveDisplay?: (address: string) => string;
+  gameName?: string;
+  gameSlug?: string;
 }
 
 const STATUS_CONFIG: Record<
@@ -95,6 +98,8 @@ export function DuelCard({
   onClaim,
   isClaiming = false,
   resolveDisplay,
+  gameName,
+  gameSlug,
 }: DuelCardProps) {
   const { t, language } = useTranslation();
   const stateConfig = STATUS_CONFIG[duel.state];
@@ -160,6 +165,7 @@ export function DuelCard({
               <Badge variant="outline" className="shrink-0 text-xs">
                 {duel.chainName}
               </Badge>
+              {gameName && <GameBadge gameName={gameName} gameSlug={gameSlug} />}
               <span>
                 {t('dashboard.lastUpdateLabel')}: {formatDateTime(getRelevantDuelTimestamp(duel), language)}
               </span>

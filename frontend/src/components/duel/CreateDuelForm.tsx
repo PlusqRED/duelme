@@ -12,9 +12,11 @@ import { SUPPORTED_CHAINS, MIN_WAGER, USDT_DECIMALS, DUELME_ADDRESSES } from '@/
 import { erc20Abi, duelMeAbi } from '@/lib/contracts';
 import { MAX_DUEL_MESSAGE_CHARACTERS, countDuelMessageCharacters, isDuelMessageValid } from '@/lib/duelMessage';
 import { generateInviteSecret, hashInviteSecret, storeInviteSecret } from '@/lib/invite';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy, useWallets, useIdentityToken } from '@privy-io/react-auth';
 import { useDuelActions } from '@/hooks/useDuelActions';
-import { Swords, Shield, Zap, DollarSign } from 'lucide-react';
+import { GameAutocomplete } from '@/components/game/GameAutocomplete';
+import { attachGameToDuel } from '@/lib/gameApi';
+import { Swords, Shield, Zap, DollarSign, Gamepad2 } from 'lucide-react';
 import { emitBalanceRefresh } from '@/lib/balanceRefresh';
 
 const PRESETS = [5, 10, 25, 50, 100];
@@ -28,9 +30,11 @@ export function CreateDuelForm() {
   const [selectedChain, setSelectedChain] = useState<keyof typeof SUPPORTED_CHAINS>(
     'arbitrumSepolia'
   );
+  const [gameName, setGameName] = useState('');
 
   const { ready, authenticated, login } = usePrivy();
   const { wallets } = useWallets();
+  const { identityToken } = useIdentityToken();
   const activeWallet = wallets[0];
 
   const chainConfig = SUPPORTED_CHAINS[selectedChain];
@@ -96,6 +100,10 @@ export function CreateDuelForm() {
         if (pendingInviteSecret.current) {
           storeInviteSecret(chainConfig.id, Number(duelId), pendingInviteSecret.current);
         }
+        if (gameName.trim() && identityToken) {
+          // Fire and forget — duel exists on-chain regardless of metadata attachment
+          attachGameToDuel(identityToken, Number(duelId), chainConfig.id, gameName.trim()).catch(() => {});
+        }
         emitBalanceRefresh();
         appToast.success('toast.duelCreated');
         router.push(
@@ -108,7 +116,7 @@ export function CreateDuelForm() {
         appToast.success('toast.duelCreated');
       }
     }
-  }, [isSuccess, step, receipt, router, chainConfig.id, appToast]);
+  }, [isSuccess, step, receipt, router, chainConfig.id, appToast, gameName, identityToken]);
 
   const numericAmount = parseFloat(amount) || 0;
   const isValidAmount = numericAmount >= MIN_WAGER;
@@ -264,6 +272,17 @@ export function CreateDuelForm() {
           {!isValidMessage && (
             <p className="text-xs text-red-500">{t('create.messageTooLong')}</p>
           )}
+        </div>
+
+        <div className="my-6 h-px bg-slate-100" />
+
+        {/* Game */}
+        <div>
+          <label className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700">
+            <Gamepad2 className="h-4 w-4 text-indigo-600" />
+            {t('create.game')}
+          </label>
+          <GameAutocomplete value={gameName} onChange={setGameName} />
         </div>
 
         <div className="my-6 h-px bg-slate-100" />
