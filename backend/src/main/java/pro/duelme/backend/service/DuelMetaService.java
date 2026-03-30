@@ -55,9 +55,14 @@ public class DuelMetaService {
     }
 
     public List<DuelMetaResponse> getByGameSlug(String gameSlug, int limit) {
-        String gameName = gameService.getBySlug(gameSlug).name();
+        GameResponse game;
+        try {
+            game = gameService.getBySlug(gameSlug);
+        } catch (pro.duelme.backend.exception.GameNotFoundException e) {
+            return List.of();
+        }
         return repository.findByGameSlug(gameSlug).stream()
-            .map(meta -> toResponse(meta, gameName))
+            .map(meta -> toResponse(meta, game.name()))
             .limit(limit)
             .toList();
     }
