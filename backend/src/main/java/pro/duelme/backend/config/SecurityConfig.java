@@ -38,6 +38,11 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/profiles/me").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/v1/profiles/{walletAddress}").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/profiles").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/games").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/games/{slug}").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/duels/{duelId}/meta").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/v1/duels/{duelId}/meta").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/duels/meta").permitAll()
                 .anyRequest().denyAll()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
