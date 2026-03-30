@@ -8,6 +8,7 @@ const sections: { id: string; labelKey: TranslationKey }[] = [
   { id: 'hero', labelKey: 'sidenav.hero' },
   { id: 'how-it-works', labelKey: 'sidenav.howItWorks' },
   { id: 'recent-duels', labelKey: 'sidenav.recentDuels' },
+  { id: 'games', labelKey: 'sidenav.games' },
   { id: 'trust', labelKey: 'sidenav.trust' },
   { id: 'onboarding', labelKey: 'sidenav.onboarding' },
   { id: 'honor', labelKey: 'sidenav.honor' },

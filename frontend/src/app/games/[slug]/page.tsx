@@ -26,7 +26,7 @@ export default function GameDetailPage({
   if (!game) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-12 text-center">
-        <p className="text-sm text-slate-500">Game not found</p>
+        <p className="text-sm text-slate-500">{t('game.notFound')}</p>
         <Link href="/games" className="mt-4 inline-block text-sm text-indigo-600 hover:underline">
           {t('popularGames.viewAll')}
         </Link>

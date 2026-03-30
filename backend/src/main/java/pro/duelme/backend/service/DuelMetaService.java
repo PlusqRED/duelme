@@ -25,6 +25,9 @@ public class DuelMetaService {
         GameResponse game = gameService.getOrCreate(request.gameName(), request.iconUrl(), request.category());
 
         DuelMeta existing = repository.findByDuelIdAndChainId(duelId, chainId).orElse(null);
+        if (existing != null && !existing.creatorAddress().equals(creatorAddress.toLowerCase())) {
+            return toResponse(existing, gameService.getBySlug(existing.gameSlug()).name());
+        }
         DuelMeta meta = new DuelMeta(
             existing != null ? existing.id() : null,
             duelId, chainId, game.slug(), creatorAddress.toLowerCase(), null
