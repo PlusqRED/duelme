@@ -6,7 +6,6 @@ export interface Game {
   iconUrl: string | null;
   category: GameCategory;
   duelCount: number;
-  totalVolume: number;
   createdAt: string | null;
   updatedAt: string | null;
 }

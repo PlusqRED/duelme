@@ -10,7 +10,6 @@ public record GameResponse(
     String iconUrl,
     GameCategory category,
     long duelCount,
-    long totalVolume,
     Instant createdAt,
     Instant updatedAt
 ) {}

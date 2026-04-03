@@ -11,4 +11,6 @@ public interface DuelMetaRepository extends MongoRepository<DuelMeta, String> {
     Optional<DuelMeta> findByDuelIdAndChainId(long duelId, int chainId);
 
     List<DuelMeta> findByGameSlug(String gameSlug);
+
+    long countByGameSlug(String gameSlug);
 }

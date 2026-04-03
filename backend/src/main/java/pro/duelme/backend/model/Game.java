@@ -15,8 +15,6 @@ public record Game(
     String name,
     String iconUrl,
     GameCategory category,
-    long duelCount,
-    long totalVolume,
     @CreatedDate Instant createdAt,
     @LastModifiedDate Instant updatedAt
 ) {}

@@ -35,9 +35,6 @@ public class DuelMetaService {
 
         try {
             DuelMeta saved = repository.save(meta);
-            if (existing == null) {
-                gameService.incrementDuelCount(game.slug());
-            }
             return toResponse(saved, game.name());
         } catch (DuplicateKeyException e) {
             DuelMeta found = repository.findByDuelIdAndChainId(duelId, chainId).orElseThrow();

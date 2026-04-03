@@ -7,8 +7,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import pro.duelme.backend.model.DuelMeta;
 import pro.duelme.backend.model.Game;
 import pro.duelme.backend.model.GameCategory;
+import pro.duelme.backend.repository.DuelMetaRepository;
 import pro.duelme.backend.repository.GameRepository;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -26,8 +28,12 @@ class GameControllerTest {
     @Autowired
     private GameRepository gameRepository;
 
+    @Autowired
+    private DuelMetaRepository duelMetaRepository;
+
     @BeforeEach
     void setUp() {
+        duelMetaRepository.deleteAll();
         gameRepository.deleteAll();
     }
 
@@ -40,8 +46,8 @@ class GameControllerTest {
 
     @Test
     void listGamesReturnsAll() throws Exception {
-        gameRepository.save(new Game(null, "cs2", "Counter-Strike 2", null, GameCategory.FPS, 0, 0, null, null));
-        gameRepository.save(new Game(null, "valorant", "Valorant", null, GameCategory.FPS, 0, 0, null, null));
+        gameRepository.save(new Game(null, "cs2", "Counter-Strike 2", null, GameCategory.FPS, null, null));
+        gameRepository.save(new Game(null, "valorant", "Valorant", null, GameCategory.FPS, null, null));
 
         mockMvc.perform(get("/api/v1/games"))
             .andExpect(status().isOk())
@@ -50,8 +56,8 @@ class GameControllerTest {
 
     @Test
     void listGamesFiltersByCategory() throws Exception {
-        gameRepository.save(new Game(null, "cs2", "Counter-Strike 2", null, GameCategory.FPS, 0, 0, null, null));
-        gameRepository.save(new Game(null, "chess", "Chess", null, GameCategory.STRATEGY, 0, 0, null, null));
+        gameRepository.save(new Game(null, "cs2", "Counter-Strike 2", null, GameCategory.FPS, null, null));
+        gameRepository.save(new Game(null, "chess", "Chess", null, GameCategory.STRATEGY, null, null));
 
         mockMvc.perform(get("/api/v1/games").param("category", "FPS"))
             .andExpect(status().isOk())
@@ -61,8 +67,8 @@ class GameControllerTest {
 
     @Test
     void listGamesSearchesByName() throws Exception {
-        gameRepository.save(new Game(null, "cs2", "Counter-Strike 2", null, GameCategory.FPS, 0, 0, null, null));
-        gameRepository.save(new Game(null, "valorant", "Valorant", null, GameCategory.FPS, 0, 0, null, null));
+        gameRepository.save(new Game(null, "cs2", "Counter-Strike 2", null, GameCategory.FPS, null, null));
+        gameRepository.save(new Game(null, "valorant", "Valorant", null, GameCategory.FPS, null, null));
 
         mockMvc.perform(get("/api/v1/games").param("search", "val"))
             .andExpect(status().isOk())
@@ -72,7 +78,7 @@ class GameControllerTest {
 
     @Test
     void getGameBySlug() throws Exception {
-        gameRepository.save(new Game(null, "cs2", "Counter-Strike 2", null, GameCategory.FPS, 0, 0, null, null));
+        gameRepository.save(new Game(null, "cs2", "Counter-Strike 2", null, GameCategory.FPS, null, null));
 
         mockMvc.perform(get("/api/v1/games/cs2"))
             .andExpect(status().isOk())
@@ -84,5 +90,32 @@ class GameControllerTest {
     void getGameBySlugReturns404() throws Exception {
         mockMvc.perform(get("/api/v1/games/nonexistent"))
             .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void duelCountComputedFromDuelMeta() throws Exception {
+        gameRepository.save(new Game(null, "cs2", "Counter-Strike 2", null, GameCategory.FPS, null, null));
+        duelMetaRepository.save(new DuelMeta(null, 1, 421614, "cs2", "0xaaa", null));
+        duelMetaRepository.save(new DuelMeta(null, 2, 421614, "cs2", "0xbbb", null));
+
+        mockMvc.perform(get("/api/v1/games/cs2"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.duelCount").value(2));
+    }
+
+    @Test
+    void listGamesSortedByPopularity() throws Exception {
+        gameRepository.save(new Game(null, "cs2", "Counter-Strike 2", null, GameCategory.FPS, null, null));
+        gameRepository.save(new Game(null, "valorant", "Valorant", null, GameCategory.FPS, null, null));
+        duelMetaRepository.save(new DuelMeta(null, 1, 421614, "valorant", "0xaaa", null));
+        duelMetaRepository.save(new DuelMeta(null, 2, 421614, "valorant", "0xbbb", null));
+        duelMetaRepository.save(new DuelMeta(null, 3, 421614, "cs2", "0xccc", null));
+
+        mockMvc.perform(get("/api/v1/games"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].slug").value("valorant"))
+            .andExpect(jsonPath("$[0].duelCount").value(2))
+            .andExpect(jsonPath("$[1].slug").value("cs2"))
+            .andExpect(jsonPath("$[1].duelCount").value(1));
     }
 }

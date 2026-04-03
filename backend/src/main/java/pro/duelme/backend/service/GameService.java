@@ -6,17 +6,21 @@ import pro.duelme.backend.dto.GameResponse;
 import pro.duelme.backend.exception.GameNotFoundException;
 import pro.duelme.backend.model.Game;
 import pro.duelme.backend.model.GameCategory;
+import pro.duelme.backend.repository.DuelMetaRepository;
 import pro.duelme.backend.repository.GameRepository;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Service
 public class GameService {
 
     private final GameRepository repository;
+    private final DuelMetaRepository duelMetaRepository;
 
-    public GameService(GameRepository repository) {
+    public GameService(GameRepository repository, DuelMetaRepository duelMetaRepository) {
         this.repository = repository;
+        this.duelMetaRepository = duelMetaRepository;
     }
 
     public GameResponse getBySlug(String slug) {
@@ -37,7 +41,11 @@ public class GameService {
         } else {
             games = repository.findAll();
         }
-        return games.stream().map(this::toResponse).limit(limit).toList();
+        return games.stream()
+            .map(this::toResponse)
+            .sorted(Comparator.comparingLong(GameResponse::duelCount).reversed())
+            .limit(limit)
+            .toList();
     }
 
     public GameResponse getOrCreate(String name, String iconUrl, GameCategory category) {
@@ -54,7 +62,7 @@ public class GameService {
         Game game = new Game(
             null, slug, name.trim(), iconUrl,
             category != null ? category : GameCategory.OTHER,
-            0, 0, null, null
+            null, null
         );
         try {
             Game saved = repository.save(game);
@@ -79,22 +87,11 @@ public class GameService {
         return slug;
     }
 
-    public void incrementDuelCount(String slug) {
-        repository.findBySlug(slug).ifPresent(game -> {
-            Game updated = new Game(
-                game.id(), game.slug(), game.name(), game.iconUrl(), game.category(),
-                game.duelCount() + 1, game.totalVolume(),
-                game.createdAt(), null
-            );
-            repository.save(updated);
-        });
-    }
-
     private GameResponse toResponse(Game game) {
+        long count = duelMetaRepository.countByGameSlug(game.slug());
         return new GameResponse(
             game.slug(), game.name(), game.iconUrl(), game.category(),
-            game.duelCount(), game.totalVolume(),
-            game.createdAt(), game.updatedAt()
+            count, game.createdAt(), game.updatedAt()
         );
     }
 }
