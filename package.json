@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@privy-io/react-auth": "^3.19.0"
+  }
+}
