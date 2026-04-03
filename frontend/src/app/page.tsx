@@ -4,6 +4,7 @@ import { HowItWorks } from './HowItWorks';
 import { OnboardingSection } from './OnboardingSection';
 import { TrustSection } from './TrustSection';
 import { RecentDuelsSection } from './RecentDuelsSection';
+import { OpenDuelsSection } from './OpenDuelsSection';
 import { PopularGamesSection } from './PopularGamesSection';
 import { HonorSection } from './HonorSection';
 import { ReputationSection } from './ReputationSection';
@@ -21,6 +22,7 @@ export default function HomePage() {
       />
       <SideNav />
       <HeroSection />
+      <OpenDuelsSection />
       <HowItWorks />
       <RecentDuelsSection />
       <PopularGamesSection />

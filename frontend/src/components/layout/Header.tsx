@@ -409,6 +409,17 @@ export function Header() {
             <Gamepad2 className="h-4 w-4" />
             {t('nav.games')}
           </Link>
+          <Link
+            href="/duels/open"
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              pathname.startsWith('/duels/open')
+                ? 'bg-indigo-50 text-indigo-700'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+            }`}
+          >
+            <Swords className="h-4 w-4" />
+            {t('nav.openDuels')}
+          </Link>
 
           {ready && authenticated ? (
             <div className="flex items-center gap-2">
@@ -521,6 +532,18 @@ export function Header() {
             >
               <Gamepad2 className="h-4 w-4" />
               {t('nav.games')}
+            </Link>
+            <Link
+              href="/duels/open"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                pathname.startsWith('/duels/open')
+                  ? 'bg-indigo-50 text-indigo-700'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              }`}
+            >
+              <Swords className="h-4 w-4" />
+              {t('nav.openDuels')}
             </Link>
             {ready && authenticated ? (
               <div className="flex flex-1 items-center gap-2">
