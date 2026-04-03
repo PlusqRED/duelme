@@ -1,21 +1,24 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useWallets } from '@privy-io/react-auth';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { selectWallet } from '@/lib/walletSelection';
 
 /**
- * Returns the active Privy wallet, preferring the embedded wallet over external ones.
- * Mirrors the logic in setActiveWalletForWagmi (Providers.tsx).
+ * Returns the active wallet based on login method:
+ * - Social login (Google/email) → Privy embedded wallet
+ * - Wallet login (MetaMask) → external wallet
  *
- * - `walletAddress` is lowercased for comparisons (equality checks, contract calls).
- * - `activeWallet.address` preserves the original checksummed form for display.
+ * `walletAddress` is lowercased for comparisons.
+ * `activeWallet.address` preserves checksummed form for display.
  */
 export function useActiveWallet() {
+  const { user } = usePrivy();
   const { wallets } = useWallets();
 
   const activeWallet = useMemo(
-    () => wallets.find((w) => w.walletClientType === 'privy') ?? wallets[0] ?? null,
-    [wallets],
+    () => selectWallet(wallets, user),
+    [wallets, user],
   );
 
   const walletAddress = useMemo(
