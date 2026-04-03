@@ -12,7 +12,8 @@ import { SUPPORTED_CHAINS, MIN_WAGER, USDT_DECIMALS, DUELME_ADDRESSES } from '@/
 import { erc20Abi, duelMeAbi } from '@/lib/contracts';
 import { MAX_DUEL_MESSAGE_CHARACTERS, countDuelMessageCharacters, isDuelMessageValid } from '@/lib/duelMessage';
 import { generateInviteSecret, hashInviteSecret, storeInviteSecret, PUBLIC_INVITE_SECRET, PUBLIC_INVITE_HASH } from '@/lib/invite';
-import { usePrivy, useWallets, useIdentityToken } from '@privy-io/react-auth';
+import { usePrivy, useIdentityToken } from '@privy-io/react-auth';
+import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useDuelActions } from '@/hooks/useDuelActions';
 import { GameAutocomplete } from '@/components/game/GameAutocomplete';
 import { attachGameToDuel } from '@/lib/gameApi';
@@ -34,9 +35,8 @@ export function CreateDuelForm() {
   const [isPublic, setIsPublic] = useState(false);
 
   const { ready, authenticated, login } = usePrivy();
-  const { wallets } = useWallets();
   const { identityToken } = useIdentityToken();
-  const activeWallet = wallets[0];
+  const { activeWallet, walletAddress } = useActiveWallet();
 
   const chainConfig = SUPPORTED_CHAINS[selectedChain];
   const contractAddress = DUELME_ADDRESSES[chainConfig.id];
@@ -53,7 +53,6 @@ export function CreateDuelForm() {
   const pendingMessage = useRef('');
 
   // Check current allowance
-  const walletAddress = activeWallet?.address as `0x${string}` | undefined;
   const { data: currentAllowance, refetch: refetchAllowance } = useReadContract({
     address: chainConfig.usdt,
     abi: erc20Abi,

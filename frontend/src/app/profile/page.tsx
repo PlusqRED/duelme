@@ -12,7 +12,8 @@ import { PROFILE_LIMITS } from '@/lib/profile';
 import type { ProfileRequest } from '@/lib/profile';
 import { SUPPORTED_CHAINS } from '@/lib/constants';
 import { truncateAddress } from '@/lib/utils';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy } from '@privy-io/react-auth';
+import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { ArrowLeft, Pencil, X, Check, Plus, User } from 'lucide-react';
 
 type EditingField = 'nickname' | 'status' | 'firstName' | 'lastName' | 'gender' | 'aboutMe' | 'games' | null;
@@ -22,8 +23,8 @@ export default function MyProfilePage() {
   const appToast = useAppToast();
   const dateLocale = language === 'ru' ? 'ru-RU' : 'en-US';
   const { authenticated, login } = usePrivy();
-  const { wallets } = useWallets();
-  const walletAddress = wallets[0]?.address;
+  const { activeWallet, walletAddress } = useActiveWallet();
+  const displayAddress = activeWallet?.address ?? '';
 
   const { profile, isLoading, updateProfile, isSaving } = useMyProfile();
   const [editingField, setEditingField] = useState<EditingField>(null);
@@ -138,7 +139,7 @@ export default function MyProfilePage() {
   }
 
   const nickname = profile?.nickname;
-  const displayName = nickname ?? truncateAddress(walletAddress ?? '');
+  const displayName = nickname ?? truncateAddress(displayAddress ?? '');
 
   function renderField(
     field: Exclude<EditingField, null | 'games'>,
@@ -240,7 +241,7 @@ export default function MyProfilePage() {
                 <p className="mt-1 text-sm text-white/80 truncate">{profile.status}</p>
               )}
               {walletAddress && (
-                <p className="mt-1 font-mono text-xs text-white/60">{truncateAddress(walletAddress)}</p>
+                <p className="mt-1 font-mono text-xs text-white/60">{truncateAddress(displayAddress)}</p>
               )}
             </div>
           </div>

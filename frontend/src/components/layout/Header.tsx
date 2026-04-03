@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAppToast } from '@/hooks/useAppToast';
 import { useMyProfile } from '@/hooks/useMyProfile';
-import { usePrivy, useWallets, useExportWallet } from '@privy-io/react-auth';
+import { usePrivy, useExportWallet } from '@privy-io/react-auth';
+import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useReadContract, useBalance } from 'wagmi';
 import { formatUnits, parseUnits, encodeFunctionData } from 'viem';
 import { SUPPORTED_CHAINS, USDT_DECIMALS } from '@/lib/constants';
@@ -65,13 +66,11 @@ export function Header() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const previousTotalUsdtRef = useRef<string | null>(null);
   const { ready, authenticated, login, logout } = usePrivy();
-  const { wallets } = useWallets();
   const { exportWallet } = useExportWallet();
-
-  const activeWallet = wallets[0];
-  const walletAddress = activeWallet?.address as `0x${string}` | undefined;
-  const walletShort = walletAddress
-    ? walletAddress.slice(0, 6) + '...' + walletAddress.slice(-4)
+  const { activeWallet, walletAddress } = useActiveWallet();
+  const displayAddr = activeWallet?.address ?? '';
+  const walletShort = displayAddr
+    ? displayAddr.slice(0, 6) + '...' + displayAddr.slice(-4)
     : null;
 
   const { profile: myProfile } = useMyProfile();

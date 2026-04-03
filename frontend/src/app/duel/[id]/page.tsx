@@ -16,7 +16,8 @@ import { SUPPORTED_CHAINS, DUELME_ADDRESSES } from '@/lib/constants';
 import { useDuel } from '@/hooks/useDuel';
 import { useDuelActions } from '@/hooks/useDuelActions';
 import { formatDateTime, formatUSDT, truncateAddress } from '@/lib/utils';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy } from '@privy-io/react-auth';
+import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useSwitchChain, useAccount, useReadContract } from 'wagmi';
 import { emitBalanceRefresh } from '@/lib/balanceRefresh';
 import {
@@ -318,8 +319,7 @@ export default function DuelPage({
   const duelId = parseInt(id, 10);
 
   const { authenticated, login } = usePrivy();
-  const { wallets } = useWallets();
-  const walletAddress = wallets[0]?.address?.toLowerCase();
+  const { activeWallet, walletAddress } = useActiveWallet();
   const [inviteSecret, setInviteSecret] = useState<`0x${string}` | null>(null);
 
   const { switchChainAsync } = useSwitchChain();
@@ -346,7 +346,7 @@ export default function DuelPage({
 
   const chainConfig = SUPPORTED_CHAINS.arbitrumSepolia;
   const contractAddress = DUELME_ADDRESSES[DEFAULT_CHAIN_ID];
-  const walletAddr = wallets[0]?.address as `0x${string}` | undefined;
+  const walletAddr = activeWallet?.address as `0x${string}` | undefined;
   const { data: currentAllowance, refetch: refetchAllowance } = useReadContract({
     address: chainConfig.usdt,
     abi: erc20Abi,

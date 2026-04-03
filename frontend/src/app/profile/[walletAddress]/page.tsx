@@ -8,7 +8,8 @@ import { useProfile } from '@/hooks/useProfile';
 import { useTranslation } from '@/i18n/useTranslation';
 import { SUPPORTED_CHAINS } from '@/lib/constants';
 import { truncateAddress } from '@/lib/utils';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy } from '@privy-io/react-auth';
+import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { ArrowLeft, User } from 'lucide-react';
 
 export default function PublicProfilePage({
@@ -22,8 +23,7 @@ export default function PublicProfilePage({
   const { t, language } = useTranslation();
   const dateLocale = language === 'ru' ? 'ru-RU' : 'en-US';
   const { authenticated } = usePrivy();
-  const { wallets } = useWallets();
-  const viewerAddress = wallets[0]?.address?.toLowerCase();
+  const { walletAddress: viewerAddress } = useActiveWallet();
   const isOwnProfile = viewerAddress === walletAddress;
 
   const { profile, isLoading } = useProfile(isValidAddress ? walletAddress : undefined);
