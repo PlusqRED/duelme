@@ -21,17 +21,25 @@ public class DuelMetaService {
         this.gameService = gameService;
     }
 
-    public DuelMetaResponse attachGame(long duelId, int chainId, String creatorAddress, DuelMetaRequest request) {
-        GameResponse game = gameService.getOrCreate(request.gameName(), request.iconUrl(), request.category());
+    public DuelMetaResponse attachGame(long duelId, int chainId, String callerAddress, DuelMetaRequest request) {
+        String normalizedCaller = callerAddress.toLowerCase();
 
         DuelMeta existing = repository.findByDuelIdAndChainId(duelId, chainId).orElse(null);
-        if (existing != null && !existing.creatorAddress().equals(creatorAddress.toLowerCase())) {
-            return toResponse(existing, gameService.getBySlug(existing.gameSlug()).name());
+        if (existing != null) {
+            if (!existing.creatorAddress().equals(normalizedCaller)) {
+                throw new pro.duelme.backend.exception.NotAuthorizedException(
+                    "Only the duel creator can modify game metadata");
+            }
+            GameResponse game = gameService.getOrCreate(request.gameName(), request.iconUrl(), request.category());
+            DuelMeta updated = new DuelMeta(
+                existing.id(), duelId, chainId, game.slug(), normalizedCaller, existing.createdAt()
+            );
+            DuelMeta saved = repository.save(updated);
+            return toResponse(saved, game.name());
         }
-        DuelMeta meta = new DuelMeta(
-            existing != null ? existing.id() : null,
-            duelId, chainId, game.slug(), creatorAddress.toLowerCase(), null
-        );
+
+        GameResponse game = gameService.getOrCreate(request.gameName(), request.iconUrl(), request.category());
+        DuelMeta meta = new DuelMeta(null, duelId, chainId, game.slug(), normalizedCaller, null);
 
         try {
             DuelMeta saved = repository.save(meta);

@@ -13,42 +13,14 @@ import { usePrivy, useExportWallet } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useReadContract, useBalance } from 'wagmi';
 import { formatUnits, parseUnits, encodeFunctionData } from 'viem';
-import { SUPPORTED_CHAINS, USDT_DECIMALS } from '@/lib/constants';
+import { USDT_DECIMALS } from '@/lib/constants';
+import { balanceOfAbi, transferAbi, getUsdtAddress } from '@/lib/contracts';
 import { emitBalanceRefreshBurst, subscribeToBalanceRefresh } from '@/lib/balanceRefresh';
 
 const CHAIN_META: Record<number, { name: string; testnet?: boolean }> = {
   421614: { name: 'Arb Sepolia', testnet: true },
   42161: { name: 'Arbitrum' },
 };
-
-function getUsdtAddress(chainId: number | undefined) {
-  if (chainId === 421614) return SUPPORTED_CHAINS.arbitrumSepolia.usdt;
-  if (chainId === 42161) return SUPPORTED_CHAINS.arbitrum.usdt;
-  return undefined;
-}
-
-const balanceOfAbi = [
-  {
-    name: 'balanceOf',
-    type: 'function',
-    stateMutability: 'view',
-    inputs: [{ name: 'account', type: 'address' }],
-    outputs: [{ name: '', type: 'uint256' }],
-  },
-] as const;
-
-const transferAbi = [
-  {
-    name: 'transfer',
-    type: 'function',
-    stateMutability: 'nonpayable',
-    inputs: [
-      { name: 'to', type: 'address' },
-      { name: 'amount', type: 'uint256' },
-    ],
-    outputs: [{ name: '', type: 'bool' }],
-  },
-] as const;
 
 export function Header() {
   const { t, language, setLanguage } = useTranslation();
@@ -78,7 +50,7 @@ export function Header() {
 
   // Read balances from all chains
   const { data: arbSepoliaRaw, refetch: refetchArbSepolia } = useReadContract({
-    address: SUPPORTED_CHAINS.arbitrumSepolia.usdt,
+    address: getUsdtAddress(421614),
     abi: balanceOfAbi,
     functionName: 'balanceOf',
     args: walletAddress ? [walletAddress] : undefined,
@@ -87,7 +59,7 @@ export function Header() {
   });
 
   const { data: arbRaw, refetch: refetchArb } = useReadContract({
-    address: SUPPORTED_CHAINS.arbitrum.usdt,
+    address: getUsdtAddress(42161),
     abi: balanceOfAbi,
     functionName: 'balanceOf',
     args: walletAddress ? [walletAddress] : undefined,

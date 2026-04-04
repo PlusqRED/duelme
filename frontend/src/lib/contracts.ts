@@ -1170,6 +1170,13 @@ export enum DuelState {
   MutuallyCancelled = 9,
 }
 
+export const ACTIVE_STATES = new Set<DuelState>([
+  DuelState.Created,
+  DuelState.Funded,
+  DuelState.WinnerClaimed,
+  DuelState.MutualCancelRequested,
+]);
+
 export interface Duel {
   creator: `0x${string}`;
   opponent: `0x${string}`;
@@ -1189,4 +1196,36 @@ export interface Duel {
   creatorClaimed: boolean;
   opponentClaimed: boolean;
   state: DuelState;
+}
+
+export const balanceOfAbi = [
+  {
+    name: 'balanceOf',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'account', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+] as const;
+
+export const transferAbi = [
+  {
+    name: 'transfer',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'to', type: 'address' },
+      { name: 'amount', type: 'uint256' },
+    ],
+    outputs: [{ name: '', type: 'bool' }],
+  },
+] as const;
+
+export function getUsdtAddress(chainId: number | undefined) {
+  // Avoid circular import — inline the chain→USDT mapping
+  const map: Record<number, `0x${string}`> = {
+    421614: '0xFF2405132F2C13099A68759d38BB812505e970C0',
+    42161: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
+  };
+  return chainId ? map[chainId] : undefined;
 }

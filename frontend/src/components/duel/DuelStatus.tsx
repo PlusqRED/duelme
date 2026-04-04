@@ -2,28 +2,16 @@
 
 import { DuelState, type Duel } from '@/lib/contracts';
 import { formatUSDT, truncateAddress } from '@/lib/utils';
+import { ZERO_ADDRESS } from '@/lib/constants';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 import { useTranslation } from '@/i18n/useTranslation';
-import type { TranslationKey } from '@/i18n/translations';
+import { getDuelStateLabelKey } from '@/lib/duel';
 
 interface DuelStatusProps {
   duel: Duel;
   duelId: number;
 }
-
-const STATUS_LABELS: Record<DuelState, TranslationKey> = {
-  [DuelState.Created]: 'duel.waiting',
-  [DuelState.Funded]: 'duel.inProgress',
-  [DuelState.WinnerClaimed]: 'duel.waitingConfirm',
-  [DuelState.Resolved]: 'duel.resolved',
-  [DuelState.Refunded]: 'duel.refunded',
-  [DuelState.Cancelled]: 'duel.cancelled',
-  [DuelState.Declined]: 'duel.declined',
-  [DuelState.Disputed]: 'duel.disputed',
-  [DuelState.MutualCancelRequested]: 'duel.cancellationPending',
-  [DuelState.MutuallyCancelled]: 'duel.mutuallyCancelled',
-};
 
 const STATUS_COLORS: Record<DuelState, string> = {
   [DuelState.Created]: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -37,8 +25,6 @@ const STATUS_COLORS: Record<DuelState, string> = {
   [DuelState.MutualCancelRequested]: 'bg-violet-50 text-violet-700 border-violet-200',
   [DuelState.MutuallyCancelled]: 'bg-sky-50 text-sky-700 border-sky-200',
 };
-
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 export function DuelStatus({ duel, duelId }: DuelStatusProps) {
   const { t } = useTranslation();
@@ -65,7 +51,7 @@ export function DuelStatus({ duel, duelId }: DuelStatusProps) {
             STATUS_COLORS[duel.state]
           }`}
         >
-          {t(STATUS_LABELS[duel.state])}
+          {t(getDuelStateLabelKey(duel.state))}
         </span>
       </CardHeader>
       <CardContent>

@@ -3,9 +3,7 @@
 import { useMemo } from 'react';
 import { useReadContract, useReadContracts } from 'wagmi';
 import { duelMeAbi } from '@/lib/contracts';
-import { DUELME_ADDRESSES } from '@/lib/constants';
-
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+import { DUELME_ADDRESSES, ZERO_ADDRESS } from '@/lib/constants';
 const DEFAULT_CHAIN_ID = 421614;
 
 interface PlatformStats {

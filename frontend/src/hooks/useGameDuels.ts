@@ -3,22 +3,10 @@
 import { useMemo } from 'react';
 import { useReadContracts } from 'wagmi';
 import { formatUnits } from 'viem';
-import { duelMeAbi, DuelState } from '@/lib/contracts';
-import { DUELME_ADDRESSES, USDT_DECIMALS } from '@/lib/constants';
+import { duelMeAbi, DuelState, ACTIVE_STATES } from '@/lib/contracts';
+import { DUELME_ADDRESSES, USDT_DECIMALS, CHAIN_NAMES } from '@/lib/constants';
 import { useDuelsByGame } from './useDuelsByGame';
 import type { PlayerDuel } from './usePlayerDuels';
-
-const ACTIVE_STATES = new Set([
-  DuelState.Created,
-  DuelState.Funded,
-  DuelState.WinnerClaimed,
-  DuelState.MutualCancelRequested,
-]);
-
-const CHAIN_NAMES: Record<number, string> = {
-  421614: 'Arb Sepolia',
-  42161: 'Arbitrum One',
-};
 
 interface GameDuelsData {
   activeDuels: PlayerDuel[];

@@ -9,7 +9,7 @@ spring:
     uri: ${MONGODB_URI:mongodb://localhost:27017/duelme}
 
 privy:
-  app-id: ${PRIVY_APP_ID:cmmj7weuk013n0cl4pgmgljq7}
+  app-id: ${PRIVY_APP_ID}
 
 springdoc:
   api-docs:

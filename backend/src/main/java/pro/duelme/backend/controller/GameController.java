@@ -1,6 +1,8 @@
 package pro.duelme.backend.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,6 +27,10 @@ public class GameController {
     }
 
     @Operation(summary = "List games with optional category filter and search")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Games returned successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid category or limit parameter")
+    })
     @GetMapping
     public List<GameResponse> listGames(
             @RequestParam(required = false) GameCategory category,
@@ -34,6 +40,10 @@ public class GameController {
     }
 
     @Operation(summary = "Get game by slug")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Game found"),
+            @ApiResponse(responseCode = "404", description = "Game not found")
+    })
     @GetMapping("/{slug}")
     public GameResponse getGame(@PathVariable String slug) {
         return gameService.getBySlug(slug);

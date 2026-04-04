@@ -25,5 +25,12 @@ export const DUELME_ADDRESSES: Record<number, `0x${string}`> = {
   42161: '0x0000000000000000000000000000000000000000', // Arbitrum One (TBD)
 };
 
-export const SITE_URL = 'https://duelme.fun';
+export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as `0x${string}`;
+
+export const CHAIN_NAMES: Record<number, string> = {
+  421614: 'Arb Sepolia',
+  42161: 'Arbitrum One',
+};
+
+export const SITE_URL = 'https://duelme.pro';
 export const SITE_NAME = 'DuelMe';

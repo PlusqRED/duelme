@@ -1,6 +1,8 @@
 import { DuelState, type Duel } from '@/lib/contracts';
 import type { TranslationKey } from '@/i18n/translations';
 
+export { ZERO_ADDRESS } from '@/lib/constants';
+
 type ClaimableDuel = Pick<
   Duel,
   | 'creator'
@@ -18,8 +20,6 @@ type ClaimableDuel = Pick<
   | 'claimTimestamp'
   | 'finalizedAt'
 >;
-
-export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 export type DuelOutcomeTone = 'win' | 'loss' | 'neutral';
 
