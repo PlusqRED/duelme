@@ -15,6 +15,7 @@ export interface DuelMeta {
   chainId: number;
   gameSlug: string;
   gameName: string;
+  category: GameCategory | null;
   creatorAddress: string;
   createdAt: string | null;
 }
