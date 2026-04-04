@@ -3,11 +3,12 @@ export const translations = {
     // Header
     'nav.dashboard': 'My Duels',
     'nav.createDuel': 'Create Duel',
-    'nav.openDuels': 'Open Duels',
+    'nav.publicDuels': 'Public Duels',
     'nav.connectWallet': 'Sign In',
 
     // Side nav
     'sidenav.hero': 'Home',
+    'sidenav.publicDuels': 'Public Duels',
     'sidenav.howItWorks': 'How it works',
     'sidenav.onboarding': 'Wallet',
     'sidenav.trust': 'Trust',
@@ -26,11 +27,23 @@ export const translations = {
     'hero.duelsPlayed': 'Duels Played',
     'hero.fees': 'Fees',
 
-    // Landing — Open Duels
-    'openDuels.title': 'Open Duels',
-    'openDuels.subtitle': 'Public challenges waiting for opponents',
-    'openDuels.empty': 'No open duels right now. Create one!',
-    'openDuels.viewAll': 'View all open duels',
+    // Landing — Public Duels
+    'publicDuels.title': 'Public Duels',
+    'publicDuels.subtitle': 'Public challenges waiting for opponents',
+    'publicDuels.empty': 'No public duels right now. Create one!',
+    'publicDuels.viewAll': 'View all public duels',
+    'publicDuels.stats': '{count} duels · {total} USDT',
+    'publicDuels.allGames': 'All Games',
+    'publicDuels.noGame': 'No game',
+    'publicDuels.allWagers': 'Any wager',
+    'publicDuels.sortNewest': 'Newest',
+    'publicDuels.sortHighest': 'Highest wager',
+    'publicDuels.sortLowest': 'Lowest wager',
+    'publicDuels.searchPlaceholder': 'Search by game, player, amount...',
+    'timeAgo.now': 'just now',
+    'timeAgo.minutes': '{n}m ago',
+    'timeAgo.hours': '{n}h ago',
+    'timeAgo.days': '{n}d ago',
 
     // Landing — How it works
     'howItWorks.title': 'Three steps. That\'s it.',
@@ -227,6 +240,7 @@ export const translations = {
     'dashboard.history': 'History',
     'dashboard.noDuels': 'No duels yet. Create your first one!',
     'dashboard.noMatches': 'No duels match your search yet.',
+    'dashboard.clearSearch': 'Clear filters',
     'dashboard.stats': 'Stats',
     'dashboard.wins': 'Wins',
     'dashboard.losses': 'Losses',
@@ -410,11 +424,12 @@ export const translations = {
     // Header
     'nav.dashboard': '\u041c\u043e\u0438 \u0434\u0443\u044d\u043b\u0438',
     'nav.createDuel': '\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u0434\u0443\u044d\u043b\u044c',
-    'nav.openDuels': '\u041e\u0442\u043a\u0440\u044b\u0442\u044b\u0435 \u0434\u0443\u044d\u043b\u0438',
+    'nav.publicDuels': '\u041f\u0443\u0431\u043b\u0438\u0447\u043d\u044b\u0435 \u0434\u0443\u044d\u043b\u0438',
     'nav.connectWallet': '\u0412\u043e\u0439\u0442\u0438',
 
     // Side nav
     'sidenav.hero': '\u0413\u043b\u0430\u0432\u043d\u0430\u044f',
+    'sidenav.publicDuels': '\u041f\u0443\u0431\u043b\u0438\u0447\u043d\u044b\u0435',
     'sidenav.howItWorks': '\u041a\u0430\u043a \u044d\u0442\u043e \u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442',
     'sidenav.onboarding': '\u041a\u043e\u0448\u0435\u043b\u0451\u043a',
     'sidenav.trust': '\u0414\u043e\u0432\u0435\u0440\u0438\u0435',
@@ -433,11 +448,23 @@ export const translations = {
     'hero.duelsPlayed': '\u0421\u044b\u0433\u0440\u0430\u043d\u043e \u0434\u0443\u044d\u043b\u0435\u0439',
     'hero.fees': '\u041a\u043e\u043c\u0438\u0441\u0441\u0438\u044f',
 
-    // Landing — Open Duels
-    'openDuels.title': '\u041e\u0442\u043a\u0440\u044b\u0442\u044b\u0435 \u0434\u0443\u044d\u043b\u0438',
-    'openDuels.subtitle': '\u041f\u0443\u0431\u043b\u0438\u0447\u043d\u044b\u0435 \u0432\u044b\u0437\u043e\u0432\u044b, \u043e\u0436\u0438\u0434\u0430\u044e\u0449\u0438\u0435 \u0441\u043e\u043f\u0435\u0440\u043d\u0438\u043a\u043e\u0432',
-    'openDuels.empty': '\u041e\u0442\u043a\u0440\u044b\u0442\u044b\u0445 \u0434\u0443\u044d\u043b\u0435\u0439 \u043f\u043e\u043a\u0430 \u043d\u0435\u0442. \u0421\u043e\u0437\u0434\u0430\u0439\u0442\u0435 \u043f\u0435\u0440\u0432\u0443\u044e!',
-    'openDuels.viewAll': '\u0412\u0441\u0435 \u043e\u0442\u043a\u0440\u044b\u0442\u044b\u0435 \u0434\u0443\u044d\u043b\u0438',
+    // Landing — Public Duels
+    'publicDuels.title': '\u041f\u0443\u0431\u043b\u0438\u0447\u043d\u044b\u0435 \u0434\u0443\u044d\u043b\u0438',
+    'publicDuels.subtitle': '\u041f\u0443\u0431\u043b\u0438\u0447\u043d\u044b\u0435 \u0432\u044b\u0437\u043e\u0432\u044b, \u043e\u0436\u0438\u0434\u0430\u044e\u0449\u0438\u0435 \u0441\u043e\u043f\u0435\u0440\u043d\u0438\u043a\u043e\u0432',
+    'publicDuels.empty': '\u041f\u0443\u0431\u043b\u0438\u0447\u043d\u044b\u0445 \u0434\u0443\u044d\u043b\u0435\u0439 \u043f\u043e\u043a\u0430 \u043d\u0435\u0442. \u0421\u043e\u0437\u0434\u0430\u0439\u0442\u0435 \u043f\u0435\u0440\u0432\u0443\u044e!',
+    'publicDuels.viewAll': '\u0412\u0441\u0435 \u043f\u0443\u0431\u043b\u0438\u0447\u043d\u044b\u0435 \u0434\u0443\u044d\u043b\u0438',
+    'publicDuels.stats': '{count} \u0434\u0443\u044d\u043b\u0435\u0439 \u00b7 {total} USDT',
+    'publicDuels.allGames': '\u0412\u0441\u0435 \u0438\u0433\u0440\u044b',
+    'publicDuels.noGame': '\u0411\u0435\u0437 \u0438\u0433\u0440\u044b',
+    'publicDuels.allWagers': '\u041b\u044e\u0431\u0430\u044f \u0441\u0442\u0430\u0432\u043a\u0430',
+    'publicDuels.sortNewest': '\u041d\u043e\u0432\u044b\u0435',
+    'publicDuels.sortHighest': '\u041c\u0430\u043a\u0441. \u0441\u0442\u0430\u0432\u043a\u0430',
+    'publicDuels.sortLowest': '\u041c\u0438\u043d. \u0441\u0442\u0430\u0432\u043a\u0430',
+    'publicDuels.searchPlaceholder': '\u041f\u043e\u0438\u0441\u043a \u043f\u043e \u0438\u0433\u0440\u0435, \u0438\u0433\u0440\u043e\u043a\u0443, \u0441\u0442\u0430\u0432\u043a\u0435...',
+    'timeAgo.now': '\u0442\u043e\u043b\u044c\u043a\u043e \u0447\u0442\u043e',
+    'timeAgo.minutes': '{n} \u043c\u0438\u043d \u043d\u0430\u0437\u0430\u0434',
+    'timeAgo.hours': '{n} \u0447 \u043d\u0430\u0437\u0430\u0434',
+    'timeAgo.days': '{n} \u0434 \u043d\u0430\u0437\u0430\u0434',
 
     // Landing — How it works
     'howItWorks.title': '\u0422\u0440\u0438 \u0448\u0430\u0433\u0430. \u0412\u0441\u0451.',
@@ -631,7 +658,8 @@ export const translations = {
     'dashboard.active': '\u0410\u043a\u0442\u0438\u0432\u043d\u044b\u0435',
     'dashboard.history': '\u0418\u0441\u0442\u043e\u0440\u0438\u044f',
     'dashboard.noDuels': '\u041f\u043e\u043a\u0430 \u043d\u0435\u0442 \u0434\u0443\u044d\u043b\u0435\u0439. \u0421\u043e\u0437\u0434\u0430\u0439 \u043f\u0435\u0440\u0432\u0443\u044e!',
-    'dashboard.noMatches': 'По вашему запросу пока ничего не найдено.',
+    'dashboard.noMatches': '\u041f\u043e \u0432\u0430\u0448\u0435\u043c\u0443 \u0437\u0430\u043f\u0440\u043e\u0441\u0443 \u043f\u043e\u043a\u0430 \u043d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e.',
+    'dashboard.clearSearch': '\u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c \u0444\u0438\u043b\u044c\u0442\u0440\u044b',
     'dashboard.stats': '\u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430',
     'dashboard.wins': '\u041f\u043e\u0431\u0435\u0434\u044b',
     'dashboard.losses': '\u041f\u043e\u0440\u0430\u0436\u0435\u043d\u0438\u044f',

@@ -65,6 +65,7 @@ class DuelMetaControllerTest {
             .andExpect(jsonPath("$.chainId").value(421614))
             .andExpect(jsonPath("$.gameSlug").value("counter-strike-2"))
             .andExpect(jsonPath("$.gameName").value("Counter-Strike 2"))
+            .andExpect(jsonPath("$.category").value("FPS"))
             .andExpect(jsonPath("$.creatorAddress").value("0xcreator"));
 
         mockMvc.perform(get("/api/v1/games/counter-strike-2"))
@@ -121,6 +122,63 @@ class DuelMetaControllerTest {
         mockMvc.perform(get("/api/v1/duels/meta").param("gameSlug", "cs2"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(2));
+    }
+
+    @Test
+    void batchByDuelIdsReturnsMatchingMetas() throws Exception {
+        var auth = new WalletAuthenticationToken("0xcreator");
+
+        mockMvc.perform(post("/api/v1/duels/1/meta")
+                .param("chainId", "421614")
+                .with(authentication(auth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"gameName": "CS2", "category": "FPS"}
+                    """))
+            .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/duels/3/meta")
+                .param("chainId", "421614")
+                .with(authentication(auth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"gameName": "Dota 2", "category": "MOBA"}
+                    """))
+            .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/duels/meta/batch")
+                .param("chainId", "421614")
+                .param("duelIds", "1", "2", "3"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(2))
+            .andExpect(jsonPath("$[0].gameName").exists())
+            .andExpect(jsonPath("$[0].category").exists());
+    }
+
+    @Test
+    void batchByDuelIdsReturnsEmptyForNoMatches() throws Exception {
+        mockMvc.perform(get("/api/v1/duels/meta/batch")
+                .param("chainId", "421614")
+                .param("duelIds", "999", "998"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void batchByDuelIdsDoesNotRequireAuth() throws Exception {
+        mockMvc.perform(get("/api/v1/duels/meta/batch")
+                .param("chainId", "421614")
+                .param("duelIds", "1"))
+            .andExpect(status().isOk());
+    }
+
+    @Test
+    void batchByDuelIdsReturnsEmptyForEmptyList() throws Exception {
+        mockMvc.perform(get("/api/v1/duels/meta/batch")
+                .param("chainId", "421614")
+                .param("duelIds", ""))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test

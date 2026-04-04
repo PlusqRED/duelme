@@ -43,6 +43,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/duels/{duelId}/meta").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/v1/duels/{duelId}/meta").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/duels/meta").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/duels/meta/batch").permitAll()
                 .anyRequest().denyAll()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

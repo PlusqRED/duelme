@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
@@ -75,5 +76,17 @@ public class DuelMetaController {
             @RequestParam @NotBlank String gameSlug,
             @RequestParam(defaultValue = "100") int limit) {
         return duelMetaService.getByGameSlug(gameSlug, limit);
+    }
+
+    @Operation(summary = "Batch fetch duel metadata by duel IDs")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Duel metadata list returned"),
+            @ApiResponse(responseCode = "400", description = "Too many duel IDs (max 200)")
+    })
+    @GetMapping("/meta/batch")
+    public List<DuelMetaResponse> batchByDuelIds(
+            @RequestParam int chainId,
+            @RequestParam @Size(max = 200, message = "Cannot fetch more than 200 duel IDs at once") List<Long> duelIds) {
+        return duelMetaService.getByDuelIds(chainId, duelIds);
     }
 }

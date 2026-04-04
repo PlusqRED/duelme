@@ -9,6 +9,8 @@ import pro.duelme.backend.model.DuelMeta;
 import pro.duelme.backend.repository.DuelMetaRepository;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class DuelMetaService {
@@ -35,7 +37,7 @@ public class DuelMetaService {
                 existing.id(), duelId, chainId, game.slug(), normalizedCaller, existing.createdAt()
             );
             DuelMeta saved = repository.save(updated);
-            return toResponse(saved, game.name());
+            return toResponse(saved, game);
         }
 
         GameResponse game = gameService.getOrCreate(request.gameName(), request.iconUrl(), request.category());
@@ -43,18 +45,18 @@ public class DuelMetaService {
 
         try {
             DuelMeta saved = repository.save(meta);
-            return toResponse(saved, game.name());
+            return toResponse(saved, game);
         } catch (DuplicateKeyException e) {
             DuelMeta found = repository.findByDuelIdAndChainId(duelId, chainId).orElseThrow();
-            return toResponse(found, game.name());
+            return toResponse(found, game);
         }
     }
 
     public DuelMetaResponse getByDuel(long duelId, int chainId) {
         return repository.findByDuelIdAndChainId(duelId, chainId)
             .map(meta -> {
-                String gameName = gameService.getBySlug(meta.gameSlug()).name();
-                return toResponse(meta, gameName);
+                GameResponse game = gameService.getBySlug(meta.gameSlug());
+                return toResponse(meta, game);
             })
             .orElse(null);
     }
@@ -67,15 +69,30 @@ public class DuelMetaService {
             return List.of();
         }
         return repository.findByGameSlug(gameSlug).stream()
-            .map(meta -> toResponse(meta, game.name()))
+            .map(meta -> toResponse(meta, game))
             .limit(limit)
             .toList();
     }
 
-    private DuelMetaResponse toResponse(DuelMeta meta, String gameName) {
+    public List<DuelMetaResponse> getByDuelIds(int chainId, List<Long> duelIds) {
+        if (duelIds.isEmpty()) return List.of();
+        List<DuelMeta> metas = repository.findByChainIdAndDuelIdIn(chainId, duelIds);
+        if (metas.isEmpty()) return List.of();
+
+        Map<String, GameResponse> gamesBySlug = metas.stream()
+            .map(DuelMeta::gameSlug)
+            .distinct()
+            .collect(Collectors.toMap(slug -> slug, gameService::getBySlug));
+
+        return metas.stream()
+            .map(meta -> toResponse(meta, gamesBySlug.get(meta.gameSlug())))
+            .toList();
+    }
+
+    private DuelMetaResponse toResponse(DuelMeta meta, GameResponse game) {
         return new DuelMetaResponse(
             meta.duelId(), meta.chainId(), meta.gameSlug(),
-            gameName, meta.creatorAddress(), meta.createdAt()
+            game.name(), game.category(), meta.creatorAddress(), meta.createdAt()
         );
     }
 }

@@ -46,6 +46,7 @@ class DuelMetaServiceTest {
         assertThat(response.chainId()).isEqualTo(421614);
         assertThat(response.gameSlug()).isEqualTo("counter-strike-2");
         assertThat(response.gameName()).isEqualTo("Counter-Strike 2");
+        assertThat(response.category()).isEqualTo(GameCategory.FPS);
         assertThat(response.creatorAddress()).isEqualTo("0xcreator");
         assertThat(response.createdAt()).isNotNull();
     }
@@ -189,5 +190,33 @@ class DuelMetaServiceTest {
         List<DuelMetaResponse> results = duelMetaService.getByGameSlug("cs2", 2);
 
         assertThat(results).hasSize(2);
+    }
+
+    @Test
+    void getByDuelIdsReturnsMatchingMetas() {
+        duelMetaService.attachGame(1, 421614, "0xcreator", new DuelMetaRequest("CS2", null, GameCategory.FPS));
+        duelMetaService.attachGame(3, 421614, "0xcreator", new DuelMetaRequest("Dota 2", null, GameCategory.MOBA));
+
+        List<DuelMetaResponse> results = duelMetaService.getByDuelIds(421614, List.of(1L, 2L, 3L));
+
+        assertThat(results).hasSize(2);
+        assertThat(results).extracting(DuelMetaResponse::duelId).containsExactlyInAnyOrder(1L, 3L);
+        assertThat(results).extracting(DuelMetaResponse::category).containsExactlyInAnyOrder(GameCategory.FPS, GameCategory.MOBA);
+    }
+
+    @Test
+    void getByDuelIdsReturnsEmptyForEmptyInput() {
+        List<DuelMetaResponse> results = duelMetaService.getByDuelIds(421614, List.of());
+
+        assertThat(results).isEmpty();
+    }
+
+    @Test
+    void getByDuelIdsReturnsEmptyForWrongChain() {
+        duelMetaService.attachGame(1, 421614, "0xcreator", new DuelMetaRequest("CS2", null, null));
+
+        List<DuelMetaResponse> results = duelMetaService.getByDuelIds(1, List.of(1L));
+
+        assertThat(results).isEmpty();
     }
 }

@@ -50,3 +50,11 @@ export async function fetchDuelMeta(duelId: number, chainId: number): Promise<Du
   if (!res.ok) throw new Error('Failed to fetch duel metadata');
   return res.json();
 }
+
+export async function fetchDuelMetaBatch(chainId: number, duelIds: number[]): Promise<DuelMeta[]> {
+  if (duelIds.length === 0) return [];
+  const ids = duelIds.join(',');
+  const res = await fetch(`${API_BASE}/duels/meta/batch?chainId=${chainId}&duelIds=${ids}`);
+  if (!res.ok) throw new Error('Failed to fetch duel metadata batch');
+  return res.json();
+}

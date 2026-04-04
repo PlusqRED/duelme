@@ -4,10 +4,10 @@ import { useMemo } from 'react';
 import { useReadContract, useReadContracts } from 'wagmi';
 import { formatUnits } from 'viem';
 import { duelMeAbi, DuelState } from '@/lib/contracts';
-import { DUELME_ADDRESSES, USDT_DECIMALS, ZERO_ADDRESS } from '@/lib/constants';
+import { DUELME_ADDRESSES, USDT_DECIMALS, ZERO_ADDRESS, DEFAULT_CHAIN_ID } from '@/lib/constants';
 import { isPublicDuel } from '@/lib/invite';
 
-export interface OpenDuel {
+export interface PublicDuel {
   id: number;
   creator: `0x${string}`;
   wager: number;
@@ -16,9 +16,8 @@ export interface OpenDuel {
   createdAt: bigint;
   chainId: number;
 }
-const DEFAULT_CHAIN_ID = 421614;
 
-export function useOpenDuels() {
+export function usePublicDuels() {
   const contractAddress = DUELME_ADDRESSES[DEFAULT_CHAIN_ID];
   const enabled = !!contractAddress && contractAddress !== ZERO_ADDRESS;
 
@@ -48,10 +47,10 @@ export function useOpenDuels() {
     query: { enabled: duelContracts.length > 0, refetchInterval: 10_000, staleTime: 0 },
   });
 
-  const duels = useMemo<OpenDuel[]>(() => {
+  const duels = useMemo<PublicDuel[]>(() => {
     if (!duelResults) return [];
 
-    const open: OpenDuel[] = [];
+    const open: PublicDuel[] = [];
 
     for (let i = 0; i < duelResults.length; i++) {
       const res = duelResults[i];

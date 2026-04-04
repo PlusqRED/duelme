@@ -2,14 +2,14 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Public Duels', () => {
 
-  test('/duels/open page loads with title', async ({ page }) => {
-    await page.goto('/duels/open');
-    await expect(page.locator('h1')).toContainText(/Open Duels|Открытые дуэли/);
+  test('/duels/public page loads with title', async ({ page }) => {
+    await page.goto('/duels/public');
+    await expect(page.locator('h1')).toContainText(/Public Duels|Публичные дуэли/);
   });
 
-  test('/duels/open shows content or empty state', async ({ page }) => {
-    await page.goto('/duels/open');
-    const emptyOrCards = page.locator('text=/No open duels|Открытых дуэлей пока нет|USDT/');
+  test('/duels/public shows content or empty state', async ({ page }) => {
+    await page.goto('/duels/public');
+    const emptyOrCards = page.locator('text=/No public duels|Публичных дуэлей пока нет|USDT/');
     await expect(emptyOrCards.first()).toBeVisible({ timeout: 15000 });
   });
 
@@ -35,11 +35,11 @@ test.describe('Public Duels', () => {
     await expect(hint.first()).toBeVisible();
   });
 
-  test('Header has Open Duels navigation link', async ({ page }) => {
+  test('Header has Public Duels navigation link', async ({ page }) => {
     await page.goto('/');
-    const navLink = page.locator('a[href="/duels/open"]');
+    const navLink = page.locator('a[href="/duels/public"]');
     await expect(navLink.first()).toBeVisible();
-    await expect(navLink.first()).toContainText(/Open Duels|Открытые дуэли/);
+    await expect(navLink.first()).toContainText(/Public Duels|Публичные дуэли/);
   });
 
 });

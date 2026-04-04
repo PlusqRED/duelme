@@ -337,7 +337,16 @@ export function Header() {
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
         {/* Logo + socials */}
         <div className="flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-2">
+          <Link
+            href="/"
+            onClick={(e) => {
+              if (pathname === '/') {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }}
+            className="flex items-center gap-2"
+          >
             <Swords className="h-5 w-5 text-indigo-600" />
             <span className="text-lg font-bold text-slate-900">DuelMe</span>
           </Link>
@@ -381,15 +390,15 @@ export function Header() {
             {t('nav.games')}
           </Link>
           <Link
-            href="/duels/open"
+            href="/duels/public"
             className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-              pathname.startsWith('/duels/open')
+              pathname.startsWith('/duels/public')
                 ? 'bg-indigo-50 text-indigo-700'
                 : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
             }`}
           >
             <Swords className="h-4 w-4" />
-            {t('nav.openDuels')}
+            {t('nav.publicDuels')}
           </Link>
 
           {ready && authenticated ? (
@@ -505,16 +514,16 @@ export function Header() {
               {t('nav.games')}
             </Link>
             <Link
-              href="/duels/open"
+              href="/duels/public"
               onClick={() => setMobileMenuOpen(false)}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                pathname.startsWith('/duels/open')
+                pathname.startsWith('/duels/public')
                   ? 'bg-indigo-50 text-indigo-700'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
               }`}
             >
               <Swords className="h-4 w-4" />
-              {t('nav.openDuels')}
+              {t('nav.publicDuels')}
             </Link>
             {ready && authenticated ? (
               <div className="flex flex-1 items-center gap-2">

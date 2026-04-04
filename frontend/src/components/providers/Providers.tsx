@@ -1,10 +1,10 @@
 'use client';
 
-import { type ReactNode, useCallback } from 'react';
-import { PrivyProvider } from '@privy-io/react-auth';
+import { type ReactNode, useCallback, useEffect, useRef } from 'react';
+import { PrivyProvider, usePrivy } from '@privy-io/react-auth';
 import { WagmiProvider } from '@privy-io/wagmi';
 import type { SetActiveWalletForWagmiType } from '@privy-io/wagmi';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { wagmiConfig, supportedChains } from '@/lib/wagmi';
 import { selectWallet } from '@/lib/walletSelection';
 import { LanguageProvider } from '@/i18n/LanguageContext';
@@ -19,6 +19,23 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+/** Clears the React Query cache when the Privy user changes (logout / account switch). */
+function QueryCacheManager() {
+  const { user } = usePrivy();
+  const qc = useQueryClient();
+  const prevUserIdRef = useRef(user?.id);
+
+  useEffect(() => {
+    const currentId = user?.id;
+    if (prevUserIdRef.current && prevUserIdRef.current !== currentId) {
+      qc.clear();
+    }
+    prevUserIdRef.current = currentId;
+  }, [user?.id, qc]);
+
+  return null;
+}
 
 export function Providers({ children }: { children: ReactNode }) {
   const selectActiveWallet = useCallback<SetActiveWalletForWagmiType>(
@@ -46,6 +63,7 @@ export function Providers({ children }: { children: ReactNode }) {
       }}
     >
       <QueryClientProvider client={queryClient}>
+        <QueryCacheManager />
         <WagmiProvider config={wagmiConfig} setActiveWalletForWagmi={selectActiveWallet}>
           <LanguageProvider>
             <TooltipProvider>
