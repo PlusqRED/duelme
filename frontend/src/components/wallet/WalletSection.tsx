@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { parseUnits, encodeFunctionData } from 'viem';
+import { parseUnits, encodeFunctionData, formatUnits } from 'viem';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,39 +10,10 @@ import { useAppToast } from '@/hooks/useAppToast';
 import { usePrivy } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useReadContract, useChainId } from 'wagmi';
-import { formatUnits } from 'viem';
-import { SUPPORTED_CHAINS, USDT_DECIMALS } from '@/lib/constants';
+import { USDT_DECIMALS } from '@/lib/constants';
+import { balanceOfAbi, transferAbi, getUsdtAddress } from '@/lib/contracts';
 import { Send, KeyRound, Wallet, Copy, Check } from 'lucide-react';
 import { emitBalanceRefreshBurst, subscribeToBalanceRefresh } from '@/lib/balanceRefresh';
-
-const balanceOfAbi = [
-  {
-    name: 'balanceOf',
-    type: 'function',
-    stateMutability: 'view',
-    inputs: [{ name: 'account', type: 'address' }],
-    outputs: [{ name: '', type: 'uint256' }],
-  },
-] as const;
-
-const transferAbi = [
-  {
-    name: 'transfer',
-    type: 'function',
-    stateMutability: 'nonpayable',
-    inputs: [
-      { name: 'to', type: 'address' },
-      { name: 'amount', type: 'uint256' },
-    ],
-    outputs: [{ name: '', type: 'bool' }],
-  },
-] as const;
-
-function getUsdtAddress(chainId: number | undefined) {
-  if (chainId === 421614) return SUPPORTED_CHAINS.arbitrumSepolia.usdt;
-  if (chainId === 42161) return SUPPORTED_CHAINS.arbitrum.usdt;
-  return undefined;
-}
 
 export function WalletSection() {
   const { t } = useTranslation();

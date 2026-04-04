@@ -127,23 +127,11 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
 
         Duel storage duel = duels[duelId];
         duel.creator = msg.sender;
-        duel.opponent = address(0);
         duel.wagerAmount = amount;
         duel.inviteHash = inviteHash;
         duel.message = message;
-        duel.claimedWinner = address(0);
-        duel.claimedBy = address(0);
-        duel.cancelRequestedBy = address(0);
         duel.createdAt = block.timestamp;
-        duel.fundedAt = 0;
-        duel.cancelRequestedAt = 0;
-        duel.claimTimestamp = 0;
-        duel.finalizedAt = 0;
-        duel.creatorPayout = 0;
-        duel.opponentPayout = 0;
-        duel.creatorClaimed = false;
-        duel.opponentClaimed = false;
-        duel.state = DuelState.Created;
+        // All other fields default to zero/address(0)/false/DuelState.Created
 
         emit DuelCreated(duelId, msg.sender, amount);
     }

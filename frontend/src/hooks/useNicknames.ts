@@ -4,8 +4,7 @@ import { useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchProfilesByAddresses } from '@/lib/profileApi';
 import { truncateAddress } from '@/lib/utils';
-
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+import { ZERO_ADDRESS } from '@/lib/constants';
 
 export function useNicknames(addresses: Array<string | undefined>) {
   const normalizedAddresses = useMemo(

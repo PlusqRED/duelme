@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { useReadContract, useReadContracts } from 'wagmi';
 import { formatUnits } from 'viem';
 import { duelMeAbi, DuelState } from '@/lib/contracts';
-import { DUELME_ADDRESSES, USDT_DECIMALS } from '@/lib/constants';
+import { DUELME_ADDRESSES, USDT_DECIMALS, ZERO_ADDRESS, CHAIN_NAMES } from '@/lib/constants';
 
 export interface RecentDuel {
   id: number;
@@ -18,13 +18,6 @@ export interface RecentDuel {
   chainName: string;
   state: DuelState;
 }
-
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-
-const CHAIN_NAMES: Record<number, string> = {
-  421614: 'Arb Sepolia',
-  42161: 'Arbitrum One',
-};
 
 const DEFAULT_CHAIN_ID = 421614;
 

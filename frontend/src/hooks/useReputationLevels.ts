@@ -3,10 +3,8 @@
 import { useMemo } from 'react';
 import { useReadContracts } from 'wagmi';
 import { duelMeAbi } from '@/lib/contracts';
-import { DUELME_ADDRESSES } from '@/lib/constants';
+import { DUELME_ADDRESSES, ZERO_ADDRESS } from '@/lib/constants';
 import { getReputationLevelFromStats, type ReputationLevel } from '@/lib/reputation';
-
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 export function useReputationLevels(addresses: Array<string | undefined>, chainId: number) {
   const contractAddress = DUELME_ADDRESSES[chainId];

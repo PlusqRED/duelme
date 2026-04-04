@@ -43,9 +43,9 @@ forge coverage --report summary  # Coverage
 ## Git Conventions
 
 - **Never** add `Co-Authored-By` or any Claude attribution to commits
-- Commit messages: imperative mood, explain "why" not "what"
 - Do not push unless explicitly asked
 - Do not amend existing commits unless explicitly asked
+- See [Documentation Standards](#documentation-standards) for commit message format
 
 ## Architecture Decisions
 
@@ -98,8 +98,8 @@ All write operations follow: check chain → check allowance → approve if need
 |------|---------|
 | `contracts/src/DuelMe.sol` | Core duel contract |
 | `frontend/src/lib/wagmi.ts` | wagmi config (Privy adapter) |
-| `frontend/src/lib/contracts.ts` | ABI, DuelState enum |
-| `frontend/src/lib/constants.ts` | Chain configs, contract addresses |
+| `frontend/src/lib/contracts.ts` | ABI, DuelState enum, ACTIVE_STATES, ERC20 ABIs, getUsdtAddress |
+| `frontend/src/lib/constants.ts` | Chain configs, contract addresses, ZERO_ADDRESS, CHAIN_NAMES |
 | `frontend/src/components/providers/Providers.tsx` | Privy + wagmi + QueryClient providers |
 | `frontend/src/hooks/useDuel.ts` | Read single duel |
 | `frontend/src/hooks/useDuelActions.ts` | Write actions (join, cancel, claim, etc.) |
@@ -117,6 +117,7 @@ All write operations follow: check chain → check allowance → approve if need
 | `backend/src/.../controller/ProfileController.java` | Profile CRUD endpoints |
 | `backend/src/.../security/PrivyJwksService.java` | Privy JWT verification via JWKS |
 | `backend/src/.../security/PrivyJwtAuthenticationFilter.java` | Bearer token → wallet auth filter |
+| `backend/src/.../exception/GlobalExceptionHandler.java` | Centralized error handling (404, 403, 400) |
 | `backend/src/.../model/Profile.java` | MongoDB profile document (record) |
 | `frontend/src/lib/profile.ts` | Profile types and validation constants |
 | `frontend/src/lib/profileApi.ts` | Backend profile API client |
@@ -146,32 +147,276 @@ Created(0) → Cancelled(5)
            → Declined(6)
 ```
 
-## Code Style
+## Development Standards
 
-- TypeScript strict mode, functional components with hooks
-- Tailwind CSS + shadcn/ui for styling
-- Translations via `useTranslation()` — always add both EN and RU keys
-- `truncateAddress()` for display, full address with copy button for important contexts
+### General Principles
 
-### Backend API Documentation (MANDATORY)
+**File size discipline:** No source file should exceed 300 lines. When a file approaches this limit, proactively extract logical units into separate files — helper functions into utilities, sub-components into their own files, complex hooks into composable hooks. A file doing too many things is a bug waiting to happen. Apply the Single Responsibility Principle at the file level: one file = one clear purpose.
 
-Every backend REST endpoint **must** have complete OpenAPI/Swagger documentation. This is a blocking requirement — do not merge endpoints without it.
+**DRY — Single Source of Truth:** Every constant, type, helper, and ABI must have exactly one canonical definition. Import from the source. Never copy-paste a value "just for this file." If you find yourself defining the same thing in two places, extract it immediately. See `constants.ts` and `contracts.ts` for shared definitions.
+
+**YAGNI — Build What's Needed:** Do not add features, parameters, configuration options, or abstractions for hypothetical future use. Build what the task requires. Three similar lines are better than a premature abstraction. Add abstractions only when the third concrete use case demands it.
+
+**Fail fast, fail clearly:** Validate at system boundaries (user input, API requests, contract calls). Inside the system, trust the types and let errors surface naturally. Never silently swallow errors — either handle them with user-facing feedback or let them propagate.
+
+**Self-review before completion:** Before declaring any task done, always:
+1. Run the type-checker (`npx tsc --noEmit`)
+2. Run the linter (`npm run lint`)
+3. Run relevant tests (`forge test`, `./gradlew test`, `npm run test`)
+4. Read through the diff — look for accidental debug code, missing error handling, inconsistent naming
+
+---
+
+### Frontend Standards (Next.js / React / TypeScript / Tailwind)
+
+**Component architecture:**
+- Functional components only, with hooks for all state and side effects
+- Use `function` keyword for components, not `const` arrow functions. Named exports only — no default exports
+- TypeScript strict mode — no `any`, no `as` casts without validation. Use type guards or Zod when narrowing unknown data
+- Props interfaces defined directly above the component, named `{ComponentName}Props`
+- One exported component per file. Internal helper components are fine if small (<30 lines)
+- Guard clauses first, happy path last — no deeply nested `if/else` trees. Early return for every error condition
+- Extract reusable logic into custom hooks in `hooks/`. Extract pure logic into `lib/`
+- Use `'use client'` directive only on components that need browser APIs. Keep server components as default
+- Never use barrel files (`index.ts` re-exports) in component directories — they break tree-shaking
+
+**Hooks patterns:**
+- Name custom hooks `use{Feature}` — each hook should own one concern
+- Return objects (not arrays) for hooks with >2 return values: `{ data, isLoading, refetch }`
+- For contract reads: use `useReadContract` / `useReadContracts` with explicit `query` options
+- Always specify `enabled`, `refetchInterval`, and `staleTime` in query config
+- Memoize expensive computations with `useMemo`. Memoize callbacks passed to children with `useCallback`
+- Never put async calls directly in `useEffect` — extract to a function or use React Query
+
+**State management:**
+- URL state for navigation-relevant state (active tab, filters)
+- React state (`useState`) for ephemeral UI state (modals, form inputs)
+- React Query for server/contract state — never manually sync remote data into `useState`
+- Context only for cross-cutting concerns (theme, language, wallet) — not for data fetching
+
+**Styling:**
+- Tailwind CSS utility classes for all styling. No inline styles, no CSS modules
+- Use `cn()` from `lib/utils.ts` for conditional class merging (clsx + tailwind-merge)
+- shadcn/ui components as the base. Customize via Tailwind, not by overriding component internals
+- Responsive-first: mobile layout is default, `md:` / `lg:` for larger breakpoints
+- Design tokens via Tailwind theme — never hardcode colors, spacing, or breakpoints
+
+**Error handling:**
+- Use `try/catch` around async operations that interact with wallets or APIs
+- Show user-facing toast via `useAppToast()` for all error states — never silent failures
+- Contract reverts: parse the error message and show a human-readable explanation
+- API errors: check `res.ok` before parsing. Return sensible defaults on failure in hooks
+
+**Performance:**
+- Lazy load heavy components with `next/dynamic` and `{ ssr: false }` for wallet-dependent UI
+- Use `useMemo` for filtered/sorted lists derived from large datasets
+- Avoid re-renders: don't create objects/arrays in render — extract to `useMemo` or module scope
+- Images: use `next/image` with explicit width/height. Always set `loading="lazy"` for below-fold
+
+**Internationalization:**
+- All user-visible strings go through `useTranslation()` — no hardcoded text in JSX
+- Always add both EN and RU keys in `translations.ts` when adding new strings
+- Use ICU message format for plurals and interpolation
+
+**Naming conventions:**
+- Components: `PascalCase` files and exports (`DuelCard.tsx`)
+- Hooks: `camelCase` files prefixed with `use` (`useDuel.ts`)
+- Utilities/libs: `camelCase` files (`duelSearch.ts`)
+- Constants: `UPPER_SNAKE_CASE` for primitive values, `camelCase` for objects/maps
+- Types: `PascalCase`, prefer `interface` over `type` for object shapes
+
+---
+
+### Backend Standards (Java / Spring Boot / MongoDB)
+
+**Layer architecture — strict separation:**
+- **Controller**: HTTP mapping, request validation, response shaping. No business logic. Max 50 lines per method
+- **Service**: Business logic, authorization checks, transaction boundaries. Controllers call services, never repositories directly
+- **Repository**: Data access only. Custom queries via Spring Data method names or `@Query`
+- **DTO**: Separate request/response records from domain models. Never expose MongoDB documents directly. Never reuse the same record for both request and response
+- **Exception**: Domain-specific exceptions handled in `GlobalExceptionHandler`. Never catch generic `Exception`
+- No circular dependencies between services — extract shared logic into a third service if needed
+
+**Java records and immutability:**
+- Use `record` for all DTOs, value objects, and MongoDB documents
+- Never use mutable fields or setters. Build new instances for modifications
+- Constructor validation via compact constructor for domain constraints
+- Constructor injection only — no `@Autowired` on fields. Single constructor per class (Spring auto-injects)
+- No Lombok — Java records and modern language features cover the same ground
+- Use `var` for local variables when the type is obvious from the right side
+
+**Input validation:**
+- `@Valid` on all `@RequestBody` parameters. Jakarta Bean Validation annotations on DTO fields
+- `@Validated` on controller class + `@NotBlank` / `@Size` on `@RequestParam` / `@PathVariable`
+- Wallet addresses: always `.toLowerCase()` at the service boundary. Store normalized
+- Sanitize and limit string inputs: max length on all user-provided text fields
+
+**Exception handling:**
+- Domain exceptions extend `RuntimeException` with descriptive messages
+- `GlobalExceptionHandler` maps exceptions to HTTP status codes:
+  - `*NotFoundException` → 404
+  - `NotAuthorizedException` → 403
+  - `ConstraintViolationException` / `MethodArgumentNotValidException` → 400
+- Never return stack traces in API responses. Log them server-side only
+
+**Security:**
+- All mutating endpoints require authentication (`@AuthenticationPrincipal`)
+- Authorization checks in service layer: verify the caller owns/created the resource
+- No default values for secrets in `application.yml` — all secrets via env vars
+- Rate limiting consideration for batch endpoints
+
+**API documentation (MANDATORY):**
+Every endpoint must have complete OpenAPI annotations. This is a blocking requirement.
 
 When **adding** a new endpoint:
-1. Annotate the controller class with `@Tag(name = "...", description = "...")` if not already present
-2. Annotate the method with `@Operation(summary = "...")` — concise one-line description
-3. Add `security = @SecurityRequirement(name = "bearer")` to `@Operation` if the endpoint requires authentication
-4. Annotate `@AuthenticationPrincipal` parameters with `@Parameter(hidden = true)` so they don't appear in Swagger UI
-5. Add the endpoint path to `SecurityConfig.java` with `.permitAll()` or `.authenticated()` as appropriate
-6. If the endpoint is public, also add it to the Swagger UI permit list in SecurityConfig
+1. `@Tag(name = "...", description = "...")` on the controller class
+2. `@Operation(summary = "...")` on the method
+3. `security = @SecurityRequirement(name = "bearer")` if authenticated
+4. `@ApiResponses` with all relevant response codes (200, 400, 401, 403, 404)
+5. `@Parameter(hidden = true)` on `@AuthenticationPrincipal`
+6. Register in `SecurityConfig.java` with `.permitAll()` or `.authenticated()`
 
-When **modifying** an existing endpoint:
-1. Update `@Operation(summary = ...)` if the behavior changed
-2. Update security annotations if auth requirements changed
-3. Update `SecurityConfig.java` if the path or HTTP method changed
+When **modifying** an existing endpoint: update `@Operation`, security annotations, and `SecurityConfig` as needed.
 
-OpenAPI config: `backend/src/main/java/pro/duelme/backend/config/OpenApiConfig.java`
-Swagger UI: `https://dev.duelme.pro/api/v1/swagger-ui` (dev) / `https://duelme.pro/api/v1/swagger-ui` (prod) — API docs JSON: `/v3/api-docs`
+OpenAPI config: `backend/src/.../config/OpenApiConfig.java`
+Swagger UI: `https://dev.duelme.pro/api/v1/swagger-ui` (dev) / `https://duelme.pro/api/v1/swagger-ui` (prod)
+
+---
+
+### Smart Contract Standards (Solidity / Foundry)
+
+**Security-first development:**
+- Every state-mutating function: `nonReentrant` + `whenNotPaused`. No exceptions
+- Use `SafeERC20` for all token operations. Never use raw `.transfer()` / `.transferFrom()`
+- CEI pattern (Checks-Effects-Interactions): validate inputs → update state → external calls
+- Access control: `onlyOwner` for admin functions. Authorization checks before state changes
+- Never trust `msg.value` arithmetic — use explicit amount parameters
+- Pull-over-push for payouts: let users claim, never push funds to arbitrary addresses
+
+**Gas optimization:**
+- Don't initialize storage variables to their default values (0, address(0), false)
+- Use `calldata` instead of `memory` for read-only function parameters
+- Pack storage variables: group smaller types together in struct definitions
+- Prefer `uint256` for loop counters and intermediate calculations
+- Use events for data that doesn't need on-chain access
+- `immutable` for constructor-set values, `constant` for compile-time literals (eliminates SLOAD)
+- Cache storage reads in local variables — each repeated SLOAD costs 100 gas
+- Short-circuit `require` checks: cheapest check first
+
+**Testing strategy:**
+- Unit tests for every public/external function — happy path + all revert conditions
+- Test access control: verify `onlyOwner` reverts for non-owners
+- Test state transitions: verify each state can only transition to valid next states
+- Boundary tests: exact thresholds, zero values, max values
+- Integration tests: full lifecycle flows (create → join → claim → confirm → payout)
+- Fuzz tests for arithmetic-heavy functions when applicable
+- Target: >90% line coverage. Emergency/admin functions included
+
+**Documentation:**
+- NatSpec `@notice` on all public functions
+- `@param` and `@return` for non-obvious parameters
+- Emit events for every state change — frontends depend on these
+
+**ABI sync:** After any contract change, regenerate ABI and sync to `frontend/src/lib/contracts.ts`. Run `forge build` → copy ABI → verify frontend type-checks clean.
+
+---
+
+### Testing Standards
+
+**When to write tests:**
+- New feature: write tests alongside or immediately after implementation
+- Bug fix: write a failing test that reproduces the bug first, then fix
+- Refactoring: verify existing tests pass before and after. Add tests for uncovered paths
+- Every public API surface (contract function, REST endpoint, exported hook) must have tests
+
+**Test structure — AAA pattern:**
+```
+Arrange → set up preconditions and inputs
+Act     → execute the operation under test
+Assert  → verify the expected outcome
+```
+One behavior per test. Name tests descriptively: `test{Action}{ExpectedResult}` or `{action} {expected result}`.
+
+**Frontend tests (Vitest):**
+- Test pure logic in `lib/` (formatting, validation, search) — these are fast and valuable
+- Test hook behavior with `renderHook` for complex hooks
+- No testing of implementation details — test observable behavior
+- Mock external dependencies (contract reads, API calls) at the boundary
+
+**Backend tests (JUnit 5 + Spring Boot Test):**
+- `@SpringBootTest` + `@AutoConfigureMockMvc` + embedded MongoDB for integration tests
+- Test controller layer through `MockMvc` — verify HTTP status, response shape, auth enforcement
+- Test service layer for business logic, authorization, edge cases
+- Use `WalletAuthenticationToken` for simulating authenticated requests
+- `@BeforeEach` cleanup: delete all documents to ensure test isolation
+- Test validation: verify 400 responses for invalid inputs
+
+**Contract tests (Foundry):**
+- One test file per logical area (core, payouts, emergency)
+- Use setUp() with standard test accounts (creator, opponent, attacker, owner)
+- Test all revert conditions with `vm.expectRevert`
+- Test events with `vm.expectEmit`
+- Use `vm.warp` for time-dependent logic (timeouts, timelocks)
+- Use `vm.prank` for access control tests
+
+**Edge cases to always check:**
+- Zero-value and max-value inputs
+- Unauthorized callers (wrong wallet, no auth token)
+- Double-execution (claim twice, join twice, cancel after cancel)
+- Empty strings and strings at boundary length
+- Reentrancy (contracts have `nonReentrant`, but test that it actually blocks)
+
+**Coverage expectations:**
+- Contracts: >90% line coverage (`forge coverage --report summary`)
+- Backend: all endpoints + all service methods tested, focus on auth + validation paths
+- Frontend: all `lib/` pure functions tested
+
+---
+
+### Documentation Standards
+
+**CLAUDE.md maintenance:**
+- Keep in sync with code reality. When changing architecture, update CLAUDE.md in the same commit
+- Key Files table: add new files, remove deleted ones. Every important file should be listed
+- Common Pitfalls: add any non-obvious gotcha discovered during development
+- Done section: update after completing major features
+
+**Code comments:**
+- Don't comment obvious code. Comments explain "why", never "what"
+- Use comments for: non-obvious business rules, workarounds for external bugs, performance-critical decisions
+- TODO comments are banned in committed code — file an issue instead
+
+**Commit messages:**
+- Imperative mood: "Add X" not "Added X" or "Adds X"
+- First line: what changed and why (max 72 chars)
+- Body (if needed): context that isn't obvious from the diff
+- Never add `Co-Authored-By` or any AI attribution
+
+---
+
+### Subagent Quality Requirements
+
+**IMPORTANT: Subagents do NOT receive CLAUDE.md automatically.** The main agent must explicitly include instructions in every subagent prompt. Every Agent tool call must begin with:
+
+> "Read /home/oserver/projects/duelme/CLAUDE.md first — it contains project conventions, development standards, and quality requirements you must follow."
+
+Additionally, the prompt must include these requirements:
+
+**Context loading:** Read CLAUDE.md and the relevant source files before writing any code. Understand the project patterns, naming conventions, and architectural decisions before touching code.
+
+**Code quality mandate:**
+- Follow the project's existing patterns exactly — study neighboring files for style
+- Never introduce code smells: no duplicated constants, no oversized functions, no `any` types
+- All new code must pass: `npx tsc --noEmit`, `npm run lint`, `forge build`, `./gradlew build`
+- Handle errors at system boundaries. No silent failures
+
+**Test coverage:** Every subagent that writes implementation code must also write tests. No exceptions. If the agent creates a new service method, it writes the test. If it adds a contract function, it writes the test.
+
+**Self-review:** Before completing, the agent must:
+1. Re-read all files it modified and check for inconsistencies
+2. Verify no unused imports, dead code, or accidental debug statements
+3. Confirm naming matches project conventions
+4. Run the relevant test suite and verify all tests pass
 
 ## Environment
 
@@ -192,6 +437,8 @@ Swagger UI: `https://dev.duelme.pro/api/v1/swagger-ui` (dev) / `https://duelme.p
 - Only `contracts/broadcast/Deploy.s.sol/421614/run-latest.json` should be tracked; timestamped `run-*.json` files stay ignored
 - README contract addresses are generated from `run-latest.json`; let `scripts/sync_readme_contract_addresses.py` / the pre-commit hook update that block
 - In this environment, source `contracts/.env` before manual deploys (`set -a && . ./.env && set +a`)
+- Use shared constants from `constants.ts` (`ZERO_ADDRESS`, `CHAIN_NAMES`) and `contracts.ts` (`ACTIVE_STATES`, `balanceOfAbi`, `transferAbi`, `getUsdtAddress`) — never redefine locally
+- `PRIVY_APP_ID` env var is required for backend — no default value in application.yml
 
 ## Done — Durable Session Memory
 

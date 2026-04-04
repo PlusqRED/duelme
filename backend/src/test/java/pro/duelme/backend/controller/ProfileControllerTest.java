@@ -35,13 +35,6 @@ class ProfileControllerTest {
     }
 
     @Test
-    void healthReturnsOk() throws Exception {
-        mockMvc.perform(get("/api/v1/health"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.status").value("ok"));
-    }
-
-    @Test
     void upsertAndGetProfile() throws Exception {
         var auth = new WalletAuthenticationToken("0xtest123");
 

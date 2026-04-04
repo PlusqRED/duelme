@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { useReadContract, useReadContracts } from 'wagmi';
 import { formatUnits } from 'viem';
 import { duelMeAbi, DuelState } from '@/lib/contracts';
-import { DUELME_ADDRESSES, USDT_DECIMALS } from '@/lib/constants';
+import { DUELME_ADDRESSES, USDT_DECIMALS, ZERO_ADDRESS } from '@/lib/constants';
 import { isPublicDuel } from '@/lib/invite';
 
 export interface OpenDuel {
@@ -16,8 +16,6 @@ export interface OpenDuel {
   createdAt: bigint;
   chainId: number;
 }
-
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const DEFAULT_CHAIN_ID = 421614;
 
 export function useOpenDuels() {
