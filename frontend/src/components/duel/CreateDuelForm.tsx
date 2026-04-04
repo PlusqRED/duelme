@@ -11,10 +11,13 @@ import { useAppToast } from '@/hooks/useAppToast';
 import { SUPPORTED_CHAINS, MIN_WAGER, USDT_DECIMALS, DUELME_ADDRESSES } from '@/lib/constants';
 import { erc20Abi, duelMeAbi } from '@/lib/contracts';
 import { MAX_DUEL_MESSAGE_CHARACTERS, countDuelMessageCharacters, isDuelMessageValid } from '@/lib/duelMessage';
-import { generateInviteSecret, hashInviteSecret, storeInviteSecret } from '@/lib/invite';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { generateInviteSecret, hashInviteSecret, storeInviteSecret, PUBLIC_INVITE_SECRET, PUBLIC_INVITE_HASH } from '@/lib/invite';
+import { usePrivy, useIdentityToken } from '@privy-io/react-auth';
+import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useDuelActions } from '@/hooks/useDuelActions';
-import { Swords, Shield, Zap, DollarSign } from 'lucide-react';
+import { GameAutocomplete } from '@/components/game/GameAutocomplete';
+import { attachGameToDuel } from '@/lib/gameApi';
+import { Swords, Shield, Zap, DollarSign, Gamepad2, Lock, Globe } from 'lucide-react';
 import { emitBalanceRefresh } from '@/lib/balanceRefresh';
 
 const PRESETS = [5, 10, 25, 50, 100];
@@ -28,10 +31,12 @@ export function CreateDuelForm() {
   const [selectedChain, setSelectedChain] = useState<keyof typeof SUPPORTED_CHAINS>(
     'arbitrumSepolia'
   );
+  const [gameName, setGameName] = useState('');
+  const [isPublic, setIsPublic] = useState(false);
 
   const { ready, authenticated, login } = usePrivy();
-  const { wallets } = useWallets();
-  const activeWallet = wallets[0];
+  const { identityToken } = useIdentityToken();
+  const { activeWallet, walletAddress } = useActiveWallet();
 
   const chainConfig = SUPPORTED_CHAINS[selectedChain];
   const contractAddress = DUELME_ADDRESSES[chainConfig.id];
@@ -48,7 +53,6 @@ export function CreateDuelForm() {
   const pendingMessage = useRef('');
 
   // Check current allowance
-  const walletAddress = activeWallet?.address as `0x${string}` | undefined;
   const { data: currentAllowance, refetch: refetchAllowance } = useReadContract({
     address: chainConfig.usdt,
     abi: erc20Abi,
@@ -96,6 +100,10 @@ export function CreateDuelForm() {
         if (pendingInviteSecret.current) {
           storeInviteSecret(chainConfig.id, Number(duelId), pendingInviteSecret.current);
         }
+        if (gameName.trim() && identityToken) {
+          // Fire and forget — duel exists on-chain regardless of metadata attachment
+          attachGameToDuel(identityToken, Number(duelId), chainConfig.id, gameName.trim()).catch((err) => console.warn('Failed to attach game metadata:', err));
+        }
         emitBalanceRefresh();
         appToast.success('toast.duelCreated');
         router.push(
@@ -108,7 +116,7 @@ export function CreateDuelForm() {
         appToast.success('toast.duelCreated');
       }
     }
-  }, [isSuccess, step, receipt, router, chainConfig.id, appToast]);
+  }, [isSuccess, step, receipt, router, chainConfig.id, appToast, gameName, identityToken]);
 
   const numericAmount = parseFloat(amount) || 0;
   const isValidAmount = numericAmount >= MIN_WAGER;
@@ -152,10 +160,10 @@ export function CreateDuelForm() {
     }
 
     const rawAmount = parseUnits(amount, USDT_DECIMALS);
-    const inviteSecret = generateInviteSecret();
-    const inviteHash = hashInviteSecret(inviteSecret);
+    const inviteSecret = isPublic ? PUBLIC_INVITE_SECRET : generateInviteSecret();
+    const inviteHash = isPublic ? PUBLIC_INVITE_HASH : hashInviteSecret(inviteSecret);
     pendingAmount.current = rawAmount;
-    pendingInviteSecret.current = inviteSecret;
+    pendingInviteSecret.current = isPublic ? null : inviteSecret;
     pendingInviteHash.current = inviteHash;
     pendingMessage.current = message;
 
@@ -188,6 +196,42 @@ export function CreateDuelForm() {
 
       {/* Form card */}
       <div className="card-glow animate-fade-in-up rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        {/* Duel type toggle */}
+        <div className="flex flex-col gap-3 mb-6">
+          <label className="text-sm font-semibold text-slate-700">
+            {t('create.duelType')}
+          </label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setIsPublic(false)}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 text-sm font-medium transition-all ${
+                !isPublic
+                  ? 'border-indigo-500 bg-indigo-50/50 text-indigo-700'
+                  : 'border-slate-200 text-slate-500 hover:border-slate-300'
+              }`}
+            >
+              <Lock className="h-4 w-4" />
+              {t('create.private')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsPublic(true)}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 text-sm font-medium transition-all ${
+                isPublic
+                  ? 'border-indigo-500 bg-indigo-50/50 text-indigo-700'
+                  : 'border-slate-200 text-slate-500 hover:border-slate-300'
+              }`}
+            >
+              <Globe className="h-4 w-4" />
+              {t('create.public')}
+            </button>
+          </div>
+          <p className="text-xs text-slate-500">
+            {isPublic ? t('create.publicHint') : t('create.privateHint')}
+          </p>
+        </div>
+
         {/* Wager section */}
         <div className="flex flex-col gap-3">
           <label
@@ -264,6 +308,17 @@ export function CreateDuelForm() {
           {!isValidMessage && (
             <p className="text-xs text-red-500">{t('create.messageTooLong')}</p>
           )}
+        </div>
+
+        <div className="my-6 h-px bg-slate-100" />
+
+        {/* Game */}
+        <div>
+          <label className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700">
+            <Gamepad2 className="h-4 w-4 text-indigo-600" />
+            {t('create.game')}
+          </label>
+          <GameAutocomplete value={gameName} onChange={setGameName} />
         </div>
 
         <div className="my-6 h-px bg-slate-100" />
@@ -364,7 +419,7 @@ export function CreateDuelForm() {
         </Button>
 
         <p className="mt-3 text-center text-xs text-slate-500">
-          {t('create.privateInvite')}
+          {isPublic ? t('create.publicHint') : t('create.privateInvite')}
         </p>
 
         {error && (

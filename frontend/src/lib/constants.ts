@@ -13,13 +13,6 @@ export const SUPPORTED_CHAINS = {
     explorer: 'https://arbiscan.io',
     rpc: 'https://arb1.arbitrum.io/rpc',
   },
-  polygon: {
-    id: 137,
-    name: 'Polygon',
-    usdt: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F' as `0x${string}`,
-    explorer: 'https://polygonscan.com',
-    rpc: 'https://polygon-rpc.com',
-  },
 } as const;
 
 export const MIN_WAGER = 3; // 3 USDT (display value)
@@ -30,7 +23,6 @@ export const USDT_DECIMALS = 6;
 export const DUELME_ADDRESSES: Record<number, `0x${string}`> = {
   421614: '0xAb4D602f74ea2EB31336F163dCe5eE7C9983E4b9', // Arbitrum Sepolia
   42161: '0x0000000000000000000000000000000000000000', // Arbitrum One (TBD)
-  137: '0x0000000000000000000000000000000000000000', // Polygon (TBD)
 };
 
 export const SITE_URL = 'https://duelme.fun';

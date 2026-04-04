@@ -36,3 +36,5 @@ backend/.gradle/
 # Foundry broadcast artifacts
 contracts/broadcast/**/run-*.json
 !contracts/broadcast/**/run-latest.json
+.superpowers/
+test-results/

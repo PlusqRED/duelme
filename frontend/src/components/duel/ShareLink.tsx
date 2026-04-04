@@ -5,25 +5,28 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAppToast } from '@/hooks/useAppToast';
-import { buildInviteLink } from '@/lib/invite';
+import { buildDuelLink, isPublicDuel } from '@/lib/invite';
 import { Copy, Check } from 'lucide-react';
 
 interface ShareLinkProps {
   duelId: number;
+  inviteHash: `0x${string}`;
   inviteSecret: `0x${string}` | null;
 }
 
-export function ShareLink({ duelId, inviteSecret }: ShareLinkProps) {
+export function ShareLink({ duelId, inviteHash, inviteSecret }: ShareLinkProps) {
   const { t } = useTranslation();
   const appToast = useAppToast();
   const [copied, setCopied] = useState(false);
+  const isPublic = isPublicDuel(inviteHash);
   const url =
-    typeof window !== 'undefined' && inviteSecret
-      ? buildInviteLink(duelId, inviteSecret)
+    typeof window !== 'undefined'
+      ? buildDuelLink(duelId, inviteHash, inviteSecret)
       : '';
+  const canCopy = isPublic || !!inviteSecret;
 
   async function handleCopy() {
-    if (!url) {
+    if (!url || !canCopy) {
       appToast.error('duel.privateInviteUnavailable');
       return;
     }
@@ -46,7 +49,7 @@ export function ShareLink({ duelId, inviteSecret }: ShareLinkProps) {
       <div className="flex gap-2">
         <Input
           readOnly
-          value={url || t('duel.privateInviteUnavailable')}
+          value={canCopy ? url : t('duel.privateInviteUnavailable')}
           className="h-10 flex-1 border-slate-300 bg-slate-50 font-mono text-sm"
         />
         <Button
@@ -54,7 +57,7 @@ export function ShareLink({ duelId, inviteSecret }: ShareLinkProps) {
           variant="outline"
           className="h-10 shrink-0 border-slate-300"
           onClick={handleCopy}
-          disabled={!inviteSecret}
+          disabled={!canCopy}
         >
           {copied ? (
             <Check className="h-4 w-4 text-emerald-600" />
@@ -64,7 +67,11 @@ export function ShareLink({ duelId, inviteSecret }: ShareLinkProps) {
         </Button>
       </div>
       <p className="text-xs text-slate-500">
-        {inviteSecret ? t('duel.privateInviteRequired') : t('duel.privateInviteUnavailable')}
+        {isPublic
+          ? t('duel.sharePublic')
+          : inviteSecret
+            ? t('duel.sharePrivate')
+            : t('duel.privateInviteUnavailable')}
       </p>
     </div>
   );

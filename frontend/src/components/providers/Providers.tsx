@@ -1,10 +1,12 @@
 'use client';
 
 import { type ReactNode, useCallback } from 'react';
-import { PrivyProvider, type ConnectedWallet } from '@privy-io/react-auth';
+import { PrivyProvider } from '@privy-io/react-auth';
 import { WagmiProvider } from '@privy-io/wagmi';
+import type { SetActiveWalletForWagmiType } from '@privy-io/wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { wagmiConfig, supportedChains } from '@/lib/wagmi';
+import { selectWallet } from '@/lib/walletSelection';
 import { LanguageProvider } from '@/i18n/LanguageContext';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -19,11 +21,8 @@ const queryClient = new QueryClient({
 });
 
 export function Providers({ children }: { children: ReactNode }) {
-  // Pick the wallet wagmi should use: prefer embedded Privy wallet, fall back to first
-  const selectActiveWallet = useCallback(
-    ({ wallets }: { wallets: ConnectedWallet[] }) => {
-      return wallets.find((w) => w.walletClientType === 'privy') ?? wallets[0] ?? null;
-    },
+  const selectActiveWallet = useCallback<SetActiveWalletForWagmiType>(
+    ({ wallets, user }) => selectWallet(wallets, user) ?? undefined,
     []
   );
 
@@ -41,7 +40,7 @@ export function Providers({ children }: { children: ReactNode }) {
         supportedChains: [...supportedChains],
         embeddedWallets: {
           ethereum: {
-            createOnLogin: 'users-without-wallets',
+            createOnLogin: 'all-users',
           },
         },
       }}

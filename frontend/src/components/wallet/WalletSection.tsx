@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAppToast } from '@/hooks/useAppToast';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy } from '@privy-io/react-auth';
+import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useReadContract, useChainId } from 'wagmi';
 import { formatUnits } from 'viem';
 import { SUPPORTED_CHAINS, USDT_DECIMALS } from '@/lib/constants';
@@ -40,7 +41,6 @@ const transferAbi = [
 function getUsdtAddress(chainId: number | undefined) {
   if (chainId === 421614) return SUPPORTED_CHAINS.arbitrumSepolia.usdt;
   if (chainId === 42161) return SUPPORTED_CHAINS.arbitrum.usdt;
-  if (chainId === 137) return SUPPORTED_CHAINS.polygon.usdt;
   return undefined;
 }
 
@@ -48,16 +48,13 @@ export function WalletSection() {
   const { t } = useTranslation();
   const appToast = useAppToast();
   const { authenticated, exportWallet } = usePrivy();
-  const { wallets } = useWallets();
   const chainId = useChainId();
+  const { activeWallet, walletAddress } = useActiveWallet();
 
   const [toAddress, setToAddress] = useState('');
   const [amount, setAmount] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [copied, setCopied] = useState(false);
-
-  const activeWallet = wallets[0];
-  const walletAddress = activeWallet?.address as `0x${string}` | undefined;
   const usdtAddress = getUsdtAddress(chainId);
 
   const { data: usdtRaw, refetch } = useReadContract({

@@ -42,3 +42,22 @@ export function readInviteSecretFromHash(): `0x${string}` | null {
     : window.location.hash;
   return isInviteSecret(hash) ? hash : null;
 }
+
+/** Well-known invite secret for public duels — anyone can compute it. */
+export const PUBLIC_INVITE_SECRET: `0x${string}` = '0x0000000000000000000000000000000000000000000000000000000000000001';
+
+/** keccak256 hash of PUBLIC_INVITE_SECRET — stored on-chain for public duels. */
+export const PUBLIC_INVITE_HASH: `0x${string}` = keccak256(PUBLIC_INVITE_SECRET);
+
+/** Returns true if the duel's inviteHash matches the well-known public hash. */
+export function isPublicDuel(inviteHash: `0x${string}`): boolean {
+  return inviteHash.toLowerCase() === PUBLIC_INVITE_HASH.toLowerCase();
+}
+
+/** Build a shareable link for any duel type. Public duels get a clean URL. */
+export function buildDuelLink(duelId: number, inviteHash: `0x${string}`, inviteSecret?: `0x${string}` | null): string {
+  if (isPublicDuel(inviteHash)) {
+    return `${window.location.origin}/duel/${duelId}`;
+  }
+  return inviteSecret ? buildInviteLink(duelId, inviteSecret) : `${window.location.origin}/duel/${duelId}`;
+}

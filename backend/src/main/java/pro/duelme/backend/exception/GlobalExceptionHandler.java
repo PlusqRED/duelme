@@ -11,8 +11,8 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(ProfileNotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleNotFound(ProfileNotFoundException ex) {
+    @ExceptionHandler({ProfileNotFoundException.class, GameNotFoundException.class})
+    public ResponseEntity<Map<String, String>> handleNotFound(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
             .body(Map.of("error", ex.getMessage()));
     }

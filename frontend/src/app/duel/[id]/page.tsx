@@ -11,17 +11,18 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { DuelState, erc20Abi } from '@/lib/contracts';
 import { getClaimableAmountForAddress } from '@/lib/duel';
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
-import { hashInviteSecret, readInviteSecretFromHash, readStoredInviteSecret, storeInviteSecret } from '@/lib/invite';
+import { hashInviteSecret, readInviteSecretFromHash, readStoredInviteSecret, storeInviteSecret, isPublicDuel, PUBLIC_INVITE_SECRET } from '@/lib/invite';
 import { SUPPORTED_CHAINS, DUELME_ADDRESSES } from '@/lib/constants';
 import { useDuel } from '@/hooks/useDuel';
 import { useDuelActions } from '@/hooks/useDuelActions';
 import { formatDateTime, formatUSDT, truncateAddress } from '@/lib/utils';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy } from '@privy-io/react-auth';
+import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useSwitchChain, useAccount, useReadContract } from 'wagmi';
 import { emitBalanceRefresh } from '@/lib/balanceRefresh';
 import {
   Clock, Trophy, ArrowLeft, XCircle, RotateCcw,
-  Swords, LogIn, User, Hourglass, Shield, Handshake, Undo2,
+  Swords, LogIn, User, Hourglass, Shield, Handshake, Undo2, Globe, Lock,
 } from 'lucide-react';
 import Link from 'next/link';
 import { CopyableAddress } from '@/components/duel/CopyableAddress';
@@ -318,8 +319,7 @@ export default function DuelPage({
   const duelId = parseInt(id, 10);
 
   const { authenticated, login } = usePrivy();
-  const { wallets } = useWallets();
-  const walletAddress = wallets[0]?.address?.toLowerCase();
+  const { activeWallet, walletAddress } = useActiveWallet();
   const [inviteSecret, setInviteSecret] = useState<`0x${string}` | null>(null);
 
   const { switchChainAsync } = useSwitchChain();
@@ -346,7 +346,7 @@ export default function DuelPage({
 
   const chainConfig = SUPPORTED_CHAINS.arbitrumSepolia;
   const contractAddress = DUELME_ADDRESSES[DEFAULT_CHAIN_ID];
-  const walletAddr = wallets[0]?.address as `0x${string}` | undefined;
+  const walletAddr = activeWallet?.address as `0x${string}` | undefined;
   const { data: currentAllowance, refetch: refetchAllowance } = useReadContract({
     address: chainConfig.usdt,
     abi: erc20Abi,
@@ -355,6 +355,14 @@ export default function DuelPage({
     chainId: DEFAULT_CHAIN_ID,
     query: { enabled: !!walletAddr && !!contractAddress },
   });
+
+  // Auto-inject invite secret for public duels
+  useEffect(() => {
+    if (!duel) return;
+    if (isPublicDuel(duel.inviteHash)) {
+      setInviteSecret((current) => current === PUBLIC_INVITE_SECRET ? current : PUBLIC_INVITE_SECRET);
+    }
+  }, [duel]);
 
   useEffect(() => {
     const secretFromHash = readInviteSecretFromHash();
@@ -593,6 +601,7 @@ export default function DuelPage({
   const isCancelRequester = walletAddress === duel.cancelRequestedBy.toLowerCase();
   const hasInviteAccess = !!inviteSecret
     && hashInviteSecret(inviteSecret).toLowerCase() === duel.inviteHash.toLowerCase();
+  const isDuelPublic = isPublicDuel(duel.inviteHash);
   const claimableAmount = getClaimableAmountForAddress(duel, walletAddress);
   const hasClaimablePayout = claimableAmount > 0n;
   const hasMessage = hasVisibleDuelMessage(duel.message);
@@ -673,9 +682,22 @@ export default function DuelPage({
               <StatusIcon className="h-5 w-5 opacity-80" />
               <span className="text-lg font-bold">{t('duel.title', { id: duelId })}</span>
             </div>
-            <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur-sm">
-              {t(cfg.label as Parameters<typeof t>[0])}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur-sm">
+                {t(cfg.label as Parameters<typeof t>[0])}
+              </span>
+              {isDuelPublic ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                  <Globe className="h-3 w-3" />
+                  {t('duel.public')}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600">
+                  <Lock className="h-3 w-3" />
+                  {t('duel.private')}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -766,7 +788,7 @@ export default function DuelPage({
             {/* Created → Creator: share + cancel */}
             {isWaitingOpponent && isCreator && authenticated && (
               <>
-                <ShareLink duelId={duelId} inviteSecret={inviteSecret} />
+                <ShareLink duelId={duelId} inviteHash={duel.inviteHash} inviteSecret={inviteSecret} />
                 <Button
                   variant="ghost"
                   size="sm"
@@ -780,7 +802,7 @@ export default function DuelPage({
             )}
 
             {/* Created → Invitee: private-link response */}
-            {isWaitingOpponent && !isCreator && !hasInviteAccess && (
+            {!isDuelPublic && isWaitingOpponent && !isCreator && !hasInviteAccess && (
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center">
                 <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-slate-200/70">
                   <Shield className="h-5 w-5 text-slate-600" />
@@ -790,7 +812,7 @@ export default function DuelPage({
               </div>
             )}
 
-            {isWaitingOpponent && !isCreator && hasInviteAccess && authenticated && (
+            {isWaitingOpponent && !isCreator && (isDuelPublic || hasInviteAccess) && authenticated && (
               <div className="flex flex-col gap-3">
                 <Button
                   size="lg"
@@ -810,29 +832,31 @@ export default function DuelPage({
                     </>
                   )}
                 </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="h-12 w-full border-slate-300 text-slate-700 hover:bg-slate-50"
-                  onClick={handleDecline}
-                  disabled={txPending}
-                >
-                  {pendingAction === 'declining' ? (
-                    <span className="flex items-center gap-2">
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-500 border-t-transparent" />
-                      {t('status.declining')}
-                    </span>
-                  ) : (
-                    <>
-                      <XCircle className="mr-2 h-4 w-4" />
-                      {t('action.decline')}
-                    </>
-                  )}
-                </Button>
+                {!isDuelPublic && hasInviteAccess && (
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="h-12 w-full border-slate-300 text-slate-700 hover:bg-slate-50"
+                    onClick={handleDecline}
+                    disabled={txPending}
+                  >
+                    {pendingAction === 'declining' ? (
+                      <span className="flex items-center gap-2">
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-500 border-t-transparent" />
+                        {t('status.declining')}
+                      </span>
+                    ) : (
+                      <>
+                        <XCircle className="mr-2 h-4 w-4" />
+                        {t('action.decline')}
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
             )}
 
-            {isWaitingOpponent && !isCreator && hasInviteAccess && !authenticated && (
+            {isWaitingOpponent && !isCreator && (isDuelPublic || hasInviteAccess) && !authenticated && (
               <Button
                 size="lg"
                 className="h-12 w-full bg-indigo-600 text-base font-semibold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700"
