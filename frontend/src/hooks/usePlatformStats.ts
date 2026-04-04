@@ -3,8 +3,7 @@
 import { useMemo } from 'react';
 import { useReadContract, useReadContracts } from 'wagmi';
 import { duelMeAbi } from '@/lib/contracts';
-import { DUELME_ADDRESSES, ZERO_ADDRESS } from '@/lib/constants';
-const DEFAULT_CHAIN_ID = 421614;
+import { DUELME_ADDRESSES, ZERO_ADDRESS, DEFAULT_CHAIN_ID } from '@/lib/constants';
 
 interface PlatformStats {
   duelsPlayed: number;

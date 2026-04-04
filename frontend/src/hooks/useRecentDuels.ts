@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { useReadContract, useReadContracts } from 'wagmi';
 import { formatUnits } from 'viem';
 import { duelMeAbi, DuelState } from '@/lib/contracts';
-import { DUELME_ADDRESSES, USDT_DECIMALS, ZERO_ADDRESS, CHAIN_NAMES, SUPPORTED_CHAINS } from '@/lib/constants';
+import { DUELME_ADDRESSES, USDT_DECIMALS, ZERO_ADDRESS, CHAIN_NAMES, DEFAULT_CHAIN_ID } from '@/lib/constants';
 
 export interface RecentDuel {
   id: number;
@@ -19,7 +19,6 @@ export interface RecentDuel {
   state: DuelState;
 }
 
-const DEFAULT_CHAIN_ID = SUPPORTED_CHAINS.arbitrumSepolia.id;
 
 export function useRecentDuels() {
   const contractAddress = DUELME_ADDRESSES[DEFAULT_CHAIN_ID];

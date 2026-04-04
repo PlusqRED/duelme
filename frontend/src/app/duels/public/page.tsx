@@ -4,28 +4,27 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { OpenDuelCard } from '@/components/duel/OpenDuelCard';
-import { useOpenDuels } from '@/hooks/useOpenDuels';
-import { useOpenDuelMetas } from '@/hooks/useOpenDuelMetas';
+import { PublicDuelCard } from '@/components/duel/PublicDuelCard';
+import { usePublicDuels } from '@/hooks/usePublicDuels';
+import { usePublicDuelMetas } from '@/hooks/usePublicDuelMetas';
 import { useNicknames } from '@/hooks/useNicknames';
 import { useReputationLevels } from '@/hooks/useReputationLevels';
 import { useTimeAgo } from '@/hooks/useTimeAgo';
 import { useTranslation } from '@/i18n/useTranslation';
-import { SUPPORTED_CHAINS } from '@/lib/constants';
+import { DEFAULT_CHAIN_ID } from '@/lib/constants';
 import {
   WAGER_RANGES, WAGER_LABELS,
   type SortBy, type WagerRange, type EnrichedDuel,
-} from '@/lib/openDuelsFilters';
+} from '@/lib/publicDuelsFilters';
 import type { TranslationKey } from '@/i18n/translations';
 import { Globe, Search, Gamepad2, ArrowUpDown, Swords } from 'lucide-react';
 
-const DEFAULT_CHAIN_ID = SUPPORTED_CHAINS.arbitrumSepolia.id;
 const PAGE_SIZE = 20;
 
-export default function OpenDuelsPage() {
+export default function PublicDuelsPage() {
   const { t } = useTranslation();
   const timeAgo = useTimeAgo();
-  const { duels, isLoading } = useOpenDuels();
+  const { duels, isLoading } = usePublicDuels();
   const [searchQuery, setSearchQuery] = useState('');
   const [gameFilter, setGameFilter] = useState<string | null>(null);
   const [wagerRange, setWagerRange] = useState<WagerRange>('all');
@@ -33,7 +32,7 @@ export default function OpenDuelsPage() {
   const [page, setPage] = useState(1);
 
   const duelIds = useMemo(() => duels.map((d) => d.id), [duels]);
-  const { metaByDuelId } = useOpenDuelMetas(duelIds, DEFAULT_CHAIN_ID);
+  const { metaByDuelId } = usePublicDuelMetas(duelIds, DEFAULT_CHAIN_ID);
 
   const addresses = useMemo(() => duels.map((d) => d.creator), [duels]);
   const { resolveDisplay } = useNicknames(addresses);
@@ -126,11 +125,11 @@ export default function OpenDuelsPage() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
-          {t('openDuels.title')}
+          {t('publicDuels.title')}
         </h1>
         {duels.length > 0 && (
           <p className="mt-1 text-sm text-slate-500">
-            {t('openDuels.stats', { count: duels.length, total: totalUsdt.toFixed(0) })}
+            {t('publicDuels.stats', { count: duels.length, total: totalUsdt.toFixed(0) })}
           </p>
         )}
       </div>
@@ -142,7 +141,7 @@ export default function OpenDuelsPage() {
           <Input
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-            placeholder={t('openDuels.searchPlaceholder')}
+            placeholder={t('publicDuels.searchPlaceholder')}
             className="h-11 border-slate-200 bg-white pl-10"
           />
         </div>
@@ -161,7 +160,7 @@ export default function OpenDuelsPage() {
                   !gameFilter ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
-                {t('openDuels.allGames')}
+                {t('publicDuels.allGames')}
               </button>
               {gameOptions.map((g) => (
                 <button
@@ -181,7 +180,7 @@ export default function OpenDuelsPage() {
                   gameFilter === '__none__' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
-                {t('openDuels.noGame')}
+                {t('publicDuels.noGame')}
               </button>
             </div>
           )}
@@ -198,7 +197,7 @@ export default function OpenDuelsPage() {
                     wagerRange === r.key ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
-                  {r.key === 'all' ? t('openDuels.allWagers') : WAGER_LABELS[r.key]}
+                  {r.key === 'all' ? t('publicDuels.allWagers') : WAGER_LABELS[r.key]}
                 </button>
               ))}
             </div>
@@ -213,7 +212,7 @@ export default function OpenDuelsPage() {
                     sortBy === s ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                   }`}
                 >
-                  {t(`openDuels.sort${s.charAt(0).toUpperCase() + s.slice(1)}` as TranslationKey)}
+                  {t(`publicDuels.sort${s.charAt(0).toUpperCase() + s.slice(1)}` as TranslationKey)}
                 </button>
               ))}
             </div>
@@ -231,7 +230,7 @@ export default function OpenDuelsPage() {
           <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-slate-300 bg-white py-16">
             <Globe className="h-10 w-10 text-slate-300" />
             <p className="text-sm text-slate-500">
-              {hasActiveFilters ? t('dashboard.noMatches') : t('openDuels.empty')}
+              {hasActiveFilters ? t('dashboard.noMatches') : t('publicDuels.empty')}
             </p>
             {hasActiveFilters ? (
               <Button variant="outline" size="sm" onClick={resetFilters}>
@@ -247,7 +246,7 @@ export default function OpenDuelsPage() {
           </div>
         ) : (
           paginated.map((duel) => (
-            <OpenDuelCard key={duel.id} duel={duel} timeAgo={timeAgo} />
+            <PublicDuelCard key={duel.id} duel={duel} timeAgo={timeAgo} />
           ))
         )}
       </div>

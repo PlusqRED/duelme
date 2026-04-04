@@ -5,15 +5,15 @@ import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/i18n/useTranslation';
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
 import { truncateUnicode } from '@/lib/duel';
-import { REP_DOT_COLOR, type EnrichedDuel } from '@/lib/openDuelsFilters';
+import { REP_DOT_COLOR, type EnrichedDuel } from '@/lib/publicDuelsFilters';
 import { Globe, Gamepad2, Clock } from 'lucide-react';
 
-interface OpenDuelCardProps {
+interface PublicDuelCardProps {
   duel: EnrichedDuel;
   timeAgo: (timestamp: bigint) => string;
 }
 
-export function OpenDuelCard({ duel, timeAgo }: OpenDuelCardProps) {
+export function PublicDuelCard({ duel, timeAgo }: PublicDuelCardProps) {
   const { t } = useTranslation();
 
   return (

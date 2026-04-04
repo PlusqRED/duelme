@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchDuelMetaBatch } from '@/lib/gameApi';
 import type { DuelMeta } from '@/lib/game';
 
-export function useOpenDuelMetas(duelIds: number[], chainId: number) {
+export function usePublicDuelMetas(duelIds: number[], chainId: number) {
   const sortedIds = useMemo(
     () => [...duelIds].sort((a, b) => a - b),
     [duelIds],

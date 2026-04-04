@@ -12,7 +12,7 @@ import { DuelState, erc20Abi } from '@/lib/contracts';
 import { getClaimableAmountForAddress } from '@/lib/duel';
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
 import { hashInviteSecret, readInviteSecretFromHash, readStoredInviteSecret, storeInviteSecret, isPublicDuel, PUBLIC_INVITE_SECRET } from '@/lib/invite';
-import { SUPPORTED_CHAINS, DUELME_ADDRESSES } from '@/lib/constants';
+import { SUPPORTED_CHAINS, DUELME_ADDRESSES, DEFAULT_CHAIN_ID } from '@/lib/constants';
 import { useDuel } from '@/hooks/useDuel';
 import { useDuelActions } from '@/hooks/useDuelActions';
 import { formatDateTime, formatUSDT, truncateAddress } from '@/lib/utils';
@@ -44,7 +44,6 @@ const STATUS_CONFIG: Record<
   [DuelState.MutuallyCancelled]: { icon: Handshake, gradient: 'from-sky-500 to-cyan-600', label: 'duel.mutuallyCancelled' },
 };
 
-const DEFAULT_CHAIN_ID = SUPPORTED_CHAINS.arbitrumSepolia.id;
 const ZERO = '0x0000000000000000000000000000000000000000';
 type PendingAction =
   | 'idle'

@@ -15,6 +15,8 @@ export const SUPPORTED_CHAINS = {
   },
 } as const;
 
+export const DEFAULT_CHAIN_ID = SUPPORTED_CHAINS.arbitrumSepolia.id;
+
 export const MIN_WAGER = 3; // 3 USDT (display value)
 export const MIN_WAGER_RAW = 3_000_000n; // 3 USDT in 6 decimals
 export const CLAIM_TIMEOUT = 3600; // 1 hour in seconds

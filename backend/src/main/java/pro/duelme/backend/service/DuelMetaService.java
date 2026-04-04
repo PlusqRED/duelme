@@ -9,6 +9,8 @@ import pro.duelme.backend.model.DuelMeta;
 import pro.duelme.backend.repository.DuelMetaRepository;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class DuelMetaService {
@@ -74,11 +76,16 @@ public class DuelMetaService {
 
     public List<DuelMetaResponse> getByDuelIds(int chainId, List<Long> duelIds) {
         if (duelIds.isEmpty()) return List.of();
-        return repository.findByChainIdAndDuelIdIn(chainId, duelIds).stream()
-            .map(meta -> {
-                GameResponse game = gameService.getBySlug(meta.gameSlug());
-                return toResponse(meta, game);
-            })
+        List<DuelMeta> metas = repository.findByChainIdAndDuelIdIn(chainId, duelIds);
+        if (metas.isEmpty()) return List.of();
+
+        Map<String, GameResponse> gamesBySlug = metas.stream()
+            .map(DuelMeta::gameSlug)
+            .distinct()
+            .collect(Collectors.toMap(slug -> slug, gameService::getBySlug));
+
+        return metas.stream()
+            .map(meta -> toResponse(meta, gamesBySlug.get(meta.gameSlug())))
             .toList();
     }
 
