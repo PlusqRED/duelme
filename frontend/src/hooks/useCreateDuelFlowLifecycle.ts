@@ -96,6 +96,10 @@ export function useCreateDuelFlowLifecycle({
           ? current
           : {
               ...current,
+              completedSteps: {
+                ...current.completedSteps,
+                approve: true,
+              },
               stage: 'create-duel',
               actionState: 'idle',
               errorMessage: null,

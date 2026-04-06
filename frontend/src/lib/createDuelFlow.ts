@@ -36,10 +36,16 @@ export interface CreateDuelFlowDraft {
   message: string;
 }
 
+export interface CreateDuelFlowCompletedSteps {
+  switchNetwork: boolean;
+  approve: boolean;
+}
+
 export type CreateDuelPendingTransaction = 'approve' | 'create-duel' | null;
 
 export interface CreateDuelFlowSession {
   draft: CreateDuelFlowDraft;
+  completedSteps: CreateDuelFlowCompletedSteps;
   stage: CreateDuelFlowStage;
   actionState: CreateDuelFlowActionState;
   errorMessage: string | null;
@@ -72,12 +78,15 @@ export function getCreateDuelFlowSteps(options: {
   actionState: CreateDuelFlowActionState;
   needsNetworkSwitch: boolean;
   needsApproval: boolean;
+  completedSwitchNetwork: boolean;
+  completedApproval: boolean;
 }): GuidedTransactionStep[] {
   const switchStatus = getOptionalStepStatus({
     stage: options.stage,
     actionState: options.actionState,
     stepId: 'switch-network',
     isRequired: options.needsNetworkSwitch,
+    completedInFlow: options.completedSwitchNetwork,
     completedStages: ['approve', 'create-duel', 'success'],
   });
 
@@ -86,6 +95,7 @@ export function getCreateDuelFlowSteps(options: {
     actionState: options.actionState,
     stepId: 'approve',
     isRequired: options.needsApproval,
+    completedInFlow: options.completedApproval,
     completedStages: ['create-duel', 'success'],
   });
 
@@ -127,14 +137,19 @@ function getOptionalStepStatus(options: {
   actionState: CreateDuelFlowActionState;
   stepId: 'switch-network' | 'approve';
   isRequired: boolean;
+  completedInFlow: boolean;
   completedStages: CreateDuelFlowStage[];
 }): GuidedTransactionStepState {
-  if (!options.isRequired) {
-    return 'skipped';
-  }
-
   if (options.stage === options.stepId) {
     return options.actionState === 'error' ? 'error' : 'active';
+  }
+
+  if (options.completedInFlow) {
+    return 'completed';
+  }
+
+  if (!options.isRequired) {
+    return 'skipped';
   }
 
   if (options.completedStages.includes(options.stage)) {

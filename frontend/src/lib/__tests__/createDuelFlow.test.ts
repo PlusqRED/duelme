@@ -60,6 +60,8 @@ describe('getCreateDuelFlowSteps', () => {
         actionState: 'idle',
         needsNetworkSwitch: false,
         needsApproval: false,
+        completedSwitchNetwork: false,
+        completedApproval: false,
       })
     ).toEqual([
       { id: 'review', status: 'active' },
@@ -77,6 +79,8 @@ describe('getCreateDuelFlowSteps', () => {
         actionState: 'idle',
         needsNetworkSwitch: true,
         needsApproval: true,
+        completedSwitchNetwork: true,
+        completedApproval: false,
       })
     ).toEqual([
       { id: 'review', status: 'completed' },
@@ -94,6 +98,8 @@ describe('getCreateDuelFlowSteps', () => {
         actionState: 'error',
         needsNetworkSwitch: false,
         needsApproval: true,
+        completedSwitchNetwork: false,
+        completedApproval: false,
       })
     ).toEqual([
       { id: 'review', status: 'completed' },
@@ -111,6 +117,8 @@ describe('getCreateDuelFlowSteps', () => {
         actionState: 'idle',
         needsNetworkSwitch: true,
         needsApproval: true,
+        completedSwitchNetwork: true,
+        completedApproval: true,
       })
     ).toEqual([
       { id: 'review', status: 'completed' },
@@ -118,6 +126,44 @@ describe('getCreateDuelFlowSteps', () => {
       { id: 'approve', status: 'completed' },
       { id: 'create-duel', status: 'completed' },
       { id: 'success', status: 'active' },
+    ]);
+  });
+
+  it('keeps approve marked as completed after a successful approval in this flow', () => {
+    expect(
+      getCreateDuelFlowSteps({
+        stage: 'create-duel',
+        actionState: 'idle',
+        needsNetworkSwitch: false,
+        needsApproval: false,
+        completedSwitchNetwork: false,
+        completedApproval: true,
+      })
+    ).toEqual([
+      { id: 'review', status: 'completed' },
+      { id: 'switch-network', status: 'skipped' },
+      { id: 'approve', status: 'completed' },
+      { id: 'create-duel', status: 'active' },
+      { id: 'success', status: 'upcoming' },
+    ]);
+  });
+
+  it('keeps approve skipped when the flow never needed approval', () => {
+    expect(
+      getCreateDuelFlowSteps({
+        stage: 'create-duel',
+        actionState: 'idle',
+        needsNetworkSwitch: false,
+        needsApproval: false,
+        completedSwitchNetwork: false,
+        completedApproval: false,
+      })
+    ).toEqual([
+      { id: 'review', status: 'completed' },
+      { id: 'switch-network', status: 'skipped' },
+      { id: 'approve', status: 'skipped' },
+      { id: 'create-duel', status: 'active' },
+      { id: 'success', status: 'upcoming' },
     ]);
   });
 });

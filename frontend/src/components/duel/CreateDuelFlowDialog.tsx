@@ -28,6 +28,8 @@ interface CreateDuelFlowDialogProps {
   actionState: CreateDuelFlowActionState;
   needsNetworkSwitch: boolean;
   needsApproval: boolean;
+  completedSwitchNetwork: boolean;
+  completedApproval: boolean;
   errorMessage?: string | null;
   onOpenChange: (open: boolean) => void;
   onContinue: () => void;
@@ -45,6 +47,8 @@ export function CreateDuelFlowDialog({
   actionState,
   needsNetworkSwitch,
   needsApproval,
+  completedSwitchNetwork,
+  completedApproval,
   errorMessage,
   onOpenChange,
   onContinue,
@@ -69,6 +73,8 @@ export function CreateDuelFlowDialog({
     actionState,
     needsNetworkSwitch,
     needsApproval,
+    completedSwitchNetwork,
+    completedApproval,
   }).map((step) => ({
     id: step.id,
     status: step.status,

@@ -78,6 +78,8 @@ export function CreateDuelForm() {
         actionState={flow.flow?.actionState ?? 'idle'}
         needsNetworkSwitch={flow.needsNetworkSwitch}
         needsApproval={flow.needsApproval}
+        completedSwitchNetwork={flow.flow?.completedSteps.switchNetwork ?? false}
+        completedApproval={flow.flow?.completedSteps.approve ?? false}
         errorMessage={flow.flow?.errorMessage}
         onOpenChange={flow.handleFlowOpenChange}
         onContinue={flow.handleContinueFlow}

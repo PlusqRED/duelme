@@ -26,7 +26,7 @@ interface CreateDuelFlowActionsOptions {
   chainName: string;
   connectedChainId?: number;
   contractAddress: `0x${string}`;
-  createDuel: (amount: bigint, inviteHash: `0x${string}`, message?: string) => void;
+  createDuel: (amount: bigint, inviteHash: `0x${string}`, message?: string) => Promise<void> | void;
   gameName: string;
   isPublic: boolean;
   isValidAmount: boolean;
@@ -41,7 +41,7 @@ interface CreateDuelFlowActionsOptions {
   switchChainAsync: (args: { chainId: number }) => Promise<unknown>;
   t: ReturnType<typeof useTranslation>['t'];
   tokenAddress: `0x${string}`;
-  approveToken: (token: `0x${string}`, amount: bigint) => void;
+  approveToken: (token: `0x${string}`, amount: bigint) => Promise<void> | void;
 }
 
 export function createDuelFlowActions({
@@ -112,6 +112,10 @@ export function createDuelFlowActions({
         gameName: gameName.trim(),
         message,
       },
+      completedSteps: {
+        switchNetwork: false,
+        approve: false,
+      },
       stage: 'review',
       actionState: 'idle',
       errorMessage: null,
@@ -171,6 +175,10 @@ export function createDuelFlowActions({
           ? current
           : {
               ...current,
+              completedSteps: {
+                ...current.completedSteps,
+                switchNetwork: true,
+              },
               stage: getCreateDuelFlowStageAfterNetwork({
                 needsApproval:
                   latestAllowance === undefined ||
@@ -233,7 +241,10 @@ export function createDuelFlowActions({
     );
   }
 
-  function startContractStep(step: 'approve' | 'create-duel', run: () => void) {
+  function startContractStep(
+    step: 'approve' | 'create-duel',
+    run: () => Promise<void> | void
+  ) {
     reset();
     setFlow((current) =>
       current
@@ -247,11 +258,16 @@ export function createDuelFlowActions({
         : current
     );
     try {
-      run();
+      const result = run();
+      void Promise.resolve(result).catch(handleStartContractStepError);
     } catch (flowError) {
-      reset();
-      setFlowError(flowError);
+      handleStartContractStepError(flowError);
     }
+  }
+
+  function handleStartContractStepError(error: unknown) {
+    reset();
+    setFlowError(error);
   }
 
   function setFlowError(error: unknown, fallbackKey?: TranslationKey) {
