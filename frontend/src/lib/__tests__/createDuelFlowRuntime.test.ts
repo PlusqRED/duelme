@@ -26,7 +26,7 @@ describe('getCreateDuelFlowErrorMessage', () => {
         'Arbitrum Sepolia'
       )
     ).toBe(
-      'Arbitrum Sepolia returned: intrinsic gas too low. This is a testnet gas-estimation issue. Please try again.'
+      'Arbitrum Sepolia returned: intrinsic gas too low. This is a testnet gas issue. Please try again.'
     );
   });
 
@@ -37,7 +37,7 @@ describe('getCreateDuelFlowErrorMessage', () => {
         t,
         'Arbitrum Sepolia'
       )
-    ).toBe('This step failed with: allowance refetch failed.');
+    ).toBe('This step failed: allowance refetch failed.');
   });
 
   it('keeps the specific reason when a generic wrapper is followed by real details', () => {
@@ -47,6 +47,6 @@ describe('getCreateDuelFlowErrorMessage', () => {
         t,
         'Arbitrum Sepolia'
       )
-    ).toBe('This step failed with: nonce too low.');
+    ).toBe('This step failed: nonce too low.');
   });
 });

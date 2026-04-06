@@ -64,6 +64,13 @@ export function GuidedTransactionDialog({
   success = false,
   footerContent,
 }: GuidedTransactionDialogProps) {
+  const stepAnimationKey = [
+    currentStepLabel,
+    currentStepTitle,
+    currentStepDescription,
+    success ? 'success' : 'pending',
+  ].join(':');
+
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen && !canClose) {
       return;
@@ -75,7 +82,7 @@ export function GuidedTransactionDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="max-w-[calc(100%-1.5rem)] gap-0 overflow-hidden border border-slate-200 p-0 sm:max-w-4xl"
+        className="max-w-[calc(100%-1.5rem)] gap-0 overflow-hidden border border-slate-200 bg-white/95 p-0 shadow-2xl backdrop-blur-sm sm:max-w-4xl"
         showCloseButton={canClose}
       >
         <div className="border-b border-slate-200 bg-gradient-to-r from-indigo-50 via-white to-slate-50 px-6 py-5">
@@ -92,11 +99,11 @@ export function GuidedTransactionDialog({
               <li
                 key={step.id}
                 className={cn(
-                  'rounded-xl border px-3 py-3',
-                  step.status === 'active' && 'border-indigo-200 bg-indigo-50',
-                  step.status === 'completed' && 'border-emerald-200 bg-emerald-50',
+                  'rounded-xl border px-3 py-3 transition-all duration-300 ease-out',
+                  step.status === 'active' && 'border-indigo-200 bg-indigo-50 shadow-sm ring-1 ring-indigo-100/70',
+                  step.status === 'completed' && 'border-emerald-200 bg-emerald-50 shadow-sm',
                   step.status === 'skipped' && 'border-slate-200 bg-slate-50',
-                  step.status === 'error' && 'border-red-200 bg-red-50',
+                  step.status === 'error' && 'border-red-200 bg-red-50 shadow-sm ring-1 ring-red-100/70',
                   step.status === 'upcoming' && 'border-slate-200 bg-white'
                 )}
               >
@@ -122,14 +129,17 @@ export function GuidedTransactionDialog({
 
         <div className="grid gap-6 p-6 lg:grid-cols-[minmax(0,1.45fr)_minmax(300px,1fr)]">
           <div className="space-y-4">
-            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+            <section
+              key={stepAnimationKey}
+              className="animate-soft-in rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+            >
+              <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600 transition-colors duration-300">
                 {currentStepLabel}
               </span>
               <div className="mt-4 flex items-start gap-4">
                 <div
                   className={cn(
-                    'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl',
+                    'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl shadow-sm transition-all duration-300 ease-out',
                     success
                       ? 'bg-emerald-100 text-emerald-600'
                       : 'bg-indigo-100 text-indigo-600'
@@ -147,12 +157,12 @@ export function GuidedTransactionDialog({
                 </div>
               </div>
               {errorMessage && (
-                <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="animate-soft-in-fast mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                   {errorMessage}
                 </div>
               )}
               {currentStepHint && (
-                <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                <div className="animate-soft-in-fast mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
                   {currentStepHint}
                 </div>
               )}
@@ -163,7 +173,7 @@ export function GuidedTransactionDialog({
                     variant={secondaryAction.variant ?? 'outline'}
                     onClick={secondaryAction.onClick}
                     disabled={secondaryAction.disabled}
-                    className="h-11"
+                    className="h-11 transition-all duration-200 ease-out"
                   >
                     {secondaryAction.label}
                   </Button>
@@ -174,7 +184,7 @@ export function GuidedTransactionDialog({
                     variant={primaryAction.variant ?? 'default'}
                     onClick={primaryAction.onClick}
                     disabled={primaryAction.disabled}
-                    className="h-11 sm:min-w-44"
+                    className="h-11 transition-all duration-200 ease-out sm:min-w-44"
                   >
                     {primaryAction.loading && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -193,7 +203,7 @@ export function GuidedTransactionDialog({
           </div>
 
           <aside className="space-y-4">
-            <section className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5">
+            <section className="animate-fade-in-up rounded-2xl border border-slate-200 bg-slate-50/80 p-5">
               <h3 className="text-sm font-semibold text-slate-900">{summaryTitle}</h3>
               <dl className="mt-4 space-y-3">
                 {summaryItems.map((item) => (
@@ -216,7 +226,7 @@ export function GuidedTransactionDialog({
             </section>
 
             {technicalDetails.length > 0 && (
-              <details className="rounded-2xl border border-slate-200 bg-white">
+              <details className="animate-fade-in-up rounded-2xl border border-slate-200 bg-white animation-delay-100">
                 <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-slate-900">
                   {technicalDetailsLabel}
                 </summary>

@@ -72,7 +72,9 @@ export function getCreateDuelDialogConfig(
       title: options.t('create.flow.approve.title', { amount: options.formattedAmount }),
       description:
         options.actionState === 'awaiting-wallet'
-          ? options.t('create.flow.approve.awaitingWallet')
+          ? options.t('create.flow.approve.awaitingWallet', {
+              amount: options.formattedAmount,
+            })
           : options.actionState === 'confirming'
             ? options.t('create.flow.approve.confirming', { chain: options.chainName })
             : options.t('create.flow.approve.description', {
