@@ -30,6 +30,20 @@ describe('getCreateDuelFlowErrorMessage', () => {
     );
   });
 
+  it('surfaces Arbitrum Sepolia fee-cap errors as testnet gas errors', () => {
+    expect(
+      getCreateDuelFlowErrorMessage(
+        new Error(
+          'the contract function "approve" reverted with the following reason: max fee per gas less than block base fee: maxfeepergas: 20002000 basefee: 20006000'
+        ),
+        t,
+        'Arbitrum Sepolia'
+      )
+    ).toBe(
+      'Arbitrum Sepolia returned: the contract function "approve" reverted with the following reason: max fee per gas less than block base fee: maxfeepergas: 20002000 basefee: 20006000. This is a testnet gas issue. Please try again.'
+    );
+  });
+
   it('surfaces specific non-generic error details when available', () => {
     expect(
       getCreateDuelFlowErrorMessage(

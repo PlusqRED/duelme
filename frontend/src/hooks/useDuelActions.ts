@@ -11,8 +11,10 @@ import { DUELME_ADDRESSES, SUPPORTED_CHAINS } from '@/lib/constants';
 import {
   ARBITRUM_SEPOLIA_APPROVE_MIN_GAS,
   ARBITRUM_SEPOLIA_CREATE_DUEL_MIN_GAS,
-  getBufferedTestnetGasLimit,
+  getBufferedTestnetTransactionParams,
 } from '@/lib/testnetGas';
+
+type DuelPublicClient = NonNullable<ReturnType<typeof usePublicClient>>;
 
 export function useDuelActions(chainId: number) {
   const contractAddress = DUELME_ADDRESSES[chainId];
@@ -48,17 +50,18 @@ export function useDuelActions(chainId: number) {
     } as const;
 
     if (shouldUseSepoliaGasBuffer) {
-      const estimatedGas = await publicClient.estimateContractGas({
-        ...config,
-        account: accountAddress,
-      });
+      const transactionParams = await getSepoliaTransactionParams(
+        publicClient,
+        (client) => client.estimateContractGas({
+          ...config,
+          account: accountAddress,
+        }),
+        ARBITRUM_SEPOLIA_CREATE_DUEL_MIN_GAS
+      );
 
       writeContract({
         ...config,
-        gas: getBufferedTestnetGasLimit(
-          estimatedGas,
-          ARBITRUM_SEPOLIA_CREATE_DUEL_MIN_GAS
-        ),
+        ...transactionParams,
       });
       return;
     }
@@ -76,17 +79,18 @@ export function useDuelActions(chainId: number) {
     } as const;
 
     if (shouldUseSepoliaGasBuffer) {
-      const estimatedGas = await publicClient.estimateContractGas({
-        ...config,
-        account: accountAddress,
-      });
+      const transactionParams = await getSepoliaTransactionParams(
+        publicClient,
+        (client) => client.estimateContractGas({
+          ...config,
+          account: accountAddress,
+        }),
+        ARBITRUM_SEPOLIA_APPROVE_MIN_GAS
+      );
 
       writeContract({
         ...config,
-        gas: getBufferedTestnetGasLimit(
-          estimatedGas,
-          ARBITRUM_SEPOLIA_APPROVE_MIN_GAS
-        ),
+        ...transactionParams,
       });
       return;
     }
@@ -261,4 +265,23 @@ export function useDuelActions(chainId: number) {
     error,
     reset,
   };
+}
+
+async function getSepoliaTransactionParams(
+  publicClient: DuelPublicClient,
+  estimateGas: (publicClient: DuelPublicClient) => Promise<bigint>,
+  minimumGas: bigint
+) {
+  const [estimatedGas, estimatedFees, latestBlock] = await Promise.all([
+    estimateGas(publicClient),
+    publicClient.estimateFeesPerGas(),
+    publicClient.getBlock(),
+  ]);
+
+  return getBufferedTestnetTransactionParams({
+    estimatedGas,
+    minimumGas,
+    feeEstimate: estimatedFees,
+    baseFeePerGas: latestBlock.baseFeePerGas,
+  });
 }

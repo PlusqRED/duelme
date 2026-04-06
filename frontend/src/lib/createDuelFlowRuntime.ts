@@ -37,9 +37,12 @@ export function getCreateDuelFlowErrorMessage(
 ): string {
   const details = collectErrorDetails(error);
   const gasEstimateDetail = details.find((detail) =>
-    ['intrinsic gas too low', 'estimate gas too low', 'gas too low'].some((pattern) =>
-      detail.includes(pattern)
-    )
+    [
+      'intrinsic gas too low',
+      'estimate gas too low',
+      'gas too low',
+      'max fee per gas less than block base fee',
+    ].some((pattern) => detail.includes(pattern))
   );
 
   if (
