@@ -111,6 +111,7 @@ export function useCreateDuelFlowLifecycle({
 
     reset();
     emitBalanceRefresh();
+    void refetchAllowance();
 
     const duelId = extractCreatedDuelId(receipt);
     const nextRoute = duelId ? buildDuelPath(duelId, flow.draft.inviteSecret) : '/dashboard';

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAccount, useReadContract, useSwitchChain } from 'wagmi';
 import { useIdentityToken, usePrivy } from '@privy-io/react-auth';
@@ -38,6 +38,7 @@ export function useCreateDuelFlow({
   const router = useRouter();
   const [flow, setFlow] = useState<CreateDuelFlowSession | null>(null);
   const [redirectTarget, setRedirectTarget] = useState<string | null>(null);
+  const [allowanceRefreshCount, setAllowanceRefreshCount] = useState(0);
 
   const { ready, authenticated, login } = usePrivy();
   const { identityToken } = useIdentityToken();
@@ -56,6 +57,21 @@ export function useCreateDuelFlow({
     chainId: chainConfig.id,
     query: { enabled: !!walletAddress && !!contractAddress },
   });
+  const readLatestAllowance = useCallback(async () => {
+    setAllowanceRefreshCount((count) => count + 1);
+
+    try {
+      const result = await refetchAllowance();
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      return result.data;
+    } finally {
+      setAllowanceRefreshCount((count) => Math.max(0, count - 1));
+    }
+  }, [refetchAllowance]);
 
   const canCloseFlow =
     flow?.actionState !== 'awaiting-wallet' &&
@@ -69,7 +85,9 @@ export function useCreateDuelFlow({
     flow !== null &&
     (flow.stage === 'approve' ||
       ((flow.stage === 'review' || flow.stage === 'switch-network') &&
-        (currentAllowance === undefined || currentAllowance < flow.draft.rawAmount)));
+        ((flow.stage === 'review' && allowanceRefreshCount > 0) ||
+          currentAllowance === undefined ||
+          currentAllowance < flow.draft.rawAmount)));
 
   const actions = createDuelFlowActions({
     activeWalletAddress: activeWallet?.address,
@@ -81,7 +99,6 @@ export function useCreateDuelFlow({
     connectedChainId,
     contractAddress,
     createDuel: duelActions.createDuel,
-    currentAllowance,
     gameName,
     isPublic,
     isValidAmount,
@@ -90,6 +107,7 @@ export function useCreateDuelFlow({
     message,
     ready,
     reset: duelActions.reset,
+    readLatestAllowance,
     setFlow,
     setRedirectTarget,
     switchChainAsync,
@@ -114,6 +132,16 @@ export function useCreateDuelFlow({
     t,
   });
 
+  const shouldRefreshReviewAllowance = flow?.stage === 'review';
+
+  useEffect(() => {
+    if (!shouldRefreshReviewAllowance) {
+      return;
+    }
+
+    void readLatestAllowance().catch(() => undefined);
+  }, [shouldRefreshReviewAllowance, readLatestAllowance]);
+
   useEffect(() => {
     if (!redirectTarget) {
       return;
@@ -132,7 +160,7 @@ export function useCreateDuelFlow({
     closeFlow: actions.closeFlow,
     flow,
     handleApprove: () => actions.handleApprove(flow),
-    handleContinueFlow: actions.handleContinueFlow,
+    handleContinueFlow: () => actions.handleContinueFlow(flow),
     handleCreateDuelClick: actions.handleCreateDuelClick,
     handleCreateTransaction: () => actions.handleCreateTransaction(flow),
     handleFlowOpenChange: (open: boolean) => {

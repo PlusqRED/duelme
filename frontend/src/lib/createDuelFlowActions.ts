@@ -1,6 +1,7 @@
 import { parseUnits } from 'viem';
 import type { Dispatch, SetStateAction } from 'react';
 import type { useAppToast } from '@/hooks/useAppToast';
+import type { TranslationKey } from '@/i18n/translations';
 import type { useTranslation } from '@/i18n/useTranslation';
 import {
   type CreateDuelFlowSession,
@@ -25,12 +26,7 @@ interface CreateDuelFlowActionsOptions {
   chainName: string;
   connectedChainId?: number;
   contractAddress: `0x${string}`;
-  createDuel: (
-    amount: bigint,
-    inviteHash: `0x${string}`,
-    message?: string
-  ) => void;
-  currentAllowance: bigint | undefined;
+  createDuel: (amount: bigint, inviteHash: `0x${string}`, message?: string) => void;
   gameName: string;
   isPublic: boolean;
   isValidAmount: boolean;
@@ -39,6 +35,7 @@ interface CreateDuelFlowActionsOptions {
   message: string;
   ready: boolean;
   reset: () => void;
+  readLatestAllowance: () => Promise<bigint | undefined>;
   setFlow: Dispatch<SetStateAction<CreateDuelFlowSession | null>>;
   setRedirectTarget: Dispatch<SetStateAction<string | null>>;
   switchChainAsync: (args: { chainId: number }) => Promise<unknown>;
@@ -57,7 +54,6 @@ export function createDuelFlowActions({
   connectedChainId,
   contractAddress,
   createDuel,
-  currentAllowance,
   gameName,
   isPublic,
   isValidAmount,
@@ -66,6 +62,7 @@ export function createDuelFlowActions({
   message,
   ready,
   reset,
+  readLatestAllowance,
   setFlow,
   setRedirectTarget,
   switchChainAsync,
@@ -78,35 +75,28 @@ export function createDuelFlowActions({
     setRedirectTarget(null);
     reset();
   }
-
   async function handleCreateDuelClick() {
     if (!ready) {
       return;
     }
-
     if (!authenticated) {
       login();
       return;
     }
-
     if (!activeWalletAddress) {
       appToast.error('toast.walletNotReady');
       return;
     }
-
     if (!isValidAmount) {
       appToast.error('create.min');
       return;
     }
-
     if (!isValidMessage) {
       appToast.error('create.messageTooLong');
       return;
     }
-
     const rawAmount = parseUnits(amount, USDT_DECIMALS);
     const inviteSecret = isPublic ? PUBLIC_INVITE_SECRET : generateInviteSecret();
-
     reset();
     setRedirectTarget(null);
     setFlow({
@@ -129,28 +119,40 @@ export function createDuelFlowActions({
     });
   }
 
-  function handleContinueFlow() {
-    setFlow((current) =>
-      !current
-        ? current
-        : {
-            ...current,
-            stage: getNextCreateDuelFlowStageFromReview({
-              needsNetworkSwitch: connectedChainId !== current.draft.chainId,
-              needsApproval:
-                currentAllowance === undefined || currentAllowance < current.draft.rawAmount,
-            }),
-            actionState: 'idle',
-            errorMessage: null,
-          }
-    );
+  async function handleContinueFlow(flow: CreateDuelFlowSession | null) {
+    if (!flow) {
+      return;
+    }
+    if (connectedChainId !== flow.draft.chainId) {
+      moveToIdleStep('switch-network');
+      return;
+    }
+    try {
+      const latestAllowance = await readLatestAllowance();
+      setFlow((current) =>
+        !current
+          ? current
+          : {
+              ...current,
+              stage: getNextCreateDuelFlowStageFromReview({
+                needsNetworkSwitch: false,
+                needsApproval:
+                  latestAllowance === undefined ||
+                  latestAllowance < current.draft.rawAmount,
+              }),
+              actionState: 'idle',
+              errorMessage: null,
+            }
+      );
+    } catch (allowanceError) {
+      setFlowError(allowanceError);
+    }
   }
 
   async function handleSwitchNetwork(flow: CreateDuelFlowSession | null) {
     if (!flow) {
       return;
     }
-
     setFlow((current) =>
       current
         ? {
@@ -161,9 +163,9 @@ export function createDuelFlowActions({
           }
         : current
     );
-
     try {
       await switchChainAsync({ chainId: flow.draft.chainId });
+      const latestAllowance = await readLatestAllowance();
       setFlow((current) =>
         !current
           ? current
@@ -171,28 +173,15 @@ export function createDuelFlowActions({
               ...current,
               stage: getCreateDuelFlowStageAfterNetwork({
                 needsApproval:
-                  currentAllowance === undefined ||
-                  currentAllowance < current.draft.rawAmount,
+                  latestAllowance === undefined ||
+                  latestAllowance < current.draft.rawAmount,
               }),
               actionState: 'idle',
               errorMessage: null,
             }
       );
     } catch (switchError) {
-      setFlow((current) =>
-        !current
-          ? current
-          : {
-              ...current,
-              actionState: 'error',
-              errorMessage: getCreateDuelFlowErrorMessage(
-                switchError,
-                t,
-                current.draft.chainName,
-                'create.flow.error.switch'
-              ),
-            }
-      );
+      setFlowError(switchError, 'create.flow.error.switch');
     }
   }
 
@@ -200,32 +189,32 @@ export function createDuelFlowActions({
     if (!flow) {
       return;
     }
-
     if (connectedChainId !== flow.draft.chainId) {
       moveToIdleStep('switch-network');
       return;
     }
-
-    startContractStep('approve', () =>
-      approveToken(flow.draft.usdtAddress, flow.draft.rawAmount)
-    );
+    startContractStep('approve', () => approveToken(flow.draft.usdtAddress, flow.draft.rawAmount));
   }
 
-  function handleCreateTransaction(flow: CreateDuelFlowSession | null) {
+  async function handleCreateTransaction(flow: CreateDuelFlowSession | null) {
     if (!flow) {
       return;
     }
-
     if (connectedChainId !== flow.draft.chainId) {
       moveToIdleStep('switch-network');
       return;
     }
-
-    if (currentAllowance !== undefined && currentAllowance < flow.draft.rawAmount) {
+    let latestAllowance: bigint | undefined;
+    try {
+      latestAllowance = await readLatestAllowance();
+    } catch (allowanceError) {
+      setFlowError(allowanceError);
+      return;
+    }
+    if (latestAllowance === undefined || latestAllowance < flow.draft.rawAmount) {
       moveToIdleStep('approve');
       return;
     }
-
     startContractStep('create-duel', () =>
       createDuel(flow.draft.rawAmount, flow.draft.inviteHash, flow.draft.message)
     );
@@ -244,10 +233,7 @@ export function createDuelFlowActions({
     );
   }
 
-  function startContractStep(
-    step: 'approve' | 'create-duel',
-    run: () => void
-  ) {
+  function startContractStep(step: 'approve' | 'create-duel', run: () => void) {
     reset();
     setFlow((current) =>
       current
@@ -260,28 +246,31 @@ export function createDuelFlowActions({
           }
         : current
     );
-
     try {
       run();
     } catch (flowError) {
       reset();
-      setFlow((current) =>
-        !current
-          ? current
-          : {
-              ...current,
-              actionState: 'error',
-              errorMessage: getCreateDuelFlowErrorMessage(
-                flowError,
-                t,
-                current.draft.chainName
-              ),
-              pendingTransaction: null,
-            }
-      );
+      setFlowError(flowError);
     }
   }
 
+  function setFlowError(error: unknown, fallbackKey?: TranslationKey) {
+    setFlow((current) =>
+      !current
+        ? current
+        : {
+            ...current,
+            actionState: 'error',
+            errorMessage: getCreateDuelFlowErrorMessage(
+              error,
+              t,
+              current.draft.chainName,
+              fallbackKey
+            ),
+            pendingTransaction: null,
+          }
+    );
+  }
   return {
     closeFlow,
     handleApprove,

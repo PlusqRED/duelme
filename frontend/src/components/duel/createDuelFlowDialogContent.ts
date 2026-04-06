@@ -78,7 +78,14 @@ export function getCreateDuelDialogConfig(
             : options.t('create.flow.approve.description', {
                 amount: options.formattedAmount,
               }),
-      hint: options.t('create.flow.approve.hint', { chain: options.chainName }),
+      hint:
+        options.actionState === 'awaiting-wallet' ||
+        options.actionState === 'confirming'
+          ? options.t('create.flow.approve.walletModalHint', {
+              amount: options.formattedAmount,
+              chain: options.chainName,
+            })
+          : options.t('create.flow.approve.hint', { chain: options.chainName }),
       icon: ShieldCheck,
       primaryAction: buildAction({
         actionState: options.actionState,
