@@ -1,31 +1,16 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { parseUnits, decodeEventLog } from 'viem';
-import { useReadContract, useSwitchChain, useAccount } from 'wagmi';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useState } from 'react';
+import { DollarSign, Shield, Swords, Zap } from 'lucide-react';
+import { CreateDuelFlowDialog } from '@/components/duel/CreateDuelFlowDialog';
+import { CreateDuelFormCard } from '@/components/duel/CreateDuelFormCard';
+import { useCreateDuelFlow } from '@/hooks/useCreateDuelFlow';
 import { useTranslation } from '@/i18n/useTranslation';
-import { useAppToast } from '@/hooks/useAppToast';
-import { SUPPORTED_CHAINS, MIN_WAGER, USDT_DECIMALS, DUELME_ADDRESSES } from '@/lib/constants';
-import { erc20Abi, duelMeAbi } from '@/lib/contracts';
-import { MAX_DUEL_MESSAGE_CHARACTERS, countDuelMessageCharacters, isDuelMessageValid } from '@/lib/duelMessage';
-import { generateInviteSecret, hashInviteSecret, storeInviteSecret, PUBLIC_INVITE_SECRET, PUBLIC_INVITE_HASH } from '@/lib/invite';
-import { usePrivy, useIdentityToken } from '@privy-io/react-auth';
-import { useActiveWallet } from '@/hooks/useActiveWallet';
-import { useDuelActions } from '@/hooks/useDuelActions';
-import { GameAutocomplete } from '@/components/game/GameAutocomplete';
-import { attachGameToDuel } from '@/lib/gameApi';
-import { Swords, Shield, Zap, DollarSign, Gamepad2, Lock, Globe } from 'lucide-react';
-import { emitBalanceRefresh } from '@/lib/balanceRefresh';
-
-const PRESETS = [5, 10, 25, 50, 100];
+import { MIN_WAGER, SUPPORTED_CHAINS } from '@/lib/constants';
+import { isDuelMessageValid } from '@/lib/duelMessage';
 
 export function CreateDuelForm() {
   const { t } = useTranslation();
-  const appToast = useAppToast();
-  const router = useRouter();
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
   const [selectedChain, setSelectedChain] = useState<keyof typeof SUPPORTED_CHAINS>(
@@ -34,154 +19,21 @@ export function CreateDuelForm() {
   const [gameName, setGameName] = useState('');
   const [isPublic, setIsPublic] = useState(false);
 
-  const { ready, authenticated, login } = usePrivy();
-  const { identityToken } = useIdentityToken();
-  const { activeWallet, walletAddress } = useActiveWallet();
-
-  const chainConfig = SUPPORTED_CHAINS[selectedChain];
-  const contractAddress = DUELME_ADDRESSES[chainConfig.id];
-  const { switchChainAsync } = useSwitchChain();
-  const { chainId: connectedChainId } = useAccount();
-  const { createDuel, approveToken, isPending, isConfirming, isSuccess, receipt, error, reset } =
-    useDuelActions(chainConfig.id);
-
-  // Track whether we're in the approve step or create step
-  const [step, setStep] = useState<'idle' | 'approving' | 'creating'>('idle');
-  const pendingAmount = useRef<bigint>(0n);
-  const pendingInviteHash = useRef<`0x${string}` | null>(null);
-  const pendingInviteSecret = useRef<`0x${string}` | null>(null);
-  const pendingMessage = useRef('');
-
-  // Check current allowance
-  const { data: currentAllowance, refetch: refetchAllowance } = useReadContract({
-    address: chainConfig.usdt,
-    abi: erc20Abi,
-    functionName: 'allowance',
-    args: walletAddress && contractAddress ? [walletAddress, contractAddress] : undefined,
-    chainId: chainConfig.id,
-    query: { enabled: !!walletAddress && !!contractAddress },
-  });
-
-  // When approval tx confirms, proceed to createDuel
-  useEffect(() => {
-    if (isSuccess && step === 'approving' && pendingInviteHash.current) {
-      refetchAllowance();
-      reset();
-      setStep('creating');
-      appToast.info('toast.createDuelPending');
-      createDuel(pendingAmount.current, pendingInviteHash.current, pendingMessage.current);
-    }
-  }, [isSuccess, step, refetchAllowance, reset, createDuel, appToast]);
-
-  // When create tx confirms, parse duel ID from logs and redirect
-  useEffect(() => {
-    if (isSuccess && step === 'creating' && receipt) {
-      setStep('idle');
-
-      // Parse DuelCreated event to get the duel ID
-      let duelId: string | null = null;
-      for (const log of receipt.logs) {
-        try {
-          const decoded = decodeEventLog({
-            abi: duelMeAbi,
-            data: log.data,
-            topics: log.topics,
-          });
-          if (decoded.eventName === 'DuelCreated') {
-            duelId = String((decoded.args as { duelId: bigint }).duelId);
-            break;
-          }
-        } catch {
-          // Not a DuelCreated event, skip
-        }
-      }
-
-      if (duelId) {
-        if (pendingInviteSecret.current) {
-          storeInviteSecret(chainConfig.id, Number(duelId), pendingInviteSecret.current);
-        }
-        if (gameName.trim() && identityToken) {
-          // Fire and forget — duel exists on-chain regardless of metadata attachment
-          attachGameToDuel(identityToken, Number(duelId), chainConfig.id, gameName.trim()).catch((err) => console.warn('Failed to attach game metadata:', err));
-        }
-        emitBalanceRefresh();
-        appToast.success('toast.duelCreated');
-        router.push(
-          pendingInviteSecret.current
-            ? `/duel/${duelId}#${pendingInviteSecret.current}`
-            : `/duel/${duelId}`
-        );
-      } else {
-        emitBalanceRefresh();
-        appToast.success('toast.duelCreated');
-      }
-    }
-  }, [isSuccess, step, receipt, router, chainConfig.id, appToast, gameName, identityToken]);
-
   const numericAmount = parseFloat(amount) || 0;
   const isValidAmount = numericAmount >= MIN_WAGER;
-  const messageCharacterCount = countDuelMessageCharacters(message);
   const isValidMessage = isDuelMessageValid(message);
-  const isLoading = isPending || isConfirming;
-  const potAmount = numericAmount * 2;
-
-  async function handleCreateDuel() {
-    if (!ready) return;
-
-    if (!authenticated) {
-      login();
-      return;
-    }
-
-    if (!activeWallet?.address) {
-      appToast.error('toast.walletNotReady');
-      return;
-    }
-
-    if (!isValidAmount) {
-      appToast.error('create.min');
-      return;
-    }
-
-    if (!isValidMessage) {
-      appToast.error('create.messageTooLong');
-      return;
-    }
-
-    // Ensure wallet is on the correct chain before sending transactions
-    if (connectedChainId !== chainConfig.id) {
-      try {
-        appToast.info('toast.switchingNetwork', { chain: chainConfig.name });
-        await switchChainAsync({ chainId: chainConfig.id });
-      } catch {
-        appToast.error('toast.switchNetworkFailed', { chain: chainConfig.name });
-        return;
-      }
-    }
-
-    const rawAmount = parseUnits(amount, USDT_DECIMALS);
-    const inviteSecret = isPublic ? PUBLIC_INVITE_SECRET : generateInviteSecret();
-    const inviteHash = isPublic ? PUBLIC_INVITE_HASH : hashInviteSecret(inviteSecret);
-    pendingAmount.current = rawAmount;
-    pendingInviteSecret.current = isPublic ? null : inviteSecret;
-    pendingInviteHash.current = inviteHash;
-    pendingMessage.current = message;
-
-    // Check if we already have sufficient allowance
-    if (currentAllowance !== undefined && currentAllowance >= rawAmount) {
-      setStep('creating');
-      appToast.info('toast.createDuelPending');
-      createDuel(rawAmount, inviteHash, message);
-    } else {
-      setStep('approving');
-      appToast.info('toast.approveUsdtFirst');
-      approveToken(chainConfig.usdt, rawAmount);
-    }
-  }
+  const flow = useCreateDuelFlow({
+    amount,
+    message,
+    gameName,
+    isPublic,
+    selectedChain,
+    isValidAmount,
+    isValidMessage,
+  });
 
   return (
     <div className="mx-auto w-full max-w-lg">
-      {/* Header */}
       <div className="mb-8 text-center animate-fade-in">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-100">
           <Swords className="h-7 w-7 text-indigo-600" />
@@ -194,258 +46,60 @@ export function CreateDuelForm() {
         </p>
       </div>
 
-      {/* Form card */}
-      <div className="card-glow animate-fade-in-up rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-        {/* Duel type toggle */}
-        <div className="flex flex-col gap-3 mb-6">
-          <label className="text-sm font-semibold text-slate-700">
-            {t('create.duelType')}
-          </label>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setIsPublic(false)}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 text-sm font-medium transition-all ${
-                !isPublic
-                  ? 'border-indigo-500 bg-indigo-50/50 text-indigo-700'
-                  : 'border-slate-200 text-slate-500 hover:border-slate-300'
-              }`}
-            >
-              <Lock className="h-4 w-4" />
-              {t('create.private')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsPublic(true)}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 text-sm font-medium transition-all ${
-                isPublic
-                  ? 'border-indigo-500 bg-indigo-50/50 text-indigo-700'
-                  : 'border-slate-200 text-slate-500 hover:border-slate-300'
-              }`}
-            >
-              <Globe className="h-4 w-4" />
-              {t('create.public')}
-            </button>
-          </div>
-          <p className="text-xs text-slate-500">
-            {isPublic ? t('create.publicHint') : t('create.privateHint')}
-          </p>
-        </div>
+      <CreateDuelFormCard
+        amount={amount}
+        onAmountChange={setAmount}
+        isValidAmount={isValidAmount}
+        message={message}
+        onMessageChange={setMessage}
+        isValidMessage={isValidMessage}
+        gameName={gameName}
+        onGameNameChange={setGameName}
+        isPublic={isPublic}
+        onPublicChange={setIsPublic}
+        selectedChain={selectedChain}
+        onChainChange={setSelectedChain}
+        isAuthenticated={flow.authenticated}
+        isSubmitDisabled={flow.submitDisabled}
+        onSubmit={flow.handleCreateDuelClick}
+      />
 
-        {/* Wager section */}
-        <div className="flex flex-col gap-3">
-          <label
-            htmlFor="wager-amount"
-            className="text-sm font-semibold text-slate-700"
-          >
-            {t('create.amount')}
-          </label>
-
-          {/* Amount input with USDT suffix */}
-          <div className="relative">
-            <DollarSign className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input
-              id="wager-amount"
-              type="number"
-              min={MIN_WAGER}
-              step="1"
-              placeholder={t('create.amountPlaceholder')}
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="h-12 border-slate-200 pl-9 pr-16 text-lg font-semibold focus:border-indigo-300 focus:ring-indigo-200"
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">
-              USDT
-            </span>
-          </div>
-
-          {/* Quick presets */}
-          <div className="flex flex-wrap gap-2">
-            {PRESETS.map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => setAmount(preset.toString())}
-                className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-all ${
-                  parseFloat(amount) === preset
-                    ? 'border-indigo-300 bg-indigo-50 text-indigo-700'
-                    : 'border-slate-200 text-slate-500 hover:border-indigo-200 hover:bg-indigo-50/50 hover:text-indigo-600'
-                }`}
-              >
-                {preset}
-              </button>
-            ))}
-          </div>
-
-          {amount && !isValidAmount && (
-            <p className="text-xs text-red-500">{t('create.min')}</p>
-          )}
-        </div>
-
-        {/* Divider */}
-        <div className="my-6 h-px bg-slate-100" />
-
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-3">
-            <label className="text-sm font-semibold text-slate-700" htmlFor="duel-message">
-              {t('create.message')}
-            </label>
-            <span className={`text-xs font-medium ${isValidMessage ? 'text-slate-400' : 'text-red-500'}`}>
-              {t('create.messageCounter', { count: messageCharacterCount, max: MAX_DUEL_MESSAGE_CHARACTERS })}
-            </span>
-          </div>
-
-          <textarea
-            id="duel-message"
-            rows={3}
-            placeholder={t('create.messagePlaceholder')}
-            value={message}
-            onChange={(event) => setMessage(event.target.value)}
-            className="min-h-[96px] w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 transition-colors outline-none placeholder:text-slate-400 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
-          />
-
-          <p className="text-xs text-slate-500">{t('create.messageHint')}</p>
-          {!isValidMessage && (
-            <p className="text-xs text-red-500">{t('create.messageTooLong')}</p>
-          )}
-        </div>
-
-        <div className="my-6 h-px bg-slate-100" />
-
-        {/* Game */}
-        <div>
-          <label className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700">
-            <Gamepad2 className="h-4 w-4 text-indigo-600" />
-            {t('create.game')}
-          </label>
-          <GameAutocomplete value={gameName} onChange={setGameName} />
-        </div>
-
-        <div className="my-6 h-px bg-slate-100" />
-
-        {/* Chain selector */}
-        <div className="flex flex-col gap-3">
-          <label className="text-sm font-semibold text-slate-700">
-            {t('create.chain')}
-          </label>
-          <div className="grid grid-cols-2 gap-3">
-            {(Object.keys(SUPPORTED_CHAINS) as Array<keyof typeof SUPPORTED_CHAINS>).map(
-              (key) => {
-                const chain = SUPPORTED_CHAINS[key];
-                const isSelected = selectedChain === key;
-                const isArbitrum = key === 'arbitrum' || key === 'arbitrumSepolia';
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setSelectedChain(key)}
-                    className={`group relative flex flex-col items-center gap-2 rounded-xl border-2 px-4 py-4 transition-all ${
-                      isSelected
-                        ? 'border-indigo-500 bg-indigo-50/50 shadow-sm'
-                        : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
-                    }`}
-                  >
-                    {/* Network color dot */}
-                    <div
-                      className={`flex h-10 w-10 items-center justify-center rounded-xl transition-transform group-hover:scale-105 ${
-                        isArbitrum
-                          ? 'bg-blue-100 text-blue-600'
-                          : 'bg-purple-100 text-purple-600'
-                      }`}
-                    >
-                      <span className="text-base font-bold">
-                        {isArbitrum ? 'A' : 'P'}
-                      </span>
-                    </div>
-                    <span
-                      className={`text-sm font-medium ${
-                        isSelected ? 'text-indigo-700' : 'text-slate-600'
-                      }`}
-                    >
-                      {chain.name}
-                    </span>
-                    {/* Selection indicator */}
-                    {isSelected && (
-                      <div className="absolute -top-px -right-px h-5 w-5 rounded-bl-lg rounded-tr-[10px] bg-indigo-500 flex items-center justify-center">
-                        <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                    )}
-                  </button>
-                );
-              }
-            )}
-          </div>
-        </div>
-
-        {/* Pot preview */}
-        {numericAmount > 0 && (
-          <div className="mt-6 flex items-center justify-between rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 px-5 py-4">
-            <div className="flex flex-col">
-              <span className="text-xs font-medium text-slate-500">
-                {t('create.pot')}
-              </span>
-              <span className="text-xl font-bold text-slate-900">
-                {potAmount} <span className="text-sm font-medium text-slate-400">USDT</span>
-              </span>
-            </div>
-            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
-              {t('create.potHint')}
-            </span>
-          </div>
-        )}
-
-        {/* Create button */}
-        <Button
-          size="lg"
-          className="mt-6 h-12 w-full bg-indigo-600 text-base font-semibold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:shadow-xl hover:shadow-indigo-200 transition-all duration-200"
-          onClick={handleCreateDuel}
-          disabled={isLoading || (authenticated && (!isValidAmount || !isValidMessage))}
-        >
-          {isLoading ? (
-            <span className="flex items-center gap-2">
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              {isPending ? t('status.confirmWallet') : t('status.processing')}
-            </span>
-          ) : !authenticated ? (
-            t('nav.connectWallet')
-          ) : (
-            <>
-              <Swords className="mr-2 h-4 w-4" />
-              {t('create.button')}
-            </>
-          )}
-        </Button>
-
-        <p className="mt-3 text-center text-xs text-slate-500">
-          {isPublic ? t('create.publicHint') : t('create.privateInvite')}
-        </p>
-
-        {error && (
-          <p className="mt-3 text-xs text-red-500 text-center">
-            {error.message.includes('User rejected') || error.message.includes('denied')
-              ? t('toast.transactionRejected')
-              : t('toast.transactionFailed')}
-          </p>
-        )}
-      </div>
-
-      {/* Trust badges */}
       <div className="mt-6 flex items-center justify-center gap-6 animate-fade-in animation-delay-300">
-        <div className="flex items-center gap-1.5 text-xs text-slate-400">
-          <DollarSign className="h-3.5 w-3.5" />
-          <span>{t('create.noFees')}</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-xs text-slate-400">
-          <Shield className="h-3.5 w-3.5" />
-          <span>{t('create.smartContract')}</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-xs text-slate-400">
-          <Zap className="h-3.5 w-3.5" />
-          <span>{t('create.instant')}</span>
-        </div>
+        <TrustBadge icon={DollarSign} label={t('create.noFees')} />
+        <TrustBadge icon={Shield} label={t('create.smartContract')} />
+        <TrustBadge icon={Zap} label={t('create.instant')} />
       </div>
+
+      <CreateDuelFlowDialog
+        open={flow.flow !== null}
+        canClose={flow.canCloseFlow}
+        draft={flow.flow?.draft ?? null}
+        stage={flow.flow?.stage ?? 'review'}
+        actionState={flow.flow?.actionState ?? 'idle'}
+        needsNetworkSwitch={flow.needsNetworkSwitch}
+        needsApproval={flow.needsApproval}
+        errorMessage={flow.flow?.errorMessage}
+        onOpenChange={flow.handleFlowOpenChange}
+        onContinue={flow.handleContinueFlow}
+        onSwitchNetwork={flow.handleSwitchNetwork}
+        onApprove={flow.handleApprove}
+        onCreateDuel={flow.handleCreateTransaction}
+        onBackToForm={flow.closeFlow}
+      />
+    </div>
+  );
+}
+
+interface TrustBadgeProps {
+  icon: typeof DollarSign;
+  label: string;
+}
+
+function TrustBadge({ icon: Icon, label }: TrustBadgeProps) {
+  return (
+    <div className="flex items-center gap-1.5 text-xs text-slate-400">
+      <Icon className="h-3.5 w-3.5" />
+      <span>{label}</span>
     </div>
   );
 }
