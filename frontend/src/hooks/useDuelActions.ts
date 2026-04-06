@@ -1,11 +1,29 @@
 'use client';
 
-import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import {
+  useAccount,
+  usePublicClient,
+  useWaitForTransactionReceipt,
+  useWriteContract,
+} from 'wagmi';
 import { duelMeAbi, erc20Abi } from '@/lib/contracts';
-import { DUELME_ADDRESSES } from '@/lib/constants';
+import { DUELME_ADDRESSES, SUPPORTED_CHAINS } from '@/lib/constants';
+import {
+  ARBITRUM_SEPOLIA_APPROVE_MIN_GAS,
+  ARBITRUM_SEPOLIA_CREATE_DUEL_MIN_GAS,
+  getBufferedTestnetTransactionParams,
+} from '@/lib/testnetGas';
+
+type DuelPublicClient = NonNullable<ReturnType<typeof usePublicClient>>;
 
 export function useDuelActions(chainId: number) {
   const contractAddress = DUELME_ADDRESSES[chainId];
+  const { address: accountAddress } = useAccount();
+  const publicClient = usePublicClient({ chainId });
+  const shouldUseSepoliaGasBuffer =
+    chainId === SUPPORTED_CHAINS.arbitrumSepolia.id &&
+    publicClient !== undefined &&
+    accountAddress !== undefined;
 
   const {
     writeContract,
@@ -19,23 +37,66 @@ export function useDuelActions(chainId: number) {
     hash,
   });
 
-  function createDuel(amount: bigint, inviteHash: `0x${string}`, message = '') {
-    writeContract({
+  async function createDuel(amount: bigint, inviteHash: `0x${string}`, message = '') {
+    const args = message
+      ? ([amount, inviteHash, message] as const)
+      : ([amount, inviteHash] as const);
+    const config = {
       address: contractAddress,
       abi: duelMeAbi,
       functionName: 'createDuel',
-      args: message ? [amount, inviteHash, message] : [amount, inviteHash],
+      args,
       chainId,
-    });
+    } as const;
+
+    if (shouldUseSepoliaGasBuffer) {
+      const transactionParams = await getSepoliaTransactionParams(
+        publicClient,
+        (client) => client.estimateContractGas({
+          ...config,
+          account: accountAddress,
+        }),
+        ARBITRUM_SEPOLIA_CREATE_DUEL_MIN_GAS
+      );
+
+      writeContract({
+        ...config,
+        ...transactionParams,
+      });
+      return;
+    }
+
+    writeContract(config);
   }
 
-  function approveToken(token: `0x${string}`, amount: bigint) {
-    writeContract({
+  async function approveToken(token: `0x${string}`, amount: bigint) {
+    const config = {
       address: token,
       abi: erc20Abi,
       functionName: 'approve',
       args: [contractAddress, amount],
       chainId,
+    } as const;
+
+    if (shouldUseSepoliaGasBuffer) {
+      const transactionParams = await getSepoliaTransactionParams(
+        publicClient,
+        (client) => client.estimateContractGas({
+          ...config,
+          account: accountAddress,
+        }),
+        ARBITRUM_SEPOLIA_APPROVE_MIN_GAS
+      );
+
+      writeContract({
+        ...config,
+        ...transactionParams,
+      });
+      return;
+    }
+
+    writeContract({
+      ...config,
     });
   }
 
@@ -204,4 +265,23 @@ export function useDuelActions(chainId: number) {
     error,
     reset,
   };
+}
+
+async function getSepoliaTransactionParams(
+  publicClient: DuelPublicClient,
+  estimateGas: (publicClient: DuelPublicClient) => Promise<bigint>,
+  minimumGas: bigint
+) {
+  const [estimatedGas, estimatedFees, latestBlock] = await Promise.all([
+    estimateGas(publicClient),
+    publicClient.estimateFeesPerGas(),
+    publicClient.getBlock(),
+  ]);
+
+  return getBufferedTestnetTransactionParams({
+    estimatedGas,
+    minimumGas,
+    feeEstimate: estimatedFees,
+    baseFeePerGas: latestBlock.baseFeePerGas,
+  });
 }
