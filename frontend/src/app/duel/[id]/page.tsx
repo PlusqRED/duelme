@@ -5,30 +5,37 @@ import { Button } from '@/components/ui/button';
 import { ShareLink } from '@/components/duel/ShareLink';
 import { ClaimButtons } from '@/components/duel/ClaimButtons';
 import { ConfirmResult } from '@/components/duel/ConfirmResult';
-import { ReputationBadge } from '@/components/duel/ReputationBadge';
 import { useAppToast } from '@/hooks/useAppToast';
 import { useTranslation } from '@/i18n/useTranslation';
 import { DuelState } from '@/lib/contracts';
 import { getClaimableAmountForAddress } from '@/lib/duel';
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
 import { hashInviteSecret, readInviteSecretFromHash, readStoredInviteSecret, storeInviteSecret, isPublicDuel, PUBLIC_INVITE_SECRET } from '@/lib/invite';
-import { SUPPORTED_CHAINS, DEFAULT_CHAIN_ID } from '@/lib/constants';
+import { SUPPORTED_CHAINS, DEFAULT_CHAIN_ID, ZERO_ADDRESS } from '@/lib/constants';
 import { useDuel } from '@/hooks/useDuel';
 import { useDuelActions } from '@/hooks/useDuelActions';
-import { formatDateTime, formatUSDT, truncateAddress } from '@/lib/utils';
+import { formatDateTime, formatUSDT } from '@/lib/utils';
 import { usePrivy } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useSwitchChain, useAccount } from 'wagmi';
-import { emitBalanceRefresh } from '@/lib/balanceRefresh';
 import {
   Clock, Trophy, ArrowLeft, XCircle, RotateCcw,
-  Swords, LogIn, User, Hourglass, Shield, Handshake, Undo2, Globe, Lock,
+  Swords, LogIn, Hourglass, Shield, Handshake, Globe, Lock,
 } from 'lucide-react';
 import Link from 'next/link';
-import { CopyableAddress } from '@/components/duel/CopyableAddress';
+import { ActionFlowDialog } from '@/components/duel/ActionFlowDialog';
+import { PlayerCard } from '@/components/duel/PlayerCard';
 import { JoinDuelFlowDialog } from '@/components/duel/JoinDuelFlowDialog';
+import { MutualCancellationCard } from '@/components/duel/MutualCancellationCard';
+import { useActionFlow } from '@/hooks/useActionFlow';
 import { useJoinDuelFlow } from '@/hooks/useJoinDuelFlow';
 import { useNicknames } from '@/hooks/useNicknames';
+import type { ActionFlowSummaryContext } from '@/lib/actionFlow';
+import {
+  claimVictoryConfig, admitDefeatConfig, confirmResultConfig,
+  disputeResultConfig, requestMutualCancellationConfig,
+  claimPayoutConfig, refundConfig,
+} from '@/lib/actionFlowConfigs';
 
 const STATUS_CONFIG: Record<
   DuelState,
@@ -46,265 +53,13 @@ const STATUS_CONFIG: Record<
   [DuelState.MutuallyCancelled]: { icon: Handshake, gradient: 'from-sky-500 to-cyan-600', label: 'duel.mutuallyCancelled' },
 };
 
-const ZERO = '0x0000000000000000000000000000000000000000';
 type PendingAction =
   | 'idle'
   | 'declining'
   | 'canceling'
-  | 'claimVictory'
-  | 'admitDefeat'
-  | 'requestingMutualCancel'
   | 'acceptingMutualCancel'
   | 'decliningMutualCancelRequest'
-  | 'withdrawingMutualCancelRequest'
-  | 'confirmingResult'
-  | 'disputingResult'
-  | 'refunding'
-  | 'claimingPayout';
-
-/* ── Player card (VS arena) ── */
-function PlayerCard({
-  address,
-  label,
-  isWinner,
-  isReportedWinner,
-  isYou,
-  isEmpty,
-  nickname,
-}: {
-  address: string;
-  label: string;
-  isWinner: boolean;
-  isReportedWinner: boolean;
-  isYou: boolean;
-  isEmpty: boolean;
-  nickname?: string | null;
-}) {
-  const { t } = useTranslation();
-  const highlightClass = isWinner
-    ? 'border-emerald-400 bg-emerald-50 shadow-lg shadow-emerald-100'
-    : isReportedWinner
-      ? 'border-amber-300 bg-amber-50 shadow-lg shadow-amber-100'
-      : isEmpty
-        ? 'border-dashed border-slate-300 bg-slate-50'
-        : 'border-slate-200 bg-slate-50';
-
-  return (
-    <div className="flex flex-1 flex-col items-center gap-2">
-      {/* Avatar circle */}
-      <div
-        className={`relative flex h-16 w-16 items-center justify-center rounded-full border-2 transition-all sm:h-20 sm:w-20 ${highlightClass}`}
-      >
-        {isEmpty ? (
-          <Hourglass className="h-6 w-6 text-slate-300" />
-        ) : isWinner ? (
-          <Trophy className="h-7 w-7 text-emerald-500" />
-        ) : isReportedWinner ? (
-          <Trophy className="h-7 w-7 text-amber-500" />
-        ) : (
-          <User className="h-7 w-7 text-slate-400" />
-        )}
-        {isYou && (
-          <span className="absolute -bottom-1 rounded-full bg-indigo-600 px-1.5 py-0.5 text-[9px] font-bold uppercase text-white">
-            {t('duel.you')}
-          </span>
-        )}
-      </div>
-
-      {/* Label */}
-      <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
-        {label}
-      </span>
-
-      {/* Address + rep */}
-      {isEmpty ? (
-        <span className="text-xs text-slate-400">...</span>
-      ) : (
-        <div className="flex flex-col items-center gap-1">
-          <CopyableAddress
-            address={address}
-            nickname={nickname}
-            href={`/profile/${address}`}
-            className={
-              isWinner
-                ? 'font-semibold text-emerald-700'
-                : isReportedWinner
-                  ? 'font-semibold text-amber-700'
-                  : undefined
-            }
-          />
-          <ReputationBadge address={address as `0x${string}`} chainId={DEFAULT_CHAIN_ID} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function MutualCancellationCard({
-  mode,
-  requestedBy,
-  requestedAt,
-  viewerAddress,
-  pendingAction,
-  isPending,
-  onRequest,
-  onAccept,
-  onDecline,
-  onWithdraw,
-  resolveDisplay,
-}: {
-  mode: 'available' | 'requester' | 'responder' | 'spectator';
-  requestedBy?: string;
-  requestedAt?: bigint;
-  viewerAddress?: string;
-  pendingAction: PendingAction;
-  isPending: boolean;
-  onRequest?: () => void;
-  onAccept?: () => void;
-  onDecline?: () => void;
-  onWithdraw?: () => void;
-  resolveDisplay?: (address: string) => string;
-}) {
-  const { t, language } = useTranslation();
-  const isRequester = mode === 'requester';
-  const isResponder = mode === 'responder';
-  const normalizedViewer = viewerAddress?.toLowerCase();
-  const displayRequester = requestedBy ? (resolveDisplay?.(requestedBy) ?? truncateAddress(requestedBy)) : null;
-  const formattedRequester = requestedBy
-    ? normalizedViewer === requestedBy.toLowerCase()
-      ? `${t('duel.you')} • ${displayRequester}`
-      : displayRequester
-    : null;
-
-  if (mode === 'available') {
-    return (
-      <div className="rounded-2xl border border-violet-200 bg-violet-50 p-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-sm font-semibold text-violet-900">
-              <Handshake className="h-4 w-4" />
-              <span>{t('duel.requestCancellationTitle')}</span>
-            </div>
-            <p className="text-sm text-violet-800">{t('duel.requestCancellationHint')}</p>
-          </div>
-
-          <Button
-            size="lg"
-            variant="outline"
-            className="w-full border-violet-300 bg-white text-violet-900 hover:bg-violet-100 sm:w-auto"
-            onClick={onRequest}
-            disabled={isPending}
-          >
-            {pendingAction === 'requestingMutualCancel'
-              ? t('status.requestingCancellation')
-              : t('action.requestCancellation')}
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-2xl border border-violet-200 bg-violet-50 p-4">
-      <div className="space-y-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-sm font-semibold text-violet-900">
-            <Handshake className="h-4 w-4" />
-            <span>
-              {isRequester
-                ? t('duel.awaitingCancellationDecision')
-                : isResponder
-                  ? t('duel.reviewCancellationRequest')
-                  : t('duel.cancellationPending')}
-            </span>
-          </div>
-          <p className="text-sm text-violet-800">
-            {isRequester
-              ? t('duel.mutualCancelRequestedByYou')
-              : isResponder
-                ? t('duel.mutualCancelRequestedByOpponent')
-                : t('duel.cancellationPendingSpectator')}
-          </p>
-        </div>
-
-        {(formattedRequester || requestedAt) && (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {formattedRequester && (
-              <div className="rounded-xl border border-violet-200 bg-white/80 p-3">
-                <div className="mb-2 text-xs font-medium uppercase tracking-wide text-violet-700">
-                  {t('duel.mutualCancelRequestedByLabel')}
-                </div>
-                <p className="font-mono text-sm font-semibold text-slate-900">{formattedRequester}</p>
-              </div>
-            )}
-
-            {requestedAt && requestedAt > 0n && (
-              <div className="rounded-xl border border-violet-200 bg-white/80 p-3">
-                <div className="mb-2 text-xs font-medium uppercase tracking-wide text-violet-700">
-                  {t('duel.mutualCancelRequestedAtLabel')}
-                </div>
-                <p className="text-sm font-semibold text-slate-900">{formatDateTime(requestedAt, language)}</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="flex flex-col gap-3 sm:flex-row">
-          {isResponder && (
-            <>
-              <Button
-                size="lg"
-                className="flex-1 bg-violet-600 text-white hover:bg-violet-700"
-                onClick={onAccept}
-                disabled={isPending}
-              >
-                <Handshake className="mr-2 h-4 w-4" />
-                {pendingAction === 'acceptingMutualCancel'
-                  ? t('status.acceptingCancellation')
-                  : t('action.acceptCancellation')}
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="flex-1 border-violet-300 text-violet-900 hover:bg-violet-100"
-                onClick={onDecline}
-                disabled={isPending}
-              >
-                <XCircle className="mr-2 h-4 w-4" />
-                {pendingAction === 'decliningMutualCancelRequest'
-                  ? t('status.processing')
-                  : t('action.declineCancellation')}
-              </Button>
-            </>
-          )}
-
-          {isRequester && (
-            <Button
-              size="lg"
-              variant="outline"
-              className="w-full border-violet-300 text-violet-900 hover:bg-violet-100 sm:w-auto"
-              onClick={onWithdraw}
-              disabled={isPending}
-            >
-              <Undo2 className="mr-2 h-4 w-4" />
-              {pendingAction === 'withdrawingMutualCancelRequest'
-                ? t('status.withdrawing')
-                : t('action.withdrawCancellationRequest')}
-            </Button>
-          )}
-        </div>
-
-        <p className="text-xs text-violet-800">
-          {isRequester
-            ? t('duel.mutualCancelRequesterHint')
-            : isResponder
-              ? t('duel.mutualCancelResponderHint')
-              : t('duel.cancellationPendingSpectatorHint')}
-        </p>
-      </div>
-    </div>
-  );
-}
+  | 'withdrawingMutualCancelRequest';
 
 /* ── Main page ── */
 export default function DuelPage({
@@ -325,9 +80,8 @@ export default function DuelPage({
   const { chainId: connectedChainId } = useAccount();
   const { duel, isLoading, isError, refetch } = useDuel(BigInt(duelId), DEFAULT_CHAIN_ID);
   const {
-    claimVictory, admitDefeat,
-    confirmResult, disputeResult, refund, declineDuel, cancelDuel, claimPayout,
-    requestMutualCancellation, acceptMutualCancellation, declineMutualCancellation, withdrawMutualCancellationRequest,
+    declineDuel, cancelDuel,
+    acceptMutualCancellation, declineMutualCancellation, withdrawMutualCancellationRequest,
     isPending, isConfirming, isSuccess, error: txError, reset,
   } = useDuelActions(DEFAULT_CHAIN_ID);
 
@@ -385,25 +139,20 @@ export default function DuelPage({
     refetchDuel: refetch,
   });
 
+  const actionFlow = useActionFlow({ duelId, refetchDuel: refetch });
+
   useEffect(() => {
     if (!isSuccess || pendingAction === 'idle') return;
 
-    const successToastKey = pendingAction === 'claimingPayout'
-      ? 'toast.payoutClaimed'
-      : pendingAction === 'requestingMutualCancel'
-        ? 'toast.cancellationRequested'
-        : pendingAction === 'acceptingMutualCancel'
-          ? 'toast.cancellationAccepted'
-          : pendingAction === 'decliningMutualCancelRequest'
-            ? 'toast.cancellationDeclined'
-            : pendingAction === 'withdrawingMutualCancelRequest'
-              ? 'toast.cancellationWithdrawn'
-              : 'toast.transactionConfirmed';
+    const successToastKey = pendingAction === 'acceptingMutualCancel'
+      ? 'toast.cancellationAccepted'
+      : pendingAction === 'decliningMutualCancelRequest'
+        ? 'toast.cancellationDeclined'
+        : pendingAction === 'withdrawingMutualCancelRequest'
+          ? 'toast.cancellationWithdrawn'
+          : 'toast.transactionConfirmed';
 
     appToast.success(successToastKey);
-    if (pendingAction === 'claimingPayout') {
-      emitBalanceRefresh();
-    }
     refetch();
     reset();
     setPendingAction('idle');
@@ -442,39 +191,11 @@ export default function DuelPage({
     declineDuel(BigInt(duelId), inviteSecret);
   }
 
-  async function handleDispute() {
-    if (!(await ensureChain())) return;
-    setPendingAction('disputingResult');
-    appToast.info('toast.disputingResult');
-    disputeResult(BigInt(duelId));
-  }
-
   async function handleCancel() {
     if (!(await ensureChain())) return;
     setPendingAction('canceling');
     appToast.info('toast.cancellingDuel');
     cancelDuel(BigInt(duelId));
-  }
-
-  async function handleClaimVictory() {
-    if (!(await ensureChain())) return;
-    setPendingAction('claimVictory');
-    appToast.info('toast.reportingVictory');
-    claimVictory(BigInt(duelId));
-  }
-
-  async function handleAdmitDefeat() {
-    if (!(await ensureChain())) return;
-    setPendingAction('admitDefeat');
-    appToast.info('toast.reportingDefeat');
-    admitDefeat(BigInt(duelId));
-  }
-
-  async function handleRequestMutualCancellation() {
-    if (!(await ensureChain())) return;
-    setPendingAction('requestingMutualCancel');
-    appToast.info('toast.requestingCancellation');
-    requestMutualCancellation(BigInt(duelId));
   }
 
   async function handleAcceptMutualCancellation() {
@@ -496,31 +217,6 @@ export default function DuelPage({
     setPendingAction('withdrawingMutualCancelRequest');
     appToast.info('toast.withdrawingCancellation');
     withdrawMutualCancellationRequest(BigInt(duelId));
-  }
-
-  async function handleConfirmResult() {
-    if (!(await ensureChain())) return;
-    setPendingAction('confirmingResult');
-    appToast.info('toast.confirmingResult');
-    confirmResult(BigInt(duelId));
-  }
-
-  async function handleRefund() {
-    if (!(await ensureChain())) return;
-    setPendingAction('refunding');
-    appToast.info('toast.unlockingRefunds');
-    refund(BigInt(duelId));
-  }
-
-  async function handleClaimPayout() {
-    if (!duel) return;
-    if (!(await ensureChain())) return;
-    const claimableAmount = getClaimableAmountForAddress(duel, walletAddress);
-    if (claimableAmount <= 0n) return;
-
-    setPendingAction('claimingPayout');
-    appToast.info('toast.claimingPayout');
-    claimPayout(BigInt(duelId));
   }
 
   /* ── Loading / Error ── */
@@ -574,7 +270,7 @@ export default function DuelPage({
   const backLabel = authenticated ? t('nav.dashboard') : t('sidenav.hero');
 
   const wagerDisplay = Number(duel.wagerAmount) / 1e6;
-  const hasOpponent = duel.opponent !== ZERO;
+  const hasOpponent = duel.opponent !== ZERO_ADDRESS;
   const isFundedPot = state === DuelState.Funded
     || state === DuelState.MutualCancelRequested
     || state === DuelState.WinnerClaimed
@@ -626,6 +322,41 @@ export default function DuelPage({
           : isCancelled
             ? 'duel.cancelledClaimHint'
             : null;
+
+  const opponentAddr = isCreator ? duel.opponent : duel.creator;
+  const summaryContext: ActionFlowSummaryContext = {
+    duelId,
+    formattedWager: `${wagerDisplay} USDT`,
+    formattedPot: `${potDisplay} USDT`,
+    chainName: chainConfig.name,
+    opponentDisplay: resolveDisplay(opponentAddr),
+    claimedWinnerDisplay: duel.claimedWinner !== ZERO_ADDRESS ? resolveDisplay(duel.claimedWinner) : '',
+    claimableDisplay: hasClaimablePayout ? `${formatUSDT(claimableAmount)} USDT` : '',
+    t,
+  };
+
+  const da = actionFlow.duelActions;
+  function openClaimVictory() {
+    actionFlow.openFlow(claimVictoryConfig(() => da.claimVictory(BigInt(duelId))));
+  }
+  function openAdmitDefeat() {
+    actionFlow.openFlow(admitDefeatConfig(() => da.admitDefeat(BigInt(duelId))));
+  }
+  function openConfirmResult() {
+    actionFlow.openFlow(confirmResultConfig(() => da.confirmResult(BigInt(duelId))));
+  }
+  function openDisputeResult() {
+    actionFlow.openFlow(disputeResultConfig(() => da.disputeResult(BigInt(duelId))));
+  }
+  function openRequestCancellation() {
+    actionFlow.openFlow(requestMutualCancellationConfig(() => da.requestMutualCancellation(BigInt(duelId))));
+  }
+  function openClaimPayout() {
+    actionFlow.openFlow(claimPayoutConfig(() => da.claimPayout(BigInt(duelId))));
+  }
+  function openRefund() {
+    actionFlow.openFlow(refundConfig(() => da.refund(BigInt(duelId))));
+  }
 
   /* ── Render ── */
   return (
@@ -827,20 +558,17 @@ export default function DuelPage({
             {isFunded && canManageParticipantDuel && (
               <>
                 <ClaimButtons
-                  onClaimVictory={handleClaimVictory}
-                  onAdmitDefeat={handleAdmitDefeat}
+                  onClaimVictory={openClaimVictory}
+                  onAdmitDefeat={openAdmitDefeat}
                   isPending={txPending}
                 />
                 <MutualCancellationCard
                   mode="available"
                   pendingAction={pendingAction}
                   isPending={txPending}
-                  onRequest={handleRequestMutualCancellation}
+                  onRequest={openRequestCancellation}
                   resolveDisplay={resolveDisplay}
                 />
-                {(pendingAction === 'claimVictory' || pendingAction === 'admitDefeat') && (
-                  <p className="text-center text-xs text-slate-500">{t('status.processing')}</p>
-                )}
               </>
             )}
 
@@ -883,9 +611,9 @@ export default function DuelPage({
                 viewerAddress={walletAddress}
                 isParticipantViewer={canManageParticipantDuel}
                 claimTimestamp={Number(duel.claimTimestamp)}
-                onConfirm={handleConfirmResult}
-                onDispute={handleDispute}
-                onRefund={handleRefund}
+                onConfirm={openConfirmResult}
+                onDispute={openDisputeResult}
+                onRefund={openRefund}
                 isPending={txPending}
                 canConfirm={canManageParticipantDuel && !isClaimAuthor}
                 canDispute={canManageParticipantDuel && !isClaimAuthor}
@@ -895,7 +623,7 @@ export default function DuelPage({
             )}
 
             {/* Resolved */}
-            {isResolved && duel.claimedWinner !== ZERO && (
+            {isResolved && duel.claimedWinner !== ZERO_ADDRESS && (
               <div className="flex items-center justify-center gap-2 rounded-xl bg-emerald-50 p-4">
                 <Trophy className="h-5 w-5 text-emerald-500" />
                 <span className="text-sm font-semibold text-emerald-700">
@@ -962,10 +690,10 @@ export default function DuelPage({
                     <Button
                       size="lg"
                       className="w-full bg-gradient-to-r from-emerald-500 via-emerald-600 to-green-600 text-white shadow-sm shadow-emerald-200 hover:from-emerald-600 hover:via-emerald-700 hover:to-green-700 sm:w-auto"
-                      onClick={handleClaimPayout}
-                      disabled={txPending}
+                      onClick={openClaimPayout}
+                      disabled={txPending || actionFlow.flow !== null}
                     >
-                      {pendingAction === 'claimingPayout' ? t('status.claiming') : t('action.claimFunds')}
+                      {t('action.claimFunds')}
                     </Button>
                   )}
                 </div>
@@ -992,6 +720,20 @@ export default function DuelPage({
         onApprove={joinFlow.handleApprove}
         onJoinDuel={joinFlow.handleJoinTransaction}
         onDone={joinFlow.closeFlow}
+      />
+
+      <ActionFlowDialog
+        open={actionFlow.flow !== null}
+        canClose={actionFlow.canClose}
+        flow={actionFlow.flow}
+        config={actionFlow.activeConfig}
+        needsNetworkSwitch={actionFlow.needsNetworkSwitch}
+        summaryContext={summaryContext}
+        onOpenChange={actionFlow.handleFlowOpenChange}
+        onContinue={actionFlow.handleContinue}
+        onSwitchNetwork={actionFlow.handleSwitchNetwork}
+        onExecute={actionFlow.handleExecute}
+        onDone={actionFlow.closeFlow}
       />
     </div>
   );
