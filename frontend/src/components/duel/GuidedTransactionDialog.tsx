@@ -94,7 +94,10 @@ export function GuidedTransactionDialog({
               {description}
             </DialogDescription>
           </DialogHeader>
-          <ol className="mt-5 grid gap-2 sm:grid-cols-5">
+          <ol className={cn(
+            'mt-5 grid gap-2',
+            steps.length <= 3 ? 'sm:grid-cols-3' : steps.length === 4 ? 'sm:grid-cols-4' : 'sm:grid-cols-5'
+          )}>
             {steps.map((step) => (
               <li
                 key={step.id}

@@ -6,12 +6,12 @@ import {
   Waypoints,
 } from 'lucide-react';
 import type { useTranslation } from '@/i18n/useTranslation';
-import type { CreateDuelFlowActionState, CreateDuelFlowStage } from '@/lib/createDuelFlow';
+import type { JoinDuelFlowActionState, JoinDuelFlowStage } from '@/lib/joinDuelFlow';
 import { buildFlowAction, type GuidedTransactionDialogConfig } from '@/lib/guidedTransaction';
 
-interface GetCreateDuelDialogConfigOptions {
-  stage: CreateDuelFlowStage;
-  actionState: CreateDuelFlowActionState;
+interface GetJoinDuelDialogConfigOptions {
+  stage: JoinDuelFlowStage;
+  actionState: JoinDuelFlowActionState;
   needsNetworkSwitch: boolean;
   needsApproval: boolean;
   formattedAmount: string;
@@ -19,18 +19,19 @@ interface GetCreateDuelDialogConfigOptions {
   onContinue: () => void;
   onSwitchNetwork: () => void;
   onApprove: () => void;
-  onCreateDuel: () => void;
+  onJoinDuel: () => void;
+  onDone: () => void;
   t: ReturnType<typeof useTranslation>['t'];
 }
 
-export function getCreateDuelDialogConfig(
-  options: GetCreateDuelDialogConfigOptions
+export function getJoinDuelDialogConfig(
+  options: GetJoinDuelDialogConfigOptions
 ): GuidedTransactionDialogConfig {
   if (options.stage === 'review') {
     return {
-      stepLabel: options.t('create.flow.step.review'),
-      title: options.t('create.flow.review.title', { amount: options.formattedAmount }),
-      description: options.t('create.flow.review.description'),
+      stepLabel: options.t('join.flow.step.review'),
+      title: options.t('join.flow.review.title', { amount: options.formattedAmount }),
+      description: options.t('join.flow.review.description'),
       hint: options.t(getReviewHintKey(options), {
         amount: options.formattedAmount,
         chain: options.chainName,
@@ -100,56 +101,54 @@ export function getCreateDuelDialogConfig(
     };
   }
 
-  if (options.stage === 'create-duel') {
+  if (options.stage === 'join-duel') {
     return {
-      stepLabel: options.t('create.flow.step.create'),
-      title: options.t('create.flow.create.title'),
+      stepLabel: options.t('join.flow.step.join'),
+      title: options.t('join.flow.join.title'),
       description:
         options.actionState === 'awaiting-wallet'
-          ? options.t('create.flow.create.awaitingWallet')
+          ? options.t('join.flow.join.awaitingWallet')
           : options.actionState === 'confirming'
-            ? options.t('create.flow.create.confirming', { chain: options.chainName })
-            : options.t('create.flow.create.description', {
+            ? options.t('join.flow.join.confirming', { chain: options.chainName })
+            : options.t('join.flow.join.description', {
                 amount: options.formattedAmount,
               }),
-      hint: options.t('create.flow.create.hint'),
+      hint: options.t('join.flow.join.hint'),
       icon: Swords,
       primaryAction: buildFlowAction({
         actionState: options.actionState,
-        idleLabel: options.t('create.flow.action.create'),
-        onClick: options.onCreateDuel,
+        idleLabel: options.t('join.flow.action.join', { amount: options.formattedAmount }),
+        onClick: options.onJoinDuel,
         t: options.t,
       }),
     };
   }
 
   return {
-    stepLabel: options.t('create.flow.step.success'),
-    title: options.t('create.flow.success.title'),
-    description: options.t('create.flow.success.description'),
-    hint: options.t('create.flow.success.hint'),
+    stepLabel: options.t('join.flow.step.success'),
+    title: options.t('join.flow.success.title'),
+    description: options.t('join.flow.success.description'),
+    hint: options.t('join.flow.success.hint'),
     icon: Sparkles,
     primaryAction: {
-      label: options.t('create.flow.success.opening'),
-      onClick: options.onCreateDuel,
-      disabled: true,
-      loading: true,
+      label: options.t('join.flow.success.done'),
+      onClick: options.onDone,
     },
   };
 }
 
-export function getCreateDuelStepLabelKey(stage: CreateDuelFlowStage) {
+export function getJoinDuelStepLabelKey(stage: JoinDuelFlowStage) {
   switch (stage) {
     case 'review':
-      return 'create.flow.step.review';
+      return 'join.flow.step.review';
     case 'switch-network':
       return 'create.flow.step.network';
     case 'approve':
       return 'create.flow.step.approve';
-    case 'create-duel':
-      return 'create.flow.step.create';
+    case 'join-duel':
+      return 'join.flow.step.join';
     case 'success':
-      return 'create.flow.step.success';
+      return 'join.flow.step.success';
   }
 }
 
@@ -158,16 +157,16 @@ function getReviewHintKey(options: {
   needsApproval: boolean;
 }) {
   if (options.needsNetworkSwitch && options.needsApproval) {
-    return 'create.flow.review.hint.switchAndApprove';
+    return 'join.flow.review.hint.switchAndApprove';
   }
 
   if (options.needsNetworkSwitch) {
-    return 'create.flow.review.hint.switchOnly';
+    return 'join.flow.review.hint.switchOnly';
   }
 
   if (options.needsApproval) {
-    return 'create.flow.review.hint.approveOnly';
+    return 'join.flow.review.hint.approveOnly';
   }
 
-  return 'create.flow.review.hint.createOnly';
+  return 'join.flow.review.hint.joinOnly';
 }

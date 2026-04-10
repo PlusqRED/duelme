@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { DuelCard } from '@/components/duel/DuelCard';
-import { useAppToast } from '@/hooks/useAppToast';
-import { useDuelActions } from '@/hooks/useDuelActions';
+import { useActionFlow } from '@/hooks/useActionFlow';
 import { useTranslation } from '@/i18n/useTranslation';
 import { ReputationBadge } from '@/components/duel/ReputationBadge';
 import { useNicknames } from '@/hooks/useNicknames';
@@ -19,30 +18,28 @@ import { SUPPORTED_CHAINS } from '@/lib/constants';
 import { getClaimableAmountForAddress } from '@/lib/duel';
 import { buildDashboardDuelSearchText } from '@/lib/duelSearch';
 import { formatUSDT } from '@/lib/utils';
-import { emitBalanceRefresh } from '@/lib/balanceRefresh';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useAccount, useSwitchChain } from 'wagmi';
 import { Swords, Trophy, XCircle, BarChart3, Info, Wallet, Search } from 'lucide-react';
+import { ActionFlowDialog } from '@/components/duel/ActionFlowDialog';
+import type { ActionFlowSummaryContext } from '@/lib/actionFlow';
+import { claimAllConfig, claimPayoutConfig } from '@/lib/actionFlowConfigs';
 
 const DASHBOARD_CHAIN = SUPPORTED_CHAINS.arbitrumSepolia;
 const PAGE_SIZE = 20;
 
 export default function DashboardPage() {
   const { t, language } = useTranslation();
-  const appToast = useAppToast();
   const { authenticated } = usePrivy();
   const { walletAddress } = useActiveWallet();
-  const { chainId } = useAccount();
-  const { switchChainAsync } = useSwitchChain();
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
   const [searchQuery, setSearchQuery] = useState('');
   const [activePage, setActivePage] = useState(1);
   const [historyPage, setHistoryPage] = useState(1);
-  const [claimTarget, setClaimTarget] = useState<'all' | number | null>(null);
 
   const { wins, losses, totalWagered, totalWithdrawn, activeDuels, historyDuels, isLoading, refetch } =
     usePlayerDuels(walletAddress, DASHBOARD_CHAIN.id);
-  const { claimPayouts, isPending, isConfirming, isSuccess, error, reset } = useDuelActions(DASHBOARD_CHAIN.id);
+  const actionFlow = useActionFlow({ duelId: 0, refetchDuel: refetch });
+  const [claimSummary, setClaimSummary] = useState<Pick<ActionFlowSummaryContext, 'duelId' | 'claimableDisplay'>>({ duelId: 0, claimableDisplay: '' });
 
   const claimableDuels = authenticated
     ? historyDuels.filter((duel) => getClaimableAmountForAddress(duel, walletAddress) > 0n)
@@ -85,51 +82,27 @@ export default function DashboardPage() {
   const totalPages = activeTab === 'active' ? activeTotalPages : historyTotalPages;
   const paginatedDuels = displayDuels.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  async function ensureChain() {
-    if (chainId !== DASHBOARD_CHAIN.id) {
-      appToast.info('toast.switchingNetwork', { chain: DASHBOARD_CHAIN.name });
-      try {
-        await switchChainAsync({ chainId: DASHBOARD_CHAIN.id });
-      } catch {
-        appToast.error('toast.switchNetworkFailed', { chain: DASHBOARD_CHAIN.name });
-        return false;
-      }
-    }
-    return true;
-  }
-
-  async function handleClaimAll() {
+  function handleClaimAll() {
     if (!claimableDuels.length) return;
-    if (!(await ensureChain())) return;
-    setClaimTarget('all');
-    appToast.info('toast.claimingPayouts');
-    claimPayouts(claimableDuels.map((duel) => BigInt(duel.id)));
+    const duelIds = claimableDuels.map((duel) => BigInt(duel.id));
+    setClaimSummary({ duelId: 0, claimableDisplay: `${formatUSDT(totalClaimable)} USDT` });
+    actionFlow.openFlow(
+      claimAllConfig(
+        () => actionFlow.duelActions.claimPayouts(duelIds),
+        `${formatUSDT(totalClaimable)} USDT`,
+        claimableDuels.length,
+      )
+    );
   }
 
-  async function handleClaimSingle(duelId: number) {
-    if (!(await ensureChain())) return;
-    setClaimTarget(duelId);
-    appToast.info('toast.claimingPayout');
-    claimPayouts([BigInt(duelId)]);
+  function handleClaimSingle(duelId: number) {
+    const duel = historyDuels.find((d) => d.id === duelId);
+    const amount = duel ? getClaimableAmountForAddress(duel, walletAddress) : 0n;
+    setClaimSummary({ duelId, claimableDisplay: `${formatUSDT(amount)} USDT` });
+    actionFlow.openFlow(
+      claimPayoutConfig(() => actionFlow.duelActions.claimPayout(BigInt(duelId)))
+    );
   }
-
-  useEffect(() => {
-    if (!isSuccess) return;
-
-    appToast.success(claimTarget === 'all' ? 'toast.payoutsClaimed' : 'toast.payoutClaimed');
-    reset();
-    setClaimTarget(null);
-    emitBalanceRefresh();
-    void refetch();
-  }, [isSuccess, claimTarget, appToast, reset, refetch]);
-
-  useEffect(() => {
-    if (!error) return;
-
-    appToast.transactionError(error);
-    reset();
-    setClaimTarget(null);
-  }, [error, appToast, reset]);
 
   useEffect(() => {
     setActivePage(1);
@@ -231,9 +204,9 @@ export default function DashboardPage() {
               size="lg"
               className="w-full bg-gradient-to-r from-emerald-500 via-emerald-600 to-green-600 text-white shadow-sm shadow-emerald-200 hover:from-emerald-600 hover:via-emerald-700 hover:to-green-700 sm:w-auto"
               onClick={handleClaimAll}
-              disabled={isPending || isConfirming}
+              disabled={actionFlow.flow !== null}
             >
-              {claimTarget === 'all' ? t('status.claiming') : t('action.claimAll')}
+              {t('action.claimAll')}
             </Button>
           </CardContent>
         </Card>
@@ -310,7 +283,7 @@ export default function DashboardPage() {
                   ? () => handleClaimSingle(duel.id)
                   : undefined
               }
-              isClaiming={Boolean((isPending || isConfirming) && (claimTarget === 'all' || claimTarget === duel.id))}
+              isClaiming={actionFlow.flow !== null && (actionFlow.flow.actionType === 'claimAll' || actionFlow.flow.actionType === 'claimPayout')}
             />
           ))
         )}
@@ -341,6 +314,29 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      <ActionFlowDialog
+        open={actionFlow.flow !== null}
+        canClose={actionFlow.canClose}
+        flow={actionFlow.flow}
+        config={actionFlow.activeConfig}
+        needsNetworkSwitch={actionFlow.needsNetworkSwitch}
+        summaryContext={{
+          duelId: claimSummary.duelId,
+          formattedWager: '',
+          formattedPot: '',
+          chainName: DASHBOARD_CHAIN.name,
+          opponentDisplay: '',
+          claimedWinnerDisplay: '',
+          claimableDisplay: claimSummary.claimableDisplay || `${formatUSDT(totalClaimable)} USDT`,
+          t,
+        }}
+        onOpenChange={actionFlow.handleFlowOpenChange}
+        onContinue={actionFlow.handleContinue}
+        onSwitchNetwork={actionFlow.handleSwitchNetwork}
+        onExecute={actionFlow.handleExecute}
+        onDone={actionFlow.closeFlow}
+      />
     </div>
   );
 }
