@@ -5,47 +5,45 @@ import type {
 } from '@/lib/guidedTransaction';
 import { getOptionalStepStatus } from '@/lib/guidedFlowSteps';
 
-export type CreateDuelFlowStage =
+export type JoinDuelFlowStage =
   | 'review'
   | 'switch-network'
   | 'approve'
-  | 'create-duel'
+  | 'join-duel'
   | 'success';
 
-export type CreateDuelFlowActionState = GuidedFlowActionState;
+export type JoinDuelFlowActionState = GuidedFlowActionState;
 
-export type GuidedTransactionStep = GuidedFlowStep<CreateDuelFlowStage>;
+export type JoinDuelFlowStep = GuidedFlowStep<JoinDuelFlowStage>;
 
-export interface CreateDuelFlowDraft {
+export type JoinDuelPendingTransaction = 'approve' | 'join-duel' | null;
+
+export interface JoinDuelFlowDraft {
+  duelId: bigint;
   rawAmount: bigint;
   chainId: number;
   chainName: string;
   usdtAddress: `0x${string}`;
   contractAddress: `0x${string}`;
-  inviteHash: `0x${string}`;
-  inviteSecret: `0x${string}` | null;
-  isPublic: boolean;
-  gameName: string;
-  message: string;
+  inviteSecret: `0x${string}`;
+  creatorAddress: string;
 }
 
-export type CreateDuelFlowCompletedSteps = GuidedFlowCompletedSteps;
+export type JoinDuelFlowCompletedSteps = GuidedFlowCompletedSteps;
 
-export type CreateDuelPendingTransaction = 'approve' | 'create-duel' | null;
-
-export interface CreateDuelFlowSession {
-  draft: CreateDuelFlowDraft;
-  completedSteps: CreateDuelFlowCompletedSteps;
-  stage: CreateDuelFlowStage;
-  actionState: CreateDuelFlowActionState;
+export interface JoinDuelFlowSession {
+  draft: JoinDuelFlowDraft;
+  completedSteps: JoinDuelFlowCompletedSteps;
+  stage: JoinDuelFlowStage;
+  actionState: JoinDuelFlowActionState;
   errorMessage: string | null;
-  pendingTransaction: CreateDuelPendingTransaction;
+  pendingTransaction: JoinDuelPendingTransaction;
 }
 
-export function getNextCreateDuelFlowStageFromReview(options: {
+export function getNextJoinDuelFlowStageFromReview(options: {
   needsNetworkSwitch: boolean;
   needsApproval: boolean;
-}): CreateDuelFlowStage {
+}): JoinDuelFlowStage {
   if (options.needsNetworkSwitch) {
     return 'switch-network';
   }
@@ -54,30 +52,30 @@ export function getNextCreateDuelFlowStageFromReview(options: {
     return 'approve';
   }
 
-  return 'create-duel';
+  return 'join-duel';
 }
 
-export function getCreateDuelFlowStageAfterNetwork(options: {
+export function getJoinDuelFlowStageAfterNetwork(options: {
   needsApproval: boolean;
-}): CreateDuelFlowStage {
-  return options.needsApproval ? 'approve' : 'create-duel';
+}): JoinDuelFlowStage {
+  return options.needsApproval ? 'approve' : 'join-duel';
 }
 
-export function getCreateDuelFlowSteps(options: {
-  stage: CreateDuelFlowStage;
-  actionState: CreateDuelFlowActionState;
+export function getJoinDuelFlowSteps(options: {
+  stage: JoinDuelFlowStage;
+  actionState: JoinDuelFlowActionState;
   needsNetworkSwitch: boolean;
   needsApproval: boolean;
   completedSwitchNetwork: boolean;
   completedApproval: boolean;
-}): GuidedTransactionStep[] {
+}): JoinDuelFlowStep[] {
   const switchStatus = getOptionalStepStatus({
     stage: options.stage,
     actionState: options.actionState,
     stepId: 'switch-network',
     isRequired: options.needsNetworkSwitch,
     completedInFlow: options.completedSwitchNetwork,
-    completedStages: ['approve', 'create-duel', 'success'],
+    completedStages: ['approve', 'join-duel', 'success'],
   });
 
   const approveStatus = getOptionalStepStatus({
@@ -86,13 +84,13 @@ export function getCreateDuelFlowSteps(options: {
     stepId: 'approve',
     isRequired: options.needsApproval,
     completedInFlow: options.completedApproval,
-    completedStages: ['create-duel', 'success'],
+    completedStages: ['join-duel', 'success'],
   });
 
-  const createStatus =
+  const joinStatus =
     options.stage === 'success'
       ? 'completed'
-      : options.stage === 'create-duel'
+      : options.stage === 'join-duel'
         ? options.actionState === 'error'
           ? 'error'
           : 'active'
@@ -112,8 +110,8 @@ export function getCreateDuelFlowSteps(options: {
       status: approveStatus,
     },
     {
-      id: 'create-duel',
-      status: createStatus,
+      id: 'join-duel',
+      status: joinStatus,
     },
     {
       id: 'success',

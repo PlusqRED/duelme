@@ -1,116 +1,84 @@
-import { parseUnits } from 'viem';
 import type { Dispatch, SetStateAction } from 'react';
 import type { useAppToast } from '@/hooks/useAppToast';
 import type { TranslationKey } from '@/i18n/translations';
 import type { useTranslation } from '@/i18n/useTranslation';
 import {
-  type CreateDuelFlowSession,
-  getCreateDuelFlowStageAfterNetwork,
-  getNextCreateDuelFlowStageFromReview,
-} from '@/lib/createDuelFlow';
-import { USDT_DECIMALS } from '@/lib/constants';
+  type JoinDuelFlowSession,
+  getJoinDuelFlowStageAfterNetwork,
+  getNextJoinDuelFlowStageFromReview,
+} from '@/lib/joinDuelFlow';
 import { getGuidedFlowErrorMessage } from '@/lib/guidedFlowRuntime';
-import {
-  generateInviteSecret,
-  hashInviteSecret,
-  PUBLIC_INVITE_HASH,
-  PUBLIC_INVITE_SECRET,
-} from '@/lib/invite';
+import { hashInviteSecret } from '@/lib/invite';
 
-interface CreateDuelFlowActionsOptions {
-  activeWalletAddress?: string;
-  amount: string;
+interface JoinDuelFlowActionsOptions {
   appToast: ReturnType<typeof useAppToast>;
-  authenticated: boolean;
   chainId: number;
   chainName: string;
   connectedChainId?: number;
   contractAddress: `0x${string}`;
-  createDuel: (amount: bigint, inviteHash: `0x${string}`, message?: string) => Promise<void> | void;
-  gameName: string;
-  isPublic: boolean;
-  isValidAmount: boolean;
-  isValidMessage: boolean;
-  login: () => void;
-  message: string;
-  ready: boolean;
-  reset: () => void;
+  duelId: number;
+  inviteSecret: `0x${string}` | null;
+  joinDuel: (duelId: bigint, inviteSecret: `0x${string}`) => Promise<void> | void;
   readLatestAllowance: () => Promise<bigint | undefined>;
-  setFlow: Dispatch<SetStateAction<CreateDuelFlowSession | null>>;
-  setRedirectTarget: Dispatch<SetStateAction<string | null>>;
+  reset: () => void;
+  setFlow: Dispatch<SetStateAction<JoinDuelFlowSession | null>>;
   switchChainAsync: (args: { chainId: number }) => Promise<unknown>;
   t: ReturnType<typeof useTranslation>['t'];
   tokenAddress: `0x${string}`;
   approveToken: (token: `0x${string}`, amount: bigint) => Promise<void> | void;
+  wagerAmount: bigint;
+  creatorAddress: string;
+  duelInviteHash: string;
 }
 
-export function createDuelFlowActions({
-  activeWalletAddress,
-  amount,
+export function joinDuelFlowActions({
   appToast,
-  authenticated,
   chainId,
   chainName,
   connectedChainId,
   contractAddress,
-  createDuel,
-  gameName,
-  isPublic,
-  isValidAmount,
-  isValidMessage,
-  login,
-  message,
-  ready,
-  reset,
+  duelId,
+  inviteSecret,
+  joinDuel,
   readLatestAllowance,
+  reset,
   setFlow,
-  setRedirectTarget,
   switchChainAsync,
   t,
   tokenAddress,
   approveToken,
-}: CreateDuelFlowActionsOptions) {
+  wagerAmount,
+  creatorAddress,
+  duelInviteHash,
+}: JoinDuelFlowActionsOptions) {
+
   function closeFlow() {
     setFlow(null);
-    setRedirectTarget(null);
     reset();
   }
-  async function handleCreateDuelClick() {
-    if (!ready) {
+
+  function handleOpenJoinFlow() {
+    if (!inviteSecret) {
+      appToast.error('duel.privateInviteMissing');
       return;
     }
-    if (!authenticated) {
-      login();
+
+    if (hashInviteSecret(inviteSecret).toLowerCase() !== duelInviteHash.toLowerCase()) {
+      appToast.error('duel.privateInviteMissing');
       return;
     }
-    if (!activeWalletAddress) {
-      appToast.error('toast.walletNotReady');
-      return;
-    }
-    if (!isValidAmount) {
-      appToast.error('create.min');
-      return;
-    }
-    if (!isValidMessage) {
-      appToast.error('create.messageTooLong');
-      return;
-    }
-    const rawAmount = parseUnits(amount, USDT_DECIMALS);
-    const inviteSecret = isPublic ? PUBLIC_INVITE_SECRET : generateInviteSecret();
+
     reset();
-    setRedirectTarget(null);
     setFlow({
       draft: {
-        rawAmount,
+        duelId: BigInt(duelId),
+        rawAmount: wagerAmount,
         chainId,
         chainName,
         usdtAddress: tokenAddress,
         contractAddress,
-        inviteHash: isPublic ? PUBLIC_INVITE_HASH : hashInviteSecret(inviteSecret),
-        inviteSecret: isPublic ? null : inviteSecret,
-        isPublic,
-        gameName: gameName.trim(),
-        message,
+        inviteSecret,
+        creatorAddress,
       },
       completedSteps: {
         switchNetwork: false,
@@ -123,7 +91,7 @@ export function createDuelFlowActions({
     });
   }
 
-  async function handleContinueFlow(flow: CreateDuelFlowSession | null) {
+  async function handleContinueFlow(flow: JoinDuelFlowSession | null) {
     if (!flow) {
       return;
     }
@@ -138,7 +106,7 @@ export function createDuelFlowActions({
           ? current
           : {
               ...current,
-              stage: getNextCreateDuelFlowStageFromReview({
+              stage: getNextJoinDuelFlowStageFromReview({
                 needsNetworkSwitch: false,
                 needsApproval:
                   latestAllowance === undefined ||
@@ -153,7 +121,7 @@ export function createDuelFlowActions({
     }
   }
 
-  async function handleSwitchNetwork(flow: CreateDuelFlowSession | null) {
+  async function handleSwitchNetwork(flow: JoinDuelFlowSession | null) {
     if (!flow) {
       return;
     }
@@ -179,7 +147,7 @@ export function createDuelFlowActions({
                 ...current.completedSteps,
                 switchNetwork: true,
               },
-              stage: getCreateDuelFlowStageAfterNetwork({
+              stage: getJoinDuelFlowStageAfterNetwork({
                 needsApproval:
                   latestAllowance === undefined ||
                   latestAllowance < current.draft.rawAmount,
@@ -193,7 +161,7 @@ export function createDuelFlowActions({
     }
   }
 
-  function handleApprove(flow: CreateDuelFlowSession | null) {
+  function handleApprove(flow: JoinDuelFlowSession | null) {
     if (!flow) {
       return;
     }
@@ -204,7 +172,7 @@ export function createDuelFlowActions({
     startContractStep('approve', () => approveToken(flow.draft.usdtAddress, flow.draft.rawAmount));
   }
 
-  async function handleCreateTransaction(flow: CreateDuelFlowSession | null) {
+  async function handleJoinTransaction(flow: JoinDuelFlowSession | null) {
     if (!flow) {
       return;
     }
@@ -223,8 +191,8 @@ export function createDuelFlowActions({
       moveToIdleStep('approve');
       return;
     }
-    startContractStep('create-duel', () =>
-      createDuel(flow.draft.rawAmount, flow.draft.inviteHash, flow.draft.message)
+    startContractStep('join-duel', () =>
+      joinDuel(flow.draft.duelId, flow.draft.inviteSecret)
     );
   }
 
@@ -242,7 +210,7 @@ export function createDuelFlowActions({
   }
 
   function startContractStep(
-    step: 'approve' | 'create-duel',
+    step: 'approve' | 'join-duel',
     run: () => Promise<void> | void
   ) {
     reset();
@@ -287,12 +255,13 @@ export function createDuelFlowActions({
           }
     );
   }
+
   return {
     closeFlow,
     handleApprove,
     handleContinueFlow,
-    handleCreateDuelClick,
-    handleCreateTransaction,
+    handleJoinTransaction,
+    handleOpenJoinFlow,
     handleSwitchNetwork,
   };
 }

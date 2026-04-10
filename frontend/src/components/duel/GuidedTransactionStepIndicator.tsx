@@ -1,7 +1,7 @@
 'use client';
 
 import { AlertCircle, Check, Minus } from 'lucide-react';
-import type { GuidedTransactionStepState } from '@/lib/createDuelFlow';
+import type { GuidedTransactionStepState } from '@/lib/guidedTransaction';
 
 interface GuidedTransactionStepIndicatorProps {
   status: GuidedTransactionStepState;

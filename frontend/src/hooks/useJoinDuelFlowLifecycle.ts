@@ -2,47 +2,36 @@
 
 import { useEffect } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { TransactionReceipt } from 'viem';
-import type { useAppToast } from '@/hooks/useAppToast';
-import { attachGameToDuel } from '@/lib/gameApi';
-import { emitBalanceRefresh } from '@/lib/balanceRefresh';
-import { buildDuelPath, extractCreatedDuelId } from '@/lib/createDuelFlowRuntime';
-import { getGuidedFlowErrorMessage } from '@/lib/guidedFlowRuntime';
-import type { CreateDuelFlowSession } from '@/lib/createDuelFlow';
-import { storeInviteSecret } from '@/lib/invite';
 import type { useTranslation } from '@/i18n/useTranslation';
+import { emitBalanceRefresh } from '@/lib/balanceRefresh';
+import { getGuidedFlowErrorMessage } from '@/lib/guidedFlowRuntime';
+import type { JoinDuelFlowSession } from '@/lib/joinDuelFlow';
 
-interface UseCreateDuelFlowLifecycleOptions {
-  appToast: ReturnType<typeof useAppToast>;
+interface UseJoinDuelFlowLifecycleOptions {
   error: unknown;
-  flow: CreateDuelFlowSession | null;
-  identityToken: string | null | undefined;
+  flow: JoinDuelFlowSession | null;
   isConfirming: boolean;
   isPending: boolean;
   isSuccess: boolean;
-  receipt: TransactionReceipt | null | undefined;
   refetchAllowance: () => Promise<unknown>;
+  refetchDuel: () => void;
   reset: () => void;
-  setFlow: Dispatch<SetStateAction<CreateDuelFlowSession | null>>;
-  setRedirectTarget: Dispatch<SetStateAction<string | null>>;
+  setFlow: Dispatch<SetStateAction<JoinDuelFlowSession | null>>;
   t: ReturnType<typeof useTranslation>['t'];
 }
 
-export function useCreateDuelFlowLifecycle({
-  appToast,
+export function useJoinDuelFlowLifecycle({
   error,
   flow,
-  identityToken,
   isConfirming,
   isPending,
   isSuccess,
-  receipt,
   refetchAllowance,
+  refetchDuel,
   reset,
   setFlow,
-  setRedirectTarget,
   t,
-}: UseCreateDuelFlowLifecycleOptions) {
+}: UseJoinDuelFlowLifecycleOptions) {
   useEffect(() => {
     if (!flow?.pendingTransaction) {
       return;
@@ -97,7 +86,7 @@ export function useCreateDuelFlowLifecycle({
                 ...current.completedSteps,
                 approve: true,
               },
-              stage: 'create-duel',
+              stage: 'join-duel',
               actionState: 'idle',
               errorMessage: null,
               pendingTransaction: null,
@@ -106,35 +95,17 @@ export function useCreateDuelFlowLifecycle({
       return;
     }
 
-    if (flow.pendingTransaction !== 'create-duel' || !receipt) {
+    if (flow.pendingTransaction !== 'join-duel') {
       return;
     }
 
     reset();
     emitBalanceRefresh();
     void refetchAllowance();
+    refetchDuel();
 
-    const duelId = extractCreatedDuelId(receipt);
-    const nextRoute = duelId ? buildDuelPath(duelId, flow.draft.inviteSecret) : '/dashboard';
-
-    if (duelId && flow.draft.inviteSecret) {
-      storeInviteSecret(flow.draft.chainId, Number(duelId), flow.draft.inviteSecret);
-    }
-
-    if (duelId && flow.draft.gameName && identityToken) {
-      attachGameToDuel(
-        identityToken,
-        Number(duelId),
-        flow.draft.chainId,
-        flow.draft.gameName
-      ).catch(() => {
-        appToast.info('toast.gameAttachFailed');
-      });
-    }
-
-    setRedirectTarget(nextRoute);
     setFlow((current) =>
-      !current || current.pendingTransaction !== 'create-duel'
+      !current || current.pendingTransaction !== 'join-duel'
         ? current
         : {
             ...current,
@@ -147,16 +118,13 @@ export function useCreateDuelFlowLifecycle({
   }, [
     error,
     flow,
-    identityToken,
     isConfirming,
     isPending,
     isSuccess,
-    receipt,
     refetchAllowance,
+    refetchDuel,
     reset,
     setFlow,
-    setRedirectTarget,
-    appToast,
     t,
   ]);
 }

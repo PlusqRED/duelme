@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useMemo, useRef, useState } from 'react';
+import { use, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ShareLink } from '@/components/duel/ShareLink';
 import { ClaimButtons } from '@/components/duel/ClaimButtons';
@@ -8,17 +8,17 @@ import { ConfirmResult } from '@/components/duel/ConfirmResult';
 import { ReputationBadge } from '@/components/duel/ReputationBadge';
 import { useAppToast } from '@/hooks/useAppToast';
 import { useTranslation } from '@/i18n/useTranslation';
-import { DuelState, erc20Abi } from '@/lib/contracts';
+import { DuelState } from '@/lib/contracts';
 import { getClaimableAmountForAddress } from '@/lib/duel';
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
 import { hashInviteSecret, readInviteSecretFromHash, readStoredInviteSecret, storeInviteSecret, isPublicDuel, PUBLIC_INVITE_SECRET } from '@/lib/invite';
-import { SUPPORTED_CHAINS, DUELME_ADDRESSES, DEFAULT_CHAIN_ID } from '@/lib/constants';
+import { SUPPORTED_CHAINS, DEFAULT_CHAIN_ID } from '@/lib/constants';
 import { useDuel } from '@/hooks/useDuel';
 import { useDuelActions } from '@/hooks/useDuelActions';
 import { formatDateTime, formatUSDT, truncateAddress } from '@/lib/utils';
 import { usePrivy } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
-import { useSwitchChain, useAccount, useReadContract } from 'wagmi';
+import { useSwitchChain, useAccount } from 'wagmi';
 import { emitBalanceRefresh } from '@/lib/balanceRefresh';
 import {
   Clock, Trophy, ArrowLeft, XCircle, RotateCcw,
@@ -26,6 +26,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { CopyableAddress } from '@/components/duel/CopyableAddress';
+import { JoinDuelFlowDialog } from '@/components/duel/JoinDuelFlowDialog';
+import { useJoinDuelFlow } from '@/hooks/useJoinDuelFlow';
 import { useNicknames } from '@/hooks/useNicknames';
 
 const STATUS_CONFIG: Record<
@@ -47,8 +49,6 @@ const STATUS_CONFIG: Record<
 const ZERO = '0x0000000000000000000000000000000000000000';
 type PendingAction =
   | 'idle'
-  | 'approvingJoin'
-  | 'joining'
   | 'declining'
   | 'canceling'
   | 'claimVictory'
@@ -318,14 +318,14 @@ export default function DuelPage({
   const duelId = parseInt(id, 10);
 
   const { authenticated, login } = usePrivy();
-  const { activeWallet, walletAddress } = useActiveWallet();
+  const { walletAddress } = useActiveWallet();
   const [inviteSecret, setInviteSecret] = useState<`0x${string}` | null>(null);
 
   const { switchChainAsync } = useSwitchChain();
   const { chainId: connectedChainId } = useAccount();
   const { duel, isLoading, isError, refetch } = useDuel(BigInt(duelId), DEFAULT_CHAIN_ID);
   const {
-    joinDuel, approveToken, claimVictory, admitDefeat,
+    claimVictory, admitDefeat,
     confirmResult, disputeResult, refund, declineDuel, cancelDuel, claimPayout,
     requestMutualCancellation, acceptMutualCancellation, declineMutualCancellation, withdrawMutualCancellationRequest,
     isPending, isConfirming, isSuccess, error: txError, reset,
@@ -340,20 +340,8 @@ export default function DuelPage({
   const { resolveDisplay, nicknameByAddress } = useNicknames(nicknameAddresses);
 
   const [pendingAction, setPendingAction] = useState<PendingAction>('idle');
-  const pendingDuelId = useRef<bigint>(0n);
-  const pendingInviteSecret = useRef<`0x${string}` | null>(null);
 
   const chainConfig = SUPPORTED_CHAINS.arbitrumSepolia;
-  const contractAddress = DUELME_ADDRESSES[DEFAULT_CHAIN_ID];
-  const walletAddr = activeWallet?.address as `0x${string}` | undefined;
-  const { data: currentAllowance, refetch: refetchAllowance } = useReadContract({
-    address: chainConfig.usdt,
-    abi: erc20Abi,
-    functionName: 'allowance',
-    args: walletAddr && contractAddress ? [walletAddr, contractAddress] : undefined,
-    chainId: DEFAULT_CHAIN_ID,
-    query: { enabled: !!walletAddr && !!contractAddress },
-  });
 
   // Auto-inject invite secret for public duels
   useEffect(() => {
@@ -388,16 +376,16 @@ export default function DuelPage({
     storeInviteSecret(DEFAULT_CHAIN_ID, duelId, inviteSecret);
   }, [duel, inviteSecret, walletAddress, duelId]);
 
-  useEffect(() => {
-    if (isSuccess && pendingAction === 'approvingJoin' && pendingInviteSecret.current) {
-      refetchAllowance();
-      reset();
-      setPendingAction('joining');
-      appToast.info('toast.joiningDuel');
-      joinDuel(pendingDuelId.current, pendingInviteSecret.current);
-      return;
-    }
+  const joinFlow = useJoinDuelFlow({
+    duelId,
+    wagerAmount: duel?.wagerAmount ?? 0n,
+    inviteSecret,
+    creatorAddress: duel?.creator ?? '',
+    duelInviteHash: duel?.inviteHash ?? '',
+    refetchDuel: refetch,
+  });
 
+  useEffect(() => {
     if (!isSuccess || pendingAction === 'idle') return;
 
     const successToastKey = pendingAction === 'claimingPayout'
@@ -413,13 +401,13 @@ export default function DuelPage({
               : 'toast.transactionConfirmed';
 
     appToast.success(successToastKey);
-    if (pendingAction === 'joining' || pendingAction === 'claimingPayout') {
+    if (pendingAction === 'claimingPayout') {
       emitBalanceRefresh();
     }
     refetch();
     reset();
     setPendingAction('idle');
-  }, [isSuccess, pendingAction, refetchAllowance, reset, joinDuel, appToast, refetch]);
+  }, [isSuccess, pendingAction, reset, appToast, refetch]);
 
   useEffect(() => {
     if (txError) {
@@ -439,28 +427,6 @@ export default function DuelPage({
       }
     }
     return true;
-  }
-
-  async function handleJoin() {
-    if (!duel) return;
-    if (!inviteSecret || hashInviteSecret(inviteSecret).toLowerCase() !== duel.inviteHash.toLowerCase()) {
-      appToast.error('duel.privateInviteMissing');
-      return;
-    }
-
-    if (!(await ensureChain())) return;
-    pendingDuelId.current = BigInt(duelId);
-    pendingInviteSecret.current = inviteSecret;
-    const wagerAmount = duel.wagerAmount;
-    if (currentAllowance !== undefined && currentAllowance >= wagerAmount) {
-      setPendingAction('joining');
-      appToast.info('toast.joiningDuel');
-      joinDuel(BigInt(duelId), inviteSecret);
-    } else {
-      setPendingAction('approvingJoin');
-      appToast.info('toast.approveUsdtFirst');
-      approveToken(chainConfig.usdt, wagerAmount);
-    }
   }
 
   async function handleDecline() {
@@ -816,20 +782,11 @@ export default function DuelPage({
                 <Button
                   size="lg"
                   className="h-12 w-full bg-indigo-600 text-base font-semibold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700"
-                  onClick={handleJoin}
-                  disabled={txPending}
+                  onClick={joinFlow.handleOpenJoinFlow}
+                  disabled={txPending || joinFlow.flow !== null}
                 >
-                  {pendingAction === 'approvingJoin' || pendingAction === 'joining' ? (
-                    <span className="flex items-center gap-2">
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      {pendingAction === 'approvingJoin' ? t('status.approving') : t('status.joining')}
-                    </span>
-                  ) : (
-                    <>
-                      <Swords className="mr-2 h-4 w-4" />
-                      {t('action.join')} — {wagerDisplay} USDT
-                    </>
-                  )}
+                  <Swords className="mr-2 h-4 w-4" />
+                  {t('action.join')} — {wagerDisplay} USDT
                 </Button>
                 {!isDuelPublic && hasInviteAccess && (
                   <Button
@@ -1017,6 +974,25 @@ export default function DuelPage({
           </div>
         </div>
       </div>
+
+      <JoinDuelFlowDialog
+        open={joinFlow.flow !== null}
+        canClose={joinFlow.canCloseFlow}
+        draft={joinFlow.flow?.draft ?? null}
+        stage={joinFlow.flow?.stage ?? 'review'}
+        actionState={joinFlow.flow?.actionState ?? 'idle'}
+        needsNetworkSwitch={joinFlow.needsNetworkSwitch}
+        needsApproval={joinFlow.needsApproval}
+        completedSwitchNetwork={joinFlow.flow?.completedSteps.switchNetwork ?? false}
+        completedApproval={joinFlow.flow?.completedSteps.approve ?? false}
+        errorMessage={joinFlow.flow?.errorMessage}
+        onOpenChange={joinFlow.handleFlowOpenChange}
+        onContinue={joinFlow.handleContinueFlow}
+        onSwitchNetwork={joinFlow.handleSwitchNetwork}
+        onApprove={joinFlow.handleApprove}
+        onJoinDuel={joinFlow.handleJoinTransaction}
+        onDone={joinFlow.closeFlow}
+      />
     </div>
   );
 }
