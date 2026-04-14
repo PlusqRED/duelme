@@ -353,6 +353,42 @@ export const translations = {
     'actionFlow.claimAll.success.description': 'All USDT has been sent to your wallet.',
     'actionFlow.claimAll.success.hint': 'Check your wallet balance.',
 
+    // Refund and Claim (single duel)
+    'actionFlow.refundAndClaim.title': 'Claim timeout refund',
+    'actionFlow.refundAndClaim.description': 'Unlock and claim your refund.',
+    'actionFlow.refundAndClaim.review.title': 'Claim timeout refund',
+    'actionFlow.refundAndClaim.review.description': 'This duel timed out without a response. This transaction unlocks and claims your refund in one step.',
+    'actionFlow.refundAndClaim.review.hint': 'Next: claim on-chain.',
+    'actionFlow.refundAndClaim.review.hintSwitch': 'Next: switch to {chain}, then claim.',
+    'actionFlow.refundAndClaim.execute.title': 'Claim refund',
+    'actionFlow.refundAndClaim.execute.description': 'Confirm in your wallet to unlock and claim your refund.',
+    'actionFlow.refundAndClaim.execute.hint': 'Funds will appear in your wallet after confirmation.',
+    'actionFlow.refundAndClaim.execute.button': 'Claim Refund',
+    'actionFlow.refundAndClaim.success.title': 'Refund claimed',
+    'actionFlow.refundAndClaim.success.description': 'Your refund has been sent to your wallet.',
+    'actionFlow.refundAndClaim.success.hint': 'Check your wallet balance.',
+
+    // Refund and Claim All (batch)
+    'actionFlow.refundAndClaimAll.title': 'Claim all timeout refunds',
+    'actionFlow.refundAndClaimAll.description': 'Unlock and claim all timed-out refunds.',
+    'actionFlow.refundAndClaimAll.review.title': 'Claim all timeout refunds',
+    'actionFlow.refundAndClaimAll.review.description': 'These duels timed out without a response. This transaction unlocks and claims all your refunds in one step.',
+    'actionFlow.refundAndClaimAll.review.hint': 'Next: claim on-chain.',
+    'actionFlow.refundAndClaimAll.review.hintSwitch': 'Next: switch to {chain}, then claim.',
+    'actionFlow.refundAndClaimAll.execute.title': 'Claim all refunds',
+    'actionFlow.refundAndClaimAll.execute.description': 'Confirm in your wallet to unlock and claim all refunds.',
+    'actionFlow.refundAndClaimAll.execute.hint': 'Funds will appear in your wallet after confirmation.',
+    'actionFlow.refundAndClaimAll.execute.button': 'Claim All Refunds',
+    'actionFlow.refundAndClaimAll.success.title': 'Refunds claimed',
+    'actionFlow.refundAndClaimAll.success.description': 'All refunds have been sent to your wallet.',
+    'actionFlow.refundAndClaimAll.success.hint': 'Check your wallet balance.',
+
+    // Dashboard refund labels
+    'dashboard.refundAllHint': 'Claim refunds from duels that timed out without a response.',
+    'dashboard.refundAvailable': 'Refund available',
+    'action.claimRefund': 'Claim Refund',
+    'action.claimAllRefunds': 'Claim All Refunds',
+
     // Duel Status
     'duel.waiting': 'Waiting for opponent',
     'duel.inProgress': 'Duel in progress',
@@ -1001,6 +1037,42 @@ export const translations = {
     'actionFlow.claimAll.success.title': 'Выплаты получены',
     'actionFlow.claimAll.success.description': 'Все USDT отправлены в ваш кошелёк.',
     'actionFlow.claimAll.success.hint': 'Проверьте баланс кошелька.',
+
+    // Refund and Claim (single duel)
+    'actionFlow.refundAndClaim.title': 'Забрать возврат по таймауту',
+    'actionFlow.refundAndClaim.description': 'Разблокировать и забрать возврат.',
+    'actionFlow.refundAndClaim.review.title': 'Забрать возврат по таймауту',
+    'actionFlow.refundAndClaim.review.description': 'В этой дуэли истекло время ответа. Эта транзакция разблокирует и заберёт ваш возврат за один шаг.',
+    'actionFlow.refundAndClaim.review.hint': 'Дальше: забрать в блокчейне.',
+    'actionFlow.refundAndClaim.review.hintSwitch': 'Дальше: переключиться на {chain}, затем забрать.',
+    'actionFlow.refundAndClaim.execute.title': 'Забрать возврат',
+    'actionFlow.refundAndClaim.execute.description': 'Подтвердите в кошельке, чтобы разблокировать и забрать возврат.',
+    'actionFlow.refundAndClaim.execute.hint': 'Средства появятся в кошельке после подтверждения.',
+    'actionFlow.refundAndClaim.execute.button': 'Забрать возврат',
+    'actionFlow.refundAndClaim.success.title': 'Возврат получен',
+    'actionFlow.refundAndClaim.success.description': 'Возврат отправлен в ваш кошелёк.',
+    'actionFlow.refundAndClaim.success.hint': 'Проверьте баланс кошелька.',
+
+    // Refund and Claim All (batch)
+    'actionFlow.refundAndClaimAll.title': 'Забрать все возвраты по таймауту',
+    'actionFlow.refundAndClaimAll.description': 'Разблокировать и забрать все возвраты.',
+    'actionFlow.refundAndClaimAll.review.title': 'Забрать все возвраты по таймауту',
+    'actionFlow.refundAndClaimAll.review.description': 'В этих дуэлях истекло время ответа. Эта транзакция разблокирует и заберёт все возвраты за один шаг.',
+    'actionFlow.refundAndClaimAll.review.hint': 'Дальше: забрать в блокчейне.',
+    'actionFlow.refundAndClaimAll.review.hintSwitch': 'Дальше: переключиться на {chain}, затем забрать.',
+    'actionFlow.refundAndClaimAll.execute.title': 'Забрать все возвраты',
+    'actionFlow.refundAndClaimAll.execute.description': 'Подтвердите в кошельке, чтобы разблокировать и забрать все возвраты.',
+    'actionFlow.refundAndClaimAll.execute.hint': 'Средства появятся в кошельке после подтверждения.',
+    'actionFlow.refundAndClaimAll.execute.button': 'Забрать все возвраты',
+    'actionFlow.refundAndClaimAll.success.title': 'Возвраты получены',
+    'actionFlow.refundAndClaimAll.success.description': 'Все возвраты отправлены в ваш кошелёк.',
+    'actionFlow.refundAndClaimAll.success.hint': 'Проверьте баланс кошелька.',
+
+    // Dashboard refund labels
+    'dashboard.refundAllHint': 'Заберите возвраты из дуэлей, в которых истекло время ответа.',
+    'dashboard.refundAvailable': 'Возврат доступен',
+    'action.claimRefund': 'Забрать возврат',
+    'action.claimAllRefunds': 'Забрать все возвраты',
 
     // Duel Status
     'duel.waiting': 'Ожидание соперника',

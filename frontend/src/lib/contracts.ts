@@ -144,6 +144,13 @@ export const duelMeAbi = [
   },
   {
     type: 'function',
+    name: 'refundAndClaimPayouts',
+    inputs: [{ name: 'duelIds', type: 'uint256[]', internalType: 'uint256[]' }],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     name: 'claimVictory',
     inputs: [
       {

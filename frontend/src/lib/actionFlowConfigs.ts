@@ -233,3 +233,61 @@ export function claimAllConfig(execute: () => void, totalDisplay: string, duelCo
     ],
   };
 }
+
+export function refundAndClaimConfig(execute: () => void): ActionFlowConfig {
+  return {
+    type: 'refundAndClaim',
+    execute,
+    onSuccess: emitBalanceRefresh,
+    icon: RotateCcw,
+    labels: {
+      dialogTitle: 'actionFlow.refundAndClaim.title',
+      dialogDescription: 'actionFlow.refundAndClaim.description',
+      reviewTitle: 'actionFlow.refundAndClaim.review.title',
+      reviewDescription: 'actionFlow.refundAndClaim.review.description',
+      reviewHint: 'actionFlow.refundAndClaim.review.hint',
+      reviewHintSwitch: 'actionFlow.refundAndClaim.review.hintSwitch',
+      executeTitle: 'actionFlow.refundAndClaim.execute.title',
+      executeDescription: 'actionFlow.refundAndClaim.execute.description',
+      executeHint: 'actionFlow.refundAndClaim.execute.hint',
+      executeButton: 'actionFlow.refundAndClaim.execute.button',
+      successTitle: 'actionFlow.refundAndClaim.success.title',
+      successDescription: 'actionFlow.refundAndClaim.success.description',
+      successHint: 'actionFlow.refundAndClaim.success.hint',
+    },
+    summaryItems: (ctx) => [
+      { label: ctx.t('actionFlow.summary.duel'), value: `#${ctx.duelId}` },
+      { label: ctx.t('actionFlow.summary.claimable'), value: ctx.claimableDisplay, emphasize: true },
+      { label: ctx.t('actionFlow.summary.chain'), value: ctx.chainName },
+    ],
+  };
+}
+
+export function refundAndClaimAllConfig(execute: () => void, totalDisplay: string, duelCount: number): ActionFlowConfig {
+  return {
+    type: 'refundAndClaimAll',
+    execute,
+    onSuccess: emitBalanceRefresh,
+    icon: RotateCcw,
+    labels: {
+      dialogTitle: 'actionFlow.refundAndClaimAll.title',
+      dialogDescription: 'actionFlow.refundAndClaimAll.description',
+      reviewTitle: 'actionFlow.refundAndClaimAll.review.title',
+      reviewDescription: 'actionFlow.refundAndClaimAll.review.description',
+      reviewHint: 'actionFlow.refundAndClaimAll.review.hint',
+      reviewHintSwitch: 'actionFlow.refundAndClaimAll.review.hintSwitch',
+      executeTitle: 'actionFlow.refundAndClaimAll.execute.title',
+      executeDescription: 'actionFlow.refundAndClaimAll.execute.description',
+      executeHint: 'actionFlow.refundAndClaimAll.execute.hint',
+      executeButton: 'actionFlow.refundAndClaimAll.execute.button',
+      successTitle: 'actionFlow.refundAndClaimAll.success.title',
+      successDescription: 'actionFlow.refundAndClaimAll.success.description',
+      successHint: 'actionFlow.refundAndClaimAll.success.hint',
+    },
+    summaryItems: (ctx) => [
+      { label: ctx.t('actionFlow.summary.totalClaimable'), value: totalDisplay, emphasize: true },
+      { label: ctx.t('actionFlow.summary.duelCount'), value: String(duelCount) },
+      { label: ctx.t('actionFlow.summary.chain'), value: ctx.chainName },
+    ],
+  };
+}
