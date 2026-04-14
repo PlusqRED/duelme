@@ -111,7 +111,8 @@ export function buildRecentDuelSearchText(
   t: Translate,
   language: Language,
   reputationByAddress: Record<string, ReputationLevel>,
-  nicknameByAddress?: Record<string, string | null>
+  nicknameByAddress?: Record<string, string | null>,
+  gameName?: string | null
 ) {
   const isTimedOut = duel.state === DuelState.WinnerClaimed && isDuelClaimTimedOut(duel.claimTimestamp);
   const stateLabel = t(getDuelStateLabelKey(duel.state, isTimedOut));
@@ -140,5 +141,6 @@ export function buildRecentDuelSearchText(
     getReputationLabel(reputationByAddress, duel.player2, t),
     nicknameByAddress?.[duel.player1.toLowerCase()] ?? '',
     nicknameByAddress?.[duel.player2.toLowerCase()] ?? '',
+    gameName ?? '',
   ]);
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { PlayerDuel } from '@/hooks/usePlayerDuels';
 import type { ActionFlowSummaryContext } from '@/lib/actionFlow';
 import { getClaimableAmountForAddress, isRefundableDuel } from '@/lib/duel';
@@ -30,20 +30,32 @@ export function useDashboardClaims({
     Pick<ActionFlowSummaryContext, 'duelId' | 'claimableDisplay'>
   >({ duelId: 0, claimableDisplay: '' });
 
-  const claimableDuels = authenticated
-    ? historyDuels.filter((duel) => getClaimableAmountForAddress(duel, walletAddress) > 0n)
-    : [];
-  const totalClaimable = claimableDuels.reduce(
-    (sum, duel) => sum + getClaimableAmountForAddress(duel, walletAddress),
-    0n
+  const claimableDuels = useMemo(
+    () => authenticated
+      ? historyDuels.filter((duel) => getClaimableAmountForAddress(duel, walletAddress) > 0n)
+      : [],
+    [historyDuels, walletAddress, authenticated]
+  );
+  const totalClaimable = useMemo(
+    () => claimableDuels.reduce(
+      (sum, duel) => sum + getClaimableAmountForAddress(duel, walletAddress),
+      0n
+    ),
+    [claimableDuels, walletAddress]
   );
 
-  const refundableDuels = authenticated
-    ? historyDuels.filter((duel) => isRefundableDuel(duel))
-    : [];
-  const totalRefundable = refundableDuels.reduce(
-    (sum, duel) => sum + duel.wagerAmountRaw,
-    0n
+  const refundableDuels = useMemo(
+    () => authenticated
+      ? historyDuels.filter((duel) => isRefundableDuel(duel))
+      : [],
+    [historyDuels, authenticated]
+  );
+  const totalRefundable = useMemo(
+    () => refundableDuels.reduce(
+      (sum, duel) => sum + duel.wagerAmountRaw,
+      0n
+    ),
+    [refundableDuels]
   );
 
   function handleClaimAll() {

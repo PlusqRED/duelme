@@ -5,6 +5,7 @@ import { useReadContracts } from 'wagmi';
 import { formatUnits } from 'viem';
 import { duelMeAbi, DuelState, ACTIVE_STATES } from '@/lib/contracts';
 import { DUELME_ADDRESSES, USDT_DECIMALS, CHAIN_NAMES } from '@/lib/constants';
+import { isDuelClaimTimedOut } from '@/lib/duel';
 import { useDuelsByGame } from './useDuelsByGame';
 import type { PlayerDuel } from './usePlayerDuels';
 
@@ -107,7 +108,11 @@ export function useGameDuels(gameSlug: string | undefined, chainId: number) {
       };
 
       if (ACTIVE_STATES.has(state)) {
-        activeDuels.push(duel);
+        if (state === DuelState.WinnerClaimed && isDuelClaimTimedOut(d.claimTimestamp)) {
+          historyDuels.push(duel);
+        } else {
+          activeDuels.push(duel);
+        }
       } else {
         historyDuels.push(duel);
       }

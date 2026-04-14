@@ -294,7 +294,7 @@ export default function DuelPage({
     duel.cancelRequestedAt > 0n ? { label: t('duel.timelineCancellationRequested'), timestamp: duel.cancelRequestedAt, dotColor: 'bg-violet-500' } : null,
     duel.claimTimestamp > 0n ? { label: t('duel.timelineResultSubmitted'), timestamp: duel.claimTimestamp, dotColor: 'bg-amber-500' } : null,
     isClaimTimedOut
-      ? { label: t('duel.timelineTimedOut'), timestamp: BigInt(Number(duel.claimTimestamp) + CLAIM_TIMEOUT), dotColor: 'bg-red-500' }
+      ? { label: t('duel.timelineTimedOut'), timestamp: duel.claimTimestamp + BigInt(CLAIM_TIMEOUT), dotColor: 'bg-red-500' }
       : null,
     duel.finalizedAt > 0n
       ? {

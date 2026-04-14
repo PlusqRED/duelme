@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useRecentDuels } from '@/hooks/useRecentDuels';
 import { useNicknames } from '@/hooks/useNicknames';
+import { usePublicDuelMetas } from '@/hooks/usePublicDuelMetas';
 import { useReputationLevels } from '@/hooks/useReputationLevels';
+import { DEFAULT_CHAIN_ID } from '@/lib/constants';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/translations';
 import { DuelState } from '@/lib/contracts';
@@ -15,6 +17,7 @@ import { hasVisibleDuelMessage } from '@/lib/duelMessage';
 import { isDuelClaimTimedOut, truncateUnicode } from '@/lib/duel';
 import { formatDateTime } from '@/lib/utils';
 import { ReputationBadge } from './ReputationBadge';
+import { GameBadge } from '@/components/game/GameBadge';
 import { Search, Trophy } from 'lucide-react';
 
 const PAGE_SIZE = 10;
@@ -42,16 +45,18 @@ export function RecentDuels() {
     () => duels.flatMap((duel) => [duel.player1, duel.player2]),
     [duels]
   );
-  const { reputationByAddress } = useReputationLevels(participantAddresses, 421614);
+  const duelIds = useMemo(() => duels.map((d) => d.id), [duels]);
+  const { metaByDuelId } = usePublicDuelMetas(duelIds, DEFAULT_CHAIN_ID);
+  const { reputationByAddress } = useReputationLevels(participantAddresses, DEFAULT_CHAIN_ID);
   const { resolveDisplay, nicknameByAddress } = useNicknames(participantAddresses);
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
 
   const filteredDuels = useMemo(
     () => duels.filter((duel) => (
       !normalizedSearchQuery
-      || buildRecentDuelSearchText(duel, t, language, reputationByAddress, nicknameByAddress).includes(normalizedSearchQuery)
+      || buildRecentDuelSearchText(duel, t, language, reputationByAddress, nicknameByAddress, metaByDuelId[duel.id]?.gameName).includes(normalizedSearchQuery)
     )),
-    [duels, normalizedSearchQuery, t, language, reputationByAddress, nicknameByAddress]
+    [duels, normalizedSearchQuery, t, language, reputationByAddress, nicknameByAddress, metaByDuelId]
   );
 
   const totalPages = Math.max(1, Math.ceil(filteredDuels.length / PAGE_SIZE));
@@ -129,6 +134,7 @@ export function RecentDuels() {
                   const isPlayer1Winner = hasWinner && duel.winner.toLowerCase() === duel.player1.toLowerCase();
                   const isTimedOut = duel.state === DuelState.WinnerClaimed && isDuelClaimTimedOut(duel.claimTimestamp);
                   const statusKey = isTimedOut ? 'duel.responseTimedOut' as TranslationKey : STATUS_KEY[duel.state];
+                  const meta = metaByDuelId[duel.id];
 
                   return (
                     <tr
@@ -172,10 +178,17 @@ export function RecentDuels() {
                               <ReputationBadge address={duel.player2} chainId={duel.chainId} />
                             </div>
                           </div>
-                          {hasVisibleDuelMessage(duel.message) && (
-                            <p className="max-w-xl text-xs text-slate-500">
-                              {truncateUnicode(duel.message, 56)}
-                            </p>
+                          {(meta || hasVisibleDuelMessage(duel.message)) && (
+                            <div className="flex flex-wrap items-center gap-2">
+                              {meta && (
+                                <GameBadge gameName={meta.gameName} gameSlug={meta.gameSlug} />
+                              )}
+                              {hasVisibleDuelMessage(duel.message) && (
+                                <p className="max-w-xl text-xs text-slate-500">
+                                  {truncateUnicode(duel.message, 56)}
+                                </p>
+                              )}
+                            </div>
                           )}
                         </Link>
                       </td>
@@ -224,6 +237,7 @@ export function RecentDuels() {
               const isPlayer1Winner = hasWinner && duel.winner.toLowerCase() === duel.player1.toLowerCase();
               const isTimedOut = duel.state === DuelState.WinnerClaimed && isDuelClaimTimedOut(duel.claimTimestamp);
               const statusKey = isTimedOut ? 'duel.responseTimedOut' as TranslationKey : STATUS_KEY[duel.state];
+              const meta = metaByDuelId[duel.id];
 
               return (
                 <Link
@@ -264,6 +278,12 @@ export function RecentDuels() {
                     </div>
                     <span className="vs-badge shrink-0">VS</span>
                   </div>
+
+                  {meta && (
+                    <div className="mt-2">
+                      <GameBadge gameName={meta.gameName} gameSlug={meta.gameSlug} />
+                    </div>
+                  )}
 
                   <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
                     <span className="text-sm font-semibold text-slate-900">

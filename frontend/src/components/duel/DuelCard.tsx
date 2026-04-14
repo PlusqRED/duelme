@@ -240,7 +240,7 @@ export function DuelCard({
                 {t('dashboard.refundAvailable')}
               </div>
               <div className="mt-1 text-lg font-bold text-red-900">
-                {duel.wager} USDT
+                {formatUSDT(duel.wagerAmountRaw)} USDT
               </div>
             </div>
           )}
