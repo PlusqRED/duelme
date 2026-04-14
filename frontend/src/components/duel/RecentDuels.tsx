@@ -12,7 +12,7 @@ import type { TranslationKey } from '@/i18n/translations';
 import { DuelState } from '@/lib/contracts';
 import { buildRecentDuelSearchText } from '@/lib/duelSearch';
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
-import { truncateUnicode } from '@/lib/duel';
+import { isDuelClaimTimedOut, truncateUnicode } from '@/lib/duel';
 import { formatDateTime } from '@/lib/utils';
 import { ReputationBadge } from './ReputationBadge';
 import { Search, Trophy } from 'lucide-react';
@@ -127,6 +127,8 @@ export function RecentDuels() {
                 {paginatedDuels.map((duel) => {
                   const hasWinner = duel.state === DuelState.Resolved;
                   const isPlayer1Winner = hasWinner && duel.winner.toLowerCase() === duel.player1.toLowerCase();
+                  const isTimedOut = duel.state === DuelState.WinnerClaimed && isDuelClaimTimedOut(duel.claimTimestamp);
+                  const statusKey = isTimedOut ? 'duel.responseTimedOut' as TranslationKey : STATUS_KEY[duel.state];
 
                   return (
                     <tr
@@ -184,8 +186,8 @@ export function RecentDuels() {
                       </td>
                       <td className="px-4 py-3">
                         <Link href={`/duel/${duel.id}`} className="block space-y-1">
-                          <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700">
-                            {t(STATUS_KEY[duel.state])}
+                          <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${isTimedOut ? 'border-red-200 bg-red-50 text-red-700' : 'border-slate-200 bg-slate-50 text-slate-700'}`}>
+                            {t(statusKey)}
                           </span>
                           {duel.state === DuelState.Resolved && (
                             <div className="flex items-center gap-1.5">
@@ -220,6 +222,8 @@ export function RecentDuels() {
             {paginatedDuels.map((duel) => {
               const hasWinner = duel.state === DuelState.Resolved;
               const isPlayer1Winner = hasWinner && duel.winner.toLowerCase() === duel.player1.toLowerCase();
+              const isTimedOut = duel.state === DuelState.WinnerClaimed && isDuelClaimTimedOut(duel.claimTimestamp);
+              const statusKey = isTimedOut ? 'duel.responseTimedOut' as TranslationKey : STATUS_KEY[duel.state];
 
               return (
                 <Link
@@ -266,8 +270,8 @@ export function RecentDuels() {
                       {duel.wager} USDT
                     </span>
                     <div className="flex flex-col items-center gap-1">
-                      <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-600">
-                        {t(STATUS_KEY[duel.state])}
+                      <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${isTimedOut ? 'border-red-200 bg-red-50 text-red-700' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
+                        {t(statusKey)}
                       </span>
                       {duel.state === DuelState.Resolved && (
                         <div className="flex items-center gap-1.5">

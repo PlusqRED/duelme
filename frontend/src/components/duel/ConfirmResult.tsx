@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTranslation } from '@/i18n/useTranslation';
 import { truncateAddress, formatTimeRemaining } from '@/lib/utils';
 import { CLAIM_TIMEOUT } from '@/lib/constants';
-import { CheckCircle, Clock, RotateCcw, Trophy, UserRound, XCircle } from 'lucide-react';
+import { CheckCircle, Clock, RotateCcw, TimerOff, Trophy, UserRound, XCircle } from 'lucide-react';
 
 interface ConfirmResultProps {
   claimedBy: string;
@@ -87,19 +87,19 @@ export function ConfirmResult({
         : t('duel.opponentReportedThemWon');
 
   return (
-    <Card className="border-amber-200 bg-amber-50 shadow-sm">
+    <Card className={timedOut ? "border-red-200 bg-red-50 shadow-sm" : "border-amber-200 bg-amber-50 shadow-sm"}>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base font-semibold text-amber-800">
-          <Clock className="h-4 w-4" />
-          {title}
+        <CardTitle className={`flex items-center gap-2 text-base font-semibold ${timedOut ? 'text-red-800' : 'text-amber-800'}`}>
+          {timedOut ? <TimerOff className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+          {timedOut ? t('duel.responseTimedOut') : title}
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <p className="text-sm text-amber-700">{summary}</p>
+        <p className={`text-sm ${timedOut ? 'text-red-700' : 'text-amber-700'}`}>{summary}</p>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-xl border border-amber-200 bg-white/70 p-3">
-            <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-amber-700">
+          <div className={`rounded-xl border ${timedOut ? 'border-red-200' : 'border-amber-200'} bg-white/70 p-3`}>
+            <div className={`mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide ${timedOut ? 'text-red-700' : 'text-amber-700'}`}>
               <UserRound className="h-3.5 w-3.5" />
               {t('duel.reportedBy')}
             </div>
@@ -167,7 +167,13 @@ export function ConfirmResult({
         </div>
 
         {timedOut ? (
-          <p className="text-xs text-amber-700">{t('duel.timeoutReached')}</p>
+          <p className="text-xs text-red-700">
+            {isClaimer
+              ? t('duel.timeoutReputationClaimer')
+              : !isClaimer && isParticipantViewer
+                ? t('duel.timeoutReputationNonResponder')
+                : t('duel.timeoutReputationHint')}
+          </p>
         ) : !isParticipantViewer ? (
           <p className="text-xs text-amber-700">{t('duel.spectatorResultHint')}</p>
         ) : isClaimer ? (

@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { useReadContract, useReadContracts } from 'wagmi';
 import { formatUnits } from 'viem';
 import { duelMeAbi, DuelState, ACTIVE_STATES } from '@/lib/contracts';
+import { isDuelClaimTimedOut } from '@/lib/duel';
 import { DUELME_ADDRESSES, USDT_DECIMALS, ZERO_ADDRESS, CHAIN_NAMES } from '@/lib/constants';
 
 export interface PlayerDuel {
@@ -156,7 +157,11 @@ export function usePlayerDuels(
       };
 
       if (ACTIVE_STATES.has(state)) {
-        activeDuels.push(duel);
+        if (state === DuelState.WinnerClaimed && isDuelClaimTimedOut(d.claimTimestamp)) {
+          historyDuels.push(duel);
+        } else {
+          activeDuels.push(duel);
+        }
       } else {
         historyDuels.push(duel);
       }

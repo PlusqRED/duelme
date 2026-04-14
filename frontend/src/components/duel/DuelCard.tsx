@@ -13,6 +13,7 @@ import {
   getDuelOutcomeSummary,
   getRelevantDuelTimestamp,
   hasClaimedPayoutForAddress,
+  isDuelClaimTimedOut,
   truncateUnicode,
 } from '@/lib/duel';
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
@@ -103,11 +104,15 @@ export function DuelCard({
 }: DuelCardProps) {
   const { t, language } = useTranslation();
   const stateConfig = STATUS_CONFIG[duel.state];
+  const isClaimTimedOut = duel.state === DuelState.WinnerClaimed && isDuelClaimTimedOut(duel.claimTimestamp);
+  const effectiveStateConfig = isClaimTimedOut
+    ? { key: 'duel.responseTimedOut' as TranslationKey, colorClass: 'bg-red-50 text-red-700 border-red-200' }
+    : stateConfig;
   const claimableAmount = getClaimableAmountForAddress(duel, viewerAddress);
   const hasClaimableAmount = claimableAmount > 0n;
   const hasClaimedAmount = hasClaimedPayoutForAddress(duel, viewerAddress);
-  const outcome = getDuelOutcomeSummary(duel, viewerAddress);
-  const showOutcomeBadge = TERMINAL_STATES.has(duel.state);
+  const outcome = getDuelOutcomeSummary(duel, viewerAddress, isClaimTimedOut);
+  const showOutcomeBadge = TERMINAL_STATES.has(duel.state) || isClaimTimedOut;
   const hasMessage = hasVisibleDuelMessage(duel.message);
   const counterparty = getCounterpartyAddress(duel, viewerAddress);
   const opponentAddress = counterparty && counterparty !== '0x0000000000000000000000000000000000000000'
@@ -131,9 +136,9 @@ export function DuelCard({
                 </span>
               )}
               <span
-                className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${stateConfig.colorClass}`}
+                className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${effectiveStateConfig.colorClass}`}
               >
-                {t(showOutcomeBadge ? outcome.detailKey : stateConfig.key)}
+                {t(showOutcomeBadge ? outcome.detailKey : effectiveStateConfig.key)}
               </span>
             </div>
 

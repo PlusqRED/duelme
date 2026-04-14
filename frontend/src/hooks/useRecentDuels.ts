@@ -14,6 +14,7 @@ export interface RecentDuel {
   message: string;
   winner: `0x${string}`;
   lastEventAt: bigint;
+  claimTimestamp: bigint;
   chainId: number;
   chainName: string;
   state: DuelState;
@@ -96,6 +97,7 @@ export function useRecentDuels() {
         message: d.message,
         winner: d.claimedWinner,
         lastEventAt,
+        claimTimestamp: d.claimTimestamp,
         chainId: DEFAULT_CHAIN_ID,
         chainName: CHAIN_NAMES[DEFAULT_CHAIN_ID] ?? `Chain ${DEFAULT_CHAIN_ID}`,
         state,
