@@ -1334,4 +1334,174 @@ contract DuelMeTest is Test {
         assertEq(usdt.balanceOf(charlie), charlieBalBefore + WAGER * 2);
         assertEq(usdt.balanceOf(address(duelMe)), 0, "Contract should be fully drained");
     }
+
+    // =====================================================================
+    // refundAndClaimPayouts
+    // =====================================================================
+
+    function testRefundAndClaimPayoutsSingleDuel() public {
+        uint256 duelId = _createFundAndClaim();
+        vm.warp(block.timestamp + 3601);
+
+        uint256 aliceBalBefore = usdt.balanceOf(alice);
+
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = duelId;
+
+        vm.prank(alice);
+        duelMe.refundAndClaimPayouts(ids);
+
+        assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER, "Alice should receive her wager back");
+        assertEq(usdt.balanceOf(address(duelMe)), WAGER, "Contract holds bob's unclaimed share");
+
+        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        assertEq(uint256(d.state), uint256(DuelMe.DuelState.Refunded));
+        assertEq(d.creatorClaimed, true);
+        assertEq(d.opponentClaimed, false);
+
+        // Alice (claimer) honored; Bob (non-responder) abandoned
+        _assertStats(alice, 1, 0, "Alice (claimer)");
+        _assertStats(bob, 0, 1, "Bob (non-responder)");
+    }
+
+    function testRefundAndClaimPayoutsMultipleDuels() public {
+        // Duel 1: alice creates, bob joins, alice claims victory → alice is claimer
+        uint256 duel1 = _createFundAndClaim();
+
+        // Duel 2: bob creates with OTHER_INVITE_SECRET hash, alice joins, bob claims victory → bob is claimer
+        bytes32 otherHash = keccak256(abi.encodePacked(OTHER_INVITE_SECRET));
+        vm.prank(bob);
+        uint256 duel2 = duelMe.createDuel(WAGER, otherHash);
+        vm.prank(alice);
+        duelMe.joinDuel(duel2, OTHER_INVITE_SECRET);
+        vm.prank(bob);
+        duelMe.claimVictory(duel2);
+
+        // Warp past timeout so both duels are eligible for refund
+        vm.warp(block.timestamp + 3601);
+
+        uint256 aliceBalBefore = usdt.balanceOf(alice);
+
+        uint256[] memory ids = new uint256[](2);
+        ids[0] = duel1;
+        ids[1] = duel2;
+
+        // Alice calls: she is creator of duel1 (gets WAGER back) and opponent of duel2 (gets WAGER back)
+        vm.prank(alice);
+        duelMe.refundAndClaimPayouts(ids);
+
+        assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER * 2, "Alice claims from both duels");
+
+        DuelMe.Duel memory d1 = duelMe.getDuel(duel1);
+        assertEq(uint256(d1.state), uint256(DuelMe.DuelState.Refunded));
+        DuelMe.Duel memory d2 = duelMe.getDuel(duel2);
+        assertEq(uint256(d2.state), uint256(DuelMe.DuelState.Refunded));
+    }
+
+    function testRefundAndClaimPayoutsSkipsAlreadyRefunded() public {
+        uint256 duelId = _createFundAndClaim();
+        vm.warp(block.timestamp + 3601);
+
+        // Refund separately first
+        duelMe.refund(duelId);
+
+        uint256 aliceBalBefore = usdt.balanceOf(alice);
+
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = duelId;
+
+        // refundAndClaimPayouts: refund step skipped (already Refunded), claim step succeeds
+        vm.prank(alice);
+        duelMe.refundAndClaimPayouts(ids);
+
+        assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER, "Alice still claims her share");
+
+        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        assertEq(uint256(d.state), uint256(DuelMe.DuelState.Refunded));
+        assertEq(d.creatorClaimed, true);
+    }
+
+    function testRefundAndClaimPayoutsSkipsNotTimedOut() public {
+        uint256 duelId = _createFundAndClaim();
+        vm.warp(block.timestamp + 1800); // only 30 min passed, not timed out
+
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = duelId;
+
+        vm.prank(alice);
+        vm.expectRevert("Nothing to claim");
+        duelMe.refundAndClaimPayouts(ids);
+
+        // State should still be WinnerClaimed (nothing changed)
+        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        assertEq(uint256(d.state), uint256(DuelMe.DuelState.WinnerClaimed));
+    }
+
+    function testRefundAndClaimPayoutsNonParticipantGetsNothing() public {
+        uint256 duelId = _createFundAndClaim();
+        vm.warp(block.timestamp + 3601);
+
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = duelId;
+
+        // Charlie is not a participant: refund step executes (permissionless), claim step yields 0
+        vm.prank(charlie);
+        vm.expectRevert("Nothing to claim");
+        duelMe.refundAndClaimPayouts(ids);
+
+        // Even though the call reverted, check the duel was NOT refunded yet
+        // (the revert rolls back all state changes in the call)
+        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        assertEq(uint256(d.state), uint256(DuelMe.DuelState.WinnerClaimed), "Revert rolls back refund");
+    }
+
+    function testRefundAndClaimPayoutsEmptyArrayReverts() public {
+        uint256[] memory ids = new uint256[](0);
+
+        vm.prank(alice);
+        vm.expectRevert("Nothing to claim");
+        duelMe.refundAndClaimPayouts(ids);
+    }
+
+    function testRefundAndClaimPayoutsWhenPausedReverts() public {
+        uint256 duelId = _createFundAndClaim();
+        vm.warp(block.timestamp + 3601);
+        duelMe.pause();
+
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = duelId;
+
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        duelMe.refundAndClaimPayouts(ids);
+    }
+
+    function testRefundAndClaimPayoutsMixedStates() public {
+        // id1: timed-out WinnerClaimed duel (alice is claimer/creator)
+        uint256 id1 = _createFundAndClaim();
+        vm.warp(block.timestamp + 3601);
+
+        // id2: already fully resolved duel where alice won (2*WAGER payout)
+        uint256 id2 = _createFundClaimAndResolve();
+
+        uint256 aliceBalBefore = usdt.balanceOf(alice);
+
+        uint256[] memory ids = new uint256[](2);
+        ids[0] = id1;
+        ids[1] = id2;
+
+        // id1 gets refunded and alice claims WAGER; id2 already Resolved, alice claims 2*WAGER
+        vm.prank(alice);
+        duelMe.refundAndClaimPayouts(ids);
+
+        assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER * 3, "Alice receives WAGER (refund) + 2*WAGER (resolve)");
+
+        DuelMe.Duel memory d1 = duelMe.getDuel(id1);
+        assertEq(uint256(d1.state), uint256(DuelMe.DuelState.Refunded));
+        assertEq(d1.creatorClaimed, true);
+
+        DuelMe.Duel memory d2 = duelMe.getDuel(id2);
+        assertEq(uint256(d2.state), uint256(DuelMe.DuelState.Resolved));
+        assertEq(d2.creatorClaimed, true);
+    }
 }
