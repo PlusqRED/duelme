@@ -98,6 +98,12 @@ export function isDuelClaimTimedOut(claimTimestamp: bigint | number): boolean {
   return Math.floor(Date.now() / 1000) >= ts + CLAIM_TIMEOUT;
 }
 
+export function isRefundableDuel(
+  duel: { state: DuelState; claimTimestamp: bigint }
+): boolean {
+  return duel.state === DuelState.WinnerClaimed && isDuelClaimTimedOut(duel.claimTimestamp);
+}
+
 export function getDuelStateLabelKey(state: DuelState, timedOut?: boolean): TranslationKey {
   switch (state) {
     case DuelState.Created:

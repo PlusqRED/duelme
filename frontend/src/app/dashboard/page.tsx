@@ -14,15 +14,15 @@ import { useReputationLevels } from '@/hooks/useReputationLevels';
 import { usePrivy } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { usePlayerDuels } from '@/hooks/usePlayerDuels';
-import { SUPPORTED_CHAINS } from '@/lib/constants';
-import { getClaimableAmountForAddress } from '@/lib/duel';
+import { SUPPORTED_CHAINS, USDT_DECIMALS } from '@/lib/constants';
+import { getClaimableAmountForAddress, isRefundableDuel } from '@/lib/duel';
 import { buildDashboardDuelSearchText } from '@/lib/duelSearch';
 import { formatUSDT } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Swords, Trophy, XCircle, BarChart3, Info, Wallet, Search } from 'lucide-react';
+import { Swords, Trophy, XCircle, BarChart3, Info, Wallet, Search, RotateCcw } from 'lucide-react';
 import { ActionFlowDialog } from '@/components/duel/ActionFlowDialog';
 import type { ActionFlowSummaryContext } from '@/lib/actionFlow';
-import { claimAllConfig, claimPayoutConfig } from '@/lib/actionFlowConfigs';
+import { claimAllConfig, claimPayoutConfig, refundAndClaimConfig, refundAndClaimAllConfig } from '@/lib/actionFlowConfigs';
 
 const DASHBOARD_CHAIN = SUPPORTED_CHAINS.arbitrumSepolia;
 const PAGE_SIZE = 20;
@@ -46,6 +46,13 @@ export default function DashboardPage() {
     : [];
   const totalClaimable = claimableDuels.reduce(
     (sum, duel) => sum + getClaimableAmountForAddress(duel, walletAddress),
+    0n
+  );
+  const refundableDuels = authenticated
+    ? historyDuels.filter((duel) => isRefundableDuel(duel))
+    : [];
+  const totalRefundable = refundableDuels.reduce(
+    (sum, duel) => sum + BigInt(Math.round(duel.wager * 10 ** USDT_DECIMALS)),
     0n
   );
   const duelParticipantAddresses = useMemo(
@@ -101,6 +108,29 @@ export default function DashboardPage() {
     setClaimSummary({ duelId, claimableDisplay: `${formatUSDT(amount)} USDT` });
     actionFlow.openFlow(
       claimPayoutConfig(() => actionFlow.duelActions.claimPayout(BigInt(duelId)))
+    );
+  }
+
+  function handleRefundAndClaimAll() {
+    if (!refundableDuels.length) return;
+    const duelIds = refundableDuels.map((duel) => BigInt(duel.id));
+    setClaimSummary({ duelId: 0, claimableDisplay: `${formatUSDT(totalRefundable)} USDT` });
+    actionFlow.openFlow(
+      refundAndClaimAllConfig(
+        () => actionFlow.duelActions.refundAndClaimPayouts(duelIds),
+        `${formatUSDT(totalRefundable)} USDT`,
+        refundableDuels.length,
+      )
+    );
+  }
+
+  function handleRefundAndClaimSingle(duelId: number) {
+    const duel = historyDuels.find((d) => d.id === duelId);
+    if (!duel) return;
+    const amount = BigInt(Math.round(duel.wager * 10 ** USDT_DECIMALS));
+    setClaimSummary({ duelId, claimableDisplay: `${formatUSDT(amount)} USDT` });
+    actionFlow.openFlow(
+      refundAndClaimConfig(() => actionFlow.duelActions.refundAndClaimPayouts([BigInt(duelId)]))
     );
   }
 
@@ -212,6 +242,29 @@ export default function DashboardPage() {
         </Card>
       )}
 
+      {totalRefundable > 0n && (
+        <Card className="mt-4 border-red-200 bg-red-50 shadow-sm">
+          <CardContent className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <p className="text-2xl font-bold text-red-950 sm:text-3xl">
+                {formatUSDT(totalRefundable)} USDT
+              </p>
+              <p className="text-sm text-red-800">{t('dashboard.refundAllHint')}</p>
+            </div>
+
+            <Button
+              size="lg"
+              className="w-full bg-gradient-to-r from-red-500 via-red-600 to-rose-600 text-white shadow-sm shadow-red-200 hover:from-red-600 hover:via-red-700 hover:to-rose-700 sm:w-auto"
+              onClick={handleRefundAndClaimAll}
+              disabled={actionFlow.flow !== null}
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              {t('action.claimAllRefunds')}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Tabs */}
       <div className="mt-8 flex items-center gap-1 rounded-lg bg-slate-100 p-1">
         <button
@@ -284,6 +337,12 @@ export default function DashboardPage() {
                   : undefined
               }
               isClaiming={actionFlow.flow !== null && (actionFlow.flow.actionType === 'claimAll' || actionFlow.flow.actionType === 'claimPayout')}
+              onRefundClaim={
+                authenticated && isRefundableDuel(duel)
+                  ? () => handleRefundAndClaimSingle(duel.id)
+                  : undefined
+              }
+              isRefundClaiming={actionFlow.flow !== null && (actionFlow.flow.actionType === 'refundAndClaim' || actionFlow.flow.actionType === 'refundAndClaimAll')}
             />
           ))
         )}
