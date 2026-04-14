@@ -1,4 +1,5 @@
 import { DuelState, type Duel } from '@/lib/contracts';
+import { CLAIM_TIMEOUT } from '@/lib/constants';
 import type { TranslationKey } from '@/i18n/translations';
 
 export { ZERO_ADDRESS } from '@/lib/constants';
@@ -91,14 +92,26 @@ export function getCounterpartyAddress(
   return null;
 }
 
-export function getDuelStateLabelKey(state: DuelState): TranslationKey {
+export function isDuelClaimTimedOut(claimTimestamp: bigint | number): boolean {
+  const ts = typeof claimTimestamp === 'bigint' ? Number(claimTimestamp) : claimTimestamp;
+  if (ts <= 0) return false;
+  return Math.floor(Date.now() / 1000) >= ts + CLAIM_TIMEOUT;
+}
+
+export function isRefundableDuel(
+  duel: { state: DuelState; claimTimestamp: bigint }
+): boolean {
+  return duel.state === DuelState.WinnerClaimed && isDuelClaimTimedOut(duel.claimTimestamp);
+}
+
+export function getDuelStateLabelKey(state: DuelState, timedOut?: boolean): TranslationKey {
   switch (state) {
     case DuelState.Created:
       return 'duel.waiting';
     case DuelState.Funded:
       return 'duel.inProgress';
     case DuelState.WinnerClaimed:
-      return 'duel.waitingConfirm';
+      return timedOut ? 'duel.responseTimedOut' : 'duel.waitingConfirm';
     case DuelState.Resolved:
       return 'duel.resolved';
     case DuelState.Refunded:
@@ -118,7 +131,8 @@ export function getDuelStateLabelKey(state: DuelState): TranslationKey {
 
 export function getDuelOutcomeSummary(
   duel: Pick<ClaimableDuel, 'creator' | 'opponent' | 'claimedWinner' | 'state'>,
-  address?: string | null
+  address?: string | null,
+  timedOut?: boolean
 ): DuelOutcomeSummary {
   const normalized = address?.toLowerCase();
 
@@ -134,6 +148,14 @@ export function getDuelOutcomeSummary(
           detailKey: 'duel.resolved',
           tone: 'loss',
         };
+  }
+
+  if (duel.state === DuelState.WinnerClaimed && timedOut) {
+    return {
+      key: 'dashboard.outcomeNoWinner',
+      detailKey: 'duel.responseTimedOut',
+      tone: 'neutral',
+    };
   }
 
   if (

@@ -14,7 +14,9 @@ export type ActionFlowType =
   | 'requestMutualCancellation'
   | 'claimPayout'
   | 'refund'
-  | 'claimAll';
+  | 'claimAll'
+  | 'refundAndClaim'
+  | 'refundAndClaimAll';
 
 export interface ActionFlowSession {
   actionType: ActionFlowType;

@@ -102,7 +102,8 @@ All write operations follow: check chain → check allowance → approve if need
 | `frontend/src/lib/constants.ts` | Chain configs, contract addresses, ZERO_ADDRESS, CHAIN_NAMES |
 | `frontend/src/components/providers/Providers.tsx` | Privy + wagmi + QueryClient providers |
 | `frontend/src/hooks/useDuel.ts` | Read single duel |
-| `frontend/src/hooks/useDuelActions.ts` | Write actions (join, cancel, claim, etc.) |
+| `frontend/src/hooks/useDuelActions.ts` | Write actions (join, cancel, claim, refundAndClaim, etc.) |
+| `frontend/src/hooks/useDashboardClaims.ts` | Dashboard claim/refund handlers and computed state |
 | `frontend/src/hooks/usePlayerDuels.ts` | Multicall all duels, filter by player |
 | `frontend/src/hooks/usePlatformStats.ts` | Landing-page Total Volume / Duels Played stats |
 | `frontend/src/hooks/useRecentDuels.ts` | Landing-page duel feed with newest-first ordering |
@@ -111,6 +112,7 @@ All write operations follow: check chain → check allowance → approve if need
 | `frontend/src/lib/invite.ts` | Secure invite-secret generation/storage helpers |
 | `frontend/src/lib/duelMessage.ts` | Frontend Unicode duel-message validation |
 | `frontend/src/lib/duelSearch.ts` | Shared visible-field search indexing for dashboard/recent duels |
+| `frontend/src/lib/actionFlowConfigs.ts` | Guided transaction flow configs for all duel actions |
 | `frontend/src/lib/balanceRefresh.ts` | Shared client-side balance refresh event bus |
 | `frontend/src/i18n/translations.ts` | EN/RU translations |
 | `scripts/sync_readme_contract_addresses.py` | Sync README contract block from `run-latest.json` |
@@ -450,4 +452,7 @@ Additionally, the prompt must include these requirements:
 - Done: dashboard and latest-duels search now operate on visible UI concepts, not just raw addresses
 - Done: hero metrics now show live on-chain Total Volume and Duels Played values
 - Done: personal profiles with inline editing, nickname resolution in duel components, profile links everywhere
+- Done: timed-out duel UX — "Response timed out" status across all surfaces, color-coded timeline, synthetic timeout event, reputation messaging, timed-out duels move to history tab
+- Done: `refundAndClaimPayouts` batch contract function — single-tx refund+claim, dashboard "Claim All Refunds" card, per-duel "Claim Refund" button
+- Done: game badges in latest duels feed via backend metadata enrichment
 - Source of truth for current deploys: `contracts/broadcast/Deploy.s.sol/421614/run-latest.json`, mirrored into `README.md` and `frontend/src/lib/constants.ts`

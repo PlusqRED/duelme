@@ -8,10 +8,10 @@ import { ConfirmResult } from '@/components/duel/ConfirmResult';
 import { useAppToast } from '@/hooks/useAppToast';
 import { useTranslation } from '@/i18n/useTranslation';
 import { DuelState } from '@/lib/contracts';
-import { getClaimableAmountForAddress } from '@/lib/duel';
+import { getClaimableAmountForAddress, isDuelClaimTimedOut } from '@/lib/duel';
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
 import { hashInviteSecret, readInviteSecretFromHash, readStoredInviteSecret, storeInviteSecret, isPublicDuel, PUBLIC_INVITE_SECRET } from '@/lib/invite';
-import { SUPPORTED_CHAINS, DEFAULT_CHAIN_ID, ZERO_ADDRESS } from '@/lib/constants';
+import { SUPPORTED_CHAINS, DEFAULT_CHAIN_ID, ZERO_ADDRESS, CLAIM_TIMEOUT } from '@/lib/constants';
 import { useDuel } from '@/hooks/useDuel';
 import { useDuelActions } from '@/hooks/useDuelActions';
 import { formatDateTime, formatUSDT } from '@/lib/utils';
@@ -20,7 +20,7 @@ import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useSwitchChain, useAccount } from 'wagmi';
 import {
   Clock, Trophy, ArrowLeft, XCircle, RotateCcw,
-  Swords, LogIn, Hourglass, Shield, Handshake, Globe, Lock,
+  Swords, LogIn, Hourglass, Shield, Handshake, Globe, Lock, TimerOff,
 } from 'lucide-react';
 import Link from 'next/link';
 import { ActionFlowDialog } from '@/components/duel/ActionFlowDialog';
@@ -242,7 +242,6 @@ export default function DuelPage({
   /* ── Derived state ── */
   const state = duel.state;
   const cfg = STATUS_CONFIG[state];
-  const StatusIcon = cfg.icon;
   const isWaitingOpponent = state === DuelState.Created;
   const isFunded = state === DuelState.Funded;
   const isWinnerClaimed = state === DuelState.WinnerClaimed;
@@ -253,6 +252,11 @@ export default function DuelPage({
   const isDisputed = state === DuelState.Disputed;
   const isMutualCancelRequested = state === DuelState.MutualCancelRequested;
   const isMutuallyCancelled = state === DuelState.MutuallyCancelled;
+  const isClaimTimedOut = isWinnerClaimed && isDuelClaimTimedOut(duel.claimTimestamp);
+  const effectiveCfg = isClaimTimedOut
+    ? { icon: TimerOff, gradient: 'from-red-500 to-rose-600', label: 'duel.responseTimedOut' }
+    : cfg;
+  const StatusIcon = effectiveCfg.icon;
 
   const isCreator = walletAddress === duel.creator.toLowerCase();
   const isOpponent = walletAddress === duel.opponent.toLowerCase();
@@ -285,10 +289,13 @@ export default function DuelPage({
   const opponentIsReportedWinner = isWinnerClaimed && hasOpponent && duel.claimedWinner.toLowerCase() === duel.opponent.toLowerCase();
 
   const timelineEvents = [
-    { label: t('duel.timelineCreated'), timestamp: duel.createdAt },
-    duel.fundedAt > 0n ? { label: t('duel.timelineAccepted'), timestamp: duel.fundedAt } : null,
-    duel.cancelRequestedAt > 0n ? { label: t('duel.timelineCancellationRequested'), timestamp: duel.cancelRequestedAt } : null,
-    duel.claimTimestamp > 0n ? { label: t('duel.timelineResultSubmitted'), timestamp: duel.claimTimestamp } : null,
+    { label: t('duel.timelineCreated'), timestamp: duel.createdAt, dotColor: 'bg-blue-500' },
+    duel.fundedAt > 0n ? { label: t('duel.timelineAccepted'), timestamp: duel.fundedAt, dotColor: 'bg-green-500' } : null,
+    duel.cancelRequestedAt > 0n ? { label: t('duel.timelineCancellationRequested'), timestamp: duel.cancelRequestedAt, dotColor: 'bg-violet-500' } : null,
+    duel.claimTimestamp > 0n ? { label: t('duel.timelineResultSubmitted'), timestamp: duel.claimTimestamp, dotColor: 'bg-amber-500' } : null,
+    isClaimTimedOut
+      ? { label: t('duel.timelineTimedOut'), timestamp: duel.claimTimestamp + BigInt(CLAIM_TIMEOUT), dotColor: 'bg-red-500' }
+      : null,
     duel.finalizedAt > 0n
       ? {
           label: t(
@@ -305,9 +312,15 @@ export default function DuelPage({
                       : 'duel.timelineMutuallyCancelled'
           ),
           timestamp: duel.finalizedAt,
+          dotColor: isResolved ? 'bg-emerald-500'
+            : isCancelled ? 'bg-slate-400'
+            : isDeclined ? 'bg-rose-400'
+            : isDisputed ? 'bg-orange-500'
+            : isMutuallyCancelled ? 'bg-sky-500'
+            : 'bg-slate-500',
         }
       : null,
-  ].filter((event): event is { label: string; timestamp: bigint } => event !== null);
+  ].filter((event): event is { label: string; timestamp: bigint; dotColor: string } => event !== null);
 
   const claimHintKey = isResolved
     ? 'duel.resolvedClaimHint'
@@ -372,7 +385,7 @@ export default function DuelPage({
 
       <div className="animate-fade-in overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {/* ── Status header with gradient ── */}
-        <div className={`bg-gradient-to-r ${cfg.gradient} px-6 py-5 text-white`}>
+        <div className={`bg-gradient-to-r ${effectiveCfg.gradient} px-6 py-5 text-white`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <StatusIcon className="h-5 w-5 opacity-80" />
@@ -380,7 +393,7 @@ export default function DuelPage({
             </div>
             <div className="flex items-center gap-2">
               <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur-sm">
-                {t(cfg.label as Parameters<typeof t>[0])}
+                {t(effectiveCfg.label as Parameters<typeof t>[0])}
               </span>
               {isDuelPublic ? (
                 <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
@@ -467,7 +480,7 @@ export default function DuelPage({
               {timelineEvents.map((event) => (
                 <div key={`${event.label}-${event.timestamp.toString()}`} className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <span className="mt-1 h-2.5 w-2.5 rounded-full bg-indigo-500" />
+                    <span className={`mt-1 h-2.5 w-2.5 rounded-full ${event.dotColor}`} />
                     <span className="text-sm font-medium text-slate-700">{event.label}</span>
                   </div>
                   <span className="text-right text-sm text-slate-500">

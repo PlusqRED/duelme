@@ -13,11 +13,13 @@ import {
   getDuelOutcomeSummary,
   getRelevantDuelTimestamp,
   hasClaimedPayoutForAddress,
+  isDuelClaimTimedOut,
+  isRefundableDuel,
   truncateUnicode,
 } from '@/lib/duel';
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
 import { formatDateTime, formatUSDT, truncateAddress } from '@/lib/utils';
-import { ArrowUpRight, CheckCircle2, Coins } from 'lucide-react';
+import { ArrowUpRight, CheckCircle2, Coins, RotateCcw } from 'lucide-react';
 import { GameBadge } from '@/components/game/GameBadge';
 import { ReputationBadge } from './ReputationBadge';
 
@@ -26,6 +28,8 @@ interface DuelCardProps {
   viewerAddress?: string;
   onClaim?: () => void;
   isClaiming?: boolean;
+  onRefundClaim?: () => void;
+  isRefundClaiming?: boolean;
   resolveDisplay?: (address: string) => string;
   gameName?: string;
   gameSlug?: string;
@@ -97,17 +101,24 @@ export function DuelCard({
   viewerAddress,
   onClaim,
   isClaiming = false,
+  onRefundClaim,
+  isRefundClaiming = false,
   resolveDisplay,
   gameName,
   gameSlug,
 }: DuelCardProps) {
   const { t, language } = useTranslation();
   const stateConfig = STATUS_CONFIG[duel.state];
+  const isClaimTimedOut = duel.state === DuelState.WinnerClaimed && isDuelClaimTimedOut(duel.claimTimestamp);
+  const isRefundable = isRefundableDuel(duel);
+  const effectiveStateConfig = isClaimTimedOut
+    ? { key: 'duel.responseTimedOut' as TranslationKey, colorClass: 'bg-red-50 text-red-700 border-red-200' }
+    : stateConfig;
   const claimableAmount = getClaimableAmountForAddress(duel, viewerAddress);
   const hasClaimableAmount = claimableAmount > 0n;
   const hasClaimedAmount = hasClaimedPayoutForAddress(duel, viewerAddress);
-  const outcome = getDuelOutcomeSummary(duel, viewerAddress);
-  const showOutcomeBadge = TERMINAL_STATES.has(duel.state);
+  const outcome = getDuelOutcomeSummary(duel, viewerAddress, isClaimTimedOut);
+  const showOutcomeBadge = TERMINAL_STATES.has(duel.state) || isClaimTimedOut;
   const hasMessage = hasVisibleDuelMessage(duel.message);
   const counterparty = getCounterpartyAddress(duel, viewerAddress);
   const opponentAddress = counterparty && counterparty !== '0x0000000000000000000000000000000000000000'
@@ -131,9 +142,9 @@ export function DuelCard({
                 </span>
               )}
               <span
-                className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${stateConfig.colorClass}`}
+                className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${effectiveStateConfig.colorClass}`}
               >
-                {t(showOutcomeBadge ? outcome.detailKey : stateConfig.key)}
+                {t(showOutcomeBadge ? outcome.detailKey : effectiveStateConfig.key)}
               </span>
             </div>
 
@@ -181,6 +192,12 @@ export function DuelCard({
                   {t('dashboard.claimReady')}
                 </span>
               )}
+              {isRefundable && !hasClaimableAmount && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  {t('dashboard.refundAvailable')}
+                </span>
+              )}
             </div>
           </div>
         </Link>
@@ -213,6 +230,36 @@ export function DuelCard({
               {isClaiming
                 ? t('status.claiming')
                 : t('dashboard.claimButton')}
+            </Button>
+          )}
+
+          {isRefundable && onRefundClaim && (
+            <div className="rounded-2xl border border-red-200 bg-gradient-to-br from-red-50 via-white to-red-100 px-4 py-3 text-left lg:text-right">
+              <div className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-red-700">
+                <RotateCcw className="h-3.5 w-3.5" />
+                {t('dashboard.refundAvailable')}
+              </div>
+              <div className="mt-1 text-lg font-bold text-red-900">
+                {formatUSDT(duel.wagerAmountRaw)} USDT
+              </div>
+            </div>
+          )}
+
+          {isRefundable && onRefundClaim && (
+            <Button
+              size="lg"
+              className="w-full bg-gradient-to-r from-red-500 via-red-600 to-rose-600 text-white shadow-sm shadow-red-200 hover:from-red-600 hover:via-red-700 hover:to-rose-700 lg:w-auto"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onRefundClaim();
+              }}
+              disabled={isRefundClaiming}
+            >
+              {!isRefundClaiming && <RotateCcw className="mr-2 h-4 w-4" />}
+              {isRefundClaiming
+                ? t('status.claiming')
+                : t('action.claimRefund')}
             </Button>
           )}
         </div>

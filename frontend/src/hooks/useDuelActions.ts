@@ -230,6 +230,16 @@ export function useDuelActions(chainId: number) {
     });
   }
 
+  function refundAndClaimPayouts(duelIds: bigint[]) {
+    writeContract({
+      address: contractAddress,
+      abi: duelMeAbi,
+      functionName: 'refundAndClaimPayouts',
+      args: [duelIds],
+      chainId,
+    });
+  }
+
   function cancelDuel(duelId: bigint) {
     writeContract({
       address: contractAddress,
@@ -256,6 +266,7 @@ export function useDuelActions(chainId: number) {
     confirmResult,
     disputeResult,
     refund,
+    refundAndClaimPayouts,
     cancelDuel,
     hash,
     isPending,

@@ -6,7 +6,7 @@ import { ZERO_ADDRESS } from '@/lib/constants';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 import { useTranslation } from '@/i18n/useTranslation';
-import { getDuelStateLabelKey } from '@/lib/duel';
+import { getDuelStateLabelKey, isDuelClaimTimedOut } from '@/lib/duel';
 
 interface DuelStatusProps {
   duel: Duel;
@@ -28,6 +28,9 @@ const STATUS_COLORS: Record<DuelState, string> = {
 
 export function DuelStatus({ duel, duelId }: DuelStatusProps) {
   const { t } = useTranslation();
+  const isTimedOut = duel.state === DuelState.WinnerClaimed && isDuelClaimTimedOut(duel.claimTimestamp);
+  const effectiveColor = isTimedOut ? 'bg-red-50 text-red-700 border-red-200' : STATUS_COLORS[duel.state];
+  const effectiveLabel = getDuelStateLabelKey(duel.state, isTimedOut);
   const wagerDisplay = formatUSDT(duel.wagerAmount);
   const isFundedOrBeyond = duel.state === DuelState.Funded
     || duel.state === DuelState.MutualCancelRequested
@@ -48,10 +51,10 @@ export function DuelStatus({ duel, duelId }: DuelStatusProps) {
         </CardTitle>
         <span
           className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
-            STATUS_COLORS[duel.state]
+            effectiveColor
           }`}
         >
-          {t(getDuelStateLabelKey(duel.state))}
+          {t(effectiveLabel)}
         </span>
       </CardHeader>
       <CardContent>

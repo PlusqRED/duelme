@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { useReadContract, useReadContracts } from 'wagmi';
 import { formatUnits } from 'viem';
 import { duelMeAbi, DuelState, ACTIVE_STATES } from '@/lib/contracts';
+import { isDuelClaimTimedOut } from '@/lib/duel';
 import { DUELME_ADDRESSES, USDT_DECIMALS, ZERO_ADDRESS, CHAIN_NAMES } from '@/lib/constants';
 
 export interface PlayerDuel {
@@ -13,6 +14,7 @@ export interface PlayerDuel {
   inviteHash: `0x${string}`;
   message: string;
   wager: number;
+  wagerAmountRaw: bigint;
   state: DuelState;
   claimedWinner: `0x${string}`;
   claimedBy: `0x${string}`;
@@ -138,6 +140,7 @@ export function usePlayerDuels(
           inviteHash: d.inviteHash,
           message: d.message,
           wager,
+          wagerAmountRaw: d.wagerAmount,
           state,
         claimedWinner: d.claimedWinner,
         claimedBy: d.claimedBy,
@@ -156,7 +159,11 @@ export function usePlayerDuels(
       };
 
       if (ACTIVE_STATES.has(state)) {
-        activeDuels.push(duel);
+        if (state === DuelState.WinnerClaimed && isDuelClaimTimedOut(d.claimTimestamp)) {
+          historyDuels.push(duel);
+        } else {
+          activeDuels.push(duel);
+        }
       } else {
         historyDuels.push(duel);
       }

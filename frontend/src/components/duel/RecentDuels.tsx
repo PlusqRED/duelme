@@ -6,15 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useRecentDuels } from '@/hooks/useRecentDuels';
 import { useNicknames } from '@/hooks/useNicknames';
+import { usePublicDuelMetas } from '@/hooks/usePublicDuelMetas';
 import { useReputationLevels } from '@/hooks/useReputationLevels';
+import { DEFAULT_CHAIN_ID } from '@/lib/constants';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/translations';
 import { DuelState } from '@/lib/contracts';
 import { buildRecentDuelSearchText } from '@/lib/duelSearch';
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
-import { truncateUnicode } from '@/lib/duel';
+import { isDuelClaimTimedOut, truncateUnicode } from '@/lib/duel';
 import { formatDateTime } from '@/lib/utils';
 import { ReputationBadge } from './ReputationBadge';
+import { GameBadge } from '@/components/game/GameBadge';
 import { Search, Trophy } from 'lucide-react';
 
 const PAGE_SIZE = 10;
@@ -42,16 +45,18 @@ export function RecentDuels() {
     () => duels.flatMap((duel) => [duel.player1, duel.player2]),
     [duels]
   );
-  const { reputationByAddress } = useReputationLevels(participantAddresses, 421614);
+  const duelIds = useMemo(() => duels.map((d) => d.id), [duels]);
+  const { metaByDuelId } = usePublicDuelMetas(duelIds, DEFAULT_CHAIN_ID);
+  const { reputationByAddress } = useReputationLevels(participantAddresses, DEFAULT_CHAIN_ID);
   const { resolveDisplay, nicknameByAddress } = useNicknames(participantAddresses);
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
 
   const filteredDuels = useMemo(
     () => duels.filter((duel) => (
       !normalizedSearchQuery
-      || buildRecentDuelSearchText(duel, t, language, reputationByAddress, nicknameByAddress).includes(normalizedSearchQuery)
+      || buildRecentDuelSearchText(duel, t, language, reputationByAddress, nicknameByAddress, metaByDuelId[duel.id]?.gameName).includes(normalizedSearchQuery)
     )),
-    [duels, normalizedSearchQuery, t, language, reputationByAddress, nicknameByAddress]
+    [duels, normalizedSearchQuery, t, language, reputationByAddress, nicknameByAddress, metaByDuelId]
   );
 
   const totalPages = Math.max(1, Math.ceil(filteredDuels.length / PAGE_SIZE));
@@ -127,6 +132,9 @@ export function RecentDuels() {
                 {paginatedDuels.map((duel) => {
                   const hasWinner = duel.state === DuelState.Resolved;
                   const isPlayer1Winner = hasWinner && duel.winner.toLowerCase() === duel.player1.toLowerCase();
+                  const isTimedOut = duel.state === DuelState.WinnerClaimed && isDuelClaimTimedOut(duel.claimTimestamp);
+                  const statusKey = isTimedOut ? 'duel.responseTimedOut' as TranslationKey : STATUS_KEY[duel.state];
+                  const meta = metaByDuelId[duel.id];
 
                   return (
                     <tr
@@ -170,10 +178,17 @@ export function RecentDuels() {
                               <ReputationBadge address={duel.player2} chainId={duel.chainId} />
                             </div>
                           </div>
-                          {hasVisibleDuelMessage(duel.message) && (
-                            <p className="max-w-xl text-xs text-slate-500">
-                              {truncateUnicode(duel.message, 56)}
-                            </p>
+                          {(meta || hasVisibleDuelMessage(duel.message)) && (
+                            <div className="flex flex-wrap items-center gap-2">
+                              {meta && (
+                                <GameBadge gameName={meta.gameName} gameSlug={meta.gameSlug} />
+                              )}
+                              {hasVisibleDuelMessage(duel.message) && (
+                                <p className="max-w-xl text-xs text-slate-500">
+                                  {truncateUnicode(duel.message, 56)}
+                                </p>
+                              )}
+                            </div>
                           )}
                         </Link>
                       </td>
@@ -184,8 +199,8 @@ export function RecentDuels() {
                       </td>
                       <td className="px-4 py-3">
                         <Link href={`/duel/${duel.id}`} className="block space-y-1">
-                          <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700">
-                            {t(STATUS_KEY[duel.state])}
+                          <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${isTimedOut ? 'border-red-200 bg-red-50 text-red-700' : 'border-slate-200 bg-slate-50 text-slate-700'}`}>
+                            {t(statusKey)}
                           </span>
                           {duel.state === DuelState.Resolved && (
                             <div className="flex items-center gap-1.5">
@@ -220,6 +235,9 @@ export function RecentDuels() {
             {paginatedDuels.map((duel) => {
               const hasWinner = duel.state === DuelState.Resolved;
               const isPlayer1Winner = hasWinner && duel.winner.toLowerCase() === duel.player1.toLowerCase();
+              const isTimedOut = duel.state === DuelState.WinnerClaimed && isDuelClaimTimedOut(duel.claimTimestamp);
+              const statusKey = isTimedOut ? 'duel.responseTimedOut' as TranslationKey : STATUS_KEY[duel.state];
+              const meta = metaByDuelId[duel.id];
 
               return (
                 <Link
@@ -261,13 +279,19 @@ export function RecentDuels() {
                     <span className="vs-badge shrink-0">VS</span>
                   </div>
 
+                  {meta && (
+                    <div className="mt-2">
+                      <GameBadge gameName={meta.gameName} gameSlug={meta.gameSlug} />
+                    </div>
+                  )}
+
                   <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
                     <span className="text-sm font-semibold text-slate-900">
                       {duel.wager} USDT
                     </span>
                     <div className="flex flex-col items-center gap-1">
-                      <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-600">
-                        {t(STATUS_KEY[duel.state])}
+                      <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${isTimedOut ? 'border-red-200 bg-red-50 text-red-700' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
+                        {t(statusKey)}
                       </span>
                       {duel.state === DuelState.Resolved && (
                         <div className="flex items-center gap-1.5">

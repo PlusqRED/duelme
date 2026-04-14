@@ -10,6 +10,7 @@ import {
   getDuelStateLabelKey,
   getRelevantDuelTimestamp,
   hasClaimedPayoutForAddress,
+  isDuelClaimTimedOut,
 } from '@/lib/duel';
 import { getReputationLabelKey, type ReputationLevel } from '@/lib/reputation';
 
@@ -58,8 +59,9 @@ export function buildDashboardDuelSearchText(
   reputationByAddress: Record<string, ReputationLevel>,
   nicknameByAddress?: Record<string, string | null>
 ) {
-  const outcome = getDuelOutcomeSummary(duel, viewerAddress);
-  const stateLabel = t(getDuelStateLabelKey(duel.state));
+  const isTimedOut = duel.state === DuelState.WinnerClaimed && isDuelClaimTimedOut(duel.claimTimestamp);
+  const outcome = getDuelOutcomeSummary(duel, viewerAddress, isTimedOut);
+  const stateLabel = t(getDuelStateLabelKey(duel.state, isTimedOut));
   const outcomeLabel = t(outcome.key);
   const detailLabel = t(outcome.detailKey);
   const counterparty = getCounterpartyAddress(duel, viewerAddress) ?? duel.opponent;
@@ -75,6 +77,8 @@ export function buildDashboardDuelSearchText(
     detailLabel,
     stateLabel,
     ...CANONICAL_STATE_TERMS[duel.state],
+    isTimedOut ? 'timed out' : '',
+    isTimedOut ? 'response timed out' : '',
     t('dashboard.opponentLabel'),
     t('dashboard.waitingOpponent'),
     counterparty,
@@ -107,9 +111,11 @@ export function buildRecentDuelSearchText(
   t: Translate,
   language: Language,
   reputationByAddress: Record<string, ReputationLevel>,
-  nicknameByAddress?: Record<string, string | null>
+  nicknameByAddress?: Record<string, string | null>,
+  gameName?: string | null
 ) {
-  const stateLabel = t(getDuelStateLabelKey(duel.state));
+  const isTimedOut = duel.state === DuelState.WinnerClaimed && isDuelClaimTimedOut(duel.claimTimestamp);
+  const stateLabel = t(getDuelStateLabelKey(duel.state, isTimedOut));
 
   return normalizeSearchParts([
     duel.id,
@@ -121,6 +127,8 @@ export function buildRecentDuelSearchText(
     duel.winner,
     stateLabel,
     ...CANONICAL_STATE_TERMS[duel.state],
+    isTimedOut ? 'timed out' : '',
+    isTimedOut ? 'response timed out' : '',
     duel.chainName,
     'arbitrum sepolia',
     'arb sepolia',
@@ -133,5 +141,6 @@ export function buildRecentDuelSearchText(
     getReputationLabel(reputationByAddress, duel.player2, t),
     nicknameByAddress?.[duel.player1.toLowerCase()] ?? '',
     nicknameByAddress?.[duel.player2.toLowerCase()] ?? '',
+    gameName ?? '',
   ]);
 }
