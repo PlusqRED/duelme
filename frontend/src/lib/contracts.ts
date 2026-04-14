@@ -1231,7 +1231,7 @@ export const transferAbi = [
 export function getUsdtAddress(chainId: number | undefined) {
   // Avoid circular import — inline the chain→USDT mapping
   const map: Record<number, `0x${string}`> = {
-    421614: '0xFF2405132F2C13099A68759d38BB812505e970C0',
+    421614: '0xbf345834d808a058e1278b50f3844aD86686f401',
     42161: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
   };
   return chainId ? map[chainId] : undefined;
