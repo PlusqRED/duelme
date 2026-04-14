@@ -386,6 +386,31 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
         usdt.safeTransfer(msg.sender, totalAmount);
     }
 
+    /// @notice Refund all timed-out duels and claim the caller's payouts in one transaction.
+    ///         Duels that are not in WinnerClaimed state or have not timed out are silently skipped.
+    /// @param duelIds The duel IDs to refund and claim from
+    function refundAndClaimPayouts(uint256[] calldata duelIds) external whenNotPaused nonReentrant {
+        for (uint256 i = 0; i < duelIds.length; i++) {
+            Duel storage duel = duels[duelIds[i]];
+            if (duel.state == DuelState.WinnerClaimed && block.timestamp >= duel.claimTimestamp + CLAIM_TIMEOUT) {
+                duel.finalizedAt = block.timestamp;
+                duel.state = DuelState.Refunded;
+                playerStats[duel.claimedBy].duelsHonored += 1;
+                address nonResponder = duel.claimedBy == duel.creator ? duel.opponent : duel.creator;
+                playerStats[nonResponder].duelsAbandoned += 1;
+                _setPayouts(duel, duel.wagerAmount, duel.wagerAmount);
+                emit DuelRefunded(duelIds[i]);
+            }
+        }
+
+        uint256 totalAmount;
+        for (uint256 i = 0; i < duelIds.length; i++) {
+            totalAmount += _claimSinglePayout(duels[duelIds[i]], duelIds[i], msg.sender);
+        }
+        require(totalAmount > 0, "Nothing to claim");
+        usdt.safeTransfer(msg.sender, totalAmount);
+    }
+
     /// @notice Rescue any ERC20 token accidentally sent to this contract (except USDT)
     /// @param token The ERC20 token to rescue
     /// @param to The recipient address
