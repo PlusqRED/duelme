@@ -88,6 +88,7 @@ export function useGameDuels(gameSlug: string | undefined, chainId: number) {
         inviteHash: d.inviteHash,
         message: d.message,
         wager,
+        wagerAmountRaw: d.wagerAmount,
         state,
         claimedWinner: d.claimedWinner,
         claimedBy: d.claimedBy,

@@ -1504,4 +1504,40 @@ contract DuelMeTest is Test {
         assertEq(uint256(d2.state), uint256(DuelMe.DuelState.Resolved));
         assertEq(d2.creatorClaimed, true);
     }
+
+    function testRefundAndClaimPayoutsDoubleCallReverts() public {
+        uint256 duelId = _createFundAndClaim();
+        vm.warp(block.timestamp + 3601);
+
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = duelId;
+
+        // First call: refund + claim succeeds
+        vm.prank(alice);
+        duelMe.refundAndClaimPayouts(ids);
+
+        // Second call: already claimed, nothing left
+        vm.prank(alice);
+        vm.expectRevert("Nothing to claim");
+        duelMe.refundAndClaimPayouts(ids);
+    }
+
+    function testRefundAndClaimPayoutsDuplicateIdsInArray() public {
+        uint256 duelId = _createFundAndClaim();
+        vm.warp(block.timestamp + 3601);
+
+        uint256[] memory ids = new uint256[](2);
+        ids[0] = duelId;
+        ids[1] = duelId;
+
+        uint256 aliceBalBefore = usdt.balanceOf(alice);
+
+        // Duplicate ID: refund happens once, claim happens once (second iteration returns 0)
+        vm.prank(alice);
+        duelMe.refundAndClaimPayouts(ids);
+
+        // Alice gets exactly 1x WAGER (not 2x)
+        assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER);
+        _assertPayouts(duelId, WAGER, WAGER, true, false);
+    }
 }

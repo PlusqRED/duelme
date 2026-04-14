@@ -11,18 +11,17 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { ReputationBadge } from '@/components/duel/ReputationBadge';
 import { useNicknames } from '@/hooks/useNicknames';
 import { useReputationLevels } from '@/hooks/useReputationLevels';
+import { useDashboardClaims } from '@/hooks/useDashboardClaims';
 import { usePrivy } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { usePlayerDuels } from '@/hooks/usePlayerDuels';
-import { SUPPORTED_CHAINS, USDT_DECIMALS } from '@/lib/constants';
+import { SUPPORTED_CHAINS } from '@/lib/constants';
 import { getClaimableAmountForAddress, isRefundableDuel } from '@/lib/duel';
 import { buildDashboardDuelSearchText } from '@/lib/duelSearch';
 import { formatUSDT } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Swords, Trophy, XCircle, BarChart3, Info, Wallet, Search, RotateCcw } from 'lucide-react';
 import { ActionFlowDialog } from '@/components/duel/ActionFlowDialog';
-import type { ActionFlowSummaryContext } from '@/lib/actionFlow';
-import { claimAllConfig, claimPayoutConfig, refundAndClaimConfig, refundAndClaimAllConfig } from '@/lib/actionFlowConfigs';
 
 const DASHBOARD_CHAIN = SUPPORTED_CHAINS.arbitrumSepolia;
 const PAGE_SIZE = 20;
@@ -39,22 +38,11 @@ export default function DashboardPage() {
   const { wins, losses, totalWagered, totalWithdrawn, activeDuels, historyDuels, isLoading, refetch } =
     usePlayerDuels(walletAddress, DASHBOARD_CHAIN.id);
   const actionFlow = useActionFlow({ duelId: 0, refetchDuel: refetch });
-  const [claimSummary, setClaimSummary] = useState<Pick<ActionFlowSummaryContext, 'duelId' | 'claimableDisplay'>>({ duelId: 0, claimableDisplay: '' });
-
-  const claimableDuels = authenticated
-    ? historyDuels.filter((duel) => getClaimableAmountForAddress(duel, walletAddress) > 0n)
-    : [];
-  const totalClaimable = claimableDuels.reduce(
-    (sum, duel) => sum + getClaimableAmountForAddress(duel, walletAddress),
-    0n
-  );
-  const refundableDuels = authenticated
-    ? historyDuels.filter((duel) => isRefundableDuel(duel))
-    : [];
-  const totalRefundable = refundableDuels.reduce(
-    (sum, duel) => sum + BigInt(Math.round(duel.wager * 10 ** USDT_DECIMALS)),
-    0n
-  );
+  const {
+    claimSummary, totalClaimable, totalRefundable,
+    handleClaimAll, handleClaimSingle,
+    handleRefundAndClaimAll, handleRefundAndClaimSingle,
+  } = useDashboardClaims({ historyDuels, walletAddress, authenticated, actionFlow });
   const duelParticipantAddresses = useMemo(
     () => [...activeDuels, ...historyDuels].flatMap((duel) => [duel.creator, duel.opponent]),
     [activeDuels, historyDuels]
@@ -88,51 +76,6 @@ export default function DashboardPage() {
   const currentPage = activeTab === 'active' ? safeActivePage : safeHistoryPage;
   const totalPages = activeTab === 'active' ? activeTotalPages : historyTotalPages;
   const paginatedDuels = displayDuels.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-
-  function handleClaimAll() {
-    if (!claimableDuels.length) return;
-    const duelIds = claimableDuels.map((duel) => BigInt(duel.id));
-    setClaimSummary({ duelId: 0, claimableDisplay: `${formatUSDT(totalClaimable)} USDT` });
-    actionFlow.openFlow(
-      claimAllConfig(
-        () => actionFlow.duelActions.claimPayouts(duelIds),
-        `${formatUSDT(totalClaimable)} USDT`,
-        claimableDuels.length,
-      )
-    );
-  }
-
-  function handleClaimSingle(duelId: number) {
-    const duel = historyDuels.find((d) => d.id === duelId);
-    const amount = duel ? getClaimableAmountForAddress(duel, walletAddress) : 0n;
-    setClaimSummary({ duelId, claimableDisplay: `${formatUSDT(amount)} USDT` });
-    actionFlow.openFlow(
-      claimPayoutConfig(() => actionFlow.duelActions.claimPayout(BigInt(duelId)))
-    );
-  }
-
-  function handleRefundAndClaimAll() {
-    if (!refundableDuels.length) return;
-    const duelIds = refundableDuels.map((duel) => BigInt(duel.id));
-    setClaimSummary({ duelId: 0, claimableDisplay: `${formatUSDT(totalRefundable)} USDT` });
-    actionFlow.openFlow(
-      refundAndClaimAllConfig(
-        () => actionFlow.duelActions.refundAndClaimPayouts(duelIds),
-        `${formatUSDT(totalRefundable)} USDT`,
-        refundableDuels.length,
-      )
-    );
-  }
-
-  function handleRefundAndClaimSingle(duelId: number) {
-    const duel = historyDuels.find((d) => d.id === duelId);
-    if (!duel) return;
-    const amount = BigInt(Math.round(duel.wager * 10 ** USDT_DECIMALS));
-    setClaimSummary({ duelId, claimableDisplay: `${formatUSDT(amount)} USDT` });
-    actionFlow.openFlow(
-      refundAndClaimConfig(() => actionFlow.duelActions.refundAndClaimPayouts([BigInt(duelId)]))
-    );
-  }
 
   useEffect(() => {
     setActivePage(1);
