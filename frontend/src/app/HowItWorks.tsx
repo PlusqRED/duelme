@@ -286,20 +286,17 @@ export function HowItWorks() {
                 </div>
               </div>
 
-              <div className="mt-6 flex items-center gap-4 rounded-[24px] border border-slate-200 bg-slate-50/85 px-4 py-4">
-                <div className="flow-line-vertical h-12 shrink-0" />
-                <div>
-                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    {t('howItWorks.routesEyebrow')}
-                  </div>
-                  <p className="mt-1 text-sm leading-relaxed text-slate-500">
-                    {t('howItWorks.routesNote')}
-                  </p>
-                </div>
-              </div>
             </div>
 
             <div className="space-y-3">
+              <div className="rounded-[24px] border border-slate-200 bg-slate-50/85 px-5 py-4">
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  {t('howItWorks.routesEyebrow')}
+                </div>
+                <p className="mt-1 text-sm leading-relaxed text-slate-500">
+                  {t('howItWorks.routesNote')}
+                </p>
+              </div>
               {outcomeRoutes.map((route) => (
                 <OutcomeRouteCard key={route.title} {...route} />
               ))}
