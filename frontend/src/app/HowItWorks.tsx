@@ -1,131 +1,330 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { useTranslation } from '@/i18n/useTranslation';
-import { UserCheck, Link2, Trophy, Fuel, DollarSign, Info } from 'lucide-react';
+import {
+  BadgePercent,
+  Clock3,
+  Eye,
+  type LucideIcon,
+  Lock,
+  RotateCcw,
+  ShieldCheck,
+  Swords,
+  Trophy,
+  User,
+} from 'lucide-react';
+
+const DEMO_STAKE = '10 USDT';
+const DEMO_POT = '20 USDT';
 
 const steps = [
   {
-    icon: UserCheck,
+    icon: Swords,
     titleKey: 'howItWorks.step1.title' as const,
     descKey: 'howItWorks.step1.desc' as const,
-    color: 'bg-indigo-100 text-indigo-600 border-indigo-200',
     number: '01',
+    tone: 'border-sky-200 bg-sky-50 text-sky-700',
   },
   {
-    icon: Link2,
+    icon: Lock,
     titleKey: 'howItWorks.step2.title' as const,
     descKey: 'howItWorks.step2.desc' as const,
-    color: 'bg-violet-100 text-violet-600 border-violet-200',
     number: '02',
+    tone: 'border-indigo-200 bg-indigo-50 text-indigo-700',
   },
   {
     icon: Trophy,
     titleKey: 'howItWorks.step3.title' as const,
     descKey: 'howItWorks.step3.desc' as const,
-    color: 'bg-emerald-100 text-emerald-600 border-emerald-200',
     number: '03',
+    tone: 'border-emerald-200 bg-emerald-50 text-emerald-700',
   },
 ];
 
-const fundingSteps = [
+const securityFacts = [
   {
-    icon: Fuel,
-    titleKey: 'howItWorks.fundEth' as const,
-    descKey: 'howItWorks.fundEthDesc' as const,
-    color: 'border-amber-200 bg-amber-50 text-amber-600',
+    icon: ShieldCheck,
+    titleKey: 'howItWorks.security.code.title' as const,
+    descKey: 'howItWorks.security.code.desc' as const,
+    tone: 'bg-indigo-100 text-indigo-700',
   },
   {
-    icon: DollarSign,
-    titleKey: 'howItWorks.fundUsdt' as const,
-    descKey: 'howItWorks.fundUsdtDesc' as const,
-    color: 'border-blue-200 bg-blue-50 text-blue-600',
+    icon: BadgePercent,
+    titleKey: 'howItWorks.security.fees.title' as const,
+    descKey: 'howItWorks.security.fees.desc' as const,
+    tone: 'bg-emerald-100 text-emerald-700',
+  },
+  {
+    icon: Eye,
+    titleKey: 'howItWorks.security.open.title' as const,
+    descKey: 'howItWorks.security.open.desc' as const,
+    tone: 'bg-sky-100 text-sky-700',
   },
 ];
+
+function FlowNode({
+  label,
+  value,
+  tone,
+  children,
+}: {
+  label: string;
+  value: string;
+  tone: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="min-w-0 rounded-[26px] border border-white/80 bg-white/90 p-4 text-center shadow-sm backdrop-blur-sm">
+      <div className={`mx-auto flex h-12 w-12 items-center justify-center rounded-2xl ${tone}`}>
+        {children}
+      </div>
+      <div className="mt-3 min-h-[2.5rem] text-sm font-semibold leading-snug text-slate-900 [text-wrap:balance]">
+        {label}
+      </div>
+      <div className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function OutcomeRouteCard({
+  icon: Icon,
+  title,
+  description,
+  payouts,
+  tone,
+  delayClass,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  payouts: string[];
+  tone: string;
+  delayClass?: string;
+}) {
+  return (
+    <div
+      className={`card-glow animate-soft-in rounded-[28px] border border-white/80 bg-white/84 p-5 shadow-sm backdrop-blur-sm ${delayClass ?? ''}`}
+    >
+      <div className="flex items-start gap-3">
+        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${tone}`}>
+          <Icon className="h-5 w-5" />
+        </div>
+        <div>
+          <h3 className="text-base font-semibold text-slate-950 sm:text-lg">{title}</h3>
+          <p className="mt-2 text-sm leading-relaxed text-slate-500">{description}</p>
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {payouts.map((payout) => (
+          <span
+            key={payout}
+            className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold tracking-[0.08em] text-slate-600"
+          >
+            {payout}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function HowItWorks() {
   const { t } = useTranslation();
+
+  const outcomeRoutes = [
+    {
+      icon: Trophy,
+      title: t('howItWorks.outcomeConfirmed.title'),
+      description: t('howItWorks.outcomeConfirmed.desc'),
+      payouts: [`${DEMO_POT} -> ${t('howItWorks.flow.winner')}`],
+      tone: 'bg-emerald-100 text-emerald-700',
+      delayClass: 'animation-delay-100',
+    },
+    {
+      icon: RotateCcw,
+      title: t('howItWorks.outcomeDisputed.title'),
+      description: t('howItWorks.outcomeDisputed.desc'),
+      payouts: [
+        `${DEMO_STAKE} -> ${t('howItWorks.flow.playerA')}`,
+        `${DEMO_STAKE} -> ${t('howItWorks.flow.playerB')}`,
+      ],
+      tone: 'bg-amber-100 text-amber-700',
+      delayClass: 'animation-delay-200',
+    },
+    {
+      icon: Clock3,
+      title: t('howItWorks.outcomeTimeout.title'),
+      description: t('howItWorks.outcomeTimeout.desc'),
+      payouts: [
+        `${DEMO_STAKE} -> ${t('howItWorks.flow.playerA')}`,
+        `${DEMO_STAKE} -> ${t('howItWorks.flow.playerB')}`,
+      ],
+      tone: 'bg-sky-100 text-sky-700',
+      delayClass: 'animation-delay-300',
+    },
+  ];
 
   return (
     <section id="how-it-works" className="relative bg-white py-16 sm:py-24">
       <div className="section-divider absolute inset-x-0 top-0" />
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <h2 className="text-center text-2xl font-bold text-slate-900 sm:text-3xl">
-          {t('howItWorks.title')}
-        </h2>
-
-        <div className="mt-14 grid gap-8 sm:grid-cols-3">
-          {steps.map((step, i) => {
-            const Icon = step.icon;
-            return (
-              <div
-                key={step.number}
-                className="card-glow group relative flex flex-col items-center rounded-2xl border border-slate-100 bg-slate-50/50 p-8 text-center transition-all duration-300 hover:bg-white"
-              >
-                {/* Connector line */}
-                {i < steps.length - 1 && (
-                  <div className="absolute right-0 top-1/2 hidden h-px w-8 translate-x-full bg-slate-200 sm:block" />
-                )}
-
-                <div className="relative">
-                  <div
-                    className={`flex h-16 w-16 items-center justify-center rounded-2xl border ${step.color} transition-transform duration-300 group-hover:scale-110`}
-                  >
-                    <Icon className="h-7 w-7" />
-                  </div>
-                  <span className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-slate-900 text-[11px] font-bold text-white shadow-sm">
-                    {step.number}
-                  </span>
-                </div>
-                <h3 className="mt-5 text-lg font-semibold text-slate-900">
-                  {t(step.titleKey)}
-                </h3>
-                <p className="mt-3 max-w-xs text-sm leading-relaxed text-slate-500">
-                  {t(step.descKey)}
-                </p>
-              </div>
-            );
-          })}
+        <div className="mx-auto max-w-3xl text-center">
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
+            {t('howItWorks.eyebrow')}
+          </div>
+          <h2 className="mt-4 text-3xl font-black tracking-[-0.04em] text-slate-950 [text-wrap:balance] sm:text-4xl">
+            {t('howItWorks.title')}
+          </h2>
+          <p className="mt-4 text-base leading-relaxed text-slate-600 [text-wrap:pretty] sm:text-lg">
+            {t('howItWorks.subtitle')}
+          </p>
         </div>
 
-        {/* Funding note for new wallets */}
-        <div className="mx-auto mt-12 max-w-3xl">
-          <div className="rounded-2xl border border-dashed border-amber-300 bg-amber-50/50 px-6 py-5">
-            <div className="flex items-start gap-3">
-              <Info className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-              <div>
-                <h4 className="text-sm font-semibold text-amber-900">
-                  {t('howItWorks.newWallet')}
-                </h4>
-                <p className="mt-1 text-sm leading-relaxed text-amber-800/80">
-                  {t('howItWorks.newWalletDesc')}
-                </p>
+        <div className="mt-12 grid gap-4 lg:grid-cols-3">
+          {steps.map(({ icon: Icon, titleKey, descKey, number, tone }) => (
+            <div
+              key={number}
+              className="card-glow rounded-[28px] border border-slate-200 bg-slate-50/80 p-6"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className={`flex h-14 w-14 items-center justify-center rounded-2xl border ${tone}`}>
+                  <Icon className="h-6 w-6" />
+                </div>
+                <span className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  {number}
+                </span>
               </div>
+              <h3 className="mt-5 text-xl font-semibold text-slate-950">
+                {t(titleKey)}
+              </h3>
+              <p className="mt-3 text-sm leading-relaxed text-slate-500 sm:text-base">
+                {t(descKey)}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-14 rounded-[36px] border border-slate-200 bg-[linear-gradient(180deg,rgba(239,246,255,0.72)_0%,rgba(255,255,255,0.98)_56%,rgba(248,250,252,0.98)_100%)] p-6 shadow-[0_32px_90px_-56px_rgba(15,23,42,0.32)] sm:p-8">
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)] xl:items-start">
+            <div className="overflow-hidden rounded-[30px] border border-white/80 bg-white/88 p-5 shadow-sm backdrop-blur-sm sm:p-6">
+              <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                {t('howItWorks.diagramEyebrow')}
+              </div>
+              <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-600 sm:text-base">
+                {t('howItWorks.diagramNote')}
+              </p>
+
+              <div className="mt-6 hidden md:block">
+                <div className="grid grid-cols-[minmax(80px,1fr)_64px_140px_64px_minmax(80px,1fr)] items-center gap-3">
+                  <FlowNode
+                    label={t('howItWorks.flow.playerA')}
+                    value={DEMO_STAKE}
+                    tone="bg-sky-100 text-sky-700"
+                  >
+                    <User className="h-5 w-5" />
+                  </FlowNode>
+
+                  <div className="space-y-2">
+                    <div className="text-center text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                      {DEMO_STAKE}
+                    </div>
+                    <div className="flow-line-horizontal" />
+                  </div>
+
+                  <FlowNode
+                    label={t('howItWorks.flow.contract')}
+                    value={DEMO_POT}
+                    tone="bg-slate-950 text-white"
+                  >
+                    <Lock className="h-6 w-6 animate-float-y" />
+                  </FlowNode>
+
+                  <div className="space-y-2">
+                    <div className="text-center text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                      {DEMO_STAKE}
+                    </div>
+                    <div className="flow-line-horizontal flow-line-horizontal-reverse" />
+                  </div>
+
+                  <FlowNode
+                    label={t('howItWorks.flow.playerB')}
+                    value={DEMO_STAKE}
+                    tone="bg-emerald-100 text-emerald-700"
+                  >
+                    <User className="h-5 w-5" />
+                  </FlowNode>
+                </div>
+              </div>
+
+              <div className="mt-6 md:hidden">
+                <div className="grid grid-cols-3 gap-3">
+                  <FlowNode
+                    label={t('howItWorks.flow.playerA')}
+                    value={DEMO_STAKE}
+                    tone="bg-sky-100 text-sky-700"
+                  >
+                    <User className="h-5 w-5" />
+                  </FlowNode>
+                  <FlowNode
+                    label={t('howItWorks.flow.contract')}
+                    value={DEMO_POT}
+                    tone="bg-slate-950 text-white"
+                  >
+                    <Lock className="h-5 w-5 animate-float-y" />
+                  </FlowNode>
+                  <FlowNode
+                    label={t('howItWorks.flow.playerB')}
+                    value={DEMO_STAKE}
+                    tone="bg-emerald-100 text-emerald-700"
+                  >
+                    <User className="h-5 w-5" />
+                  </FlowNode>
+                </div>
+              </div>
+
             </div>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {fundingSteps.map((step) => {
-                const Icon = step.icon;
-                return (
-                  <div
-                    key={step.titleKey}
-                    className={`flex items-start gap-3 rounded-xl border bg-white px-4 py-3 ${step.color.split(' ').filter(c => c.startsWith('border-')).join(' ')}`}
-                  >
-                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${step.color}`}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <span className="text-sm font-semibold text-slate-900">
-                        {t(step.titleKey)}
-                      </span>
-                      <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
-                        {t(step.descKey)}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="space-y-3">
+              <div className="rounded-[24px] border border-slate-200 bg-slate-50/85 px-5 py-4">
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  {t('howItWorks.routesEyebrow')}
+                </div>
+                <p className="mt-1 text-sm leading-relaxed text-slate-500">
+                  {t('howItWorks.routesNote')}
+                </p>
+              </div>
+              {outcomeRoutes.map((route) => (
+                <OutcomeRouteCard key={route.title} {...route} />
+              ))}
             </div>
           </div>
+
+          <p className="mx-auto mt-8 max-w-3xl text-center text-sm leading-relaxed text-slate-600 sm:text-base">
+            {t('howItWorks.flow.caption')}
+          </p>
+        </div>
+
+        <div className="mt-10 grid gap-4 lg:grid-cols-3">
+          {securityFacts.map(({ icon: Icon, titleKey, descKey, tone }) => (
+            <div
+              key={titleKey}
+              className="card-glow rounded-[28px] border border-slate-200 bg-white p-6"
+            >
+              <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${tone}`}>
+                <Icon className="h-6 w-6" />
+              </div>
+              <h3 className="mt-5 text-lg font-semibold text-slate-950">
+                {t(titleKey)}
+              </h3>
+              <p className="mt-3 text-sm leading-relaxed text-slate-500 sm:text-base">
+                {t(descKey)}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
     </section>

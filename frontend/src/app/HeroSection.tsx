@@ -2,12 +2,18 @@
 
 import Link from 'next/link';
 import { useMemo } from 'react';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { useTranslation } from '@/i18n/useTranslation';
 import { usePlatformStats } from '@/hooks/usePlatformStats';
 import { formatUnits } from 'viem';
 import { USDT_DECIMALS } from '@/lib/constants';
-import { Swords, Shield, Zap } from 'lucide-react';
+import { ChevronDown, Swords } from 'lucide-react';
+
+const sectionLinks = [
+  { id: 'public-duels', key: 'publicDuels.title' as const },
+  { id: 'recent-duels', key: 'recent.title' as const },
+  { id: 'games', key: 'popularGames.title' as const },
+];
 
 export function HeroSection() {
   const { t, language } = useTranslation();
@@ -29,94 +35,96 @@ export function HeroSection() {
   );
 
   return (
-    <section id="hero" className="hero-gradient relative overflow-hidden">
-      {/* Animated background dots */}
+    <section
+      id="hero"
+      className="hero-gradient relative overflow-hidden border-b border-slate-200/70"
+    >
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -left-4 top-20 h-72 w-72 rounded-full bg-indigo-200/30 blur-3xl animate-pulse-slow" />
-        <div className="absolute -right-10 bottom-10 h-80 w-80 rounded-full bg-violet-200/20 blur-3xl animate-pulse-slow animation-delay-2000" />
+        <div className="absolute left-0 top-0 h-72 w-72 rounded-full bg-blue-200/55 blur-3xl sm:h-96 sm:w-96" />
+        <div className="absolute right-0 top-8 h-64 w-64 rounded-full bg-emerald-100/70 blur-3xl sm:h-80 sm:w-80" />
+        <div className="absolute bottom-0 left-1/3 h-56 w-56 rounded-full bg-cyan-100/60 blur-3xl sm:h-72 sm:w-72" />
       </div>
 
-      <div className="relative mx-auto max-w-6xl px-4 pb-16 pt-20 sm:px-6 sm:pb-24 sm:pt-28">
-        <div className="flex flex-col items-center text-center">
-          {/* Badge */}
-          <div className="mb-6 animate-fade-in rounded-full border border-indigo-200 bg-indigo-50/80 px-4 py-1.5 backdrop-blur-sm">
-            <span className="text-xs font-medium text-indigo-700 sm:text-sm">
-              {t('hero.badge')}
-            </span>
-          </div>
+      <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="mx-auto flex max-w-5xl flex-col items-center justify-center pb-10 pt-10 text-center sm:pb-14 sm:pt-14 lg:min-h-[calc(100svh-3.5rem)] lg:py-16">
+          <div className="w-full max-w-4xl">
+            <h1 className="mx-auto max-w-4xl text-[clamp(2.75rem,6vw,5.2rem)] font-black leading-[0.95] tracking-[-0.04em] text-slate-950 [text-wrap:balance]">
+              {t('hero.title1')}
+              <br />
+              <span className="text-gradient">{t('hero.title2')}</span>
+            </h1>
 
-          {/* Icon row */}
-          <div className="mb-8 flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-100 shadow-sm animate-fade-in-up">
-              <Swords className="h-5 w-5 text-indigo-600" />
-            </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-100 shadow-sm animate-fade-in-up animation-delay-100">
-              <Shield className="h-5 w-5 text-violet-600" />
-            </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 shadow-sm animate-fade-in-up animation-delay-200">
-              <Zap className="h-5 w-5 text-emerald-600" />
-            </div>
-          </div>
+            <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-slate-600 [text-wrap:pretty] sm:text-lg">
+              {t('hero.subtitle')}
+            </p>
 
-          {/* Heading */}
-          <h1 className="max-w-3xl text-4xl font-extrabold tracking-tight text-slate-900 animate-fade-in-up animation-delay-300 sm:text-5xl lg:text-6xl">
-            {t('hero.title1')}
-            <br />
-            <span className="text-gradient">{t('hero.title2')}</span>
-          </h1>
-
-          {/* Subtitle */}
-          <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-600 animate-fade-in-up animation-delay-400 sm:mt-6 sm:text-xl">
-            {t('hero.subtitle')}
-          </p>
-
-          {/* CTA */}
-          <div className="mt-10 flex flex-col gap-3 animate-fade-in-up animation-delay-500 sm:flex-row">
-            <Link href="/duel/create">
-              <Button
-                size="lg"
-                className="group h-13 px-8 text-base font-semibold bg-indigo-600 text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:shadow-xl hover:shadow-indigo-200 transition-all duration-200"
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <Link
+                href="/duel/create"
+                className={buttonVariants({
+                  size: 'lg',
+                  className:
+                    'h-14 rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-600 px-10 text-lg font-bold text-white shadow-lg shadow-indigo-300/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-indigo-300/50',
+                })}
               >
-                <Swords className="mr-2 h-4 w-4 transition-transform group-hover:rotate-12" />
+                <Swords className="mr-2.5 h-5 w-5" />
                 {t('hero.cta')}
-              </Button>
-            </Link>
-            <a href="#how-it-works">
-              <Button
-                size="lg"
-                variant="outline"
-                className="h-13 px-8 text-base font-semibold border-slate-300 text-slate-700 hover:bg-white hover:border-slate-400 transition-all duration-200"
+              </Link>
+              <a
+                href="#how-it-works"
+                className={buttonVariants({
+                  variant: 'outline',
+                  size: 'lg',
+                  className:
+                    'h-14 rounded-2xl border-2 border-slate-300 bg-white/80 px-10 text-lg font-bold text-slate-700 backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-400 hover:bg-white hover:shadow-md',
+                })}
               >
                 {t('hero.ctaSecondary')}
-              </Button>
-            </a>
-          </div>
+              </a>
+            </div>
 
-          {/* Stats row */}
-          <div className="mt-14 flex items-center gap-8 animate-fade-in-up animation-delay-600 sm:gap-12">
-            <div className="flex flex-col items-center">
-              <span className="text-2xl font-bold text-slate-900">
-                {isLoading ? '$—' : `$${formattedVolume}`}
-              </span>
-              <span className="text-xs text-slate-500 uppercase tracking-wide">
-                {t('hero.totalVolume')}
-              </span>
+            <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-slate-500 [text-wrap:pretty]">
+              {t('hero.note')}
+            </p>
+
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+              {sectionLinks.map(({ id, key }) => (
+                <a
+                  key={id}
+                  href={`#${id}`}
+                  className="flex items-center gap-1 text-sm font-medium text-slate-400 transition-colors hover:text-slate-600"
+                >
+                  {t(key)}
+                  <ChevronDown className="h-3 w-3" />
+                </a>
+              ))}
             </div>
-            <div className="h-8 w-px bg-slate-200" />
-            <div className="flex flex-col items-center">
-              <span className="text-2xl font-bold text-slate-900">
-                {isLoading ? '—' : formattedDuelsPlayed}
-              </span>
-              <span className="text-xs text-slate-500 uppercase tracking-wide">
-                {t('hero.duelsPlayed')}
-              </span>
-            </div>
-            <div className="h-8 w-px bg-slate-200" />
-            <div className="flex flex-col items-center">
-              <span className="text-2xl font-bold text-emerald-600">0%</span>
-              <span className="text-xs text-slate-500 uppercase tracking-wide">
-                {t('hero.fees')}
-              </span>
+
+            <div className="mt-10 w-full rounded-[28px] border border-white/80 bg-white/76 p-4 shadow-sm backdrop-blur-sm sm:p-5">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <div className="text-[1.7rem] font-bold tabular-nums text-slate-950">
+                    {isLoading ? '$—' : `$${formattedVolume}`}
+                  </div>
+                  <div className="mt-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                    {t('hero.totalVolume')}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[1.7rem] font-bold tabular-nums text-slate-950">
+                    {isLoading ? '—' : formattedDuelsPlayed}
+                  </div>
+                  <div className="mt-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                    {t('hero.duelsPlayed')}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[1.7rem] font-bold tabular-nums text-emerald-600">0%</div>
+                  <div className="mt-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                    {t('hero.fees')}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

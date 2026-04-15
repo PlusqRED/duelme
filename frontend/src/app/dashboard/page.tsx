@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { DuelCard } from '@/components/duel/DuelCard';
@@ -260,10 +260,13 @@ export default function DashboardPage() {
               {searchQuery ? t('dashboard.noMatches') : t('dashboard.noDuels')}
             </p>
             {!searchQuery && (
-              <Link href="/duel/create">
-                <Button className="bg-indigo-600 text-white hover:bg-indigo-700">
-                  {t('hero.cta')}
-                </Button>
+              <Link
+                href="/duel/create"
+                className={buttonVariants({
+                  className: 'bg-indigo-600 text-white hover:bg-indigo-700',
+                })}
+              >
+                {t('hero.cta')}
               </Link>
             )}
           </div>

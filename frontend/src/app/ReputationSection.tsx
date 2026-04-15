@@ -1,32 +1,40 @@
 'use client';
 
 import { useTranslation } from '@/i18n/useTranslation';
-import { BarChart3, CheckCircle2, XCircle, Sparkles, ShieldCheck, ShieldQuestion, ShieldAlert } from 'lucide-react';
+import {
+  BarChart3,
+  CheckCircle2,
+  ShieldAlert,
+  ShieldCheck,
+  ShieldQuestion,
+  Sparkles,
+  XCircle,
+} from 'lucide-react';
 
 const levels = [
   {
     icon: Sparkles,
     labelKey: 'rep.new' as const,
     descKey: 'rep.levelNew' as const,
-    color: 'bg-blue-100 text-blue-600',
+    tone: 'bg-sky-100 text-sky-700',
   },
   {
     icon: ShieldCheck,
     labelKey: 'rep.honorable' as const,
     descKey: 'rep.levelHonorable' as const,
-    color: 'bg-emerald-100 text-emerald-600',
+    tone: 'bg-emerald-100 text-emerald-700',
   },
   {
     icon: ShieldQuestion,
     labelKey: 'rep.fair' as const,
     descKey: 'rep.levelFair' as const,
-    color: 'bg-amber-100 text-amber-600',
+    tone: 'bg-amber-100 text-amber-700',
   },
   {
     icon: ShieldAlert,
     labelKey: 'rep.unreliable' as const,
     descKey: 'rep.levelUnreliable' as const,
-    color: 'bg-red-100 text-red-600',
+    tone: 'bg-rose-100 text-rose-700',
   },
 ];
 
@@ -34,63 +42,64 @@ export function ReputationSection() {
   const { t } = useTranslation();
 
   return (
-    <section id="reputation" className="relative bg-slate-50 bg-dots py-16 sm:py-24">
+    <section
+      id="reputation"
+      className="relative overflow-hidden bg-slate-50 py-16 sm:py-24"
+    >
       <div className="section-divider absolute inset-x-0 top-0" />
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        {/* Header */}
-        <div className="mx-auto max-w-2xl text-center">
-          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-100">
-            <BarChart3 className="h-7 w-7 text-indigo-600" />
+        <div className="mx-auto max-w-3xl text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-100">
+            <BarChart3 className="h-7 w-7 text-indigo-700" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+          <div className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">
+            {t('rep.eyebrow')}
+          </div>
+          <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
             {t('rep.howTitle')}
           </h2>
-          <p className="mt-4 text-base leading-relaxed text-slate-500 sm:text-lg">
+          <p className="mt-4 text-base leading-relaxed text-slate-600 sm:text-lg">
             {t('rep.howDesc')}
           </p>
         </div>
 
-        {/* What counts: honored vs abandoned */}
-        <div className="mx-auto mt-12 grid max-w-3xl gap-4 sm:grid-cols-2">
-          <div className="group flex gap-4 rounded-2xl border border-slate-100 bg-white p-5 transition-all duration-300 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-50">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 transition-transform duration-300 group-hover:scale-110">
+        <div className="mx-auto mt-12 grid max-w-4xl gap-4 md:grid-cols-2">
+          <div className="rounded-[28px] border border-emerald-200 bg-white p-6">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
               <CheckCircle2 className="h-6 w-6" />
             </div>
-            <p className="text-sm leading-relaxed text-slate-600 sm:text-base">
+            <p className="mt-4 text-sm leading-relaxed text-slate-600 sm:text-base">
               {t('rep.howHonored')}
             </p>
           </div>
-          <div className="group flex gap-4 rounded-2xl border border-slate-100 bg-white p-5 transition-all duration-300 hover:border-red-200 hover:shadow-lg hover:shadow-red-50">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-500 transition-transform duration-300 group-hover:scale-110">
+
+          <div className="rounded-[28px] border border-rose-200 bg-white p-6">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100 text-rose-700">
               <XCircle className="h-6 w-6" />
             </div>
-            <p className="text-sm leading-relaxed text-slate-600 sm:text-base">
+            <p className="mt-4 text-sm leading-relaxed text-slate-600 sm:text-base">
               {t('rep.howAbandoned')}
             </p>
           </div>
         </div>
 
-        {/* Formula explanation */}
-        <p className="mx-auto mt-6 max-w-2xl text-center text-sm leading-relaxed text-slate-400">
-          <span className="font-semibold text-slate-500">Wilson Score</span>
-          {' — '}
+        <p className="mx-auto mt-6 max-w-3xl text-center text-sm leading-relaxed text-slate-500">
           {t('rep.howFormula')}
         </p>
 
-        {/* Badge levels */}
-        <div className="mx-auto mt-12 grid max-w-4xl gap-4 grid-cols-2 sm:grid-cols-4">
-          {levels.map(({ icon: Icon, labelKey, descKey, color }) => (
+        <div className="mx-auto mt-12 grid max-w-5xl gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {levels.map(({ icon: Icon, labelKey, descKey, tone }) => (
             <div
               key={labelKey}
-              className="card-glow group flex flex-col items-center gap-3 rounded-2xl border border-slate-100 bg-white p-5 text-center transition-all duration-300"
+              className="rounded-[28px] border border-slate-200 bg-white p-5"
             >
-              <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${color} transition-transform duration-300 group-hover:scale-110`}>
+              <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${tone}`}>
                 <Icon className="h-6 w-6" />
               </div>
-              <h3 className="text-sm font-semibold text-slate-900">
+              <h3 className="mt-4 text-lg font-semibold text-slate-950">
                 {t(labelKey)}
               </h3>
-              <p className="text-xs leading-relaxed text-slate-500">
+              <p className="mt-2 text-sm leading-relaxed text-slate-500">
                 {t(descKey)}
               </p>
             </div>
