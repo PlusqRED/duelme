@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { usePublicDuels } from '@/hooks/usePublicDuels';
 import { usePublicDuelMetas } from '@/hooks/usePublicDuelMetas';
 import { useNicknames } from '@/hooks/useNicknames';
@@ -98,13 +98,14 @@ export function PublicDuelsSection() {
             {t('publicDuels.empty')}
           </p>
           <div className="mt-6">
-            <Link href="/duel/create">
-              <Button
-                size="lg"
-                className="rounded-2xl bg-slate-950 px-8 text-white hover:bg-slate-900"
-              >
-                {t('hero.cta')}
-              </Button>
+            <Link
+              href="/duel/create"
+              className={buttonVariants({
+                size: 'lg',
+                className: 'rounded-2xl bg-slate-950 px-8 text-white hover:bg-slate-900',
+              })}
+            >
+              {t('hero.cta')}
             </Link>
           </div>
         </div>

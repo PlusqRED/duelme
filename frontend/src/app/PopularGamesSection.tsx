@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { GameCard } from '@/components/game/GameCard';
 import { useGames } from '@/hooks/useGames';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -57,13 +57,14 @@ export function PopularGamesSection() {
             {t('popularGames.empty')}
           </p>
           <div className="mt-6">
-            <Link href="/duel/create">
-              <Button
-                size="lg"
-                className="rounded-2xl bg-slate-950 px-8 text-white hover:bg-slate-900"
-              >
-                {t('hero.cta')}
-              </Button>
+            <Link
+              href="/duel/create"
+              className={buttonVariants({
+                size: 'lg',
+                className: 'rounded-2xl bg-slate-950 px-8 text-white hover:bg-slate-900',
+              })}
+            >
+              {t('hero.cta')}
             </Link>
           </div>
         </div>

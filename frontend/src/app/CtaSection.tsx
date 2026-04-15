@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { useTranslation } from '@/i18n/useTranslation';
 import { ShieldCheck, Swords } from 'lucide-react';
 
@@ -25,10 +25,10 @@ export function CtaSection() {
             <Swords className="h-7 w-7" />
           </div>
 
-          <h2 className="mx-auto mt-6 max-w-2xl text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+          <h2 className="mx-auto mt-6 max-w-2xl text-3xl font-black tracking-tight text-slate-950 [text-wrap:balance] sm:text-4xl">
             {t('cta.ready')}
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-slate-600 [text-wrap:pretty] sm:text-lg">
             {t('cta.subtitle')}
           </p>
 
@@ -38,14 +38,16 @@ export function CtaSection() {
           </div>
 
           <div className="mt-8">
-            <Link href="/duel/create">
-              <Button
-                size="lg"
-                className="h-13 rounded-2xl bg-slate-950 px-10 text-base font-semibold text-white shadow-lg shadow-slate-300/40 transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-900"
-              >
-                <Swords className="mr-2 h-4 w-4" />
-                {t('hero.cta')}
-              </Button>
+            <Link
+              href="/duel/create"
+              className={buttonVariants({
+                size: 'lg',
+                className:
+                  'h-12 rounded-2xl bg-slate-950 px-10 text-base font-semibold text-white shadow-lg shadow-slate-300/40 transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-900',
+              })}
+            >
+              <Swords className="mr-2 h-4 w-4" />
+              {t('hero.cta')}
             </Link>
           </div>
         </div>
