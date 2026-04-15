@@ -2,7 +2,6 @@ import { SideNav } from './SideNav';
 import { HeroSection } from './HeroSection';
 import { HowItWorks } from './HowItWorks';
 import { OnboardingSection } from './OnboardingSection';
-import { TrustSection } from './TrustSection';
 import { RecentDuelsSection } from './RecentDuelsSection';
 import { PublicDuelsSection } from './PublicDuelsSection';
 import { PopularGamesSection } from './PopularGamesSection';
@@ -22,14 +21,13 @@ export default function HomePage() {
       />
       <SideNav />
       <HeroSection />
-      <PublicDuelsSection />
       <HowItWorks />
-      <RecentDuelsSection />
-      <PopularGamesSection />
-      <TrustSection />
       <OnboardingSection />
       <HonorSection />
       <ReputationSection />
+      <PublicDuelsSection />
+      <RecentDuelsSection />
+      <PopularGamesSection />
       <CtaSection />
     </>
   );
