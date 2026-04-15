@@ -75,11 +75,13 @@ function FlowNode({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-[26px] border border-white/80 bg-white/90 p-4 text-center shadow-sm backdrop-blur-sm">
+    <div className="min-w-0 rounded-[26px] border border-white/80 bg-white/90 p-4 text-center shadow-sm backdrop-blur-sm">
       <div className={`mx-auto flex h-12 w-12 items-center justify-center rounded-2xl ${tone}`}>
         {children}
       </div>
-      <div className="mt-3 text-sm font-semibold text-slate-900">{label}</div>
+      <div className="mt-3 min-h-[2.5rem] text-sm font-semibold leading-snug text-slate-900 [text-wrap:balance]">
+        {label}
+      </div>
       <div className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
         {value}
       </div>
@@ -216,8 +218,8 @@ export function HowItWorks() {
                 {t('howItWorks.diagramNote')}
               </p>
 
-              <div className="mt-6 hidden sm:block">
-                <div className="grid grid-cols-[minmax(0,1fr)_110px_168px_110px_minmax(0,1fr)] items-center gap-3">
+              <div className="mt-6 hidden md:block">
+                <div className="grid grid-cols-[minmax(120px,1fr)_88px_176px_88px_minmax(120px,1fr)] items-center gap-4">
                   <FlowNode
                     label={t('howItWorks.flow.playerA')}
                     value={DEMO_STAKE}
@@ -241,11 +243,11 @@ export function HowItWorks() {
                     <Lock className="h-6 w-6 animate-float-y" />
                   </FlowNode>
 
-                  <div className="space-y-2 rotate-180">
+                  <div className="space-y-2">
                     <div className="text-center text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                       {DEMO_STAKE}
                     </div>
-                    <div className="flow-line-horizontal" />
+                    <div className="flow-line-horizontal flow-line-horizontal-reverse" />
                   </div>
 
                   <FlowNode
@@ -258,7 +260,7 @@ export function HowItWorks() {
                 </div>
               </div>
 
-              <div className="mt-6 sm:hidden">
+              <div className="mt-6 md:hidden">
                 <div className="grid grid-cols-3 gap-3">
                   <FlowNode
                     label={t('howItWorks.flow.playerA')}

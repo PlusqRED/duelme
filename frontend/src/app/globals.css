@@ -239,6 +239,19 @@
   transform: translateY(-50%) rotate(45deg);
 }
 
+.flow-line-horizontal-reverse {
+  animation-direction: reverse;
+}
+
+.flow-line-horizontal-reverse::after {
+  left: 0;
+  right: auto;
+  border-left: 2px solid rgba(37, 99, 235, 0.72);
+  border-right: none;
+  border-top: 2px solid rgba(37, 99, 235, 0.72);
+  transform: translateY(-50%) rotate(-45deg);
+}
+
 .flow-line-vertical {
   position: relative;
   width: 2px;

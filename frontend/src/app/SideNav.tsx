@@ -6,12 +6,11 @@ import type { TranslationKey } from '@/i18n/translations';
 
 const sections: { id: string; labelKey: TranslationKey }[] = [
   { id: 'hero', labelKey: 'sidenav.hero' },
-  { id: 'how-it-works', labelKey: 'sidenav.howItWorks' },
-  { id: 'onboarding', labelKey: 'sidenav.onboarding' },
-  { id: 'honor', labelKey: 'sidenav.honor' },
-  { id: 'reputation', labelKey: 'sidenav.reputation' },
   { id: 'public-duels', labelKey: 'sidenav.publicDuels' },
   { id: 'recent-duels', labelKey: 'sidenav.recentDuels' },
+  { id: 'how-it-works', labelKey: 'sidenav.howItWorks' },
+  { id: 'onboarding', labelKey: 'sidenav.onboarding' },
+  { id: 'reputation', labelKey: 'sidenav.reputation' },
   { id: 'games', labelKey: 'sidenav.games' },
 ];
 

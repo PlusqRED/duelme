@@ -3,9 +3,9 @@
 import { useTranslation } from '@/i18n/useTranslation';
 import {
   ArrowDownToLine,
-  Chrome,
   Fuel,
   KeyRound,
+  LogIn,
   ShieldCheck,
   Swords,
   Wallet,
@@ -13,7 +13,7 @@ import {
 
 const steps = [
   {
-    icon: Chrome,
+    icon: LogIn,
     titleKey: 'onboarding.step1.title' as const,
     descKey: 'onboarding.step1.desc' as const,
     number: '01',
