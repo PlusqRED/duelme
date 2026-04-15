@@ -22,10 +22,10 @@ export default function HomePage() {
       <HeroSection />
       <PublicDuelsSection />
       <RecentDuelsSection />
+      <PopularGamesSection />
       <HowItWorks />
       <OnboardingSection />
       <ReputationSection />
-      <PopularGamesSection />
       <CtaSection />
     </>
   );

@@ -2,16 +2,12 @@ import { defineSection } from './defineSection';
 
 export const landingTranslations = defineSection({
   en: {
-    'hero.badge': 'Easy start, real stakes',
     'hero.title1': 'Think you can win?',
     'hero.title2': 'Prove it.',
     'hero.subtitle': '1v1 USDT duels with a fast start and clear payout logic.',
     'hero.cta': 'Create a duel',
     'hero.ctaSecondary': 'See the flow',
     'hero.note': 'You do not need a separate wallet to get started. If you already have one, just connect it.',
-    'hero.point1': 'Quick sign-in creates your wallet',
-    'hero.point2': 'The pot locks before the match starts',
-    'hero.point3': 'After the match, only preset outcomes apply',
     'hero.totalVolume': 'Total Volume',
     'hero.duelsPlayed': 'Duels Played',
     'hero.fees': 'Platform Fee',
@@ -110,16 +106,12 @@ export const landingTranslations = defineSection({
     'cta.note': '0% platform fee. Withdraw anytime.',
   },
   ru: {
-    'hero.badge': 'Простой вход, реальные ставки',
     'hero.title1': 'Думаешь, ты сильнее?',
     'hero.title2': 'Докажи.',
     'hero.subtitle': 'Дуэли 1v1 на USDT с быстрым стартом и понятной логикой выплат.',
     'hero.cta': 'Создать дуэль',
     'hero.ctaSecondary': 'Смотреть схему',
     'hero.note': 'Отдельный кошелёк не нужен на старте. Если свой уже есть, просто подключи его.',
-    'hero.point1': 'Простой вход сразу создаёт кошелёк',
-    'hero.point2': 'Банк блокируется до начала матча',
-    'hero.point3': 'После матча работают только заданные исходы',
     'hero.totalVolume': 'Общий объём',
     'hero.duelsPlayed': 'Сыграно дуэлей',
     'hero.fees': 'Комиссия платформы',

@@ -46,17 +46,17 @@ const facts = [
   {
     icon: ShieldCheck,
     key: 'onboarding.fact1' as const,
-    tone: 'bg-emerald-400/15 text-emerald-200',
+    tone: 'bg-emerald-100 text-emerald-700',
   },
   {
     icon: KeyRound,
     key: 'onboarding.fact2' as const,
-    tone: 'bg-indigo-400/15 text-indigo-200',
+    tone: 'bg-indigo-100 text-indigo-700',
   },
   {
     icon: Wallet,
     key: 'onboarding.fact3' as const,
-    tone: 'bg-sky-400/15 text-sky-200',
+    tone: 'bg-sky-100 text-sky-700',
   },
 ];
 
@@ -117,36 +117,36 @@ export function OnboardingSection() {
             </div>
           </div>
 
-          <div className="rounded-[32px] bg-slate-950 p-6 text-white shadow-[0_24px_60px_-36px_rgba(15,23,42,0.8)] sm:p-7">
-            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+          <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
+            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
               {t('onboarding.sideTitle')}
             </div>
             <div className="mt-5 space-y-4">
               {facts.map(({ icon: Icon, key, tone }) => (
                 <div
                   key={key}
-                  className="flex gap-4 rounded-2xl border border-white/10 bg-white/5 p-4"
+                  className="flex gap-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4"
                 >
                   <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${tone}`}>
                     <Icon className="h-5 w-5" />
                   </div>
-                  <p className="text-sm leading-relaxed text-slate-200">
+                  <p className="text-sm leading-relaxed text-slate-600">
                     {t(key)}
                   </p>
                 </div>
               ))}
             </div>
 
-            <div className="mt-6 rounded-[28px] border border-amber-300/20 bg-amber-400/10 p-4">
+            <div className="mt-6 rounded-[28px] border border-amber-200 bg-amber-50 p-4">
               <div className="flex gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-400/15 text-amber-200">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
                   <Fuel className="h-5 w-5" />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-amber-100">
+                  <div className="text-sm font-semibold text-amber-800">
                     {t('onboarding.gasTitle')}
                   </div>
-                  <p className="mt-1 text-sm leading-relaxed text-amber-50/85">
+                  <p className="mt-1 text-sm leading-relaxed text-amber-700/85">
                     {t('onboarding.gasNote')}
                   </p>
                 </div>

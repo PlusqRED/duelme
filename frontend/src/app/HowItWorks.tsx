@@ -209,8 +209,8 @@ export function HowItWorks() {
         </div>
 
         <div className="mt-14 rounded-[36px] border border-slate-200 bg-[linear-gradient(180deg,rgba(239,246,255,0.72)_0%,rgba(255,255,255,0.98)_56%,rgba(248,250,252,0.98)_100%)] p-6 shadow-[0_32px_90px_-56px_rgba(15,23,42,0.32)] sm:p-8">
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.03fr)_minmax(0,0.97fr)] xl:items-start">
-            <div className="rounded-[30px] border border-white/80 bg-white/88 p-5 shadow-sm backdrop-blur-sm sm:p-6">
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)] xl:items-start">
+            <div className="overflow-hidden rounded-[30px] border border-white/80 bg-white/88 p-5 shadow-sm backdrop-blur-sm sm:p-6">
               <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                 {t('howItWorks.diagramEyebrow')}
               </div>
@@ -219,7 +219,7 @@ export function HowItWorks() {
               </p>
 
               <div className="mt-6 hidden md:block">
-                <div className="grid grid-cols-[minmax(120px,1fr)_88px_176px_88px_minmax(120px,1fr)] items-center gap-4">
+                <div className="grid grid-cols-[minmax(80px,1fr)_64px_140px_64px_minmax(80px,1fr)] items-center gap-3">
                   <FlowNode
                     label={t('howItWorks.flow.playerA')}
                     value={DEMO_STAKE}
