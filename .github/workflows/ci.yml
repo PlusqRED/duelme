@@ -143,8 +143,11 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Pin npm version (matches frontend/package.json engines)
-        run: npm install -g npm@11.12.1
+      - name: Pin npm via Corepack (matches frontend/package.json packageManager)
+        run: |
+          corepack enable
+          corepack prepare npm@11.12.1 --activate
+          npm --version
 
       - name: Install dependencies
         run: npm ci --prefer-offline --no-audit --no-fund --loglevel=warn
