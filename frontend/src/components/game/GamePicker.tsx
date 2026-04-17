@@ -44,10 +44,8 @@ export function GamePicker({ selectedSlug, onSelect }: GamePickerProps) {
   const searchResults = useMemo(() => searcher.search(query), [searcher, query]);
 
   function handleQueryChange(next: string) {
-    const wasEmpty = query.length === 0;
-    const becameNonEmpty = next.length > 0;
     setQuery(next);
-    if (wasEmpty && becameNonEmpty) setIsCreateOpen(false);
+    if (next.length > 0) setIsCreateOpen(false);
   }
 
   function handleSelect(game: Game) {

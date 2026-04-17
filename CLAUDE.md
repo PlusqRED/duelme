@@ -450,6 +450,8 @@ Additionally, the prompt must include these requirements:
 - In this environment, source `contracts/.env` before manual deploys (`set -a && . ./.env && set +a`)
 - Use shared constants from `constants.ts` (`ZERO_ADDRESS`, `CHAIN_NAMES`) and `contracts.ts` (`ACTIVE_STATES`, `balanceOfAbi`, `transferAbi`, `getUsdtAddress`) — never redefine locally
 - `PRIVY_APP_ID` env var is required for backend — no default value in application.yml
+- Frontend npm version is pinned to `^11.12.1` via `frontend/package.json` `engines` + `frontend/.npmrc` `engine-strict=true`. CI and `frontend/Dockerfile` install it explicitly via `npm install -g npm@11.12.1`. Use the same version locally — earlier patch/major bumps caused lock-file desync (e.g. `EUSAGE`/`EBADENGINE` in `npm ci`).
+- `frontend/package.json` `overrides.eslint-plugin-react-hooks: 7.0.1` is a temporary pin: `7.1.x` adds the `react-hooks/set-state-in-effect` rule which flags pre-existing patterns in `dashboard/page.tsx`, `duel/[id]/page.tsx`, `Header.tsx`, `useCreateDuelFlow.ts`, `useJoinDuelFlow.ts`. Lift the override only after refactoring those files.
 
 ## Done — Durable Session Memory
 

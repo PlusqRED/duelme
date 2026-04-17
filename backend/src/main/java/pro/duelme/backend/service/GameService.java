@@ -9,7 +9,11 @@ import pro.duelme.backend.model.GameCategory;
 import pro.duelme.backend.repository.DuelMetaRepository;
 import pro.duelme.backend.repository.GameRepository;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
+import java.util.HexFormat;
 import java.util.List;
 
 @Service
@@ -81,10 +85,22 @@ public class GameService {
             .replaceAll("-+", "-")
             .replaceAll("^-|-$", "");
         if (slug.isEmpty()) {
-            // Fallback for non-Latin names: use hex hash of lowercased name
-            slug = "g-" + Integer.toHexString(name.trim().toLowerCase().hashCode());
+            // Fallback for non-Latin names: 12-hex-char SHA-256 prefix of the
+            // normalized name. SHA-256 is collision-resistant where String.hashCode
+            // is not, so distinct Cyrillic / CJK names produce distinct slugs.
+            slug = "g-" + sha256Prefix(name.trim().toLowerCase(), 12);
         }
         return slug;
+    }
+
+    private static String sha256Prefix(String input, int hexChars) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                .digest(input.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest).substring(0, hexChars);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 must be available on every JVM", e);
+        }
     }
 
     private GameResponse toResponse(Game game) {

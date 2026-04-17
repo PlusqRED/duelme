@@ -87,6 +87,8 @@ export function CreateDuelWizard() {
   );
 
   useEffect(() => {
+    // Soft contract: every step's first heading is `<h2 tabIndex={-1}>` so screen
+    // readers and keyboard users land on it after a step transition.
     stepHeadingRef.current
       ?.querySelector<HTMLHeadingElement>('h2[tabindex="-1"]')
       ?.focus({ preventScroll: true });
@@ -102,6 +104,8 @@ export function CreateDuelWizard() {
 
   function goNext() {
     if (stepIndex === STEP_LABEL_KEYS.length - 1) {
+      // When unauthenticated, handleCreateDuelClick triggers Privy login instead
+      // of the duel-create transaction; the WizardNavBar label switches to "Connect Wallet".
       flow.handleCreateDuelClick();
       return;
     }

@@ -9,6 +9,8 @@ export function useGameCatalog() {
     queryKey: ['games', 'catalog', CATALOG_LIMIT],
     queryFn: () => fetchGames(undefined, undefined, CATALOG_LIMIT),
     staleTime: 60_000,
+    // Avoid rebuilding the Fuse.js index mid-typing when the user tabs away and back.
+    refetchOnWindowFocus: false,
   });
   return { games: data ?? [], isLoading };
 }

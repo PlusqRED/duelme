@@ -17,6 +17,8 @@ export const SUPPORTED_CHAINS = {
 
 export type ChainKey = keyof typeof SUPPORTED_CHAINS;
 
+export const PRODUCTION_HOSTNAME = 'duelme.pro';
+
 export const DEFAULT_CHAIN_ID = SUPPORTED_CHAINS.arbitrumSepolia.id;
 
 export const MIN_WAGER = 3; // 3 USDT (display value)

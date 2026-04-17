@@ -1,8 +1,11 @@
 FROM node:22-alpine AS build
 WORKDIR /app
 
+# Pin npm to match frontend/package.json engines and CI
+RUN npm install -g npm@11.12.1
+
 # Layer 1: Dependencies (changes only when package-lock.json changes)
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json .npmrc ./
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefer-offline --no-audit --no-fund
 

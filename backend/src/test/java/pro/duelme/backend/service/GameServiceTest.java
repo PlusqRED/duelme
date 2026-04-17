@@ -109,6 +109,17 @@ class GameServiceTest {
     }
 
     @Test
+    void slugFallbackProducesDistinctValuesForDistinctNonLatinNames() {
+        String chess = GameService.toSlug("\u0428\u0430\u0445\u043c\u0430\u0442\u044b");      // Шахматы
+        String go = GameService.toSlug("\u56f2\u7881");                                        // 囲碁
+        String shogi = GameService.toSlug("\u5c06\u68cb");                                     // 将棋
+
+        assertThat(chess).isNotEqualTo(go);
+        assertThat(go).isNotEqualTo(shogi);
+        assertThat(chess).isNotEqualTo(shogi);
+    }
+
+    @Test
     void getBySlugReturnsGame() {
         gameRepository.save(new Game(null, "cs2", "Counter-Strike 2", null, GameCategory.FPS, null, null));
 

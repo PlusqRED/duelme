@@ -69,6 +69,9 @@ public class GameController {
     public GameResponse createGame(
             @Parameter(hidden = true) @AuthenticationPrincipal String walletAddress,
             @Valid @RequestBody CreateGameRequest request) {
+        // Auth required to prevent anonymous catalog spam, but the wallet address is
+        // intentionally not persisted: games are a communal catalog with no owner.
+        // Idempotent on slug — same name from any caller returns the same Game.
         return gameService.getOrCreate(request.name(), null, request.category());
     }
 }
