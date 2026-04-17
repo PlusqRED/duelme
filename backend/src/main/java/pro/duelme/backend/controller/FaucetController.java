@@ -11,19 +11,16 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import pro.duelme.backend.dto.FaucetClaimResponse;
-import pro.duelme.backend.exception.FaucetDisabledException;
 import pro.duelme.backend.service.FaucetService;
-
-import java.util.Optional;
 
 @Tag(name = "Faucet", description = "Dev-only testnet faucet (ETH + MockUSDT)")
 @RestController
 @RequestMapping("/api/v1/faucet")
 public class FaucetController {
 
-    private final Optional<FaucetService> faucetService;
+    private final FaucetService faucetService;
 
-    public FaucetController(Optional<FaucetService> faucetService) {
+    public FaucetController(FaucetService faucetService) {
         this.faucetService = faucetService;
     }
 
@@ -42,8 +39,6 @@ public class FaucetController {
     public FaucetClaimResponse claim(
         @Parameter(hidden = true) @AuthenticationPrincipal String walletAddress
     ) {
-        return faucetService
-            .orElseThrow(FaucetDisabledException::new)
-            .claim(walletAddress);
+        return faucetService.claim(walletAddress);
     }
 }

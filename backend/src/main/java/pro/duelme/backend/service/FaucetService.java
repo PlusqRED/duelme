@@ -2,7 +2,6 @@ package pro.duelme.backend.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.web3j.abi.FunctionEncoder;
@@ -19,6 +18,7 @@ import org.web3j.utils.Convert;
 import pro.duelme.backend.config.FaucetProperties;
 import pro.duelme.backend.dto.FaucetClaimResponse;
 import pro.duelme.backend.exception.FaucetAlreadyClaimedException;
+import pro.duelme.backend.exception.FaucetDisabledException;
 import pro.duelme.backend.exception.FaucetExecutionException;
 import pro.duelme.backend.model.FaucetClaim;
 import pro.duelme.backend.repository.FaucetClaimRepository;
@@ -33,11 +33,13 @@ import java.util.regex.Pattern;
  * Dev-only testnet faucet. Sends a small ETH drop to cover gas and mints
  * MockUSDT in one atomic HTTP request. One claim per wallet, ever.
  *
- * <p>This bean is only wired when {@code duelme.faucet.enabled=true} so prod
- * never opens an RPC connection or loads the signer key.
+ * <p>The bean is ALWAYS wired. On-off is gated by the runtime
+ * {@code duelme.faucet.enabled} flag checked inside {@link #claim}. We do not
+ * use {@code @ConditionalOnProperty} here because Spring Boot's AOT evaluates
+ * it at build time; in a GraalVM native image this would strip the bean
+ * regardless of the runtime environment variable.
  */
 @Service
-@ConditionalOnProperty(name = "duelme.faucet.enabled", havingValue = "true")
 public class FaucetService {
 
     private static final Logger log = LoggerFactory.getLogger(FaucetService.class);
@@ -51,11 +53,22 @@ public class FaucetService {
 
     private final FaucetProperties props;
     private final FaucetClaimRepository repository;
+    // Web3j + signer are only initialised when enabled. Disabled instances keep
+    // these null and short-circuit in claim() with FaucetDisabledException.
     private final Web3j web3j;
     private final Credentials credentials;
     private final TransactionManager txManager;
 
     public FaucetService(FaucetProperties props, FaucetClaimRepository repository) {
+        this.props = props;
+        this.repository = repository;
+        if (!props.enabled()) {
+            this.web3j = null;
+            this.credentials = null;
+            this.txManager = null;
+            log.info("Faucet disabled (duelme.faucet.enabled=false)");
+            return;
+        }
         if (props.privateKey() == null || props.privateKey().isBlank()) {
             throw new IllegalStateException(
                 "duelme.faucet.enabled=true but duelme.faucet.private-key is not set");
@@ -81,8 +94,6 @@ public class FaucetService {
             throw new IllegalStateException(
                 "duelme.faucet.usdt-amount-raw must be >0 and <=" + MAX_USDT_RAW_PER_CLAIM);
         }
-        this.props = props;
-        this.repository = repository;
         this.web3j = Web3j.build(new HttpService(props.rpcUrl()));
         this.credentials = Credentials.create(normalizeKey(props.privateKey()));
         this.txManager = new RawTransactionManager(web3j, credentials, props.chainId());
@@ -97,6 +108,9 @@ public class FaucetService {
     }
 
     public synchronized FaucetClaimResponse claim(String walletAddress) {
+        if (!props.enabled()) {
+            throw new FaucetDisabledException();
+        }
         if (walletAddress == null || !ADDRESS_PATTERN.matcher(walletAddress).matches()) {
             throw new FaucetExecutionException("Invalid wallet address", null);
         }
@@ -109,8 +123,8 @@ public class FaucetService {
 
         // Insert-first lock. If the save races another claim in a future
         // multi-node setup, the Mongo unique index on `walletAddress` (created
-        // in MongoConfig#ensureFaucetClaimIndexes) will raise DuplicateKey and
-        // we convert to 409.
+        // in MongoConfig#ensureFaucetClaimIndexes) raises DuplicateKey here
+        // and we convert it to a 409.
         FaucetClaim lock;
         try {
             lock = repository.save(new FaucetClaim(null, normalized, null, null, null));
@@ -138,8 +152,8 @@ public class FaucetService {
             return toResponse(repository.save(finished));
         } catch (Exception ex) {
             if (ethTxHash == null) {
-                // Nothing was submitted on-chain yet — safe to release the
-                // lock so the user can retry after the transient issue.
+                // Nothing on-chain yet — release the lock so the user can
+                // retry after the transient issue.
                 repository.deleteById(lock.id());
                 log.error("Faucet pre-submission failure for {} (lock {} released)",
                     normalized, lock.id(), ex);
