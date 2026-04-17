@@ -121,11 +121,11 @@ function OutcomeRouteCard({
         </div>
         <div>
           <h3 className="text-base font-semibold text-slate-950 sm:text-lg">{title}</h3>
-          <p className="mt-2 text-sm leading-relaxed text-slate-500">{description}</p>
+          <p className="mt-2 min-h-[4.5rem] text-sm leading-relaxed text-slate-500">{description}</p>
         </div>
       </div>
 
-      <div className="mt-6 divide-y divide-slate-200/70 border-t border-slate-200/70 md:mt-auto">
+      <div className="mt-6 divide-y divide-slate-200/70 border-t border-slate-200/70">
         {payouts.map((payout) => (
           <div
             key={payout.recipient}
