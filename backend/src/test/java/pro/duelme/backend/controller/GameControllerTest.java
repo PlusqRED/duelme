@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import pro.duelme.backend.model.DuelMeta;
@@ -12,8 +13,11 @@ import pro.duelme.backend.model.Game;
 import pro.duelme.backend.model.GameCategory;
 import pro.duelme.backend.repository.DuelMetaRepository;
 import pro.duelme.backend.repository.GameRepository;
+import pro.duelme.backend.security.WalletAuthenticationToken;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -124,5 +128,102 @@ class GameControllerTest {
             .andExpect(jsonPath("$[0].duelCount").value(2))
             .andExpect(jsonPath("$[1].slug").value("cs2"))
             .andExpect(jsonPath("$[1].duelCount").value(1));
+    }
+
+    @Test
+    void createGameRequiresAuth() throws Exception {
+        mockMvc.perform(post("/api/v1/games")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"name": "Apex Legends", "category": "FPS"}
+                    """))
+            .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void createGameCreatesNewGame() throws Exception {
+        var auth = new WalletAuthenticationToken("0xcreator");
+
+        mockMvc.perform(post("/api/v1/games")
+                .with(authentication(auth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"name": "Apex Legends", "category": "FPS"}
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.slug").value("apex-legends"))
+            .andExpect(jsonPath("$.name").value("Apex Legends"))
+            .andExpect(jsonPath("$.category").value("FPS"))
+            .andExpect(jsonPath("$.duelCount").value(0));
+    }
+
+    @Test
+    void createGameReturnsExistingOnDuplicateSlug() throws Exception {
+        gameRepository.save(new Game(null, "cs2", "Counter-Strike 2", null, GameCategory.FPS, null, null));
+        var auth = new WalletAuthenticationToken("0xcreator");
+
+        mockMvc.perform(post("/api/v1/games")
+                .with(authentication(auth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"name": "CS2", "category": "MOBA"}
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.slug").value("cs2"))
+            .andExpect(jsonPath("$.name").value("Counter-Strike 2"))
+            .andExpect(jsonPath("$.category").value("FPS"));
+    }
+
+    @Test
+    void createGameValidatesBlankName() throws Exception {
+        var auth = new WalletAuthenticationToken("0xcreator");
+
+        mockMvc.perform(post("/api/v1/games")
+                .with(authentication(auth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"name": "", "category": "FPS"}
+                    """))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createGameValidatesNameTooLong() throws Exception {
+        var auth = new WalletAuthenticationToken("0xcreator");
+        String longName = "x".repeat(51);
+
+        mockMvc.perform(post("/api/v1/games")
+                .with(authentication(auth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"name": "%s", "category": "FPS"}
+                    """.formatted(longName)))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createGameValidatesNullCategory() throws Exception {
+        var auth = new WalletAuthenticationToken("0xcreator");
+
+        mockMvc.perform(post("/api/v1/games")
+                .with(authentication(auth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"name": "Some Game"}
+                    """))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createGameRejectsUnknownCategory() throws Exception {
+        var auth = new WalletAuthenticationToken("0xcreator");
+
+        mockMvc.perform(post("/api/v1/games")
+                .with(authentication(auth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"name": "Some Game", "category": "ROGUELIKE"}
+                    """))
+            .andExpect(status().isBadRequest());
     }
 }

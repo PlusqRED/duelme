@@ -15,6 +15,8 @@ export const SUPPORTED_CHAINS = {
   },
 } as const;
 
+export type ChainKey = keyof typeof SUPPORTED_CHAINS;
+
 export const DEFAULT_CHAIN_ID = SUPPORTED_CHAINS.arbitrumSepolia.id;
 
 export const MIN_WAGER = 3; // 3 USDT (display value)
