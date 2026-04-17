@@ -24,6 +24,12 @@ export const DEFAULT_CHAIN_ID = SUPPORTED_CHAINS.arbitrumSepolia.id;
 export const MIN_WAGER = 3; // 3 USDT (display value)
 export const MIN_WAGER_RAW = 3_000_000n; // 3 USDT in 6 decimals
 export const MAX_WAGER_SLIDER = 500; // upper bound of the create-duel wager slider; text input still accepts larger values
+
+// Chain ids where the backend-signed testnet faucet can operate.
+// Used to gate the faucet button in the UI.
+export const TESTNET_CHAIN_IDS: ReadonlySet<number> = new Set([
+  SUPPORTED_CHAINS.arbitrumSepolia.id,
+]);
 export const CLAIM_TIMEOUT = 3600; // 1 hour in seconds
 export const USDT_DECIMALS = 6;
 

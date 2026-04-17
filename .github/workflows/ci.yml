@@ -241,15 +241,20 @@ jobs:
           PRIVY_APP_ID: ${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
           MONGO_ROOT_USERNAME: ${{ secrets.MONGO_ROOT_USERNAME }}
           MONGO_ROOT_PASSWORD: ${{ secrets.MONGO_ROOT_PASSWORD }}
+          # Testnet faucet key for the dev-only ETH + MockUSDT dispenser.
+          # Use a dedicated hot wallet, NEVER a key that holds mainnet funds.
+          FAUCET_PRIVATE_KEY: ${{ secrets.FAUCET_PRIVATE_KEY }}
         run: |
           ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'mkdir -p ~/apps/duelme-dev'
           scp -q ops/docker-compose.dev.yml "$DEPLOY_USER@$DEPLOY_HOST:~/apps/duelme-dev/docker-compose.yml"
-          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" "cat > ~/apps/duelme-dev/.env << 'ENVEOF'
+          # Pipe secrets via stdin so they never appear in ps / audit / .bash_history.
+          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'umask 077 && cat > ~/apps/duelme-dev/.env' <<ENVEOF
           PRIVY_APP_ID=$PRIVY_APP_ID
           MONGO_ROOT_USERNAME=$MONGO_ROOT_USERNAME
           MONGO_ROOT_PASSWORD=$MONGO_ROOT_PASSWORD
+          FAUCET_ENABLED=true
+          FAUCET_PRIVATE_KEY=$FAUCET_PRIVATE_KEY
           ENVEOF
-          chmod 600 ~/apps/duelme-dev/.env"
           ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
             cd ~/apps/duelme-dev
             docker compose pull -q
@@ -367,12 +372,12 @@ jobs:
         run: |
           ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'mkdir -p ~/apps/duelme-prod'
           scp -q ops/docker-compose.prod.yml "$DEPLOY_USER@$DEPLOY_HOST:~/apps/duelme-prod/docker-compose.yml"
-          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" "cat > ~/apps/duelme-prod/.env << 'ENVEOF'
+          # Pipe secrets via stdin so they never appear in ps / audit / .bash_history.
+          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'umask 077 && cat > ~/apps/duelme-prod/.env' <<ENVEOF
           PRIVY_APP_ID=$PRIVY_APP_ID
           MONGO_ROOT_USERNAME=$MONGO_ROOT_USERNAME
           MONGO_ROOT_PASSWORD=$MONGO_ROOT_PASSWORD
           ENVEOF
-          chmod 600 ~/apps/duelme-prod/.env"
           ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
             cd ~/apps/duelme-prod
             docker compose pull -q

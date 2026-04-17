@@ -47,6 +47,11 @@ services:
     environment:
       SPRING_MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/duelme?authSource=admin
       PRIVY_APP_ID: ${PRIVY_APP_ID:?PRIVY_APP_ID must be set in .env}
+      # Dev-only MockUSDT + ETH faucet. Chain/RPC/addresses/amounts use the
+      # defaults baked into application.yml; only the enable flag and signer
+      # key travel through .env.
+      FAUCET_ENABLED: ${FAUCET_ENABLED:-false}
+      FAUCET_PRIVATE_KEY: ${FAUCET_PRIVATE_KEY:-}
     ports:
       - "127.0.0.1:8080:8080"
     read_only: true

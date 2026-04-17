@@ -3,19 +3,21 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Menu, X, Swords, LogOut, User, Wallet, Globe, Send, Copy, Check, ChevronDown, KeyRound, Fuel, Instagram, Gamepad2 } from 'lucide-react';
+import { Menu, X, Swords, LogOut, User, Wallet, Globe, Send, Copy, Check, ChevronDown, KeyRound, Fuel, Instagram, Gamepad2, FlaskConical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAppToast } from '@/hooks/useAppToast';
 import { useMyProfile } from '@/hooks/useMyProfile';
-import { usePrivy, useExportWallet } from '@privy-io/react-auth';
+import { useIsNonProductionHost } from '@/hooks/useIsNonProductionHost';
+import { usePrivy, useExportWallet, useIdentityToken } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useReadContract, useBalance } from 'wagmi';
 import { formatUnits, parseUnits, encodeFunctionData } from 'viem';
-import { USDT_DECIMALS } from '@/lib/constants';
-import { balanceOfAbi, transferAbi, getUsdtAddress } from '@/lib/contracts';
+import { TESTNET_CHAIN_IDS, USDT_DECIMALS } from '@/lib/constants';
+import { balanceOfAbi, getUsdtAddress, transferAbi } from '@/lib/contracts';
 import { emitBalanceRefreshBurst, subscribeToBalanceRefresh } from '@/lib/balanceRefresh';
+import { FaucetClaimError, claimFaucet } from '@/lib/faucetApi';
 
 const CHAIN_META: Record<number, { name: string; testnet?: boolean }> = {
   421614: { name: 'Arb Sepolia', testnet: true },
@@ -31,9 +33,14 @@ export function Header() {
   const [toAddress, setToAddress] = useState('');
   const [sendAmount, setSendAmount] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [isClaimingFaucet, setIsClaimingFaucet] = useState(false);
   const [copied, setCopied] = useState(false);
   const [selectedChain, setSelectedChain] = useState<number>(421614);
   const [balanceFlash, setBalanceFlash] = useState(false);
+
+  const isNonProdHost = useIsNonProductionHost();
+  const { identityToken } = useIdentityToken();
+  const canClaimFaucet = isNonProdHost && TESTNET_CHAIN_IDS.has(selectedChain);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const previousTotalUsdtRef = useRef<string | null>(null);
@@ -133,6 +140,34 @@ export function Header() {
     await navigator.clipboard.writeText(walletAddress);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleClaimFaucet() {
+    if (!canClaimFaucet) return;
+    if (!identityToken) {
+      appToast.error('toast.walletNotReady');
+      return;
+    }
+    setIsClaimingFaucet(true);
+    try {
+      await claimFaucet(identityToken);
+      appToast.success('toast.faucetClaimed');
+      emitBalanceRefreshBurst();
+    } catch (err) {
+      if (err instanceof FaucetClaimError) {
+        switch (err.code) {
+          case 'already-claimed': appToast.error('toast.faucetAlreadyClaimed'); break;
+          case 'disabled':        appToast.error('toast.faucetDisabled'); break;
+          case 'execution-failed':appToast.error('toast.faucetExecutionFailed'); break;
+          case 'unauthorized':    appToast.error('toast.walletNotReady'); break;
+          default:                appToast.error('toast.faucetFailed'); break;
+        }
+      } else {
+        appToast.error('toast.faucetFailed');
+      }
+    } finally {
+      setIsClaimingFaucet(false);
+    }
   }
 
   async function handleSend() {
@@ -280,6 +315,28 @@ export function Header() {
           <span className="text-[10px] font-semibold text-slate-500">{totalUsdt} USDT</span>
         </div>
       </div>
+
+      {/* Testnet faucet — non-prod hosts + testnet chain only. One claim per wallet. */}
+      {canClaimFaucet && (
+        <button
+          type="button"
+          onClick={handleClaimFaucet}
+          disabled={isClaimingFaucet}
+          className="flex w-full items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 transition-colors hover:border-amber-300 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          <span className="flex items-center gap-1.5 text-left">
+            {isClaimingFaucet ? (
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-amber-600 border-t-transparent" />
+            ) : (
+              <FlaskConical className="h-3.5 w-3.5 shrink-0" />
+            )}
+            {t('wallet.claimFaucet')}
+          </span>
+          <span className="rounded-full bg-white/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-700">
+            {t('wallet.testnetBadge')}
+          </span>
+        </button>
+      )}
 
       {/* Send form */}
       <div className="flex flex-col gap-2">

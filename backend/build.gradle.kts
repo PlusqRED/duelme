@@ -26,6 +26,10 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("com.nimbusds:nimbus-jose-jwt:10.0.1")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2")
+    // web3j powers the dev-only testnet faucet (signing + JSON-RPC). Kept in core
+    // deps so JVM + native builds both work; the service bean only initializes
+    // when `duelme.faucet.enabled=true`, so prod never opens RPC connections.
+    implementation("org.web3j:core:4.12.2")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")

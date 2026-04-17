@@ -11,6 +11,17 @@ spring:
 privy:
   app-id: ${PRIVY_APP_ID}
 
+# Dev-only MockUSDT + ETH faucet. Prod must keep `enabled=false` (the default).
+duelme:
+  faucet:
+    enabled: ${FAUCET_ENABLED:false}
+    private-key: ${FAUCET_PRIVATE_KEY:}
+    rpc-url: ${FAUCET_RPC_URL:https://sepolia-rollup.arbitrum.io/rpc}
+    chain-id: ${FAUCET_CHAIN_ID:421614}
+    mock-usdt-address: ${FAUCET_MOCK_USDT_ADDRESS:0xbf345834d808a058e1278b50f3844aD86686f401}
+    eth-amount-eth: ${FAUCET_ETH_AMOUNT_ETH:0.001}
+    usdt-amount-raw: ${FAUCET_USDT_AMOUNT_RAW:100000000}
+
 springdoc:
   api-docs:
     path: /api/v1/docs
