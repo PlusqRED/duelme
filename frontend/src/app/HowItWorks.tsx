@@ -125,7 +125,7 @@ function OutcomeRouteCard({
         </div>
       </div>
 
-      <div className="mt-4 divide-y divide-slate-200/70 border-t border-slate-200/70 py-2 md:mt-auto">
+      <div className="mt-6 divide-y divide-slate-200/70 border-t border-slate-200/70 md:mt-auto">
         {payouts.map((payout) => (
           <div
             key={payout.recipient}
