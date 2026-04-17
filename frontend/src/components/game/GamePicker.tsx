@@ -1,13 +1,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ChevronDown, Loader2, Search, Sparkles, Star } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { CheckCircle2, ChevronDown, Loader2, Search, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { CreateGameInline } from '@/components/game/CreateGameInline';
 import { GameSearchEmptyState } from '@/components/game/GameSearchEmptyState';
 import { GameSearchResultRow } from '@/components/game/GameSearchResultRow';
-import { useGameCatalog } from '@/hooks/useGameCatalog';
-import { useRecentGame } from '@/hooks/useRecentGame';
+import { GameSelect } from '@/components/game/GameSelect';
+import { GAME_CATALOG_QUERY_KEY, useGameCatalog } from '@/hooks/useGameCatalog';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { Game } from '@/lib/game';
 import { createGameSearcher } from '@/lib/gameSearch';
@@ -18,27 +19,37 @@ interface GamePickerProps {
 }
 
 const POPULAR_LIMIT = 6;
+const SEARCH_MAX_LENGTH = 50;
 
 export function GamePicker({ selectedSlug, onSelect }: GamePickerProps) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const { games, isLoading } = useGameCatalog();
-  const { recentGame, saveRecentGame } = useRecentGame();
   const [query, setQuery] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  const recentGameInCatalog = useMemo(
-    () =>
-      recentGame ? games.find((game) => game.slug === recentGame.slug) ?? null : null,
-    [recentGame, games]
+  const popularGames = useMemo(
+    () => [...games].sort((a, b) => b.duelCount - a.duelCount).slice(0, POPULAR_LIMIT),
+    [games]
   );
 
-  const popularGames = useMemo(() => {
-    const excludedSlug = recentGameInCatalog?.slug;
-    return [...games]
-      .filter((game) => game.slug !== excludedSlug)
-      .sort((a, b) => b.duelCount - a.duelCount)
-      .slice(0, POPULAR_LIMIT);
-  }, [games, recentGameInCatalog]);
+  const popularSlugs = useMemo(
+    () => new Set(popularGames.map((game) => game.slug)),
+    [popularGames]
+  );
+
+  const otherGames = useMemo(
+    () =>
+      [...games]
+        .filter((game) => !popularSlugs.has(game.slug))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [games, popularSlugs]
+  );
+
+  const selectedGame = useMemo(
+    () => (selectedSlug ? games.find((game) => game.slug === selectedSlug) ?? null : null),
+    [games, selectedSlug]
+  );
 
   const searcher = useMemo(() => createGameSearcher(games), [games]);
   const searchResults = useMemo(() => searcher.search(query), [searcher, query]);
@@ -48,19 +59,26 @@ export function GamePicker({ selectedSlug, onSelect }: GamePickerProps) {
     if (next.length > 0) setIsCreateOpen(false);
   }
 
-  function handleSelect(game: Game) {
-    saveRecentGame({ slug: game.slug, name: game.name, category: game.category });
-    onSelect(game);
-  }
-
   function handleCreated(game: Game) {
+    // Insert the new game into the catalog cache so it appears immediately in
+    // the picker, then invalidate so the next refetch pulls the canonical
+    // server-stamped row. `createGame` has already awaited backend persistence,
+    // so the follow-up refetch will see it.
+    queryClient.setQueryData<Game[]>(GAME_CATALOG_QUERY_KEY, (prev) => {
+      if (!prev) return [game];
+      if (prev.some((existing) => existing.slug === game.slug)) return prev;
+      return [...prev, game];
+    });
+    void queryClient.invalidateQueries({ queryKey: GAME_CATALOG_QUERY_KEY });
     setIsCreateOpen(false);
     setQuery('');
-    handleSelect(game);
+    onSelect(game);
   }
 
   const showResults = query.trim().length > 0;
   const showEmptyResults = showResults && searchResults.length === 0 && !isLoading;
+  const showSelectedPreview =
+    !showResults && selectedGame !== null && !popularSlugs.has(selectedGame.slug);
 
   return (
     <div className="flex flex-col gap-4">
@@ -70,7 +88,7 @@ export function GamePicker({ selectedSlug, onSelect }: GamePickerProps) {
           value={query}
           onChange={(event) => handleQueryChange(event.target.value)}
           placeholder={t('gamePicker.searchPlaceholder')}
-          maxLength={50}
+          maxLength={SEARCH_MAX_LENGTH}
           className="h-12 border-slate-200 bg-white pl-10 text-base"
           aria-label={t('gamePicker.searchPlaceholder')}
         />
@@ -87,7 +105,7 @@ export function GamePicker({ selectedSlug, onSelect }: GamePickerProps) {
               game={game}
               matchIndices={matchIndices}
               isSelected={selectedSlug === game.slug}
-              onSelect={() => handleSelect(game)}
+              onSelect={() => onSelect(game)}
             />
           ))}
           {showEmptyResults && (
@@ -99,18 +117,24 @@ export function GamePicker({ selectedSlug, onSelect }: GamePickerProps) {
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          {recentGameInCatalog && (
-            <Section icon={<Star className="h-3.5 w-3.5" />} label={t('gamePicker.recent')}>
+          {showSelectedPreview && selectedGame && (
+            <Section
+              icon={<CheckCircle2 className="h-3.5 w-3.5 text-indigo-500" />}
+              label={t('gamePicker.selected')}
+            >
               <GameSearchResultRow
-                game={recentGameInCatalog}
+                game={selectedGame}
                 matchIndices={[]}
-                isSelected={selectedSlug === recentGameInCatalog.slug}
-                onSelect={() => handleSelect(recentGameInCatalog)}
+                isSelected
+                onSelect={() => onSelect(selectedGame)}
               />
             </Section>
           )}
           {popularGames.length > 0 && (
-            <Section icon={<Sparkles className="h-3.5 w-3.5" />} label={t('gamePicker.popular')}>
+            <Section
+              icon={<Sparkles className="h-3.5 w-3.5 text-amber-500" />}
+              label={t('gamePicker.popular')}
+            >
               <div className="flex flex-col gap-2">
                 {popularGames.map((game) => (
                   <GameSearchResultRow
@@ -118,11 +142,20 @@ export function GamePicker({ selectedSlug, onSelect }: GamePickerProps) {
                     game={game}
                     matchIndices={[]}
                     isSelected={selectedSlug === game.slug}
-                    onSelect={() => handleSelect(game)}
+                    onSelect={() => onSelect(game)}
                   />
                 ))}
               </div>
             </Section>
+          )}
+          {otherGames.length > 0 && (
+            <GameSelect
+              games={otherGames}
+              selectedSlug={selectedSlug}
+              onSelect={onSelect}
+              label={t('gamePicker.more')}
+              placeholder={t('gamePicker.morePlaceholder')}
+            />
           )}
         </div>
       )}

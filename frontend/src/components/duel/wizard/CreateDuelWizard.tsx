@@ -6,7 +6,10 @@ import { CreateDuelFlowDialog } from '@/components/duel/CreateDuelFlowDialog';
 import { GameStep } from '@/components/duel/wizard/GameStep';
 import { ReviewStep } from '@/components/duel/wizard/ReviewStep';
 import { StepIndicator, type WizardStep } from '@/components/duel/wizard/StepIndicator';
-import { TypeMessageStep } from '@/components/duel/wizard/TypeMessageStep';
+import {
+  MESSAGE_PLACEHOLDER_KEYS,
+  TypeMessageStep,
+} from '@/components/duel/wizard/TypeMessageStep';
 import { WagerStep } from '@/components/duel/wizard/WagerStep';
 import { WizardNavBar } from '@/components/duel/wizard/WizardNavBar';
 import { useCreateDuelFlow } from '@/hooks/useCreateDuelFlow';
@@ -40,10 +43,19 @@ export function CreateDuelWizard() {
   const stepHeadingRef = useRef<HTMLDivElement | null>(null);
 
   const [stepIndex, setStepIndex] = useState(0);
+  const [maxStepReached, setMaxStepReached] = useState(0);
   const [selectedGame, setSelectedGame] = useState<SelectedGame | null>(null);
   const [amount, setAmount] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [message, setMessage] = useState('');
+  // Pick one trash-talk placeholder per wizard session so navigating between
+  // steps does not reroll the prompt the user was reading.
+  const [messagePlaceholderKey] = useState(
+    () =>
+      MESSAGE_PLACEHOLDER_KEYS[
+        Math.floor(Math.random() * MESSAGE_PLACEHOLDER_KEYS.length)
+      ]
+  );
 
   const wizardState = {
     gameSlug: selectedGame?.slug ?? '',
@@ -78,12 +90,15 @@ export function CreateDuelWizard() {
       STEP_LABEL_KEYS.map((labelKey, idx) => ({
         index: idx,
         labelKey,
-        isComplete: idx !== stepIndex && stepValidations[idx],
+        // A step is only "complete" after the user has actually visited it —
+        // otherwise optional-by-default steps (like the message) would flash a
+        // checkmark before the user ever saw them.
+        isComplete: idx !== stepIndex && idx <= maxStepReached && stepValidations[idx],
         isReachable:
           idx <= stepIndex ||
           stepValidations.slice(0, idx).every((isValid) => isValid),
       })),
-    [stepIndex, stepValidations]
+    [stepIndex, stepValidations, maxStepReached]
   );
 
   useEffect(() => {
@@ -98,8 +113,13 @@ export function CreateDuelWizard() {
     setSelectedGame({ slug: game.slug, name: game.name, category: game.category });
   }
 
+  function visitStep(index: number) {
+    setStepIndex(index);
+    setMaxStepReached((prev) => Math.max(prev, index));
+  }
+
   function handleStepClick(index: number) {
-    if (steps[index].isReachable) setStepIndex(index);
+    if (steps[index].isReachable) visitStep(index);
   }
 
   function goNext() {
@@ -109,7 +129,7 @@ export function CreateDuelWizard() {
       flow.handleCreateDuelClick();
       return;
     }
-    setStepIndex((idx) => Math.min(idx + 1, STEP_LABEL_KEYS.length - 1));
+    visitStep(stepIndex + 1);
   }
 
   function goBack() {
@@ -161,6 +181,7 @@ export function CreateDuelWizard() {
               message={message}
               onMessageChange={setMessage}
               isMessageValid={isValidMessage}
+              placeholderKey={messagePlaceholderKey}
             />
           )}
           {stepIndex === 3 && (

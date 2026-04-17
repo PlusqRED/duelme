@@ -2,10 +2,28 @@
 
 import { Globe, Lock } from 'lucide-react';
 import { useTranslation } from '@/i18n/useTranslation';
+import type { TranslationKey } from '@/i18n/translations';
 import {
   MAX_DUEL_MESSAGE_CHARACTERS,
   countDuelMessageCharacters,
 } from '@/lib/duelMessage';
+
+export const MESSAGE_PLACEHOLDER_KEYS: readonly TranslationKey[] = [
+  'create.messagePlaceholder.01',
+  'create.messagePlaceholder.02',
+  'create.messagePlaceholder.03',
+  'create.messagePlaceholder.04',
+  'create.messagePlaceholder.05',
+  'create.messagePlaceholder.06',
+  'create.messagePlaceholder.07',
+  'create.messagePlaceholder.08',
+  'create.messagePlaceholder.09',
+  'create.messagePlaceholder.10',
+  'create.messagePlaceholder.11',
+  'create.messagePlaceholder.12',
+  'create.messagePlaceholder.13',
+  'create.messagePlaceholder.14',
+];
 
 interface TypeMessageStepProps {
   isPublic: boolean;
@@ -13,6 +31,7 @@ interface TypeMessageStepProps {
   message: string;
   onMessageChange: (value: string) => void;
   isMessageValid: boolean;
+  placeholderKey: TranslationKey;
 }
 
 export function TypeMessageStep({
@@ -21,6 +40,7 @@ export function TypeMessageStep({
   message,
   onMessageChange,
   isMessageValid,
+  placeholderKey,
 }: TypeMessageStepProps) {
   const { t } = useTranslation();
   const messageLength = countDuelMessageCharacters(message);
@@ -75,7 +95,7 @@ export function TypeMessageStep({
         <textarea
           id="wizard-message"
           rows={3}
-          placeholder={t('create.messagePlaceholder')}
+          placeholder={t(placeholderKey)}
           value={message}
           onChange={(event) => onMessageChange(event.target.value)}
           className="min-h-[96px] w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 transition-colors outline-none placeholder:text-slate-400 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
