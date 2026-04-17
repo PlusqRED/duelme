@@ -42,8 +42,8 @@ forge coverage --report summary  # Coverage
 
 ## Git Conventions
 
+- **Never** run `git add`, `git commit`, or `git push` (or any equivalent like `git commit -a`, `git push --force`, `gh pr create`) unless the user explicitly asks for THAT specific action in their current message. Permission is per-action and per-message: "commit this" authorizes one commit, not a follow-up push; past authorization does not carry forward. Read-only git commands (`status`, `diff`, `log`, `show`) are fine without asking. After making changes, stop at the working tree and report the diff — wait for the user to ask before staging, committing, or pushing.
 - **Never** add `Co-Authored-By` or any Claude attribution to commits
-- Do not push unless explicitly asked
 - Do not amend existing commits unless explicitly asked
 - See [Documentation Standards](#documentation-standards) for commit message format
 
