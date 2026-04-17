@@ -1,8 +1,10 @@
 FROM node:22-alpine AS build
 WORKDIR /app
 
-# Pin npm via Corepack to match frontend/package.json packageManager and CI
-RUN corepack enable && corepack prepare npm@11.12.1 --activate
+# Pin npm via Corepack to match frontend/package.json packageManager and CI.
+# `corepack enable` on its own does NOT shim npm (npm ships with Node); we have
+# to enable npm explicitly so the shim honours the `packageManager` field.
+RUN corepack enable npm && corepack prepare npm@11.12.1 --activate
 
 # Layer 1: Dependencies (changes only when package-lock.json changes)
 COPY package.json package-lock.json .npmrc ./
