@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from '@/i18n/useTranslation';
 import {
   ArrowDown,
+  ArrowRight,
   BadgePercent,
   Clock3,
   Eye,
@@ -90,6 +91,11 @@ function FlowNode({
   );
 }
 
+interface Payout {
+  amount: string;
+  recipient: string;
+}
+
 function OutcomeRouteCard({
   icon: Icon,
   title,
@@ -101,7 +107,7 @@ function OutcomeRouteCard({
   icon: LucideIcon;
   title: string;
   description: string;
-  payouts: string[];
+  payouts: Payout[];
   tone: string;
   delayClass?: string;
 }) {
@@ -119,14 +125,22 @@ function OutcomeRouteCard({
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2 md:mt-auto">
+      <div className="mt-4 divide-y divide-slate-200/70 border-t border-slate-200/70 md:mt-auto">
         {payouts.map((payout) => (
-          <span
-            key={payout}
-            className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold tracking-[0.08em] text-slate-600"
+          <div
+            key={payout.recipient}
+            className="flex items-center justify-between gap-3 py-2.5"
           >
-            {payout}
-          </span>
+            <div className="flex min-w-0 items-center gap-2">
+              <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
+              <span className="truncate text-sm font-medium text-slate-700">
+                {payout.recipient}
+              </span>
+            </div>
+            <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-900">
+              {payout.amount}
+            </span>
+          </div>
         ))}
       </div>
     </div>
@@ -141,7 +155,7 @@ export function HowItWorks() {
       icon: Trophy,
       title: t('howItWorks.outcomeConfirmed.title'),
       description: t('howItWorks.outcomeConfirmed.desc'),
-      payouts: [`${DEMO_POT} -> ${t('howItWorks.flow.winner')}`],
+      payouts: [{ amount: DEMO_POT, recipient: t('howItWorks.flow.winner') }],
       tone: 'bg-emerald-100 text-emerald-700',
       delayClass: 'animation-delay-100',
     },
@@ -150,8 +164,8 @@ export function HowItWorks() {
       title: t('howItWorks.outcomeDisputed.title'),
       description: t('howItWorks.outcomeDisputed.desc'),
       payouts: [
-        `${DEMO_STAKE} -> ${t('howItWorks.flow.playerA')}`,
-        `${DEMO_STAKE} -> ${t('howItWorks.flow.playerB')}`,
+        { amount: DEMO_STAKE, recipient: t('howItWorks.flow.playerA') },
+        { amount: DEMO_STAKE, recipient: t('howItWorks.flow.playerB') },
       ],
       tone: 'bg-amber-100 text-amber-700',
       delayClass: 'animation-delay-200',
@@ -161,8 +175,8 @@ export function HowItWorks() {
       title: t('howItWorks.outcomeTimeout.title'),
       description: t('howItWorks.outcomeTimeout.desc'),
       payouts: [
-        `${DEMO_STAKE} -> ${t('howItWorks.flow.playerA')}`,
-        `${DEMO_STAKE} -> ${t('howItWorks.flow.playerB')}`,
+        { amount: DEMO_STAKE, recipient: t('howItWorks.flow.playerA') },
+        { amount: DEMO_STAKE, recipient: t('howItWorks.flow.playerB') },
       ],
       tone: 'bg-sky-100 text-sky-700',
       delayClass: 'animation-delay-300',

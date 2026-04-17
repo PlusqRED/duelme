@@ -171,6 +171,15 @@ Created(0) → Cancelled(5)
 
 ### Frontend Standards (Next.js / React / TypeScript / Tailwind)
 
+**Mobile-first — non-negotiable:** The entire frontend must deliver a first-class mobile experience — treat mobile as the primary target, not an afterthought. Every component, page, modal, toast, form, and feature must be designed and verified at mobile breakpoints (≤640px, down to 360px viewport width) before being considered done. Mobile layout is the baseline; `sm:` / `md:` / `lg:` are progressive enhancements for larger screens. Concrete rules:
+- Never design desktop-first and retrofit mobile. Start from the narrowest viewport and grow outward.
+- Tap targets must be at least 44×44px; avoid tightly packed interactive elements.
+- Text must be readable without horizontal scroll at 360px width.
+- Complex layouts (multi-column grids, tables, side-by-side panels) must have an explicit mobile fallback — usually a vertical stack.
+- No hover-only affordances. Touch devices have no hover; any interaction hinted by hover must also work on tap/focus.
+- Fixed elements (headers, bottom bars, modals) must not trap content or collide with mobile browser chrome / safe areas.
+- When reviewing any diff that touches UI, explicitly check mobile rendering in the dev tools responsive view.
+
 **Component architecture:**
 - Functional components only, with hooks for all state and side effects
 - Use `function` keyword for components, not `const` arrow functions. Named exports only — no default exports
