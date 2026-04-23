@@ -42,6 +42,27 @@ class NativeImageHintsTest {
         }
     }
 
+    @Test
+    void registersSocialLinkNimbusClasses() throws ClassNotFoundException {
+        RuntimeHints hints = registered();
+
+        // SocialLinkStateService uses HS256 — MACSigner/MACVerifier must survive AOT.
+        assertCtorRegistered(hints, "com.nimbusds.jose.crypto.MACSigner");
+        assertCtorRegistered(hints, "com.nimbusds.jose.crypto.MACVerifier");
+        assertCtorRegistered(hints, "com.nimbusds.jwt.SignedJWT");
+    }
+
+    @Test
+    void registersSocialLinkResponseDtos() throws ClassNotFoundException {
+        RuntimeHints hints = registered();
+
+        // Jackson deserialises these via reflection over record components.
+        assertCtorRegistered(hints, "pro.duelme.backend.dto.TelegramTokenResponse");
+        assertCtorRegistered(hints, "pro.duelme.backend.service.SteamProfileFetcher$SummariesResponse");
+        assertCtorRegistered(hints, "pro.duelme.backend.service.SteamProfileFetcher$InnerResponse");
+        assertCtorRegistered(hints, "pro.duelme.backend.service.SteamProfileFetcher$Player");
+    }
+
     private static RuntimeHints registered() {
         RuntimeHints hints = new RuntimeHints();
         new NativeImageHints().registerHints(hints, NativeImageHintsTest.class.getClassLoader());

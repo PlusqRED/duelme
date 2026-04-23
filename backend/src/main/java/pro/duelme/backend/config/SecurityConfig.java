@@ -46,6 +46,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/duels/meta").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/duels/meta/batch").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/faucet/claim").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/v1/profiles/me/social/steam/callback").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/profiles/me/social/telegram/callback").permitAll()
+                .requestMatchers("/api/v1/profiles/me/social/**").authenticated()
                 .anyRequest().denyAll()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

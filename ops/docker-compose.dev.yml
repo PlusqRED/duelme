@@ -47,6 +47,14 @@ services:
     environment:
       SPRING_MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/duelme?authSource=admin
       PRIVY_APP_ID: ${PRIVY_APP_ID:?PRIVY_APP_ID must be set in .env}
+      APP_BASE_URL: ${APP_BASE_URL:-https://dev.duelme.pro}
+      SOCIAL_LINK_STATE_SECRET: ${SOCIAL_LINK_STATE_SECRET:-dev-only-social-link-state-secret-change-me-32b}
+      STEAM_API_KEY: ${STEAM_API_KEY:-}
+      STEAM_RETURN_URL: ${STEAM_RETURN_URL:-https://dev.duelme.pro/api/v1/profiles/me/social/steam/callback}
+      TELEGRAM_CLIENT_ID: ${TELEGRAM_CLIENT_ID:-}
+      TELEGRAM_CLIENT_SECRET: ${TELEGRAM_CLIENT_SECRET:-}
+      TELEGRAM_RETURN_URL: ${TELEGRAM_RETURN_URL:-https://dev.duelme.pro/api/v1/profiles/me/social/telegram/callback}
+      TELEGRAM_ISSUER: ${TELEGRAM_ISSUER:-https://oauth.telegram.org}
       # Dev-only MockUSDT + ETH faucet. Chain/RPC/addresses/amounts use the
       # defaults baked into application.yml; only the enable flag and signer
       # key travel through .env.

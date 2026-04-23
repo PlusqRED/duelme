@@ -7,6 +7,7 @@ import { joinDuelFlowTranslations } from './translations/joinDuelFlow';
 import { landingTranslations } from './translations/landing';
 import { navigationTranslations } from './translations/navigation';
 import { profileGamesTranslations } from './translations/profileGames';
+import { socialLinksTranslations } from './translations/socialLinks';
 
 export const translations = {
   en: {
@@ -19,6 +20,7 @@ export const translations = {
     ...duelTranslations.en,
     ...dashboardWalletTranslations.en,
     ...profileGamesTranslations.en,
+    ...socialLinksTranslations.en,
   },
   ru: {
     ...navigationTranslations.ru,
@@ -30,6 +32,7 @@ export const translations = {
     ...duelTranslations.ru,
     ...dashboardWalletTranslations.ru,
     ...profileGamesTranslations.ru,
+    ...socialLinksTranslations.ru,
   },
 } as const;
 

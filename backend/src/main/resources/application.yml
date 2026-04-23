@@ -21,6 +21,17 @@ duelme:
     mock-usdt-address: ${FAUCET_MOCK_USDT_ADDRESS:0xbf345834d808a058e1278b50f3844aD86686f401}
     eth-amount-eth: ${FAUCET_ETH_AMOUNT_ETH:0.001}
     usdt-amount-raw: ${FAUCET_USDT_AMOUNT_RAW:100000000}
+  social:
+    app-base-url: ${APP_BASE_URL:http://localhost:3000}
+    state-secret: ${SOCIAL_LINK_STATE_SECRET:}
+    steam:
+      api-key: ${STEAM_API_KEY:}
+      return-url: ${STEAM_RETURN_URL:}
+    telegram:
+      client-id: ${TELEGRAM_CLIENT_ID:}
+      client-secret: ${TELEGRAM_CLIENT_SECRET:}
+      return-url: ${TELEGRAM_RETURN_URL:}
+      issuer: ${TELEGRAM_ISSUER:https://oauth.telegram.org}
 
 springdoc:
   api-docs:

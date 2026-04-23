@@ -61,4 +61,28 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
             .body(Map.of("error", ex.getMessage()));
     }
+
+    @ExceptionHandler(SocialVerificationFailedException.class)
+    public ResponseEntity<Map<String, String>> handleSocialVerificationFailed(
+        SocialVerificationFailedException ex
+    ) {
+        return ResponseEntity.badRequest()
+            .body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(SocialAccountAlreadyLinkedException.class)
+    public ResponseEntity<Map<String, String>> handleSocialAlreadyLinked(
+        SocialAccountAlreadyLinkedException ex
+    ) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+            .body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ExternalSocialServiceException.class)
+    public ResponseEntity<Map<String, String>> handleExternalSocialService(
+        ExternalSocialServiceException ex
+    ) {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+            .body(Map.of("error", ex.getMessage()));
+    }
 }

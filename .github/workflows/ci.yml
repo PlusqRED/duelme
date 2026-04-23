@@ -241,6 +241,14 @@ jobs:
           PRIVY_APP_ID: ${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
           MONGO_ROOT_USERNAME: ${{ secrets.MONGO_ROOT_USERNAME }}
           MONGO_ROOT_PASSWORD: ${{ secrets.MONGO_ROOT_PASSWORD }}
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          SOCIAL_LINK_STATE_SECRET: ${{ secrets.SOCIAL_LINK_STATE_SECRET }}
+          STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
+          STEAM_RETURN_URL: ${{ secrets.STEAM_RETURN_URL }}
+          TELEGRAM_CLIENT_ID: ${{ secrets.TELEGRAM_CLIENT_ID }}
+          TELEGRAM_CLIENT_SECRET: ${{ secrets.TELEGRAM_CLIENT_SECRET }}
+          TELEGRAM_RETURN_URL: ${{ secrets.TELEGRAM_RETURN_URL }}
+          TELEGRAM_ISSUER: ${{ secrets.TELEGRAM_ISSUER }}
           # Testnet faucet key for the dev-only ETH + MockUSDT dispenser.
           # Use a dedicated hot wallet, NEVER a key that holds mainnet funds.
           FAUCET_PRIVATE_KEY: ${{ secrets.FAUCET_PRIVATE_KEY }}
@@ -252,6 +260,14 @@ jobs:
           PRIVY_APP_ID=$PRIVY_APP_ID
           MONGO_ROOT_USERNAME=$MONGO_ROOT_USERNAME
           MONGO_ROOT_PASSWORD=$MONGO_ROOT_PASSWORD
+          APP_BASE_URL=$APP_BASE_URL
+          SOCIAL_LINK_STATE_SECRET=$SOCIAL_LINK_STATE_SECRET
+          STEAM_API_KEY=$STEAM_API_KEY
+          STEAM_RETURN_URL=$STEAM_RETURN_URL
+          TELEGRAM_CLIENT_ID=$TELEGRAM_CLIENT_ID
+          TELEGRAM_CLIENT_SECRET=$TELEGRAM_CLIENT_SECRET
+          TELEGRAM_RETURN_URL=$TELEGRAM_RETURN_URL
+          TELEGRAM_ISSUER=$TELEGRAM_ISSUER
           FAUCET_ENABLED=true
           FAUCET_PRIVATE_KEY=$FAUCET_PRIVATE_KEY
           ENVEOF
@@ -369,6 +385,14 @@ jobs:
           PRIVY_APP_ID: ${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
           MONGO_ROOT_USERNAME: ${{ secrets.MONGO_ROOT_USERNAME }}
           MONGO_ROOT_PASSWORD: ${{ secrets.MONGO_ROOT_PASSWORD }}
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          SOCIAL_LINK_STATE_SECRET: ${{ secrets.SOCIAL_LINK_STATE_SECRET }}
+          STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
+          STEAM_RETURN_URL: ${{ secrets.STEAM_RETURN_URL }}
+          TELEGRAM_CLIENT_ID: ${{ secrets.TELEGRAM_CLIENT_ID }}
+          TELEGRAM_CLIENT_SECRET: ${{ secrets.TELEGRAM_CLIENT_SECRET }}
+          TELEGRAM_RETURN_URL: ${{ secrets.TELEGRAM_RETURN_URL }}
+          TELEGRAM_ISSUER: ${{ secrets.TELEGRAM_ISSUER }}
         run: |
           ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'mkdir -p ~/apps/duelme-prod'
           scp -q ops/docker-compose.prod.yml "$DEPLOY_USER@$DEPLOY_HOST:~/apps/duelme-prod/docker-compose.yml"
@@ -377,6 +401,14 @@ jobs:
           PRIVY_APP_ID=$PRIVY_APP_ID
           MONGO_ROOT_USERNAME=$MONGO_ROOT_USERNAME
           MONGO_ROOT_PASSWORD=$MONGO_ROOT_PASSWORD
+          APP_BASE_URL=$APP_BASE_URL
+          SOCIAL_LINK_STATE_SECRET=$SOCIAL_LINK_STATE_SECRET
+          STEAM_API_KEY=$STEAM_API_KEY
+          STEAM_RETURN_URL=$STEAM_RETURN_URL
+          TELEGRAM_CLIENT_ID=$TELEGRAM_CLIENT_ID
+          TELEGRAM_CLIENT_SECRET=$TELEGRAM_CLIENT_SECRET
+          TELEGRAM_RETURN_URL=$TELEGRAM_RETURN_URL
+          TELEGRAM_ISSUER=$TELEGRAM_ISSUER
           ENVEOF
           ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
             cd ~/apps/duelme-prod

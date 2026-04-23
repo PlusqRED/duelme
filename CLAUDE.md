@@ -80,6 +80,7 @@ All write operations follow: check chain → check allowance → approve if need
 - Prod: `ops/docker-compose.prod.yml` → `~/apps/duelme-prod/`, `:latest` tags, ports 8081/3002
 - Images pushed to GHCR (`ghcr.io/plusqred/duelme-{backend,frontend}:{dev,latest}`)
 - CI builds images via `docker/build-push-action`, then SSH `docker compose pull && up -d`
+- Runtime secrets and environment-specific config are stored in GitHub repository/environment secrets. Deploy jobs in `.github/workflows/ci.yml` render the remote `.env` file from those secrets immediately before `docker compose up`; do not commit secrets and do not require manually maintained `.env` files on the server.
 - Caddy on host handles TLS + reverse proxy (`/api/v1/*` → backend, rest → frontend)
 - Caddy configs: `ops/caddy/dev.duelme.pro.Caddyfile` and `ops/caddy/duelme.pro.Caddyfile`
 
@@ -129,6 +130,16 @@ All write operations follow: check chain → check allowance → approve if need
 | `frontend/src/components/duel/CopyableAddress.tsx` | Address display with copy + profile link |
 | `frontend/src/app/profile/page.tsx` | Own profile page |
 | `frontend/src/app/profile/[walletAddress]/page.tsx` | Public profile page |
+| `frontend/src/components/profile/SocialLinksSection.tsx` | Own-profile connected-accounts section with dialogs |
+| `frontend/src/components/profile/SocialLinksDisplay.tsx` | Public-profile read-only social pill row |
+| `frontend/src/components/profile/OAuthCallbackHandler.tsx` | Reads `?steam=`/`?telegram=` query and toasts |
+| `frontend/src/hooks/useSocialLinks.ts` | Social-link mutations (initiate + set/unlink) |
+| `backend/src/.../controller/SocialLinkController.java` | Social-link endpoints under `/profiles/me/social/**` |
+| `backend/src/.../service/SocialLinkService.java` | Social-link orchestrator (Steam OpenID, Telegram OIDC, Instagram) |
+| `backend/src/.../service/TelegramJwksService.java` | Verifies Telegram OIDC ID tokens via cached JWKS |
+| `backend/src/.../service/TelegramOidcService.java` | Telegram OIDC auth URL + token-endpoint exchange (PKCE S256) |
+| `backend/src/.../service/SteamOpenIdService.java` | Steam OpenID 2.0 login + `check_authentication` verification |
+| `backend/src/.../service/SocialLinkStateService.java` | HS256-signed state tokens (carry wallet + PKCE verifier) |
 | `backend/Dockerfile` | Backend container image (multi-stage, GraalVM native) |
 | `frontend/Dockerfile` | Frontend container image (multi-stage, Node 22) |
 | `.github/workflows/ci.yml` | CI pipeline: test + deploy (dev & prod) |
@@ -273,7 +284,7 @@ Created(0) → Cancelled(5)
 **Security:**
 - All mutating endpoints require authentication (`@AuthenticationPrincipal`)
 - Authorization checks in service layer: verify the caller owns/created the resource
-- No default values for secrets in `application.yml` — all secrets via env vars
+- No default values for secrets in `application.yml` — all secrets via env vars generated from GitHub repository/environment secrets by the deploy workflow
 - Rate limiting consideration for batch endpoints
 
 **API documentation (MANDATORY):**
@@ -431,10 +442,19 @@ Additionally, the prompt must include these requirements:
 
 ## Environment
 
+Runtime configuration source of truth: GitHub repository/environment secrets. The deploy workflow writes these into `~/apps/duelme-{dev,prod}/.env` over SSH and then runs Docker Compose. When adding a new backend/frontend runtime variable, update `.github/workflows/ci.yml`, the matching `ops/docker-compose.*.yml`, and this list.
+
 - `NEXT_PUBLIC_PRIVY_APP_ID` — Privy app ID (required for frontend)
 - `PRIVY_APP_ID` — Privy app ID (required for backend JWT verification)
 - `MONGODB_URI` — MongoDB connection string (default: `mongodb://localhost:27017/duelme`); Spring Boot 4 property: `spring.mongodb.uri` (not `spring.data.mongodb.uri`)
 - `NEXT_PUBLIC_API_URL` — Backend API base URL (default: `/api/v1`)
+- `APP_BASE_URL` — backend's view of the frontend origin, used to build OAuth redirect targets (`https://dev.duelme.pro` for dev, `https://duelme.pro` for prod)
+- `SOCIAL_LINK_STATE_SECRET` — HMAC secret (>=32 bytes of entropy) used to sign the state tokens that survive the Steam/Telegram redirect round-trip
+- `STEAM_API_KEY` — optional; if set, linked Steam accounts are enriched with username and avatar via `GetPlayerSummaries`
+- `STEAM_RETURN_URL` — absolute URL Steam redirects back to after login (`https://dev.duelme.pro/api/v1/profiles/me/social/steam/callback` or `https://duelme.pro/api/v1/profiles/me/social/steam/callback`)
+- `TELEGRAM_CLIENT_ID` / `TELEGRAM_CLIENT_SECRET` — OIDC credentials issued by @BotFather under Bot Settings → Web Login
+- `TELEGRAM_RETURN_URL` — absolute URL Telegram redirects back to after login; must match the allowed URL registered with @BotFather (`https://dev.duelme.pro/api/v1/profiles/me/social/telegram/callback` or `https://duelme.pro/api/v1/profiles/me/social/telegram/callback`)
+- `TELEGRAM_ISSUER` — OIDC issuer, defaults to `https://oauth.telegram.org`
 - Currently deployed on Arbitrum Sepolia (testnet, chainId 421614)
 - Contract address in `DUELME_ADDRESSES` map in `constants.ts`
 
@@ -466,4 +486,5 @@ Additionally, the prompt must include these requirements:
 - Done: timed-out duel UX — "Response timed out" status across all surfaces, color-coded timeline, synthetic timeout event, reputation messaging, timed-out duels move to history tab
 - Done: `refundAndClaimPayouts` batch contract function — single-tx refund+claim, dashboard "Claim All Refunds" card, per-duel "Claim Refund" button
 - Done: game badges in latest duels feed via backend metadata enrichment
+- Done: connected-accounts feature on profile — Steam (OpenID 2.0), Telegram (OIDC authorization-code + PKCE via `oauth.telegram.org`), Instagram (self-reported handle). Pills on public profile, unique-per-wallet enforcement via sparse Mongo indexes, stateless state tokens (HS256) carry wallet + PKCE verifier across redirects.
 - Source of truth for current deploys: `contracts/broadcast/Deploy.s.sol/421614/run-latest.json`, mirrored into `README.md` and `frontend/src/lib/constants.ts`

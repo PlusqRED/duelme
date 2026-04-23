@@ -4,6 +4,7 @@ import { use } from 'react';
 import Link from 'next/link';
 import { ReputationBadge } from '@/components/duel/ReputationBadge';
 import { CopyableAddress } from '@/components/duel/CopyableAddress';
+import { SocialLinksDisplay } from '@/components/profile/SocialLinksDisplay';
 import { useProfile } from '@/hooks/useProfile';
 import { useTranslation } from '@/i18n/useTranslation';
 import { SUPPORTED_CHAINS } from '@/lib/constants';
@@ -94,6 +95,10 @@ export default function PublicProfilePage({
               <User className="mx-auto mb-3 h-10 w-10 text-slate-300" />
               <p className="text-sm text-slate-500">{t('profile.noProfileYet')}</p>
             </div>
+          )}
+
+          {hasProfile && profile.socialLinks && (
+            <SocialLinksDisplay socialLinks={profile.socialLinks} />
           )}
 
           {hasProfile && (

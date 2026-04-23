@@ -1,7 +1,26 @@
-import type { Profile, ProfileRequest } from './profile';
+import type { Profile, ProfileRequest, SocialPlatform } from './profile';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '/api/v1';
 const ETH_ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
+
+export interface OAuthInitiateResponse {
+  redirectUrl: string;
+}
+
+export class SocialLinkError extends Error {
+  constructor(public readonly code: string, message?: string) {
+    super(message ?? code);
+    this.name = 'SocialLinkError';
+  }
+}
+
+async function parseErrorCode(res: Response): Promise<string> {
+  if (res.status === 401) return 'unauthorized';
+  if (res.status === 409) return 'alreadyLinked';
+  if (res.status === 400) return 'invalid';
+  if (res.status === 502) return 'unavailable';
+  return `http${res.status}`;
+}
 
 export async function fetchMyProfile(token: string): Promise<Profile | null> {
   const res = await fetch(`${API_BASE}/profiles/me`, {
@@ -53,4 +72,47 @@ export async function fetchProfilesByAddresses(addresses: string[]): Promise<Pro
   );
 
   return results.flat();
+}
+
+// --- Social linking ------------------------------------------------------
+
+async function initiateOAuth(
+  token: string,
+  platform: 'steam' | 'telegram',
+): Promise<OAuthInitiateResponse> {
+  const res = await fetch(`${API_BASE}/profiles/me/social/${platform}/initiate`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new SocialLinkError(await parseErrorCode(res));
+  return res.json();
+}
+
+export function startSteamLink(token: string): Promise<OAuthInitiateResponse> {
+  return initiateOAuth(token, 'steam');
+}
+
+export function startTelegramLink(token: string): Promise<OAuthInitiateResponse> {
+  return initiateOAuth(token, 'telegram');
+}
+
+export async function setInstagramHandle(token: string, handle: string): Promise<Profile> {
+  const res = await fetch(`${API_BASE}/profiles/me/social/instagram`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ handle }),
+  });
+  if (!res.ok) throw new SocialLinkError(await parseErrorCode(res));
+  return res.json();
+}
+
+export async function unlinkSocial(token: string, platform: SocialPlatform): Promise<void> {
+  const res = await fetch(`${API_BASE}/profiles/me/social/${platform}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new SocialLinkError(await parseErrorCode(res));
 }

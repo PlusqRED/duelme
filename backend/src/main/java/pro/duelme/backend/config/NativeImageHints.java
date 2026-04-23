@@ -26,8 +26,12 @@ public class NativeImageHints implements RuntimeHintsRegistrar {
             "com.nimbusds.jose.jwk.OctetSequenceKey",
             "com.nimbusds.jose.crypto.ECDSAVerifier",
             "com.nimbusds.jose.crypto.RSASSAVerifier",
+            // HS256 path: used by SocialLinkStateService for signing state tokens.
+            "com.nimbusds.jose.crypto.MACSigner",
+            "com.nimbusds.jose.crypto.MACVerifier",
             "com.nimbusds.jose.proc.JWSVerificationKeySelector",
             "com.nimbusds.jwt.JWTClaimsSet",
+            "com.nimbusds.jwt.SignedJWT",
             "com.nimbusds.jwt.proc.DefaultJWTProcessor",
             "com.nimbusds.jose.jwk.source.ImmutableJWKSet",
         };
@@ -102,6 +106,29 @@ public class NativeImageHints implements RuntimeHintsRegistrar {
         };
 
         for (String className : web3jClasses) {
+            try {
+                reflection.registerType(
+                    Class.forName(className),
+                    MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
+                    MemberCategory.INVOKE_DECLARED_METHODS,
+                    MemberCategory.ACCESS_DECLARED_FIELDS
+                );
+            } catch (ClassNotFoundException ignored) {
+            }
+        }
+
+        // --- Social link response DTOs deserialized via Jackson ------------
+        // Telegram token endpoint body + Steam GetPlayerSummaries response.
+        // Jackson resolves record component accessors reflectively, so the
+        // native image strips them without an explicit hint.
+        String[] socialClasses = {
+            "pro.duelme.backend.dto.TelegramTokenResponse",
+            "pro.duelme.backend.service.SteamProfileFetcher$SummariesResponse",
+            "pro.duelme.backend.service.SteamProfileFetcher$InnerResponse",
+            "pro.duelme.backend.service.SteamProfileFetcher$Player",
+        };
+
+        for (String className : socialClasses) {
             try {
                 reflection.registerType(
                     Class.forName(className),

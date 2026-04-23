@@ -13,4 +13,8 @@ public interface ProfileRepository extends MongoRepository<Profile, String> {
     List<Profile> findByWalletAddressIn(List<String> walletAddresses);
 
     void deleteByWalletAddress(String walletAddress);
+
+    Optional<Profile> findBySocialLinksSteamSteamId(String steamId);
+
+    Optional<Profile> findBySocialLinksTelegramTelegramId(String telegramId);
 }

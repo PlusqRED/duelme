@@ -20,6 +20,7 @@ public record Profile(
     String gender,
     String aboutMe,
     List<String> games,
+    SocialLinks socialLinks,
     @CreatedDate Instant createdAt,
     @LastModifiedDate Instant updatedAt
 ) {}

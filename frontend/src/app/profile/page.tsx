@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ReputationBadge } from '@/components/duel/ReputationBadge';
+import { OAuthCallbackHandler } from '@/components/profile/OAuthCallbackHandler';
+import { SocialLinksSection } from '@/components/profile/SocialLinksSection';
 import { useMyProfile } from '@/hooks/useMyProfile';
 import { useAppToast } from '@/hooks/useAppToast';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -220,6 +222,9 @@ export default function MyProfilePage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
+      <Suspense fallback={null}>
+        <OAuthCallbackHandler />
+      </Suspense>
       <Link
         href="/dashboard"
         className="mb-6 inline-flex items-center gap-1.5 text-sm text-slate-500 transition-colors hover:text-slate-900"
@@ -341,6 +346,9 @@ export default function MyProfilePage() {
               </div>
             )}
           </div>
+
+          {/* Connected social accounts */}
+          <SocialLinksSection socialLinks={profile?.socialLinks} />
 
           {/* Account info */}
           <div className="grid gap-4 sm:grid-cols-2">

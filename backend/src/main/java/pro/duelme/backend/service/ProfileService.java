@@ -21,7 +21,7 @@ public class ProfileService {
     public ProfileResponse getByWalletAddress(String walletAddress) {
         Profile profile = repository.findByWalletAddress(walletAddress.toLowerCase())
             .orElseThrow(() -> new ProfileNotFoundException(walletAddress));
-        return toResponse(profile);
+        return ProfileResponse.from(profile);
     }
 
     public List<ProfileResponse> getByWalletAddresses(List<String> addresses) {
@@ -30,7 +30,7 @@ public class ProfileService {
             .distinct()
             .toList();
         return repository.findByWalletAddressIn(normalized).stream()
-            .map(this::toResponse)
+            .map(ProfileResponse::from)
             .toList();
     }
 
@@ -50,6 +50,7 @@ public class ProfileService {
                 request.gender(),
                 request.aboutMe(),
                 request.games(),
+                existing.socialLinks(),
                 existing.createdAt(),
                 null
             );
@@ -65,30 +66,16 @@ public class ProfileService {
                 request.aboutMe(),
                 request.games(),
                 null,
+                null,
                 null
             );
         }
 
         Profile saved = repository.save(profile);
-        return toResponse(saved);
+        return ProfileResponse.from(saved);
     }
 
     public void delete(String walletAddress) {
         repository.deleteByWalletAddress(walletAddress.toLowerCase());
-    }
-
-    private ProfileResponse toResponse(Profile profile) {
-        return new ProfileResponse(
-            profile.walletAddress(),
-            profile.nickname(),
-            profile.status(),
-            profile.firstName(),
-            profile.lastName(),
-            profile.gender(),
-            profile.aboutMe(),
-            profile.games(),
-            profile.createdAt(),
-            profile.updatedAt()
-        );
     }
 }
