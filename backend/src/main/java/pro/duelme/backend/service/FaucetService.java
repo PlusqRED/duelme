@@ -27,6 +27,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
@@ -116,28 +117,43 @@ public class FaucetService {
         }
         String normalized = walletAddress.toLowerCase();
 
-        // Fast path for already-claimed wallets.
-        if (repository.findByWalletAddress(normalized).isPresent()) {
-            throw new FaucetAlreadyClaimedException(normalized);
-        }
-
-        // Insert-first lock. If the save races another claim in a future
-        // multi-node setup, the Mongo unique index on `walletAddress` (created
-        // in MongoConfig#ensureFaucetClaimIndexes) raises DuplicateKey here
-        // and we convert it to a 409.
         FaucetClaim lock;
-        try {
-            lock = repository.save(new FaucetClaim(null, normalized, null, null, null));
-        } catch (DuplicateKeyException ex) {
-            throw new FaucetAlreadyClaimedException(normalized);
+        Optional<FaucetClaim> existing = repository.findByWalletAddress(normalized);
+        if (existing.isPresent()) {
+            lock = existing.get();
+            if (lock.usdtTxHash() != null) {
+                throw new FaucetAlreadyClaimedException(normalized);
+            }
+            // Otherwise resume: lock.ethTxHash() may hold a prior (landed)
+            // ETH tx — preserved below so we don't double-drain the faucet
+            // wallet when the previous USDT mint failed mid-flow.
+        } else {
+            // Insert-first lock. If the save races another claim in a future
+            // multi-node setup, the Mongo unique index on `walletAddress`
+            // (created in MongoConfig#ensureFaucetClaimIndexes) raises
+            // DuplicateKey here and we convert it to a 409.
+            try {
+                lock = repository.save(new FaucetClaim(null, normalized, null, null, null));
+            } catch (DuplicateKeyException ex) {
+                throw new FaucetAlreadyClaimedException(normalized);
+            }
         }
 
-        String ethTxHash = null;
+        String ethTxHash = lock.ethTxHash();
         try {
-            BigInteger gasPrice = web3j.ethGasPrice().send().getGasPrice();
-            BigInteger ethValue = Convert.toWei(props.ethAmountEth(), Convert.Unit.ETHER).toBigInteger();
+            // Legacy tx on EIP-1559 chains (incl. Arbitrum Sepolia) uses
+            // gasPrice as maxFeePerGas. The same value is reused for the
+            // paired ETH + USDT submissions, so if the base fee ticks up
+            // between them the second tx rejects with "max fee per gas less
+            // than block base fee". Doubling the suggested price gives ample
+            // headroom; the miner tip is still bounded by the actual base
+            // fee so the only cost is a brief over-reservation.
+            BigInteger gasPrice = web3j.ethGasPrice().send().getGasPrice().multiply(BigInteger.TWO);
 
-            ethTxHash = sendRaw(gasPrice, ETH_GAS_LIMIT, normalized, "", ethValue, "ETH transfer");
+            if (ethTxHash == null) {
+                BigInteger ethValue = Convert.toWei(props.ethAmountEth(), Convert.Unit.ETHER).toBigInteger();
+                ethTxHash = sendRaw(gasPrice, ETH_GAS_LIMIT, normalized, "", ethValue, "ETH transfer");
+            }
             String usdtTxHash = sendRaw(
                 gasPrice,
                 MINT_GAS_LIMIT,
@@ -158,11 +174,14 @@ public class FaucetService {
                 log.error("Faucet pre-submission failure for {} (lock {} released)",
                     normalized, lock.id(), ex);
             } else {
-                // ETH already on the wire but USDT mint failed. Keep the lock
-                // to prevent a retry from double-dipping ETH; record the ETH
-                // hash so the operator can reconcile manually.
-                repository.save(new FaucetClaim(
-                    lock.id(), normalized, ethTxHash, null, lock.createdAt()));
+                // ETH is on-chain but USDT mint failed. Persist the new ETH
+                // hash so a retry resumes from the mint step; on repeat
+                // resume failures the lock already carries the hash, skip
+                // the no-op write.
+                if (lock.ethTxHash() == null) {
+                    repository.save(new FaucetClaim(
+                        lock.id(), normalized, ethTxHash, null, lock.createdAt()));
+                }
                 log.error("Faucet USDT mint failed after ETH tx {} for {} (lock {} kept)",
                     ethTxHash, normalized, lock.id(), ex);
             }

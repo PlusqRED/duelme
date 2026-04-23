@@ -13,6 +13,7 @@ import pro.duelme.backend.repository.FaucetClaimRepository;
 
 import java.time.Instant;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
@@ -62,6 +63,28 @@ class FaucetServiceTest {
 
         assertThatThrownBy(() -> faucetService.claim(WALLET_A_MIXED))
             .isInstanceOf(FaucetAlreadyClaimedException.class);
+    }
+
+    @Test
+    void resumesWhenPriorAttemptLeftUsdtUnminted() {
+        // ETH was sent in a previous request but USDT mint failed (e.g. base
+        // fee race). The retry must NOT throw AlreadyClaimed — resume logic
+        // should carry the call through to the RPC layer, where it fails with
+        // ExecutionException because the test RPC endpoint is unreachable.
+        // @CreatedDate stamps the insert, so read the actual value back
+        // before calling the service and assert it survives the resume.
+        repository.save(new FaucetClaim(null, WALLET_A, "0xpriorEth", null, null));
+        Instant originalCreatedAt = repository.findByWalletAddress(WALLET_A).orElseThrow().createdAt();
+
+        assertThatThrownBy(() -> faucetService.claim(WALLET_A))
+            .isInstanceOf(FaucetExecutionException.class);
+
+        // ETH hash and createdAt must survive — a retry needs to skip the
+        // ETH send (no double-drain) and keep the original audit timestamp.
+        var persisted = repository.findByWalletAddress(WALLET_A).orElseThrow();
+        assertThat(persisted.ethTxHash()).isEqualTo("0xpriorEth");
+        assertThat(persisted.usdtTxHash()).isNull();
+        assertThat(persisted.createdAt()).isEqualTo(originalCreatedAt);
     }
 
     @Test
