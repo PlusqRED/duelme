@@ -77,6 +77,15 @@ public class NativeImageHints implements RuntimeHintsRegistrar {
             "org.web3j.protocol.core.methods.response.EthSendTransaction",
             "org.web3j.protocol.core.methods.response.EthGasPrice",
             "org.web3j.protocol.core.methods.response.EthGetTransactionCount",
+            // Response$Error.data has @JsonDeserialize(using = KeepAsJsonDeserialzier)
+            // (typo is upstream). Jackson instantiates the deserializer via its
+            // no-arg constructor reflectively while resolving every Response<T>
+            // subtype; without this hint the native image strips the ctor and
+            // every JSON-RPC call fails with InvalidDefinitionException.
+            // RawResponseDeserializer is registered via ObjectMapperFactory's
+            // BeanDeserializerModifier and reached through the same code path.
+            "org.web3j.protocol.deserializer.KeepAsJsonDeserialzier",
+            "org.web3j.protocol.deserializer.RawResponseDeserializer",
             // Signing + ABI encoding path.
             "org.web3j.crypto.RawTransaction",
             "org.web3j.crypto.TransactionEncoder",
