@@ -43,7 +43,7 @@ export function RecentDuelsGrid({
   return (
     <>
       <DuelCardShapeDefs />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-x-7">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-x-4">
         {duels.map((duel, index) => {
           const meta = metaByDuelId[duel.id];
           const shape = getCardShapeForIndex(index, duels.length);

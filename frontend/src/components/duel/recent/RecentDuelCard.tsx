@@ -27,8 +27,6 @@ interface RecentDuelCardProps {
 const SHAPE_CLASSES: Record<DuelCardShape, string> = {
   none: '',
   tab: 'lg:[clip-path:url(#duel-card-clip-tab)] lg:pr-6 lg:border-x-0 lg:border-b-0 lg:shadow-none lg:hover:shadow-none lg:drop-shadow-sm lg:hover:drop-shadow-md',
-  notch: 'lg:[clip-path:url(#duel-card-clip-notch)] lg:pl-6 lg:border-x-0 lg:border-b-0 lg:shadow-none lg:hover:shadow-none lg:drop-shadow-sm lg:hover:drop-shadow-md',
-  'tab-notch': 'lg:[clip-path:url(#duel-card-clip-tab-notch)] lg:px-6 lg:border-x-0 lg:border-b-0 lg:shadow-none lg:hover:shadow-none lg:drop-shadow-sm lg:hover:drop-shadow-md',
 };
 
 export function RecentDuelCard({
