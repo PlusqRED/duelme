@@ -2,18 +2,21 @@
 
 import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button';
+import { PublicDuelCard } from '@/components/duel/PublicDuelCard';
 import { usePublicDuels } from '@/hooks/usePublicDuels';
 import { usePublicDuelMetas } from '@/hooks/usePublicDuelMetas';
 import { useNicknames } from '@/hooks/useNicknames';
+import { useReputationLevels } from '@/hooks/useReputationLevels';
+import { useTimeAgo } from '@/hooks/useTimeAgo';
 import { useTranslation } from '@/i18n/useTranslation';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
-import { hasVisibleDuelMessage } from '@/lib/duelMessage';
-import { truncateUnicode } from '@/lib/duel';
-import { ArrowRight, Globe, Gamepad2 } from 'lucide-react';
+import { enrichPublicDuel, type EnrichedDuel } from '@/lib/publicDuelsFilters';
+import { ArrowRight, Globe2 } from 'lucide-react';
 import { useMemo } from 'react';
 
 export function PublicDuelsSection() {
   const { t } = useTranslation();
+  const timeAgo = useTimeAgo();
   const { duels, isLoading } = usePublicDuels();
 
   const preview = useMemo(() => duels.slice(0, 6), [duels]);
@@ -22,15 +25,30 @@ export function PublicDuelsSection() {
 
   const { metaByDuelId } = usePublicDuelMetas(duelIds, DEFAULT_CHAIN_ID);
   const { resolveDisplay } = useNicknames(addresses);
+  const { reputationByAddress, reputationStatsByAddress } = useReputationLevels(addresses, DEFAULT_CHAIN_ID);
+  const enrichedPreview = useMemo<EnrichedDuel[]>(
+    () => preview.map((duel) => enrichPublicDuel({
+      duel,
+      meta: metaByDuelId[duel.id],
+      resolveDisplay,
+      reputationByAddress,
+      reputationStatsByAddress,
+    })),
+    [preview, metaByDuelId, resolveDisplay, reputationByAddress, reputationStatsByAddress],
+  );
 
   return (
-    <section id="public-duels" className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
-      <div className="mb-8 flex items-end justify-between">
+    <section id="public-duels" className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
+          <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+            <Globe2 className="h-3.5 w-3.5" aria-hidden="true" />
+            {t('publicDuels.openChallenge')}
+          </span>
           <h2 className="text-2xl font-bold text-slate-900">{t('publicDuels.title')}</h2>
-          <p className="mt-1 text-slate-500">{t('publicDuels.subtitle')}</p>
+          <p className="mt-2 max-w-2xl text-slate-500">{t('publicDuels.subtitle')}</p>
         </div>
-        {!isLoading && preview.length > 0 && (
+        {!isLoading && enrichedPreview.length > 0 && (
           <Link
             href="/duels/public"
             className="hidden items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700 sm:flex"
@@ -45,50 +63,25 @@ export function PublicDuelsSection() {
           {Array.from({ length: 3 }).map((_, index) => (
             <div
               key={index}
-              className="h-36 animate-pulse rounded-xl border border-slate-200 bg-slate-100/80"
+              className="h-[22rem] animate-pulse rounded-2xl border border-slate-200 bg-slate-100/80"
             />
           ))}
         </div>
-      ) : preview.length > 0 ? (
+      ) : enrichedPreview.length > 0 ? (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {preview.map((duel) => {
-              const meta = metaByDuelId[duel.id];
-              return (
-                <Link
-                  key={duel.id}
-                  href={`/duel/${duel.id}`}
-                  className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-5 transition-all hover:border-indigo-200 hover:shadow-sm"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-lg font-bold text-slate-900">{duel.wager} USDT</span>
-                    {meta ? (
-                      <span className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-700">
-                        <Gamepad2 className="h-2.5 w-2.5" />
-                        {meta.gameName}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
-                        <Globe className="h-2.5 w-2.5" />
-                        {t('duel.public')}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-xs text-slate-500">
-                    {t('duel.createdBy')} {resolveDisplay(duel.creator)}
-                  </span>
-                  {hasVisibleDuelMessage(duel.message) && (
-                    <span className="text-xs text-slate-400 italic">
-                      &ldquo;{truncateUnicode(duel.message, 30)}&rdquo;
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
+            {enrichedPreview.map((duel) => (
+              <PublicDuelCard
+                key={duel.id}
+                duel={duel}
+                timeAgo={timeAgo}
+                variant="compact"
+              />
+            ))}
           </div>
           <div className="mt-6 text-center sm:hidden">
             <Link href="/duels/public" className="text-sm font-medium text-indigo-600 hover:text-indigo-700">
-              {t('publicDuels.viewAll')} &rarr;
+              {t('publicDuels.viewAll')} {'->'}
             </Link>
           </div>
         </>

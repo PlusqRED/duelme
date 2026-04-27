@@ -2,6 +2,14 @@ import type { TranslationKey } from '@/i18n/translations';
 
 export type ReputationLevel = 'new' | 'honorable' | 'fair' | 'unreliable';
 
+export interface ReputationSummary {
+  honored: number;
+  abandoned: number;
+  total: number;
+  score: number;
+  level: ReputationLevel;
+}
+
 export function wilsonScore(honored: number, abandoned: number): number {
   const total = honored + abandoned;
   if (total === 0) return -1;
@@ -39,7 +47,21 @@ export function getReputationLevelFromStats(
   honored: number,
   abandoned: number
 ): ReputationLevel {
-  return getReputationLevel(wilsonScore(honored, abandoned), honored, abandoned);
+  return getReputationSummaryFromStats(honored, abandoned).level;
+}
+
+export function getReputationSummaryFromStats(
+  honored: number,
+  abandoned: number
+): ReputationSummary {
+  const score = wilsonScore(honored, abandoned);
+  return {
+    honored,
+    abandoned,
+    total: honored + abandoned,
+    score,
+    level: getReputationLevel(score, honored, abandoned),
+  };
 }
 
 export function getReputationLabelKey(level: ReputationLevel): TranslationKey {

@@ -1,8 +1,10 @@
-import type { GameCategory } from './game';
-import type { ReputationLevel } from './reputation';
+import type { DuelMeta, GameCategory } from './game';
+import type { ReputationLevel, ReputationSummary } from './reputation';
 
 export type SortBy = 'newest' | 'highest' | 'lowest';
 export type WagerRange = 'all' | 'under10' | '10to50' | '50to100' | 'over100';
+
+export const NO_GAME_FILTER = '__none__';
 
 export interface EnrichedDuel {
   id: number;
@@ -12,9 +14,49 @@ export interface EnrichedDuel {
   createdAt: bigint;
   chainId: number;
   gameName: string | null;
+  gameSlug: string | null;
   gameCategory: GameCategory | null;
   creatorName: string;
   reputation: ReputationLevel | undefined;
+  reputationStats: ReputationSummary | undefined;
+}
+
+type PublicDuelInput = Pick<
+  EnrichedDuel,
+  'id' | 'creator' | 'wager' | 'message' | 'createdAt' | 'chainId'
+>;
+
+interface EnrichPublicDuelOptions {
+  duel: PublicDuelInput;
+  meta: DuelMeta | undefined;
+  resolveDisplay: (address: string) => string;
+  reputationByAddress: Record<string, ReputationLevel>;
+  reputationStatsByAddress: Record<string, ReputationSummary>;
+}
+
+export function enrichPublicDuel({
+  duel,
+  meta,
+  resolveDisplay,
+  reputationByAddress,
+  reputationStatsByAddress,
+}: EnrichPublicDuelOptions): EnrichedDuel {
+  const addressKey = duel.creator.toLowerCase();
+
+  return {
+    id: duel.id,
+    creator: duel.creator,
+    wager: duel.wager,
+    message: duel.message,
+    createdAt: duel.createdAt,
+    chainId: duel.chainId,
+    gameName: meta?.gameName ?? null,
+    gameSlug: meta?.gameSlug ?? null,
+    gameCategory: meta?.category ?? null,
+    creatorName: resolveDisplay(duel.creator),
+    reputation: reputationByAddress[addressKey],
+    reputationStats: reputationStatsByAddress[addressKey],
+  };
 }
 
 interface WagerRangeEntry {
@@ -38,9 +80,8 @@ export const WAGER_LABELS: Record<WagerRange, string> = {
   over100: '100+',
 };
 
-export const REP_DOT_COLOR: Record<ReputationLevel, string> = {
-  new: 'bg-blue-400',
-  honorable: 'bg-emerald-400',
-  fair: 'bg-amber-400',
-  unreliable: 'bg-red-400',
-};
+export function formatPublicDuelAmount(value: number, language: 'en' | 'ru'): string {
+  return new Intl.NumberFormat(language === 'ru' ? 'ru-RU' : 'en-US', {
+    maximumFractionDigits: 2,
+  }).format(value);
+}

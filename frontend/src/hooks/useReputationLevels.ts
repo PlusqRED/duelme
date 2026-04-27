@@ -4,7 +4,11 @@ import { useMemo } from 'react';
 import { useReadContracts } from 'wagmi';
 import { duelMeAbi } from '@/lib/contracts';
 import { DUELME_ADDRESSES, ZERO_ADDRESS } from '@/lib/constants';
-import { getReputationLevelFromStats, type ReputationLevel } from '@/lib/reputation';
+import {
+  getReputationSummaryFromStats,
+  type ReputationLevel,
+  type ReputationSummary,
+} from '@/lib/reputation';
 
 export function useReputationLevels(addresses: Array<string | undefined>, chainId: number) {
   const contractAddress = DUELME_ADDRESSES[chainId];
@@ -42,8 +46,8 @@ export function useReputationLevels(addresses: Array<string | undefined>, chainI
     },
   });
 
-  const reputationByAddress = useMemo<Record<string, ReputationLevel>>(() => {
-    const result: Record<string, ReputationLevel> = {};
+  const reputationStatsByAddress = useMemo<Record<string, ReputationSummary>>(() => {
+    const result: Record<string, ReputationSummary> = {};
 
     normalizedAddresses.forEach((address, index) => {
       const statResult = data?.[index];
@@ -51,15 +55,26 @@ export function useReputationLevels(addresses: Array<string | undefined>, chainI
         return;
       }
 
-      const [honored, abandoned] = statResult.result as readonly [number, number];
-      result[address] = getReputationLevelFromStats(Number(honored), Number(abandoned));
+      const [honoredRaw, abandonedRaw] = statResult.result as readonly [number | bigint, number | bigint];
+      const honored = Number(honoredRaw);
+      const abandoned = Number(abandonedRaw);
+      result[address] = getReputationSummaryFromStats(honored, abandoned);
     });
 
     return result;
   }, [data, normalizedAddresses]);
 
+  const reputationByAddress = useMemo<Record<string, ReputationLevel>>(() => {
+    const result: Record<string, ReputationLevel> = {};
+    for (const [address, stats] of Object.entries(reputationStatsByAddress)) {
+      result[address] = stats.level;
+    }
+    return result;
+  }, [reputationStatsByAddress]);
+
   return {
     reputationByAddress,
+    reputationStatsByAddress,
     isLoading,
   };
 }
