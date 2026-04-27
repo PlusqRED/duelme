@@ -103,6 +103,7 @@ export function useJoinDuelFlow({
     approveToken: joinActions.approveToken,
     wagerAmount,
     creatorAddress,
+    viewerAddress: walletAddress,
     duelInviteHash,
   });
 

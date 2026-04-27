@@ -109,6 +109,7 @@ export const duelTranslations = defineSection({
     'duel.spectatorFundedTitle': 'Duel is live',
     'duel.spectatorFundedHint':
       'Only the two players can report the result or request a cancellation. Everyone else can follow the status and timeline here.',
+    'duel.cannotJoinOwnDuel': 'You cannot join your own duel.',
     'action.iWon': 'I Won',
     'action.iLost': 'I Lost',
     'action.confirm': 'Confirm Result',
@@ -123,6 +124,7 @@ export const duelTranslations = defineSection({
     'action.join': 'Join Duel',
     'action.joinDesc': 'Match the wager to accept the challenge. Winner takes the full pot.',
     'action.loginToJoin': 'Connect wallet to respond to this invite',
+    'action.viewDuel': 'View Duel',
     'action.requestCancellation': 'Request Cancellation',
     'action.acceptCancellation': 'Agree to Cancel',
     'action.declineCancellation': 'Decline Request',
@@ -238,6 +240,7 @@ export const duelTranslations = defineSection({
     'duel.spectatorFundedTitle': 'Дуэль в процессе',
     'duel.spectatorFundedHint':
       'Только сами участники могут отправить результат или запросить отмену. Остальные могут следить за статусом и хронологией здесь.',
+    'duel.cannotJoinOwnDuel': 'Нельзя присоединиться к собственной дуэли.',
     'action.iWon': 'Я победил',
     'action.iLost': 'Я проиграл',
     'action.confirm': 'Подтвердить результат',
@@ -252,6 +255,7 @@ export const duelTranslations = defineSection({
     'action.join': 'Присоединиться',
     'action.joinDesc': 'Уравняйте ставку, чтобы принять вызов. Победитель забирает весь банк.',
     'action.loginToJoin': 'Подключите кошелёк, чтобы ответить на это приглашение',
+    'action.viewDuel': 'Открыть дуэль',
     'action.requestCancellation': 'Запросить отмену',
     'action.acceptCancellation': 'Согласиться на отмену',
     'action.declineCancellation': 'Отклонить запрос',

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button';
 import { PublicDuelCard } from '@/components/duel/PublicDuelCard';
+import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { usePublicDuels } from '@/hooks/usePublicDuels';
 import { usePublicDuelMetas } from '@/hooks/usePublicDuelMetas';
 import { useNicknames } from '@/hooks/useNicknames';
@@ -11,13 +12,17 @@ import { useTimeAgo } from '@/hooks/useTimeAgo';
 import { useTranslation } from '@/i18n/useTranslation';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
 import { enrichPublicDuel, type EnrichedDuel } from '@/lib/publicDuelsFilters';
+import { usePrivy } from '@privy-io/react-auth';
 import { ArrowRight, Globe2 } from 'lucide-react';
 import { useMemo } from 'react';
 
 export function PublicDuelsSection() {
   const { t } = useTranslation();
   const timeAgo = useTimeAgo();
+  const { authenticated } = usePrivy();
+  const { walletAddress } = useActiveWallet();
   const { duels, isLoading } = usePublicDuels();
+  const isViewerIdentityPending = authenticated && !walletAddress;
 
   const preview = useMemo(() => duels.slice(0, 6), [duels]);
   const duelIds = useMemo(() => preview.map((d) => d.id), [preview]);
@@ -76,6 +81,8 @@ export function PublicDuelsSection() {
                 duel={duel}
                 timeAgo={timeAgo}
                 variant="compact"
+                viewerAddress={walletAddress}
+                isViewerIdentityPending={isViewerIdentityPending}
               />
             ))}
           </div>

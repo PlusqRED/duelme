@@ -29,6 +29,8 @@ interface PublicDuelCardProps {
   timeAgo: (timestamp: bigint) => string;
   variant?: 'compact' | 'full';
   className?: string;
+  viewerAddress?: `0x${string}`;
+  isViewerIdentityPending?: boolean;
 }
 
 const HONOR_CONFIG: Record<
@@ -61,10 +63,16 @@ export function PublicDuelCard({
   timeAgo,
   variant = 'full',
   className,
+  viewerAddress,
+  isViewerIdentityPending = false,
 }: PublicDuelCardProps) {
   const { t, language } = useTranslation();
   const compact = variant === 'compact';
   const showMessage = hasVisibleDuelMessage(duel.message);
+  const isOwnDuel = viewerAddress === duel.creator.toLowerCase();
+  const actionLabel = isOwnDuel || isViewerIdentityPending
+    ? t('action.viewDuel')
+    : t('action.join');
   const gameCategoryLabel = duel.gameCategory
     ? t(`category.${duel.gameCategory}` as TranslationKey)
     : null;
@@ -199,7 +207,7 @@ export function PublicDuelCard({
               'w-full bg-slate-950 text-white hover:bg-slate-800',
           })}
         >
-          {t('action.join')}
+          {actionLabel}
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
         </Link>
       </div>

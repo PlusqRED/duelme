@@ -28,6 +28,7 @@ interface JoinDuelFlowActionsOptions {
   approveToken: (token: `0x${string}`, amount: bigint) => Promise<void> | void;
   wagerAmount: bigint;
   creatorAddress: string;
+  viewerAddress?: `0x${string}`;
   duelInviteHash: string;
 }
 
@@ -49,6 +50,7 @@ export function joinDuelFlowActions({
   approveToken,
   wagerAmount,
   creatorAddress,
+  viewerAddress,
   duelInviteHash,
 }: JoinDuelFlowActionsOptions) {
 
@@ -58,6 +60,16 @@ export function joinDuelFlowActions({
   }
 
   function handleOpenJoinFlow() {
+    if (!viewerAddress) {
+      appToast.error('toast.walletNotReady');
+      return;
+    }
+
+    if (isViewerCreator()) {
+      appToast.error('duel.cannotJoinOwnDuel');
+      return;
+    }
+
     if (!inviteSecret) {
       appToast.error('duel.privateInviteMissing');
       return;
@@ -95,6 +107,9 @@ export function joinDuelFlowActions({
     if (!flow) {
       return;
     }
+    if (!ensureViewerCanContinue(flow)) {
+      return;
+    }
     if (connectedChainId !== flow.draft.chainId) {
       moveToIdleStep('switch-network');
       return;
@@ -123,6 +138,9 @@ export function joinDuelFlowActions({
 
   async function handleSwitchNetwork(flow: JoinDuelFlowSession | null) {
     if (!flow) {
+      return;
+    }
+    if (!ensureViewerCanContinue(flow)) {
       return;
     }
     setFlow((current) =>
@@ -165,6 +183,9 @@ export function joinDuelFlowActions({
     if (!flow) {
       return;
     }
+    if (!ensureViewerCanContinue(flow)) {
+      return;
+    }
     if (connectedChainId !== flow.draft.chainId) {
       moveToIdleStep('switch-network');
       return;
@@ -174,6 +195,9 @@ export function joinDuelFlowActions({
 
   async function handleJoinTransaction(flow: JoinDuelFlowSession | null) {
     if (!flow) {
+      return;
+    }
+    if (!ensureViewerCanContinue(flow)) {
       return;
     }
     if (connectedChainId !== flow.draft.chainId) {
@@ -236,6 +260,37 @@ export function joinDuelFlowActions({
   function handleStartContractStepError(error: unknown) {
     reset();
     setFlowError(error);
+  }
+
+  function isViewerCreator(duelCreatorAddress = creatorAddress) {
+    return !!duelCreatorAddress && viewerAddress === duelCreatorAddress.toLowerCase();
+  }
+
+  function ensureViewerCanContinue(flow: JoinDuelFlowSession) {
+    if (!viewerAddress) {
+      setFlowMessageError(t('toast.walletNotReady'));
+      return false;
+    }
+
+    if (isViewerCreator(flow.draft.creatorAddress)) {
+      setFlowMessageError(t('duel.cannotJoinOwnDuel'));
+      return false;
+    }
+
+    return true;
+  }
+
+  function setFlowMessageError(message: string) {
+    setFlow((current) =>
+      !current
+        ? current
+        : {
+            ...current,
+            actionState: 'error',
+            errorMessage: message,
+            pendingTransaction: null,
+          }
+    );
   }
 
   function setFlowError(error: unknown, fallbackKey?: TranslationKey) {

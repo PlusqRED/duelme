@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { PublicDuelCard } from '@/components/duel/PublicDuelCard';
 import { PublicDuelsFiltersPanel } from '@/components/duel/PublicDuelsFiltersPanel';
+import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { usePublicDuels } from '@/hooks/usePublicDuels';
 import { usePublicDuelMetas } from '@/hooks/usePublicDuelMetas';
 import { useNicknames } from '@/hooks/useNicknames';
@@ -19,6 +20,7 @@ import {
   formatPublicDuelAmount,
   type SortBy, type WagerRange, type EnrichedDuel,
 } from '@/lib/publicDuelsFilters';
+import { usePrivy } from '@privy-io/react-auth';
 import { Globe2 } from 'lucide-react';
 
 const PAGE_SIZE = 20;
@@ -26,6 +28,8 @@ const PAGE_SIZE = 20;
 export default function PublicDuelsPage() {
   const { t, language } = useTranslation();
   const timeAgo = useTimeAgo();
+  const { authenticated } = usePrivy();
+  const { walletAddress } = useActiveWallet();
   const { duels, isLoading } = usePublicDuels();
   const [searchQuery, setSearchQuery] = useState('');
   const [gameFilter, setGameFilter] = useState<string | null>(null);
@@ -118,6 +122,7 @@ export default function PublicDuelsPage() {
 
   const hasActiveFilters = !!gameFilter || wagerRange !== 'all' || !!normalizedSearch;
   const totalUsdtLabel = `${formatPublicDuelAmount(totalUsdt, language)} USDT`;
+  const isViewerIdentityPending = authenticated && !walletAddress;
 
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-white">
@@ -208,7 +213,13 @@ export default function PublicDuelsPage() {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {paginated.map((duel) => (
-              <PublicDuelCard key={duel.id} duel={duel} timeAgo={timeAgo} />
+              <PublicDuelCard
+                key={duel.id}
+                duel={duel}
+                timeAgo={timeAgo}
+                viewerAddress={walletAddress}
+                isViewerIdentityPending={isViewerIdentityPending}
+              />
             ))}
           </div>
         )}
