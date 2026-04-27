@@ -191,6 +191,31 @@ Created(0) → Cancelled(5)
 - Fixed elements (headers, bottom bars, modals) must not trap content or collide with mobile browser chrome / safe areas.
 - When reviewing any diff that touches UI, explicitly check mobile rendering in the dev tools responsive view.
 
+**UI verification workflow (Playwright + screenshots):** For any frontend change that affects layout, visual hierarchy, interactive controls, responsive behavior, or user-facing page states, verify it in a real browser before calling the task done.
+- Run the non-browser checks first: `npm run lint` and `npm run build` from `frontend/`.
+- Start a fresh local dev server on a known free port. Do not trust an already-running server on `3001` or `3002`; it may be an older process or a deployed-port convention. Use a fresh port such as:
+  ```bash
+  npm run dev -- --hostname 127.0.0.1 --port 3010
+  ```
+  If the port is busy, pick the next free port and use that exact URL for all checks.
+- If Playwright cannot launch Chromium, install the browser runtime once:
+  ```bash
+  npx playwright install chromium
+  ```
+- Run the relevant e2e file when one exists:
+  ```bash
+  PLAYWRIGHT_BASE_URL=http://127.0.0.1:3010 npx playwright test e2e/public-duels.spec.ts
+  ```
+  If tests fail outside the touched surface, report the exact failing tests and why they appear unrelated instead of hiding the failure.
+- Capture both desktop and mobile screenshots for the changed route. Prefer waiting for a stable selector from the changed UI; otherwise use a short timeout to avoid screenshotting the first loading frame:
+  ```bash
+  npx playwright screenshot --wait-for-timeout=3000 --full-page http://127.0.0.1:3010/duels/public /tmp/duels-public-desktop.png
+  npx playwright screenshot --viewport-size=390,844 --wait-for-timeout=3000 --full-page http://127.0.0.1:3010/duels/public /tmp/duels-public-mobile.png
+  ```
+  For data-dependent pages, capture the loaded/content state when feasible. A skeleton-only screenshot is useful for loading-state review, but it is not enough when the feature being changed is the loaded UI.
+- Inspect screenshots with the available image viewer before finalizing. Check for overlapping text, clipped buttons, horizontal scroll, broken spacing, missing visible states, and whether the primary action is obvious on both desktop and mobile.
+- Always clean up after browser verification: delete temporary screenshot files you created, and stop any temporary dev server before finishing. Only leave a server or screenshots behind when the user explicitly asks for that.
+
 **Component architecture:**
 - Functional components only, with hooks for all state and side effects
 - Use `function` keyword for components, not `const` arrow functions. Named exports only — no default exports

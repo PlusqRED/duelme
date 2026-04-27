@@ -3,8 +3,9 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { PublicDuelCard } from '@/components/duel/PublicDuelCard';
+import { PublicDuelsFiltersPanel } from '@/components/duel/PublicDuelsFiltersPanel';
+import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { usePublicDuels } from '@/hooks/usePublicDuels';
 import { usePublicDuelMetas } from '@/hooks/usePublicDuelMetas';
 import { useNicknames } from '@/hooks/useNicknames';
@@ -13,17 +14,22 @@ import { useTimeAgo } from '@/hooks/useTimeAgo';
 import { useTranslation } from '@/i18n/useTranslation';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
 import {
-  WAGER_RANGES, WAGER_LABELS,
+  NO_GAME_FILTER,
+  WAGER_RANGES,
+  enrichPublicDuel,
+  formatPublicDuelAmount,
   type SortBy, type WagerRange, type EnrichedDuel,
 } from '@/lib/publicDuelsFilters';
-import type { TranslationKey } from '@/i18n/translations';
-import { Globe, Search, Gamepad2, ArrowUpDown, Swords } from 'lucide-react';
+import { usePrivy } from '@privy-io/react-auth';
+import { Globe2 } from 'lucide-react';
 
 const PAGE_SIZE = 20;
 
 export default function PublicDuelsPage() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const timeAgo = useTimeAgo();
+  const { authenticated } = usePrivy();
+  const { walletAddress } = useActiveWallet();
   const { duels, isLoading } = usePublicDuels();
   const [searchQuery, setSearchQuery] = useState('');
   const [gameFilter, setGameFilter] = useState<string | null>(null);
@@ -36,25 +42,17 @@ export default function PublicDuelsPage() {
 
   const addresses = useMemo(() => duels.map((d) => d.creator), [duels]);
   const { resolveDisplay } = useNicknames(addresses);
-  const { reputationByAddress } = useReputationLevels(addresses, DEFAULT_CHAIN_ID);
+  const { reputationByAddress, reputationStatsByAddress } = useReputationLevels(addresses, DEFAULT_CHAIN_ID);
 
   const enriched = useMemo<EnrichedDuel[]>(
-    () => duels.map((d) => {
-      const meta = metaByDuelId[d.id];
-      return {
-        id: d.id,
-        creator: d.creator,
-        wager: d.wager,
-        message: d.message,
-        createdAt: d.createdAt,
-        chainId: d.chainId,
-        gameName: meta?.gameName ?? null,
-        gameCategory: meta?.category ?? null,
-        creatorName: resolveDisplay(d.creator),
-        reputation: reputationByAddress[d.creator.toLowerCase()],
-      };
-    }),
-    [duels, metaByDuelId, resolveDisplay, reputationByAddress],
+    () => duels.map((duel) => enrichPublicDuel({
+      duel,
+      meta: metaByDuelId[duel.id],
+      resolveDisplay,
+      reputationByAddress,
+      reputationStatsByAddress,
+    })),
+    [duels, metaByDuelId, resolveDisplay, reputationByAddress, reputationStatsByAddress],
   );
 
   const gameOptions = useMemo(() => {
@@ -72,7 +70,7 @@ export default function PublicDuelsPage() {
   const filtered = useMemo(() => {
     let result = enriched;
 
-    if (gameFilter === '__none__') {
+    if (gameFilter === NO_GAME_FILTER) {
       result = result.filter((d) => !d.gameName);
     } else if (gameFilter) {
       result = result.filter((d) => d.gameName === gameFilter);
@@ -88,6 +86,9 @@ export default function PublicDuelsPage() {
         const hay = [
           d.creatorName, d.creator, String(d.wager),
           d.message, d.gameName ?? '', d.gameCategory ?? '',
+          d.reputation ?? '',
+          String(d.reputationStats?.honored ?? ''),
+          String(d.reputationStats?.total ?? ''),
         ].join(' ').toLowerCase();
         return hay.includes(normalizedSearch);
       });
@@ -109,6 +110,7 @@ export default function PublicDuelsPage() {
     () => duels.reduce((sum, d) => sum + d.wager, 0),
     [duels],
   );
+  const gameCount = gameOptions.length;
 
   function resetFilters() {
     setSearchQuery('');
@@ -119,117 +121,75 @@ export default function PublicDuelsPage() {
   }
 
   const hasActiveFilters = !!gameFilter || wagerRange !== 'all' || !!normalizedSearch;
+  const totalUsdtLabel = `${formatPublicDuelAmount(totalUsdt, language)} USDT`;
+  const viewerAddress = authenticated ? walletAddress : undefined;
+  const isViewerIdentityPending = authenticated && !walletAddress;
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
-          {t('publicDuels.title')}
-        </h1>
-        {duels.length > 0 && (
-          <p className="mt-1 text-sm text-slate-500">
-            {t('publicDuels.stats', { count: duels.length, total: totalUsdt.toFixed(0) })}
-          </p>
-        )}
-      </div>
-
-      {/* Search */}
-      {duels.length > 0 && (
-        <div className="mb-4 relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <Input
-            value={searchQuery}
-            onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-            placeholder={t('publicDuels.searchPlaceholder')}
-            className="h-11 border-slate-200 bg-white pl-10"
-          />
-        </div>
-      )}
-
-      {/* Filters */}
-      {duels.length > 0 && (
-        <div className="mb-6 flex flex-col gap-3">
-          {/* Game pills */}
-          {gameOptions.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <Gamepad2 className="h-3.5 w-3.5 text-slate-400 mr-1" />
-              <button
-                onClick={() => { setGameFilter(null); setPage(1); }}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                  !gameFilter ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {t('publicDuels.allGames')}
-              </button>
-              {gameOptions.map((g) => (
-                <button
-                  key={g.name}
-                  onClick={() => { setGameFilter(gameFilter === g.name ? null : g.name); setPage(1); }}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                    gameFilter === g.name ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {g.name}
-                  <span className="ml-1 opacity-60">{g.count}</span>
-                </button>
-              ))}
-              <button
-                onClick={() => { setGameFilter(gameFilter === '__none__' ? null : '__none__'); setPage(1); }}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                  gameFilter === '__none__' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {t('publicDuels.noGame')}
-              </button>
-            </div>
-          )}
-
-          {/* Wager range + sort */}
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <Swords className="h-3.5 w-3.5 text-slate-400 mr-1" />
-              {WAGER_RANGES.map((r) => (
-                <button
-                  key={r.key}
-                  onClick={() => { setWagerRange(wagerRange === r.key ? 'all' : r.key); setPage(1); }}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                    wagerRange === r.key ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {r.key === 'all' ? t('publicDuels.allWagers') : WAGER_LABELS[r.key]}
-                </button>
-              ))}
+    <div className="min-h-[calc(100vh-3.5rem)] bg-white">
+      <section className="border-b border-slate-200 bg-slate-50 bg-dots">
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+                {t('publicDuels.title')}
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-500 sm:text-base">
+                {t('publicDuels.dedicatedSubtitle')}
+              </p>
             </div>
 
-            <div className="flex items-center gap-1.5">
-              <ArrowUpDown className="h-3.5 w-3.5 text-slate-400" />
-              {(['newest', 'highest', 'lowest'] as const).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => { setSortBy(s); setPage(1); }}
-                  className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                    sortBy === s ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                  }`}
-                >
-                  {t(`publicDuels.sort${s.charAt(0).toUpperCase() + s.slice(1)}` as TranslationKey)}
-                </button>
-              ))}
-            </div>
+            {duels.length > 0 && (
+              <div className="grid grid-cols-3 gap-2 sm:min-w-[24rem]">
+                <HeaderStat label={t('publicDuels.totalOpen')} value={duels.length.toString()} />
+                <HeaderStat label={t('publicDuels.totalWager')} value={totalUsdtLabel} />
+                <HeaderStat label={t('publicDuels.gamesLive')} value={gameCount.toString()} />
+              </div>
+            )}
           </div>
         </div>
-      )}
+      </section>
 
-      {/* Duel list */}
-      <div className="flex flex-col gap-3">
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+        {duels.length > 0 && (
+          <PublicDuelsFiltersPanel
+            searchQuery={searchQuery}
+            gameOptions={gameOptions}
+            gameFilter={gameFilter}
+            wagerRange={wagerRange}
+            sortBy={sortBy}
+            onSearchChange={(value) => {
+              setSearchQuery(value);
+              setPage(1);
+            }}
+            onGameFilterChange={(value) => {
+              setGameFilter(value);
+              setPage(1);
+            }}
+            onWagerRangeChange={(value) => {
+              setWagerRange(value);
+              setPage(1);
+            }}
+            onSortChange={(value) => {
+              setSortBy(value);
+              setPage(1);
+            }}
+          />
+        )}
+
         {isLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <span className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div
+                key={index}
+                className="h-[24rem] animate-pulse rounded-2xl border border-slate-200 bg-slate-100/80"
+              />
+            ))}
           </div>
         ) : paginated.length === 0 ? (
-          <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-slate-300 bg-white py-16">
-            <Globe className="h-10 w-10 text-slate-300" />
-            <p className="text-sm text-slate-500">
+          <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50/80 px-6 py-16 text-center">
+            <Globe2 className="h-10 w-10 text-slate-300" />
+            <p className="max-w-md text-sm leading-relaxed text-slate-500">
               {hasActiveFilters ? t('dashboard.noMatches') : t('publicDuels.empty')}
             </p>
             {hasActiveFilters ? (
@@ -240,7 +200,7 @@ export default function PublicDuelsPage() {
               <Link
                 href="/duel/create"
                 className={buttonVariants({
-                  className: 'bg-indigo-600 text-white hover:bg-indigo-700',
+                  className: 'bg-slate-950 text-white hover:bg-slate-800',
                 })}
               >
                 {t('hero.cta')}
@@ -248,36 +208,52 @@ export default function PublicDuelsPage() {
             )}
           </div>
         ) : (
-          paginated.map((duel) => (
-            <PublicDuelCard key={duel.id} duel={duel} timeAgo={timeAgo} />
-          ))
-        )}
-      </div>
-
-      {/* Pagination */}
-      {filtered.length > 0 && totalPages > 1 && (
-        <div className="mt-6 flex flex-col items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 sm:flex-row">
-          <span>{t('dashboard.pageSummary', { current: safePage, total: totalPages })}</span>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={safePage <= 1}
-            >
-              {t('action.previous')}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={safePage >= totalPages}
-            >
-              {t('action.next')}
-            </Button>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {paginated.map((duel) => (
+              <PublicDuelCard
+                key={duel.id}
+                duel={duel}
+                timeAgo={timeAgo}
+                viewerAddress={viewerAddress}
+                isViewerIdentityPending={isViewerIdentityPending}
+              />
+            ))}
           </div>
-        </div>
-      )}
+        )}
+
+        {filtered.length > 0 && totalPages > 1 && (
+          <div className="mt-6 flex flex-col items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 sm:flex-row">
+            <span>{t('dashboard.pageSummary', { current: safePage, total: totalPages })}</span>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={safePage <= 1}
+              >
+                {t('action.previous')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage >= totalPages}
+              >
+                {t('action.next')}
+              </Button>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+function HeaderStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white/90 px-3 py-2">
+      <p className="truncate text-[10px] font-semibold uppercase text-slate-400">{label}</p>
+      <p className="mt-1 truncate text-sm font-bold text-slate-900 sm:text-base">{value}</p>
     </div>
   );
 }

@@ -259,8 +259,8 @@ export default function DuelPage({
     : cfg;
   const StatusIcon = effectiveCfg.icon;
 
-  const isCreator = walletAddress === duel.creator.toLowerCase();
-  const isOpponent = walletAddress === duel.opponent.toLowerCase();
+  const isCreator = !!walletAddress && walletAddress === duel.creator.toLowerCase();
+  const isOpponent = !!walletAddress && walletAddress === duel.opponent.toLowerCase();
   const isParticipant = isCreator || isOpponent;
   const canManageParticipantDuel = authenticated && isParticipant;
   const isClaimAuthor = walletAddress === duel.claimedBy.toLowerCase();
@@ -268,6 +268,24 @@ export default function DuelPage({
   const hasInviteAccess = !!inviteSecret
     && hashInviteSecret(inviteSecret).toLowerCase() === duel.inviteHash.toLowerCase();
   const isDuelPublic = isPublicDuel(duel.inviteHash);
+  const hasResolvedViewerAddress = !authenticated || !!walletAddress;
+  const canRespondToWaitingDuel =
+    isWaitingOpponent &&
+    (isDuelPublic || hasInviteAccess);
+  const canJoinWaitingDuel =
+    canRespondToWaitingDuel &&
+    authenticated &&
+    !!walletAddress &&
+    !isCreator;
+  const canLoginToJoinWaitingDuel =
+    canRespondToWaitingDuel &&
+    !authenticated;
+  const shouldShowPrivateInviteNotice =
+    !isDuelPublic &&
+    isWaitingOpponent &&
+    hasResolvedViewerAddress &&
+    !isCreator &&
+    !hasInviteAccess;
   const claimableAmount = getClaimableAmountForAddress(duel, walletAddress);
   const hasClaimablePayout = claimableAmount > 0n;
   const hasMessage = hasVisibleDuelMessage(duel.message);
@@ -509,7 +527,7 @@ export default function DuelPage({
             )}
 
             {/* Created → Invitee: private-link response */}
-            {!isDuelPublic && isWaitingOpponent && !isCreator && !hasInviteAccess && (
+            {shouldShowPrivateInviteNotice && (
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center">
                 <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-slate-200/70">
                   <Shield className="h-5 w-5 text-slate-600" />
@@ -519,7 +537,7 @@ export default function DuelPage({
               </div>
             )}
 
-            {isWaitingOpponent && !isCreator && (isDuelPublic || hasInviteAccess) && authenticated && (
+            {canJoinWaitingDuel && (
               <div className="flex flex-col gap-3">
                 <Button
                   size="lg"
@@ -554,7 +572,7 @@ export default function DuelPage({
               </div>
             )}
 
-            {isWaitingOpponent && !isCreator && (isDuelPublic || hasInviteAccess) && !authenticated && (
+            {canLoginToJoinWaitingDuel && (
               <Button
                 size="lg"
                 className="h-12 w-full bg-indigo-600 text-base font-semibold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700"

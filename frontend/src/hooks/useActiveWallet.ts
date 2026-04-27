@@ -8,6 +8,7 @@ import { selectWallet } from '@/lib/walletSelection';
  * Returns the active wallet based on login method:
  * - Social login (Google/email) → Privy embedded wallet
  * - Wallet login (MetaMask) → external wallet
+ * - Logged out → no active wallet, even if Privy still reports stale wallets
  *
  * `walletAddress` is lowercased for comparisons.
  * `activeWallet.address` preserves checksummed form for display.

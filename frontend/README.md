@@ -131,6 +131,18 @@ npm run lint
 npm run build
 ```
 
+For UI-facing changes, also verify the page in a real browser with Playwright screenshots at desktop and mobile widths. See `CLAUDE.md` for the full assistant workflow. Minimal example:
+
+```bash
+npm run dev -- --hostname 127.0.0.1 --port 3010
+npx playwright install chromium   # only if the browser runtime is missing
+PLAYWRIGHT_BASE_URL=http://127.0.0.1:3010 npx playwright test e2e/public-duels.spec.ts
+npx playwright screenshot --wait-for-timeout=3000 --full-page http://127.0.0.1:3010/duels/public /tmp/duels-public-desktop.png
+npx playwright screenshot --viewport-size=390,844 --wait-for-timeout=3000 --full-page http://127.0.0.1:3010/duels/public /tmp/duels-public-mobile.png
+```
+
+After reviewing screenshots, remove any temporary screenshot files and stop the dev server unless it was intentionally left running.
+
 ## Configuration
 
 ### Contract addresses
