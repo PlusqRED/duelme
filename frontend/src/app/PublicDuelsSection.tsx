@@ -13,7 +13,7 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
 import { enrichPublicDuel, type EnrichedDuel } from '@/lib/publicDuelsFilters';
 import { usePrivy } from '@privy-io/react-auth';
-import { ArrowRight, Globe2 } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useMemo } from 'react';
 
 export function PublicDuelsSection() {
@@ -22,6 +22,7 @@ export function PublicDuelsSection() {
   const { authenticated } = usePrivy();
   const { walletAddress } = useActiveWallet();
   const { duels, isLoading } = usePublicDuels();
+  const viewerAddress = authenticated ? walletAddress : undefined;
   const isViewerIdentityPending = authenticated && !walletAddress;
 
   const preview = useMemo(() => duels.slice(0, 6), [duels]);
@@ -46,10 +47,6 @@ export function PublicDuelsSection() {
     <section id="public-duels" className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-            <Globe2 className="h-3.5 w-3.5" aria-hidden="true" />
-            {t('publicDuels.openChallenge')}
-          </span>
           <h2 className="text-2xl font-bold text-slate-900">{t('publicDuels.title')}</h2>
           <p className="mt-2 max-w-2xl text-slate-500">{t('publicDuels.subtitle')}</p>
         </div>
@@ -81,7 +78,7 @@ export function PublicDuelsSection() {
                 duel={duel}
                 timeAgo={timeAgo}
                 variant="compact"
-                viewerAddress={walletAddress}
+                viewerAddress={viewerAddress}
                 isViewerIdentityPending={isViewerIdentityPending}
               />
             ))}

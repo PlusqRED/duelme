@@ -122,6 +122,7 @@ export default function PublicDuelsPage() {
 
   const hasActiveFilters = !!gameFilter || wagerRange !== 'all' || !!normalizedSearch;
   const totalUsdtLabel = `${formatPublicDuelAmount(totalUsdt, language)} USDT`;
+  const viewerAddress = authenticated ? walletAddress : undefined;
   const isViewerIdentityPending = authenticated && !walletAddress;
 
   return (
@@ -130,10 +131,6 @@ export default function PublicDuelsPage() {
         <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                <Globe2 className="h-3.5 w-3.5" aria-hidden="true" />
-                {t('publicDuels.openChallenge')}
-              </span>
               <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
                 {t('publicDuels.title')}
               </h1>
@@ -217,7 +214,7 @@ export default function PublicDuelsPage() {
                 key={duel.id}
                 duel={duel}
                 timeAgo={timeAgo}
-                viewerAddress={walletAddress}
+                viewerAddress={viewerAddress}
                 isViewerIdentityPending={isViewerIdentityPending}
               />
             ))}

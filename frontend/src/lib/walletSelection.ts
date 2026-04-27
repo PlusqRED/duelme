@@ -12,6 +12,7 @@ export function selectWallet(
   wallets: ConnectedWallet[],
   user: User | null,
 ): ConnectedWallet | null {
+  if (!user) return null;
   if (!wallets.length) return null;
 
   const embedded = wallets.find((w) => w.walletClientType === 'privy');
