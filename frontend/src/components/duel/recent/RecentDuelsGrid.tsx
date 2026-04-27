@@ -1,5 +1,6 @@
 'use client';
 
+import { ChevronRight } from 'lucide-react';
 import type { RecentDuel } from '@/hooks/useRecentDuels';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { DuelMeta } from '@/lib/game';
@@ -12,6 +13,8 @@ interface RecentDuelsGridProps {
   resolveDisplay: (address: string) => string;
   nicknameByAddress: Record<string, string | null>;
 }
+
+const LG_COLUMN_COUNT = 3;
 
 export function RecentDuelsGrid({
   duels,
@@ -38,19 +41,33 @@ export function RecentDuelsGrid({
     );
   }
 
+  const lastIndex = duels.length - 1;
+
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
-      {duels.map((duel) => {
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-x-7">
+      {duels.map((duel, index) => {
         const meta = metaByDuelId[duel.id];
+        const isLast = index === lastIndex;
+        const isLgRowEnd = (index + 1) % LG_COLUMN_COUNT === 0;
+        const showConnector = !isLast && !isLgRowEnd;
         return (
-          <RecentDuelCard
-            key={duel.id}
-            duel={duel}
-            gameName={meta?.gameName}
-            gameSlug={meta?.gameSlug}
-            resolveDisplay={resolveDisplay}
-            nicknameByAddress={nicknameByAddress}
-          />
+          <div key={duel.id} className="relative h-full">
+            <RecentDuelCard
+              duel={duel}
+              gameName={meta?.gameName}
+              gameSlug={meta?.gameSlug}
+              resolveDisplay={resolveDisplay}
+              nicknameByAddress={nicknameByAddress}
+            />
+            {showConnector && (
+              <span
+                className="pointer-events-none absolute right-[-22px] top-1/2 z-10 hidden h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-indigo-200 bg-white text-indigo-400 shadow-sm lg:flex"
+                aria-hidden="true"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </span>
+            )}
+          </div>
         );
       })}
     </div>

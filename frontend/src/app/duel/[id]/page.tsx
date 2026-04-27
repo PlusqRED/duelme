@@ -7,8 +7,9 @@ import { ClaimButtons } from '@/components/duel/ClaimButtons';
 import { ConfirmResult } from '@/components/duel/ConfirmResult';
 import { useAppToast } from '@/hooks/useAppToast';
 import { useTranslation } from '@/i18n/useTranslation';
+import type { TranslationKey } from '@/i18n/translations';
 import { DuelState } from '@/lib/contracts';
-import { getClaimableAmountForAddress, isDuelClaimTimedOut } from '@/lib/duel';
+import { getClaimableAmountForAddress, isDuelClaimTimedOut, isDuelFullySettled } from '@/lib/duel';
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
 import { hashInviteSecret, readInviteSecretFromHash, readStoredInviteSecret, storeInviteSecret, isPublicDuel, PUBLIC_INVITE_SECRET } from '@/lib/invite';
 import { SUPPORTED_CHAINS, DEFAULT_CHAIN_ID, ZERO_ADDRESS, CLAIM_TIMEOUT } from '@/lib/constants';
@@ -322,19 +323,16 @@ export default function DuelPage({
       : null,
   ].filter((event): event is { label: string; timestamp: bigint; dotColor: string } => event !== null);
 
-  const claimHintKey = isResolved
-    ? 'duel.resolvedClaimHint'
-    : isRefunded
-      ? 'duel.refundedClaimHint'
-      : isDeclined
-        ? 'duel.declinedClaimHint'
-        : isDisputed
-          ? 'duel.disputedClaimHint'
-          : isMutuallyCancelled
-            ? 'duel.mutuallyCancelledClaimHint'
-          : isCancelled
-            ? 'duel.cancelledClaimHint'
-            : null;
+  const CLAIM_HINT_BY_STATE: Partial<Record<DuelState, TranslationKey>> = {
+    [DuelState.Resolved]: 'duel.resolvedClaimHint',
+    [DuelState.Refunded]: 'duel.refundedClaimHint',
+    [DuelState.Declined]: 'duel.declinedClaimHint',
+    [DuelState.Disputed]: 'duel.disputedClaimHint',
+    [DuelState.MutuallyCancelled]: 'duel.mutuallyCancelledClaimHint',
+    [DuelState.Cancelled]: 'duel.cancelledClaimHint',
+  };
+
+  const claimHintKey = isDuelFullySettled(duel) ? null : CLAIM_HINT_BY_STATE[state] ?? null;
 
   const opponentAddr = isCreator ? duel.opponent : duel.creator;
   const summaryContext: ActionFlowSummaryContext = {
@@ -696,7 +694,7 @@ export default function DuelPage({
                         {formatUSDT(claimableAmount)} USDT
                       </p>
                     )}
-                    <p className="text-sm text-slate-600">{t(claimHintKey as Parameters<typeof t>[0])}</p>
+                    <p className="text-sm text-slate-600">{t(claimHintKey)}</p>
                   </div>
 
                   {canManageParticipantDuel && hasClaimablePayout && (

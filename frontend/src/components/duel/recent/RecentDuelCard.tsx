@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Trophy } from 'lucide-react';
+import { ArrowRight, Link2, Trophy } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ReputationBadge } from '@/components/duel/ReputationBadge';
 import { GameBadge } from '@/components/game/GameBadge';
@@ -51,7 +51,14 @@ export function RecentDuelCard({
       )}
     >
       <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3">
-        <div className="min-w-0">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <span
+            className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700"
+            title={`Duel #${duel.id}`}
+          >
+            <Link2 className="h-3 w-3" aria-hidden="true" />
+            #{duel.id}
+          </span>
           {gameName ? (
             <GameBadge gameName={gameName} gameSlug={gameSlug ?? undefined} />
           ) : (
