@@ -13,6 +13,7 @@ import { isDuelClaimTimedOut, truncateUnicode } from '@/lib/duel';
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
 import { DUEL_STATE_CONFIG, TIMED_OUT_CONFIG } from '@/lib/duelStateColors';
 import { cn, formatDateTime } from '@/lib/utils';
+import { type DuelCardShape, getCardShapePath } from './cardShapes';
 
 interface RecentDuelCardProps {
   duel: RecentDuel;
@@ -20,7 +21,15 @@ interface RecentDuelCardProps {
   gameSlug?: string | null;
   resolveDisplay: (address: string) => string;
   nicknameByAddress: Record<string, string | null>;
+  shape: DuelCardShape;
 }
+
+const SHAPE_CLASSES: Record<DuelCardShape, string> = {
+  none: '',
+  tab: 'lg:[clip-path:url(#duel-card-clip-tab)] lg:pr-6 lg:border-x-0 lg:border-b-0 lg:shadow-none lg:hover:shadow-none lg:drop-shadow-sm lg:hover:drop-shadow-md',
+  notch: 'lg:[clip-path:url(#duel-card-clip-notch)] lg:pl-6 lg:border-x-0 lg:border-b-0 lg:shadow-none lg:hover:shadow-none lg:drop-shadow-sm lg:hover:drop-shadow-md',
+  'tab-notch': 'lg:[clip-path:url(#duel-card-clip-tab-notch)] lg:px-6 lg:border-x-0 lg:border-b-0 lg:shadow-none lg:hover:shadow-none lg:drop-shadow-sm lg:hover:drop-shadow-md',
+};
 
 export function RecentDuelCard({
   duel,
@@ -28,6 +37,7 @@ export function RecentDuelCard({
   gameSlug,
   resolveDisplay,
   nicknameByAddress,
+  shape,
 }: RecentDuelCardProps) {
   const { t, language } = useTranslation();
   const timeAgo = useTimeAgo();
@@ -45,11 +55,29 @@ export function RecentDuelCard({
     <Link
       href={`/duel/${duel.id}`}
       className={cn(
-        'group flex h-full flex-col rounded-2xl border border-l-4 border-slate-200 bg-white shadow-sm transition-all',
+        'group relative flex h-full flex-col rounded-2xl border border-t-4 border-slate-200 bg-white shadow-sm transition-all',
         'hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md',
         stateConfig.accentClass,
+        SHAPE_CLASSES[shape],
       )}
     >
+      {shape !== 'none' && (
+        <svg
+          viewBox="0 0 1 1"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 hidden h-full w-full lg:block"
+        >
+          <path
+            d={getCardShapePath(shape)}
+            fill="none"
+            strokeWidth={2}
+            vectorEffect="non-scaling-stroke"
+            className="stroke-slate-200 transition-colors group-hover:stroke-indigo-200"
+          />
+        </svg>
+      )}
+
       <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <span
