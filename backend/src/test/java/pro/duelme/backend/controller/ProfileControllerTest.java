@@ -42,15 +42,26 @@ class ProfileControllerTest {
                 .with(authentication(auth))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
-                    {"nickname": "gamer1", "status": "ready to duel"}
+                    {
+                      "nickname": "gamer1",
+                      "battleCry": "git gud",
+                      "pronouns": "they/them",
+                      "region": "EU evenings",
+                      "lookingForDuel": true
+                    }
                     """))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.nickname").value("gamer1"))
+            .andExpect(jsonPath("$.battleCry").value("git gud"))
+            .andExpect(jsonPath("$.pronouns").value("they/them"))
+            .andExpect(jsonPath("$.region").value("EU evenings"))
+            .andExpect(jsonPath("$.lookingForDuel").value(true))
             .andExpect(jsonPath("$.walletAddress").value("0xtest123"));
 
         mockMvc.perform(get("/api/v1/profiles/0xtest123"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.nickname").value("gamer1"));
+            .andExpect(jsonPath("$.nickname").value("gamer1"))
+            .andExpect(jsonPath("$.lookingForDuel").value(true));
     }
 
     @Test
@@ -68,7 +79,8 @@ class ProfileControllerTest {
         mockMvc.perform(get("/api/v1/profiles/me")
                 .with(authentication(auth)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.nickname").value("myself"));
+            .andExpect(jsonPath("$.nickname").value("myself"))
+            .andExpect(jsonPath("$.lookingForDuel").value(false));
     }
 
     @Test
@@ -140,6 +152,42 @@ class ProfileControllerTest {
                 .with(authentication(auth))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"nickname\": \"" + longNickname + "\"}"))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void validationRejectsTooLongBattleCry() throws Exception {
+        var auth = new WalletAuthenticationToken("0xvalid");
+        String tooLong = "x".repeat(101);
+
+        mockMvc.perform(put("/api/v1/profiles/me")
+                .with(authentication(auth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"battleCry\": \"" + tooLong + "\"}"))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void validationRejectsTooLongPronouns() throws Exception {
+        var auth = new WalletAuthenticationToken("0xvalid");
+        String tooLong = "p".repeat(17);
+
+        mockMvc.perform(put("/api/v1/profiles/me")
+                .with(authentication(auth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"pronouns\": \"" + tooLong + "\"}"))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void validationRejectsTooLongRegion() throws Exception {
+        var auth = new WalletAuthenticationToken("0xvalid");
+        String tooLong = "r".repeat(31);
+
+        mockMvc.perform(put("/api/v1/profiles/me")
+                .with(authentication(auth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"region\": \"" + tooLong + "\"}"))
             .andExpect(status().isBadRequest());
     }
 }

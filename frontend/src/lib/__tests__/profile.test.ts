@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isValidInstagramHandle, stripInstagramAt } from '../profile';
+import { isValidInstagramHandle, stripInstagramAt, PROFILE_LIMITS } from '../profile';
 
 describe('stripInstagramAt', () => {
   it('strips a leading @', () => {
@@ -58,5 +58,17 @@ describe('isValidInstagramHandle', () => {
     expect(isValidInstagramHandle(null)).toBe(false);
     // @ts-expect-error -- runtime safety: non-string input
     expect(isValidInstagramHandle(undefined)).toBe(false);
+  });
+});
+
+describe('PROFILE_LIMITS', () => {
+  it('exposes expected text limits', () => {
+    expect(PROFILE_LIMITS.nickname).toBe(30);
+    expect(PROFILE_LIMITS.battleCry).toBe(100);
+    expect(PROFILE_LIMITS.aboutMe).toBe(500);
+    expect(PROFILE_LIMITS.pronouns).toBe(16);
+    expect(PROFILE_LIMITS.region).toBe(30);
+    expect(PROFILE_LIMITS.gameTag).toBe(30);
+    expect(PROFILE_LIMITS.gamesMax).toBe(20);
   });
 });

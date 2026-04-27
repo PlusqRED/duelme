@@ -29,11 +29,11 @@ export type SocialPlatform = 'steam' | 'telegram' | 'instagram';
 export interface Profile {
   walletAddress: string;
   nickname: string | null;
-  status: string | null;
-  firstName: string | null;
-  lastName: string | null;
-  gender: string | null;
+  battleCry: string | null;
   aboutMe: string | null;
+  pronouns: string | null;
+  region: string | null;
+  lookingForDuel: boolean;
   games: string[] | null;
   socialLinks: SocialLinks | null;
   createdAt: string | null;
@@ -42,21 +42,20 @@ export interface Profile {
 
 export interface ProfileRequest {
   nickname?: string | null;
-  status?: string | null;
-  firstName?: string | null;
-  lastName?: string | null;
-  gender?: string | null;
+  battleCry?: string | null;
   aboutMe?: string | null;
+  pronouns?: string | null;
+  region?: string | null;
+  lookingForDuel?: boolean | null;
   games?: string[] | null;
 }
 
 export const PROFILE_LIMITS = {
   nickname: 30,
-  status: 140,
-  firstName: 50,
-  lastName: 50,
-  gender: 20,
+  battleCry: 100,
   aboutMe: 500,
+  pronouns: 16,
+  region: 30,
   gameTag: 30,
   gamesMax: 20,
   instagramHandle: 30,

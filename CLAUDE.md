@@ -2,6 +2,19 @@
 
 P2P gaming duel platform — players wager USDT in 1v1 duels via smart contracts on Ethereum L2s. Zero fees, honor-based result reporting with on-chain reputation.
 
+## Development Status — Pre-Launch
+
+**No users, no first release, no production data.** Backend, frontend, and smart contract are all in active development. The codebase is still malleable — when something is in the way of a cleaner design, better security, simpler ergonomics, or smaller scope, **change it directly**. This explicitly includes:
+
+- Breaking MongoDB schema changes (no data migration needed — drop & re-init in dev)
+- Breaking on-chain ABI / storage layout / event signatures (just redeploy + re-sync ABI to frontend via the `sync-abi` skill)
+- Removing or renaming fields in DTOs, entity records, contract storage, and on-chain events
+- Reshaping state machines, function signatures, error types, REST endpoints
+
+Backwards compatibility is **not** a constraint until the first public release. Do not add backwards-compat shims, deprecated-field stubs, or migration code "just in case." Optimize for getting the design right.
+
+This is permission to change shapes freely — **not** permission to ship sloppy code. Tests must still pass, types must still be clean, lint must still be green, and self-review still applies.
+
 ## Monorepo Structure
 
 ```
@@ -128,11 +141,30 @@ All write operations follow: check chain → check allowance → approve if need
 | `frontend/src/hooks/useProfile.ts` | Read any player's profile by wallet |
 | `frontend/src/hooks/useNicknames.ts` | Batch nickname resolution for duel feeds |
 | `frontend/src/components/duel/CopyableAddress.tsx` | Address display with copy + profile link |
-| `frontend/src/app/profile/page.tsx` | Own profile page |
-| `frontend/src/app/profile/[walletAddress]/page.tsx` | Public profile page |
+| `frontend/src/app/profile/page.tsx` | Owner profile page (redesigned) |
+| `frontend/src/app/profile/[walletAddress]/page.tsx` | Public profile page (redesigned) |
+| `frontend/src/components/profile/ProfileHero.tsx` | Hero strip with avatar/name/cry/stats/top-3-trophies/CTA |
+| `frontend/src/components/profile/ProfileTabs.tsx` | Desktop tabs / mobile stacked sections wrapper |
+| `frontend/src/components/profile/BattlesTab.tsx` | Recent duels list + view-all link |
+| `frontend/src/components/profile/AboutTab.tsx` | Bio/games/pronouns/region content |
+| `frontend/src/components/profile/TrophiesTab.tsx` | Earned + not-yet auto-titles |
+| `frontend/src/components/profile/Identicon.tsx` | Deterministic SVG identicon from wallet address |
+| `frontend/src/components/profile/StatsStrip.tsx` | Hero W-L / Volume / Rep card |
+| `frontend/src/components/profile/TrophyChip.tsx` | Single trophy display, used in hero and tab |
+| `frontend/src/components/profile/InlineEditField.tsx` | Reusable inline-edit field |
+| `frontend/src/components/profile/InlineGamesEditor.tsx` | Tag-list editor for games[] |
+| `frontend/src/components/profile/LookingForDuelToggle.tsx` | "Open for duels" switch (owner only) |
+| `frontend/src/components/profile/ChallengeCta.tsx` | "Challenge to duel" button (inline + sticky) |
+| `frontend/src/components/profile/ShareProfileButton.tsx` | Copy profile link button |
+| `frontend/src/components/profile/BattleHistoryItem.tsx` | Single duel row in BattlesTab |
 | `frontend/src/components/profile/SocialLinksSection.tsx` | Own-profile connected-accounts section with dialogs |
 | `frontend/src/components/profile/SocialLinksDisplay.tsx` | Public-profile read-only social pill row |
 | `frontend/src/components/profile/OAuthCallbackHandler.tsx` | Reads `?steam=`/`?telegram=` query and toasts |
+| `frontend/src/lib/identicon.ts` | Hand-rolled deterministic identicon SVG generator |
+| `frontend/src/lib/profileTitles.ts` | Auto-title catalog + `computeTitles` pure function |
+| `frontend/src/hooks/useAvatarUrl.ts` | Steam → Telegram → identicon avatar cascade |
+| `frontend/src/hooks/useProfileTitles.ts` | Hook wrapping usePlayerDuels + useProfile + computeTitles |
+| `frontend/src/hooks/useReducedMotionPref.ts` | Wrapper around framer-motion's useReducedMotion |
 | `frontend/src/hooks/useSocialLinks.ts` | Social-link mutations (initiate + set/unlink) |
 | `backend/src/.../controller/SocialLinkController.java` | Social-link endpoints under `/profiles/me/social/**` |
 | `backend/src/.../service/SocialLinkService.java` | Social-link orchestrator (Steam OpenID, Telegram OIDC, Instagram) |
