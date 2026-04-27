@@ -26,8 +26,12 @@ public class NativeImageHints implements RuntimeHintsRegistrar {
             "com.nimbusds.jose.jwk.OctetSequenceKey",
             "com.nimbusds.jose.crypto.ECDSAVerifier",
             "com.nimbusds.jose.crypto.RSASSAVerifier",
+            // HS256 path: used by SocialLinkStateService for signing state tokens.
+            "com.nimbusds.jose.crypto.MACSigner",
+            "com.nimbusds.jose.crypto.MACVerifier",
             "com.nimbusds.jose.proc.JWSVerificationKeySelector",
             "com.nimbusds.jwt.JWTClaimsSet",
+            "com.nimbusds.jwt.SignedJWT",
             "com.nimbusds.jwt.proc.DefaultJWTProcessor",
             "com.nimbusds.jose.jwk.source.ImmutableJWKSet",
         };
@@ -57,6 +61,78 @@ public class NativeImageHints implements RuntimeHintsRegistrar {
             try {
                 reflection.registerType(
                     Class.forName(className),
+                    MemberCategory.INVOKE_DECLARED_METHODS,
+                    MemberCategory.ACCESS_DECLARED_FIELDS
+                );
+            } catch (ClassNotFoundException ignored) {
+            }
+        }
+
+        // --- web3j: testnet faucet signing + JSON-RPC ----------------------
+        // web3j uses Jackson-via-reflection for JSON-RPC request/response
+        // binding and BouncyCastle for secp256k1. These types are only touched
+        // when the faucet feature is enabled (dev), but GraalVM needs them at
+        // build time regardless.
+        String[] web3jClasses = {
+            // JSON-RPC request envelope + response types we actually call.
+            "org.web3j.protocol.core.Request",
+            "org.web3j.protocol.core.Response",
+            "org.web3j.protocol.core.Response$Error",
+            "org.web3j.protocol.core.methods.response.EthSendTransaction",
+            "org.web3j.protocol.core.methods.response.EthGasPrice",
+            "org.web3j.protocol.core.methods.response.EthGetTransactionCount",
+            // Response$Error.data has @JsonDeserialize(using = KeepAsJsonDeserialzier)
+            // (typo is upstream). Jackson instantiates the deserializer via its
+            // no-arg constructor reflectively while resolving every Response<T>
+            // subtype; without this hint the native image strips the ctor and
+            // every JSON-RPC call fails with InvalidDefinitionException.
+            // RawResponseDeserializer is registered via ObjectMapperFactory's
+            // BeanDeserializerModifier and reached through the same code path.
+            "org.web3j.protocol.deserializer.KeepAsJsonDeserialzier",
+            "org.web3j.protocol.deserializer.RawResponseDeserializer",
+            // Signing + ABI encoding path.
+            "org.web3j.crypto.RawTransaction",
+            "org.web3j.crypto.TransactionEncoder",
+            "org.web3j.crypto.Sign",
+            "org.web3j.crypto.Sign$SignatureData",
+            "org.web3j.abi.TypeEncoder",
+            "org.web3j.abi.FunctionEncoder",
+            "org.web3j.abi.datatypes.Address",
+            "org.web3j.abi.datatypes.generated.Uint256",
+            // BouncyCastle — secp256k1 curve params resolved via reflection.
+            "org.bouncycastle.jce.provider.BouncyCastleProvider",
+            "org.bouncycastle.asn1.sec.SECNamedCurves",
+            "org.bouncycastle.jcajce.provider.asymmetric.EC",
+        };
+
+        for (String className : web3jClasses) {
+            try {
+                reflection.registerType(
+                    Class.forName(className),
+                    MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
+                    MemberCategory.INVOKE_DECLARED_METHODS,
+                    MemberCategory.ACCESS_DECLARED_FIELDS
+                );
+            } catch (ClassNotFoundException ignored) {
+            }
+        }
+
+        // --- Social link response DTOs deserialized via Jackson ------------
+        // Telegram token endpoint body + Steam GetPlayerSummaries response.
+        // Jackson resolves record component accessors reflectively, so the
+        // native image strips them without an explicit hint.
+        String[] socialClasses = {
+            "pro.duelme.backend.dto.TelegramTokenResponse",
+            "pro.duelme.backend.service.SteamProfileFetcher$SummariesResponse",
+            "pro.duelme.backend.service.SteamProfileFetcher$InnerResponse",
+            "pro.duelme.backend.service.SteamProfileFetcher$Player",
+        };
+
+        for (String className : socialClasses) {
+            try {
+                reflection.registerType(
+                    Class.forName(className),
+                    MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
                     MemberCategory.INVOKE_DECLARED_METHODS,
                     MemberCategory.ACCESS_DECLARED_FIELDS
                 );

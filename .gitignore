@@ -13,6 +13,10 @@ out/
 .env.local
 .env.*.local
 
+# Per-user npm config (committed `.npmrc` is fine; secrets / auth tokens go here)
+.npmrc.local
+**/.npmrc.local
+
 # IDE
 .vscode/
 .idea/

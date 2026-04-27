@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslation } from '@/i18n/useTranslation';
-import { RecentDuels } from '@/components/duel/RecentDuels';
+import { RecentDuelsTeaser } from '@/components/duel/recent/RecentDuelsTeaser';
 
 export function RecentDuelsSection() {
   const { t } = useTranslation();
@@ -20,7 +20,7 @@ export function RecentDuelsSection() {
             {t('recent.subtitle')}
           </p>
         </div>
-        <RecentDuels />
+        <RecentDuelsTeaser />
       </div>
     </section>
   );

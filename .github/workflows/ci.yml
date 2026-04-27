@@ -30,7 +30,7 @@ jobs:
           submodules: recursive
 
       - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@8789b3e21e6c11b2697f5eb56eddae542f746c10 # v1
+        uses: foundry-rs/foundry-toolchain@c7450ba673e133f5ee30098b3b54f444d3a2ca2d # v1
 
       - name: Install dependencies
         run: forge install --quiet
@@ -137,11 +137,20 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+
+      - name: Pin npm via Corepack (matches frontend/package.json packageManager)
+        run: |
+          # `corepack enable` on its own does NOT shim npm (npm ships with Node);
+          # explicitly enabling npm replaces the bundled binary with a corepack shim
+          # that honours the `packageManager` field in package.json.
+          corepack enable npm
+          corepack prepare npm@11.12.1 --activate
+          npm --version
 
       - name: Install dependencies
         run: npm ci --prefer-offline --no-audit --no-fund --loglevel=warn
@@ -232,15 +241,36 @@ jobs:
           PRIVY_APP_ID: ${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
           MONGO_ROOT_USERNAME: ${{ secrets.MONGO_ROOT_USERNAME }}
           MONGO_ROOT_PASSWORD: ${{ secrets.MONGO_ROOT_PASSWORD }}
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          SOCIAL_LINK_STATE_SECRET: ${{ secrets.SOCIAL_LINK_STATE_SECRET }}
+          STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
+          STEAM_RETURN_URL: ${{ secrets.STEAM_RETURN_URL }}
+          TELEGRAM_CLIENT_ID: ${{ secrets.TELEGRAM_CLIENT_ID }}
+          TELEGRAM_CLIENT_SECRET: ${{ secrets.TELEGRAM_CLIENT_SECRET }}
+          TELEGRAM_RETURN_URL: ${{ secrets.TELEGRAM_RETURN_URL }}
+          TELEGRAM_ISSUER: ${{ secrets.TELEGRAM_ISSUER }}
+          # Testnet faucet key for the dev-only ETH + MockUSDT dispenser.
+          # Use a dedicated hot wallet, NEVER a key that holds mainnet funds.
+          FAUCET_PRIVATE_KEY: ${{ secrets.FAUCET_PRIVATE_KEY }}
         run: |
           ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'mkdir -p ~/apps/duelme-dev'
           scp -q ops/docker-compose.dev.yml "$DEPLOY_USER@$DEPLOY_HOST:~/apps/duelme-dev/docker-compose.yml"
-          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" "cat > ~/apps/duelme-dev/.env << 'ENVEOF'
+          # Pipe secrets via stdin so they never appear in ps / audit / .bash_history.
+          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'umask 077 && cat > ~/apps/duelme-dev/.env' <<ENVEOF
           PRIVY_APP_ID=$PRIVY_APP_ID
           MONGO_ROOT_USERNAME=$MONGO_ROOT_USERNAME
           MONGO_ROOT_PASSWORD=$MONGO_ROOT_PASSWORD
+          APP_BASE_URL=$APP_BASE_URL
+          SOCIAL_LINK_STATE_SECRET=$SOCIAL_LINK_STATE_SECRET
+          STEAM_API_KEY=$STEAM_API_KEY
+          STEAM_RETURN_URL=$STEAM_RETURN_URL
+          TELEGRAM_CLIENT_ID=$TELEGRAM_CLIENT_ID
+          TELEGRAM_CLIENT_SECRET=$TELEGRAM_CLIENT_SECRET
+          TELEGRAM_RETURN_URL=$TELEGRAM_RETURN_URL
+          TELEGRAM_ISSUER=$TELEGRAM_ISSUER
+          FAUCET_ENABLED=true
+          FAUCET_PRIVATE_KEY=$FAUCET_PRIVATE_KEY
           ENVEOF
-          chmod 600 ~/apps/duelme-dev/.env"
           ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
             cd ~/apps/duelme-dev
             docker compose pull -q
@@ -355,15 +385,31 @@ jobs:
           PRIVY_APP_ID: ${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
           MONGO_ROOT_USERNAME: ${{ secrets.MONGO_ROOT_USERNAME }}
           MONGO_ROOT_PASSWORD: ${{ secrets.MONGO_ROOT_PASSWORD }}
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          SOCIAL_LINK_STATE_SECRET: ${{ secrets.SOCIAL_LINK_STATE_SECRET }}
+          STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
+          STEAM_RETURN_URL: ${{ secrets.STEAM_RETURN_URL }}
+          TELEGRAM_CLIENT_ID: ${{ secrets.TELEGRAM_CLIENT_ID }}
+          TELEGRAM_CLIENT_SECRET: ${{ secrets.TELEGRAM_CLIENT_SECRET }}
+          TELEGRAM_RETURN_URL: ${{ secrets.TELEGRAM_RETURN_URL }}
+          TELEGRAM_ISSUER: ${{ secrets.TELEGRAM_ISSUER }}
         run: |
           ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'mkdir -p ~/apps/duelme-prod'
           scp -q ops/docker-compose.prod.yml "$DEPLOY_USER@$DEPLOY_HOST:~/apps/duelme-prod/docker-compose.yml"
-          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" "cat > ~/apps/duelme-prod/.env << 'ENVEOF'
+          # Pipe secrets via stdin so they never appear in ps / audit / .bash_history.
+          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'umask 077 && cat > ~/apps/duelme-prod/.env' <<ENVEOF
           PRIVY_APP_ID=$PRIVY_APP_ID
           MONGO_ROOT_USERNAME=$MONGO_ROOT_USERNAME
           MONGO_ROOT_PASSWORD=$MONGO_ROOT_PASSWORD
+          APP_BASE_URL=$APP_BASE_URL
+          SOCIAL_LINK_STATE_SECRET=$SOCIAL_LINK_STATE_SECRET
+          STEAM_API_KEY=$STEAM_API_KEY
+          STEAM_RETURN_URL=$STEAM_RETURN_URL
+          TELEGRAM_CLIENT_ID=$TELEGRAM_CLIENT_ID
+          TELEGRAM_CLIENT_SECRET=$TELEGRAM_CLIENT_SECRET
+          TELEGRAM_RETURN_URL=$TELEGRAM_RETURN_URL
+          TELEGRAM_ISSUER=$TELEGRAM_ISSUER
           ENVEOF
-          chmod 600 ~/apps/duelme-prod/.env"
           ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
             cd ~/apps/duelme-prod
             docker compose pull -q

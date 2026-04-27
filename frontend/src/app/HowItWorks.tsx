@@ -3,6 +3,8 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from '@/i18n/useTranslation';
 import {
+  ArrowDown,
+  ArrowRight,
   BadgePercent,
   Clock3,
   Eye,
@@ -89,6 +91,11 @@ function FlowNode({
   );
 }
 
+interface Payout {
+  amount: string;
+  recipient: string;
+}
+
 function OutcomeRouteCard({
   icon: Icon,
   title,
@@ -100,13 +107,13 @@ function OutcomeRouteCard({
   icon: LucideIcon;
   title: string;
   description: string;
-  payouts: string[];
+  payouts: Payout[];
   tone: string;
   delayClass?: string;
 }) {
   return (
     <div
-      className={`card-glow animate-soft-in rounded-[28px] border border-white/80 bg-white/84 p-5 shadow-sm backdrop-blur-sm ${delayClass ?? ''}`}
+      className={`card-glow animate-soft-in flex h-full flex-col rounded-[28px] border border-white/80 bg-white/84 p-5 shadow-sm backdrop-blur-sm ${delayClass ?? ''}`}
     >
       <div className="flex items-start gap-3">
         <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${tone}`}>
@@ -114,18 +121,26 @@ function OutcomeRouteCard({
         </div>
         <div>
           <h3 className="text-base font-semibold text-slate-950 sm:text-lg">{title}</h3>
-          <p className="mt-2 text-sm leading-relaxed text-slate-500">{description}</p>
+          <p className="mt-2 min-h-[4.5rem] text-sm leading-relaxed text-slate-500">{description}</p>
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-6 divide-y divide-slate-200/70 border-t border-slate-200/70">
         {payouts.map((payout) => (
-          <span
-            key={payout}
-            className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold tracking-[0.08em] text-slate-600"
+          <div
+            key={payout.recipient}
+            className="flex items-center justify-between gap-3 py-2.5"
           >
-            {payout}
-          </span>
+            <div className="flex min-w-0 items-center gap-2">
+              <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
+              <span className="truncate text-sm font-medium text-slate-700">
+                {payout.recipient}
+              </span>
+            </div>
+            <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-900">
+              {payout.amount}
+            </span>
+          </div>
         ))}
       </div>
     </div>
@@ -140,7 +155,7 @@ export function HowItWorks() {
       icon: Trophy,
       title: t('howItWorks.outcomeConfirmed.title'),
       description: t('howItWorks.outcomeConfirmed.desc'),
-      payouts: [`${DEMO_POT} -> ${t('howItWorks.flow.winner')}`],
+      payouts: [{ amount: DEMO_POT, recipient: t('howItWorks.flow.winner') }],
       tone: 'bg-emerald-100 text-emerald-700',
       delayClass: 'animation-delay-100',
     },
@@ -149,8 +164,8 @@ export function HowItWorks() {
       title: t('howItWorks.outcomeDisputed.title'),
       description: t('howItWorks.outcomeDisputed.desc'),
       payouts: [
-        `${DEMO_STAKE} -> ${t('howItWorks.flow.playerA')}`,
-        `${DEMO_STAKE} -> ${t('howItWorks.flow.playerB')}`,
+        { amount: DEMO_STAKE, recipient: t('howItWorks.flow.playerA') },
+        { amount: DEMO_STAKE, recipient: t('howItWorks.flow.playerB') },
       ],
       tone: 'bg-amber-100 text-amber-700',
       delayClass: 'animation-delay-200',
@@ -160,8 +175,8 @@ export function HowItWorks() {
       title: t('howItWorks.outcomeTimeout.title'),
       description: t('howItWorks.outcomeTimeout.desc'),
       payouts: [
-        `${DEMO_STAKE} -> ${t('howItWorks.flow.playerA')}`,
-        `${DEMO_STAKE} -> ${t('howItWorks.flow.playerB')}`,
+        { amount: DEMO_STAKE, recipient: t('howItWorks.flow.playerA') },
+        { amount: DEMO_STAKE, recipient: t('howItWorks.flow.playerB') },
       ],
       tone: 'bg-sky-100 text-sky-700',
       delayClass: 'animation-delay-300',
@@ -209,101 +224,75 @@ export function HowItWorks() {
         </div>
 
         <div className="mt-14 rounded-[36px] border border-slate-200 bg-[linear-gradient(180deg,rgba(239,246,255,0.72)_0%,rgba(255,255,255,0.98)_56%,rgba(248,250,252,0.98)_100%)] p-6 shadow-[0_32px_90px_-56px_rgba(15,23,42,0.32)] sm:p-8">
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)] xl:items-start">
-            <div className="overflow-hidden rounded-[30px] border border-white/80 bg-white/88 p-5 shadow-sm backdrop-blur-sm sm:p-6">
-              <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                {t('howItWorks.diagramEyebrow')}
-              </div>
-              <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-600 sm:text-base">
-                {t('howItWorks.diagramNote')}
-              </p>
-
-              <div className="mt-6 hidden md:block">
-                <div className="grid grid-cols-[minmax(80px,1fr)_64px_140px_64px_minmax(80px,1fr)] items-center gap-3">
-                  <FlowNode
-                    label={t('howItWorks.flow.playerA')}
-                    value={DEMO_STAKE}
-                    tone="bg-sky-100 text-sky-700"
-                  >
-                    <User className="h-5 w-5" />
-                  </FlowNode>
-
-                  <div className="space-y-2">
-                    <div className="text-center text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                      {DEMO_STAKE}
-                    </div>
-                    <div className="flow-line-horizontal" />
-                  </div>
-
-                  <FlowNode
-                    label={t('howItWorks.flow.contract')}
-                    value={DEMO_POT}
-                    tone="bg-slate-950 text-white"
-                  >
-                    <Lock className="h-6 w-6 animate-float-y" />
-                  </FlowNode>
-
-                  <div className="space-y-2">
-                    <div className="text-center text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                      {DEMO_STAKE}
-                    </div>
-                    <div className="flow-line-horizontal flow-line-horizontal-reverse" />
-                  </div>
-
-                  <FlowNode
-                    label={t('howItWorks.flow.playerB')}
-                    value={DEMO_STAKE}
-                    tone="bg-emerald-100 text-emerald-700"
-                  >
-                    <User className="h-5 w-5" />
-                  </FlowNode>
-                </div>
-              </div>
-
-              <div className="mt-6 md:hidden">
-                <div className="grid grid-cols-3 gap-3">
-                  <FlowNode
-                    label={t('howItWorks.flow.playerA')}
-                    value={DEMO_STAKE}
-                    tone="bg-sky-100 text-sky-700"
-                  >
-                    <User className="h-5 w-5" />
-                  </FlowNode>
-                  <FlowNode
-                    label={t('howItWorks.flow.contract')}
-                    value={DEMO_POT}
-                    tone="bg-slate-950 text-white"
-                  >
-                    <Lock className="h-5 w-5 animate-float-y" />
-                  </FlowNode>
-                  <FlowNode
-                    label={t('howItWorks.flow.playerB')}
-                    value={DEMO_STAKE}
-                    tone="bg-emerald-100 text-emerald-700"
-                  >
-                    <User className="h-5 w-5" />
-                  </FlowNode>
-                </div>
-              </div>
-
+          <div className="overflow-hidden rounded-[30px] border border-white/80 bg-white/88 p-5 text-center shadow-sm backdrop-blur-sm sm:p-6">
+            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+              {t('howItWorks.diagramEyebrow')}
             </div>
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-slate-600 sm:text-base">
+              {t('howItWorks.diagramNote')}
+            </p>
 
-            <div className="space-y-3">
-              <div className="rounded-[24px] border border-slate-200 bg-slate-50/85 px-5 py-4">
-                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  {t('howItWorks.routesEyebrow')}
+            <div className="mt-6 grid grid-cols-3 items-center gap-3 md:mx-auto md:max-w-3xl md:grid-cols-[minmax(80px,1fr)_64px_140px_64px_minmax(80px,1fr)]">
+              <FlowNode
+                label={t('howItWorks.flow.playerA')}
+                value={DEMO_STAKE}
+                tone="bg-sky-100 text-sky-700"
+              >
+                <User className="h-5 w-5" />
+              </FlowNode>
+
+              <div className="hidden space-y-2 md:block">
+                <div className="text-center text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  {DEMO_STAKE}
                 </div>
-                <p className="mt-1 text-sm leading-relaxed text-slate-500">
-                  {t('howItWorks.routesNote')}
-                </p>
+                <div className="flow-line-horizontal" />
               </div>
-              {outcomeRoutes.map((route) => (
-                <OutcomeRouteCard key={route.title} {...route} />
-              ))}
+
+              <FlowNode
+                label={t('howItWorks.flow.contract')}
+                value={DEMO_POT}
+                tone="bg-slate-950 text-white"
+              >
+                <Lock className="h-5 w-5 animate-float-y md:h-6 md:w-6" />
+              </FlowNode>
+
+              <div className="hidden space-y-2 md:block">
+                <div className="text-center text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  {DEMO_STAKE}
+                </div>
+                <div className="flow-line-horizontal flow-line-horizontal-reverse" />
+              </div>
+
+              <FlowNode
+                label={t('howItWorks.flow.playerB')}
+                value={DEMO_STAKE}
+                tone="bg-emerald-100 text-emerald-700"
+              >
+                <User className="h-5 w-5" />
+              </FlowNode>
             </div>
           </div>
 
-          <p className="mx-auto mt-8 max-w-3xl text-center text-sm leading-relaxed text-slate-600 sm:text-base">
+          <div className="my-10 flex items-center gap-4">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent to-slate-200" aria-hidden />
+            <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600 shadow-sm">
+              <ArrowDown className="h-3.5 w-3.5 text-slate-400" aria-hidden />
+              {t('howItWorks.routesEyebrow')}
+            </span>
+            <div className="h-px flex-1 bg-gradient-to-r from-slate-200 to-transparent" aria-hidden />
+          </div>
+
+          <p className="mx-auto max-w-2xl text-center text-sm leading-relaxed text-slate-600 sm:text-base">
+            {t('howItWorks.routesNote')}
+          </p>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            {outcomeRoutes.map((route) => (
+              <OutcomeRouteCard key={route.title} {...route} />
+            ))}
+          </div>
+
+          <p className="mx-auto mt-10 max-w-3xl text-center text-sm leading-relaxed text-slate-600 sm:text-base">
             {t('howItWorks.flow.caption')}
           </p>
         </div>

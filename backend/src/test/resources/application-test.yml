@@ -6,3 +6,16 @@ de:
 
 privy:
   app-id: test-app-id
+
+duelme:
+  social:
+    app-base-url: http://localhost:3000
+    state-secret: test-state-secret-32-bytes-long-enough-hmac-sha256
+    steam:
+      api-key: test-steam-api-key
+      return-url: http://localhost:8080/api/v1/profiles/me/social/steam/callback
+    telegram:
+      client-id: test-telegram-client-id
+      client-secret: test-telegram-client-secret
+      return-url: http://localhost:8080/api/v1/profiles/me/social/telegram/callback
+      issuer: https://oauth.telegram.org

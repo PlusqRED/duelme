@@ -21,6 +21,8 @@
 ## High-level architecture
 
 - This is a monorepo with a Foundry contract project in `contracts/` and a Next.js App Router frontend in `frontend/`.
+- Deployments run through `.github/workflows/ci.yml`: merging to `dev` deploys `dev.duelme.pro`, merging to `main` deploys `duelme.pro`.
+- Runtime secrets and environment-specific config are stored in GitHub repository/environment secrets. The deploy workflow writes `~/apps/duelme-{dev,prod}/.env` from those secrets immediately before `docker compose up`; do not commit secrets and do not rely on manually maintained server `.env` files.
 - `contracts/src/DuelMe.sol` is the core escrow contract for 1v1 USDT duels. It stores duel state, enforces the lifecycle (`Created -> Funded -> WinnerClaimed -> Resolved/Refunded/Disputed`, plus `Cancelled`, `Declined`, `MutualCancelRequested`, and `MutuallyCancelled`), updates on-chain reputation counters, uses claim-based payouts/refunds, supports owner pause/unpause, and has a timelocked emergency withdrawal path for USDT.
 - `frontend/src/lib/contracts.ts` manually mirrors the Solidity ABI and `DuelState` enum used by the frontend. If `DuelMe.sol` changes, keep the ABI, enum ordering, and TypeScript `Duel` shape in sync.
 - `frontend/src/components/providers/Providers.tsx` defines the runtime provider stack used by `frontend/src/app/layout.tsx`: `PrivyProvider -> QueryClientProvider -> WagmiProvider -> LanguageProvider -> TooltipProvider/Toaster`.
@@ -54,3 +56,4 @@
 - Use the `@/*` import alias for frontend code (`frontend/tsconfig.json` maps it to `frontend/src/*`).
 - For compact wallet display, reuse `truncateAddress()` from `frontend/src/lib/utils.ts`. Important address surfaces in the existing UI pair truncation with copy-to-clipboard access.
 - Reputation labels intentionally special-case players with zero abandoned duels so they are not marked `unreliable` purely because the Wilson score is conservative on small sample sizes.
+- When adding a runtime env var or secret, update `.github/workflows/ci.yml`, the matching `ops/docker-compose.*.yml`, and `CLAUDE.md`. GitHub secrets are the source of truth for deployed values.

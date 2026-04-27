@@ -3,19 +3,21 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Menu, X, Swords, LogOut, User, Wallet, Globe, Send, Copy, Check, ChevronDown, KeyRound, Fuel, Instagram, Gamepad2 } from 'lucide-react';
+import { Menu, X, Swords, LogOut, User, Wallet, Globe, Send, Copy, Check, ChevronDown, KeyRound, Fuel, Instagram, Gamepad2, FlaskConical, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAppToast } from '@/hooks/useAppToast';
 import { useMyProfile } from '@/hooks/useMyProfile';
-import { usePrivy, useExportWallet } from '@privy-io/react-auth';
+import { useIsNonProductionHost } from '@/hooks/useIsNonProductionHost';
+import { usePrivy, useExportWallet, useIdentityToken } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useReadContract, useBalance } from 'wagmi';
 import { formatUnits, parseUnits, encodeFunctionData } from 'viem';
-import { USDT_DECIMALS } from '@/lib/constants';
-import { balanceOfAbi, transferAbi, getUsdtAddress } from '@/lib/contracts';
+import { TESTNET_CHAIN_IDS, USDT_DECIMALS } from '@/lib/constants';
+import { balanceOfAbi, getUsdtAddress, transferAbi } from '@/lib/contracts';
 import { emitBalanceRefreshBurst, subscribeToBalanceRefresh } from '@/lib/balanceRefresh';
+import { FaucetClaimError, claimFaucet } from '@/lib/faucetApi';
 
 const CHAIN_META: Record<number, { name: string; testnet?: boolean }> = {
   421614: { name: 'Arb Sepolia', testnet: true },
@@ -31,9 +33,14 @@ export function Header() {
   const [toAddress, setToAddress] = useState('');
   const [sendAmount, setSendAmount] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [isClaimingFaucet, setIsClaimingFaucet] = useState(false);
   const [copied, setCopied] = useState(false);
   const [selectedChain, setSelectedChain] = useState<number>(421614);
   const [balanceFlash, setBalanceFlash] = useState(false);
+
+  const isNonProdHost = useIsNonProductionHost();
+  const { identityToken } = useIdentityToken();
+  const canClaimFaucet = isNonProdHost && TESTNET_CHAIN_IDS.has(selectedChain);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const previousTotalUsdtRef = useRef<string | null>(null);
@@ -133,6 +140,34 @@ export function Header() {
     await navigator.clipboard.writeText(walletAddress);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleClaimFaucet() {
+    if (!canClaimFaucet) return;
+    if (!identityToken) {
+      appToast.error('toast.walletNotReady');
+      return;
+    }
+    setIsClaimingFaucet(true);
+    try {
+      await claimFaucet(identityToken);
+      appToast.success('toast.faucetClaimed');
+      emitBalanceRefreshBurst();
+    } catch (err) {
+      if (err instanceof FaucetClaimError) {
+        switch (err.code) {
+          case 'already-claimed': appToast.error('toast.faucetAlreadyClaimed'); break;
+          case 'disabled':        appToast.error('toast.faucetDisabled'); break;
+          case 'execution-failed':appToast.error('toast.faucetExecutionFailed'); break;
+          case 'unauthorized':    appToast.error('toast.walletNotReady'); break;
+          default:                appToast.error('toast.faucetFailed'); break;
+        }
+      } else {
+        appToast.error('toast.faucetFailed');
+      }
+    } finally {
+      setIsClaimingFaucet(false);
+    }
   }
 
   async function handleSend() {
@@ -281,6 +316,28 @@ export function Header() {
         </div>
       </div>
 
+      {/* Testnet faucet — non-prod hosts + testnet chain only. One claim per wallet. */}
+      {canClaimFaucet && (
+        <button
+          type="button"
+          onClick={handleClaimFaucet}
+          disabled={isClaimingFaucet}
+          className="flex w-full items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 transition-colors hover:border-amber-300 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          <span className="flex items-center gap-1.5 text-left">
+            {isClaimingFaucet ? (
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-amber-600 border-t-transparent" />
+            ) : (
+              <FlaskConical className="h-3.5 w-3.5 shrink-0" />
+            )}
+            {t('wallet.claimFaucet')}
+          </span>
+          <span className="rounded-full bg-white/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-700">
+            {t('wallet.testnetBadge')}
+          </span>
+        </button>
+      )}
+
       {/* Send form */}
       <div className="flex flex-col gap-2">
         <span className="text-xs font-medium text-slate-600">{t('wallet.sendUsdt')}</span>
@@ -380,71 +437,90 @@ export function Header() {
 
           <Link
             href="/games"
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+            title={t('nav.games')}
+            aria-label={t('nav.games')}
+            className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-sm font-medium transition-colors lg:min-w-0 lg:justify-start ${
               pathname.startsWith('/games')
                 ? 'bg-indigo-50 text-indigo-700'
                 : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
             }`}
           >
-            <Gamepad2 className="h-4 w-4" />
-            {t('nav.games')}
+            <Gamepad2 className="h-4 w-4 shrink-0" />
+            <span className="hidden lg:inline">{t('nav.games')}</span>
           </Link>
           <Link
             href="/duels/public"
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+            title={t('nav.publicDuels')}
+            aria-label={t('nav.publicDuels')}
+            className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-sm font-medium transition-colors lg:min-w-0 lg:justify-start ${
               pathname.startsWith('/duels/public')
                 ? 'bg-indigo-50 text-indigo-700'
                 : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
             }`}
           >
-            <Swords className="h-4 w-4" />
-            {t('nav.publicDuels')}
+            <Swords className="h-4 w-4 shrink-0" />
+            <span className="hidden lg:inline">{t('nav.publicDuels')}</span>
+          </Link>
+          <Link
+            href="/duels/recent"
+            title={t('nav.recentDuels')}
+            aria-label={t('nav.recentDuels')}
+            className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-sm font-medium transition-colors lg:min-w-0 lg:justify-start ${
+              pathname.startsWith('/duels/recent')
+                ? 'bg-indigo-50 text-indigo-700'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+            }`}
+          >
+            <History className="h-4 w-4 shrink-0" />
+            <span className="hidden lg:inline">{t('nav.recentDuels')}</span>
           </Link>
 
           {ready && authenticated ? (
             <div className="flex items-center gap-2">
               {/* My Duels link */}
-              <Link href="/dashboard">
-                <button
-                  className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
-                    pathname === '/dashboard'
-                      ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
-                      : 'border-slate-200 text-slate-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700'
-                  }`}
-                >
-                  <Swords className="h-3.5 w-3.5" />
-                  {t('nav.dashboard')}
-                </button>
+              <Link
+                href="/dashboard"
+                title={t('nav.dashboard')}
+                aria-label={t('nav.dashboard')}
+                className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 text-sm font-medium transition-colors lg:min-w-0 lg:justify-start ${
+                  pathname === '/dashboard'
+                    ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                    : 'border-slate-200 text-slate-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700'
+                }`}
+              >
+                <Swords className="h-3.5 w-3.5 shrink-0" />
+                <span className="hidden lg:inline">{t('nav.dashboard')}</span>
               </Link>
 
               {/* Profile link */}
-              <Link href="/profile">
-                <button
-                  className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
-                    pathname.startsWith('/profile')
-                      ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
-                      : 'border-slate-200 text-slate-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700'
-                  }`}
-                >
-                  <User className="h-3.5 w-3.5" />
-                  {displayName || t('nav.myProfile')}
-                </button>
+              <Link
+                href="/profile"
+                title={displayName || t('nav.myProfile')}
+                aria-label={displayName || t('nav.myProfile')}
+                className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 text-sm font-medium transition-colors lg:min-w-0 lg:justify-start ${
+                  pathname.startsWith('/profile')
+                    ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                    : 'border-slate-200 text-slate-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700'
+                }`}
+              >
+                <User className="h-3.5 w-3.5 shrink-0" />
+                <span className="hidden max-w-[10ch] truncate lg:inline">{displayName || t('nav.myProfile')}</span>
               </Link>
 
               {/* Wallet button + dropdown */}
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setWalletOpen(!walletOpen)}
-                  className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 transition-all ${
+                  className={`inline-flex min-h-[44px] items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 transition-all ${
                     balanceFlash
                       ? 'border-emerald-300 bg-emerald-50 text-emerald-900 shadow-sm shadow-emerald-100'
                       : 'border-slate-200 hover:border-indigo-300 hover:bg-indigo-50'
                   }`}
                 >
-                  <Wallet className="h-3.5 w-3.5 text-indigo-500" />
+                  <Wallet className="h-3.5 w-3.5 shrink-0 text-indigo-500" />
                   <span className="text-xs font-bold text-slate-700">{totalUsdt}</span>
-                  <span className="text-xs text-slate-400">USDT</span>
-                  <ChevronDown className={`h-3 w-3 text-slate-400 transition-transform ${walletOpen ? 'rotate-180' : ''}`} />
+                  <span className="hidden text-xs text-slate-400 lg:inline">USDT</span>
+                  <ChevronDown className={`h-3 w-3 shrink-0 text-slate-400 transition-transform ${walletOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {walletOpen && (
@@ -524,6 +600,18 @@ export function Header() {
             >
               <Swords className="h-4 w-4" />
               {t('nav.publicDuels')}
+            </Link>
+            <Link
+              href="/duels/recent"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                pathname.startsWith('/duels/recent')
+                  ? 'bg-indigo-50 text-indigo-700'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              }`}
+            >
+              <History className="h-4 w-4" />
+              {t('nav.recentDuels')}
             </Link>
             {ready && authenticated ? (
               <div className="flex flex-1 items-center gap-2">

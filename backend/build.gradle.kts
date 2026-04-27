@@ -26,6 +26,10 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("com.nimbusds:nimbus-jose-jwt:10.0.1")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2")
+    // web3j powers the dev-only testnet faucet (signing + JSON-RPC). Kept in
+    // core deps so JVM + native builds both include it; on-off is gated at
+    // runtime inside FaucetService via `duelme.faucet.enabled`.
+    implementation("org.web3j:core:4.12.2")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
@@ -78,6 +82,21 @@ graalvmNative {
                 "-O2",
                 "--gc=serial",
                 "-march=compatibility",
+                // BouncyCastle (pulled in by web3j for secp256k1) does most of
+                // its provider setup in a static initializer. In a GraalVM
+                // native image that init fails at runtime because JCA provider
+                // registration expects classpath discovery that works
+                // differently under native image. Force BC and the web3j
+                // crypto entry class (whose static block registers the BC
+                // provider) to initialize at build time, so the work is done
+                // during compilation and the runtime binary just uses the
+                // already-registered provider.
+                "--initialize-at-build-time=org.bouncycastle",
+                "--initialize-at-build-time=org.web3j.crypto.Keys",
+                // DRBG random generators MUST seed entropy at runtime — build
+                // time init would bake a deterministic seed into the image.
+                "--initialize-at-run-time=org.bouncycastle.jcajce.provider.drbg.DRBG\$Default",
+                "--initialize-at-run-time=org.bouncycastle.jcajce.provider.drbg.DRBG\$NonceAndIV",
             )
         }
         named("test") {

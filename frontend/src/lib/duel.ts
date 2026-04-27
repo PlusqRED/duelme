@@ -74,6 +74,15 @@ export function hasClaimedPayoutForAddress(
   return false;
 }
 
+export function isDuelFullySettled(
+  duel: Pick<ClaimableDuel, 'creatorPayout' | 'opponentPayout' | 'creatorClaimed' | 'opponentClaimed'>
+): boolean {
+  return (
+    (duel.creatorPayout === 0n || duel.creatorClaimed)
+    && (duel.opponentPayout === 0n || duel.opponentClaimed)
+  );
+}
+
 export function getCounterpartyAddress(
   duel: Pick<ClaimableDuel, 'creator' | 'opponent'>,
   address?: string | null
