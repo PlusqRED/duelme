@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Menu, X, Swords, LogOut, User, Wallet, Globe, Send, Copy, Check, ChevronDown, KeyRound, Fuel, Instagram, Gamepad2, FlaskConical } from 'lucide-react';
+import { Menu, X, Swords, LogOut, User, Wallet, Globe, Send, Copy, Check, ChevronDown, KeyRound, Fuel, Instagram, Gamepad2, FlaskConical, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -457,6 +457,17 @@ export function Header() {
             <Swords className="h-4 w-4" />
             {t('nav.publicDuels')}
           </Link>
+          <Link
+            href="/duels/recent"
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              pathname.startsWith('/duels/recent')
+                ? 'bg-indigo-50 text-indigo-700'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+            }`}
+          >
+            <History className="h-4 w-4" />
+            {t('nav.recentDuels')}
+          </Link>
 
           {ready && authenticated ? (
             <div className="flex items-center gap-2">
@@ -581,6 +592,18 @@ export function Header() {
             >
               <Swords className="h-4 w-4" />
               {t('nav.publicDuels')}
+            </Link>
+            <Link
+              href="/duels/recent"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                pathname.startsWith('/duels/recent')
+                  ? 'bg-indigo-50 text-indigo-700'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              }`}
+            >
+              <History className="h-4 w-4" />
+              {t('nav.recentDuels')}
             </Link>
             {ready && authenticated ? (
               <div className="flex flex-1 items-center gap-2">
