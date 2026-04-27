@@ -35,19 +35,12 @@ export default function MyProfilePage() {
   const { profile, isLoading, updateProfile, isSaving } = useMyProfile();
   const playerStats = usePlayerDuels(displayAddress as `0x${string}`, DEFAULT_CHAIN_ID);
   const reputation = useReputation(displayAddress as `0x${string}`, DEFAULT_CHAIN_ID);
-  const { earned, unearned, top3 } = useProfileTitles(displayAddress as `0x${string}`, DEFAULT_CHAIN_ID);
+  const { earned, unearned, top3, progressByTitleId } = useProfileTitles(
+    displayAddress as `0x${string}`,
+    DEFAULT_CHAIN_ID,
+  );
 
   const repPct = reputation.total > 0 ? Math.round(reputation.score * 100) : null;
-
-  const progressByTitleId = unearned.reduce<Record<string, { current: number; target: number } | null>>((acc, title) => {
-    acc[title.id] = title.progressOf?.({
-      address: displayAddress,
-      duels: [...playerStats.activeDuels, ...playerStats.historyDuels],
-      stats: playerStats,
-      profile,
-    }) ?? null;
-    return acc;
-  }, {});
 
   async function update(partial: ProfileRequest): Promise<void> {
     const merged: ProfileRequest = {
@@ -109,7 +102,7 @@ export default function MyProfilePage() {
           stats={playerStats}
           reputationPercent={repPct}
           topTitles={top3}
-          isOwner={true}
+          isOwner
         />
 
         <div className="p-4 sm:p-6 flex flex-col gap-4">
@@ -138,7 +131,7 @@ export default function MyProfilePage() {
         </div>
 
         <ProfileTabs
-          hasReachOut={true}
+          hasReachOut
           battlesContent={
             <BattlesTab walletAddress={displayAddress} stats={playerStats} isOwner />
           }

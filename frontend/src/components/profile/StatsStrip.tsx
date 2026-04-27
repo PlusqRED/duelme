@@ -21,34 +21,56 @@ function CountUp({ value, suffix = '' }: CountUpProps) {
   const reduced = useReducedMotionPref();
   const [displayed, setDisplayed] = useState(0);
   const ref = useRef<HTMLSpanElement>(null);
+  const displayedRef = useRef(0);
+  const hasBeenVisibleRef = useRef(false);
 
-  // When reduced motion is preferred, show the final value immediately
-  // without triggering the set-state-in-effect lint rule by using a
-  // microtask queue flush instead of a synchronous setState call.
+  // The rAF/observer dance avoids triggering the set-state-in-effect lint
+  // rule. After the first time the element becomes visible we keep animating
+  // on subsequent value changes from the current displayed value (not 0),
+  // which prevents a 5 → 0 → 6 flicker when stats refetch.
   useEffect(() => {
     if (reduced) {
-      const id = requestAnimationFrame(() => setDisplayed(value));
+      const id = requestAnimationFrame(() => {
+        setDisplayed(value);
+        displayedRef.current = value;
+      });
       return () => cancelAnimationFrame(id);
     }
+
+    let animationFrame = 0;
+    function runAnimation(from: number) {
+      const start = performance.now();
+      const duration = 300;
+      function step(now: number) {
+        const t = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - t, 2);
+        const next = Math.round(from + (value - from) * eased);
+        setDisplayed(next);
+        displayedRef.current = next;
+        if (t < 1) animationFrame = requestAnimationFrame(step);
+      }
+      animationFrame = requestAnimationFrame(step);
+    }
+
+    if (hasBeenVisibleRef.current) {
+      runAnimation(displayedRef.current);
+      return () => cancelAnimationFrame(animationFrame);
+    }
+
     const node = ref.current;
     if (!node) return;
     const observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting) {
-        const start = performance.now();
-        const duration = 300;
-        const from = 0;
-        const animate = (now: number) => {
-          const t = Math.min(1, (now - start) / duration);
-          const eased = 1 - Math.pow(1 - t, 2);
-          setDisplayed(Math.round(from + (value - from) * eased));
-          if (t < 1) requestAnimationFrame(animate);
-        };
-        requestAnimationFrame(animate);
+        hasBeenVisibleRef.current = true;
+        runAnimation(0);
         observer.disconnect();
       }
     });
     observer.observe(node);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(animationFrame);
+    };
   }, [value, reduced]);
 
   return <span ref={ref}>{displayed}{suffix}</span>;

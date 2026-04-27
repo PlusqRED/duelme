@@ -131,7 +131,7 @@ export function ProfileHero({
               </Link>
             ) : (
               <div className="hidden sm:block">
-                <ChallengeCta opponentAddress={walletAddress} variant="inline" />
+                <ChallengeCta variant="inline" />
               </div>
             )}
           </div>
