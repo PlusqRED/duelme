@@ -41,6 +41,13 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
+// Spring Boot 4 produces both `bootJar` (fat) and `jar` (plain classes-only).
+// We only ship the fat jar — disable the plain one so build/libs/ has exactly
+// one artifact and the Dockerfile glob is unambiguous.
+tasks.named<Jar>("jar") {
+    enabled = false
+}
+
 // ---------------------------------------------------------------------------
 // JVM mode: optimization flags applied via bootRun (local development)
 // ---------------------------------------------------------------------------

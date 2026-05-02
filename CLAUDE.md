@@ -47,6 +47,31 @@ forge coverage --report summary  # Coverage
 - Do not amend existing commits unless explicitly asked
 - See [Documentation Standards](#documentation-standards) for commit message format
 
+## Native Image Compatibility (CRITICAL)
+
+**The production backend ships as a GraalVM native image.** Dev runs in JVM mode for fast CI iteration, so a backend change can pass `./gradlew test`, deploy fine to dev, and still **silently break the prod release**. Do not assume "tests pass = ready to merge".
+
+The `backend-native` CI job runs `./gradlew nativeCompile` on every push to `dev` / `main` and every PR targeting `dev` / `main`. **It is the gate.** `build-prod` lists it in `needs:`, so a red `backend-native` blocks the prod deploy. Do not add an `if:` condition to that job — GitHub Actions treats a skipped need as success, which would silently bypass the gate.
+
+If `backend-native` is red, do not merge to `main`.
+
+### What commonly breaks the native image
+
+- **Reflection without hints** — `Class.forName`, `Method.invoke`, JSON/JWT libraries that reflect over types. Register hints in `backend/src/main/java/pro/duelme/backend/config/NativeImageHints.java` (see existing entries for `nimbus-jose-jwt`).
+- **Static initializers that touch I/O, networking, randomness, or class graphs that must init at runtime.** GraalVM runs `<clinit>` at build time by default. If a class must defer, add `--initialize-at-run-time=fqcn` to `graalvmNative.binaries.named("main").buildArgs` in `backend/build.gradle.kts` (see the Bouncy Castle DRBG entries).
+- **Runtime classpath / resource scanning** — `getResources("META-INF/services/...")`, runtime-loaded JARs, plugin systems, codegen libs. These need explicit resource hints or do not work at all under closed-world AOT.
+- **Adding a new dependency** — check the [GraalVM Reachability Metadata Repository](https://www.graalvm.org/native-image/libraries-and-frameworks/) and Spring Boot 4 native docs first. `web3j` and `bouncycastle` already required explicit `--initialize-at-build-time` settings — assume any heavy crypto / serialization / dynamic-proxy library needs similar care.
+
+### Before merging to main, verify locally
+
+```bash
+cd backend
+./gradlew nativeCompile                       # ~5-10 min
+./build/native/nativeCompile/duelme-backend   # smoke-test boot
+```
+
+If it fails, fix it. **Never** silence a native build failure by deleting hints, weakening build-time init, dropping the `backend-native` job, or merging anyway.
+
 ## Architecture Decisions
 
 ### Wallet Integration
@@ -78,6 +103,14 @@ All write operations follow: check chain → check allowance → approve if need
 - All services run in Docker containers (non-root, read-only FS, healthchecks)
 - Dev: `ops/docker-compose.dev.yml` → `~/apps/duelme-dev/`, `:dev` tags, ports 8080/3001
 - Prod: `ops/docker-compose.prod.yml` → `~/apps/duelme-prod/`, `:latest` tags, ports 8081/3002
+- **Backend build is split: Gradle on the host, Docker is a thin runtime.** CI runs Gradle once with the full GHA cache, uploads the artifact, then `docker/build-push-action` just `COPY`s it into a minimal image. Two targets in `backend/Dockerfile`:
+  - `target=jvm` (`eclipse-temurin:25-jre`, fat JAR) — used for **dev**, `mem_limit: 512m`. Artifact built by `backend` job (`./gradlew build` produces `build/libs/*-SNAPSHOT.jar`).
+  - `target=native` (`ubuntu:26.04`, GraalVM native binary) — used for **prod**, `mem_limit: 256m`. Artifact built by `backend-native` job (`./gradlew nativeCompile` produces `build/native/nativeCompile/duelme-backend`).
+  - CI selects via `target:` + `download-artifact` per matrix entry. The native image is also smoke-built on every push/PR — see [Native Image Compatibility (CRITICAL)](#native-image-compatibility-critical).
+- **Local docker build:** Gradle is no longer inside the Dockerfile, so build the artifact first:
+  - JVM: `cd backend && ./gradlew bootJar -Pskip.aot=true && docker build --target jvm -t duelme-backend:local .`
+  - Native: `cd backend && ./gradlew nativeCompile && docker build --target native -t duelme-backend:local .`
+  - For day-to-day backend dev, prefer `./gradlew bootRun` over docker — it is much faster.
 - Images pushed to GHCR (`ghcr.io/plusqred/duelme-{backend,frontend}:{dev,latest}`)
 - CI builds images via `docker/build-push-action`, then SSH `docker compose pull && up -d`
 - Runtime secrets and environment-specific config are stored in GitHub repository/environment secrets. Deploy jobs in `.github/workflows/ci.yml` render the remote `.env` file from those secrets immediately before `docker compose up`; do not commit secrets and do not require manually maintained `.env` files on the server.
