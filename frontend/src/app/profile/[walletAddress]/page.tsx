@@ -35,12 +35,19 @@ export default function PublicProfilePage({
   const { profile, isLoading } = useProfile(isValidAddress ? walletAddress : undefined);
   const playerStats = usePlayerDuels(walletAddress as `0x${string}`, DEFAULT_CHAIN_ID);
   const reputation = useReputation(walletAddress as `0x${string}`, DEFAULT_CHAIN_ID);
-  const { earned, unearned, top3, progressByTitleId } = useProfileTitles(
-    walletAddress as `0x${string}`,
-    DEFAULT_CHAIN_ID,
-  );
+  const { earned, unearned, top3 } = useProfileTitles(walletAddress as `0x${string}`, DEFAULT_CHAIN_ID);
 
   const repPct = reputation.total > 0 ? Math.round(reputation.score * 100) : null;
+
+  const progressByTitleId = unearned.reduce<Record<string, { current: number; target: number } | null>>((acc, title) => {
+    acc[title.id] = title.progressOf?.({
+      address: walletAddress,
+      duels: [...playerStats.activeDuels, ...playerStats.historyDuels],
+      stats: playerStats,
+      profile,
+    }) ?? null;
+    return acc;
+  }, {});
 
   if (!isValidAddress) {
     return (
@@ -104,7 +111,7 @@ export default function PublicProfilePage({
         </div>
       </div>
 
-      {!isOwner && <ChallengeCta variant="sticky" />}
+      {!isOwner && <ChallengeCta opponentAddress={walletAddress} variant="sticky" />}
     </>
   );
 }

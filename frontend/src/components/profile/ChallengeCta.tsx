@@ -7,12 +7,15 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
 interface ChallengeCtaProps {
+  opponentAddress: string;
   variant?: 'inline' | 'sticky';
 }
 
-export function ChallengeCta({ variant = 'inline' }: ChallengeCtaProps) {
+export function ChallengeCta({ opponentAddress, variant = 'inline' }: ChallengeCtaProps) {
   const { t } = useTranslation();
   const reduced = useReducedMotionPref();
+  const href = `/duel/create?opponent=${opponentAddress}`;
+
   const sticky = variant === 'sticky';
 
   return (
@@ -32,7 +35,7 @@ export function ChallengeCta({ variant = 'inline' }: ChallengeCtaProps) {
         transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
       >
         <Link
-          href="/duel/create"
+          href={href}
           className="flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-3 text-sm font-medium text-white shadow transition-shadow hover:bg-indigo-700 hover:shadow-md min-h-[44px]"
         >
           <Sword className="h-4 w-4" />

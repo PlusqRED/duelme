@@ -187,9 +187,8 @@ export default function PublicDuelsPage() {
 
         {playerFilter && (
           <div className="mb-4 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm text-indigo-700">
-            {t('publicDuels.filteringByPlayer')}{' '}
-            <span className="font-mono">{playerFilter.slice(0, 6)}...{playerFilter.slice(-4)}</span>{' '}
-            <Link href="/duels/public" className="ml-2 underline">{t('publicDuels.clearFilter')}</Link>
+            Filtering by player: <span className="font-mono">{playerFilter.slice(0, 6)}...{playerFilter.slice(-4)}</span>{' '}
+            <Link href="/duels/public" className="ml-2 underline">Clear</Link>
           </div>
         )}
 
