@@ -41,12 +41,15 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
-// Spring Boot 4 produces both `bootJar` (fat) and `jar` (plain classes-only).
-// We only ship the fat jar — disable the plain one so build/libs/ has exactly
-// one artifact and the Dockerfile glob is unambiguous.
-tasks.named<Jar>("jar") {
-    enabled = false
-}
+// NOTE: Do NOT disable the `jar` task. Spring Boot 4 produces both `bootJar`
+// (fat) and `jar` (plain classes-only). The plain jar is required by the
+// `org.graalvm.buildtools.native` plugin to assemble the native-image
+// classpath — disabling it makes `nativeCompile` fail with
+// "Main entry point class 'pro.duelme.backend.BackendApplication' neither
+// found on classpath". The Dockerfile glob `build/libs/*-SNAPSHOT.jar` and
+// the upload-artifact glob both correctly match only the fat jar (the plain
+// jar's filename ends with `-plain.jar`, not `-SNAPSHOT.jar`), so the plain
+// jar's presence in build/libs/ is harmless.
 
 // ---------------------------------------------------------------------------
 // JVM mode: optimization flags applied via bootRun (local development)
