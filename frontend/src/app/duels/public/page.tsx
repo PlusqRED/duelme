@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { PublicDuelCard } from '@/components/duel/PublicDuelCard';
 import { PublicDuelsFiltersPanel } from '@/components/duel/PublicDuelsFiltersPanel';
@@ -38,9 +37,6 @@ export default function PublicDuelsPage() {
   const [sortBy, setSortBy] = useState<SortBy>('newest');
   const [page, setPage] = useState(1);
 
-  const searchParams = useSearchParams();
-  const playerFilter = searchParams.get('player')?.toLowerCase() ?? null;
-
   const duelIds = useMemo(() => duels.map((d) => d.id), [duels]);
   const { metaByDuelId } = usePublicDuelMetas(duelIds, DEFAULT_CHAIN_ID);
 
@@ -74,10 +70,6 @@ export default function PublicDuelsPage() {
   const filtered = useMemo(() => {
     let result = enriched;
 
-    if (playerFilter) {
-      result = result.filter((d) => d.creator.toLowerCase() === playerFilter);
-    }
-
     if (gameFilter === NO_GAME_FILTER) {
       result = result.filter((d) => !d.gameName);
     } else if (gameFilter) {
@@ -108,7 +100,7 @@ export default function PublicDuelsPage() {
     else result.sort((a, b) => a.wager - b.wager);
 
     return result;
-  }, [enriched, playerFilter, gameFilter, wagerRange, normalizedSearch, sortBy]);
+  }, [enriched, gameFilter, wagerRange, normalizedSearch, sortBy]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -183,13 +175,6 @@ export default function PublicDuelsPage() {
               setPage(1);
             }}
           />
-        )}
-
-        {playerFilter && (
-          <div className="mb-4 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm text-indigo-700">
-            Filtering by player: <span className="font-mono">{playerFilter.slice(0, 6)}...{playerFilter.slice(-4)}</span>{' '}
-            <Link href="/duels/public" className="ml-2 underline">Clear</Link>
-          </div>
         )}
 
         {isLoading ? (

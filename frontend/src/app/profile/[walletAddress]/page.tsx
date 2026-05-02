@@ -2,22 +2,16 @@
 
 import { use } from 'react';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
-import { ProfileHero } from '@/components/profile/ProfileHero';
-import { ProfileTabs } from '@/components/profile/ProfileTabs';
-import { BattlesTab } from '@/components/profile/BattlesTab';
-import { AboutTab } from '@/components/profile/AboutTab';
-import { TrophiesTab } from '@/components/profile/TrophiesTab';
-import { ChallengeCta } from '@/components/profile/ChallengeCta';
+import { ReputationBadge } from '@/components/duel/ReputationBadge';
+import { CopyableAddress } from '@/components/duel/CopyableAddress';
 import { SocialLinksDisplay } from '@/components/profile/SocialLinksDisplay';
 import { useProfile } from '@/hooks/useProfile';
-import { useActiveWallet } from '@/hooks/useActiveWallet';
-import { usePlayerDuels } from '@/hooks/usePlayerDuels';
-import { useReputation } from '@/hooks/useReputation';
-import { useProfileTitles } from '@/hooks/useProfileTitles';
 import { useTranslation } from '@/i18n/useTranslation';
+import { SUPPORTED_CHAINS } from '@/lib/constants';
+import { truncateAddress } from '@/lib/utils';
 import { usePrivy } from '@privy-io/react-auth';
-import { DEFAULT_CHAIN_ID } from '@/lib/constants';
+import { useActiveWallet } from '@/hooks/useActiveWallet';
+import { ArrowLeft, User } from 'lucide-react';
 
 export default function PublicProfilePage({
   params,
@@ -27,27 +21,13 @@ export default function PublicProfilePage({
   const { walletAddress: rawAddress } = use(params);
   const walletAddress = rawAddress.toLowerCase();
   const isValidAddress = /^0x[a-f0-9]{40}$/.test(walletAddress);
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const dateLocale = language === 'ru' ? 'ru-RU' : 'en-US';
   const { authenticated } = usePrivy();
   const { walletAddress: viewerAddress } = useActiveWallet();
-  const isOwner = !!viewerAddress && viewerAddress === walletAddress;
+  const isOwnProfile = viewerAddress === walletAddress;
 
   const { profile, isLoading } = useProfile(isValidAddress ? walletAddress : undefined);
-  const playerStats = usePlayerDuels(walletAddress as `0x${string}`, DEFAULT_CHAIN_ID);
-  const reputation = useReputation(walletAddress as `0x${string}`, DEFAULT_CHAIN_ID);
-  const { earned, unearned, top3 } = useProfileTitles(walletAddress as `0x${string}`, DEFAULT_CHAIN_ID);
-
-  const repPct = reputation.total > 0 ? Math.round(reputation.score * 100) : null;
-
-  const progressByTitleId = unearned.reduce<Record<string, { current: number; target: number } | null>>((acc, title) => {
-    acc[title.id] = title.progressOf?.({
-      address: walletAddress,
-      duels: [...playerStats.activeDuels, ...playerStats.historyDuels],
-      stats: playerStats,
-      profile,
-    }) ?? null;
-    return acc;
-  }, {});
 
   if (!isValidAddress) {
     return (
@@ -68,50 +48,160 @@ export default function PublicProfilePage({
     );
   }
 
+  const nickname = profile?.nickname;
+  const displayName = nickname ?? truncateAddress(walletAddress);
+  const hasProfile = !!profile;
   const backHref = authenticated ? '/dashboard' : '/';
-  const hasReachOut = !!(profile?.socialLinks && (
-    profile.socialLinks.steam || profile.socialLinks.telegram || profile.socialLinks.instagram
-  ));
 
   return (
-    <>
-      <div className="mx-auto max-w-2xl px-4 py-8 pb-24 sm:px-6 sm:py-12 sm:pb-12">
-        <Link
-          href={backHref}
-          className="mb-6 inline-flex items-center gap-1.5 text-sm text-slate-500 transition-colors hover:text-slate-900"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          {authenticated ? t('nav.dashboard') : t('sidenav.hero')}
-        </Link>
+    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
+      <Link
+        href={backHref}
+        className="mb-6 inline-flex items-center gap-1.5 text-sm text-slate-500 transition-colors hover:text-slate-900"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" />
+        {authenticated ? t('nav.dashboard') : t('sidenav.hero')}
+      </Link>
 
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <ProfileHero
-            walletAddress={walletAddress}
-            profile={profile}
-            stats={playerStats}
-            reputationPercent={repPct}
-            topTitles={top3}
-            isOwner={isOwner}
-          />
-          <ProfileTabs
-            hasReachOut={hasReachOut}
-            battlesContent={
-              <BattlesTab walletAddress={walletAddress} stats={playerStats} isOwner={isOwner} />
-            }
-            aboutContent={<AboutTab profile={profile} isOwner={false} />}
-            reachOutContent={
-              profile?.socialLinks ? (
-                <SocialLinksDisplay socialLinks={profile.socialLinks} />
-              ) : null
-            }
-            trophiesContent={
-              <TrophiesTab earned={earned} unearned={unearned} progressByTitleId={progressByTitleId} />
-            }
-          />
+      <div className="animate-fade-in overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        {/* Header with gradient */}
+        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-8 text-white">
+          <div className="flex items-center gap-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-white/30 bg-white/10">
+              <User className="h-8 w-8 text-white/80" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl font-bold truncate">{displayName}</h1>
+              {profile?.status && (
+                <p className="mt-1 text-sm text-white/80 truncate">{profile.status}</p>
+              )}
+              <p className="mt-1 font-mono text-xs text-white/60">{truncateAddress(walletAddress)}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-4 p-6">
+          {isOwnProfile && (
+            <Link
+              href="/profile"
+              className="inline-flex items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-100"
+            >
+              {t('profile.editYours')}
+            </Link>
+          )}
+
+          {!hasProfile && (
+            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+              <User className="mx-auto mb-3 h-10 w-10 text-slate-300" />
+              <p className="text-sm text-slate-500">{t('profile.noProfileYet')}</p>
+            </div>
+          )}
+
+          {hasProfile && profile.socialLinks && (
+            <SocialLinksDisplay socialLinks={profile.socialLinks} />
+          )}
+
+          {hasProfile && (
+            <>
+              {/* Personal info */}
+              {(profile.firstName || profile.lastName) && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {profile.firstName && (
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
+                        {t('profile.firstName')}
+                      </div>
+                      <p className="text-sm text-slate-900">{profile.firstName}</p>
+                    </div>
+                  )}
+                  {profile.lastName && (
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
+                        {t('profile.lastName')}
+                      </div>
+                      <p className="text-sm text-slate-900">{profile.lastName}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {profile.gender && (
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
+                    {t('profile.gender')}
+                  </div>
+                  <p className="text-sm text-slate-900">{profile.gender}</p>
+                </div>
+              )}
+
+              {profile.aboutMe && (
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
+                    {t('profile.aboutMe')}
+                  </div>
+                  <p className="text-sm leading-relaxed text-slate-900">{profile.aboutMe}</p>
+                </div>
+              )}
+
+              {profile.games && profile.games.length > 0 && (
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+                    {t('profile.games')}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {profile.games.map((game) => (
+                      <span
+                        key={game}
+                        className="inline-flex rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-sm text-indigo-700"
+                      >
+                        {game}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Wallet + Reputation */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div className="flex flex-col items-center gap-3">
+              <CopyableAddress address={walletAddress} />
+              <ReputationBadge
+                address={walletAddress as `0x${string}`}
+                chainId={SUPPORTED_CHAINS.arbitrumSepolia.id}
+                showStats
+              />
+            </div>
+          </div>
+
+          {/* Account dates */}
+          {hasProfile && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {profile.createdAt && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
+                    {t('profile.memberSince')}
+                  </div>
+                  <p className="text-sm text-slate-900">
+                    {new Date(profile.createdAt).toLocaleDateString(dateLocale, { dateStyle: 'medium' })}
+                  </p>
+                </div>
+              )}
+              {profile.updatedAt && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
+                    {t('profile.lastUpdated')}
+                  </div>
+                  <p className="text-sm text-slate-900">
+                    {new Date(profile.updatedAt).toLocaleDateString(dateLocale, { dateStyle: 'medium' })}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
-
-      {!isOwner && <ChallengeCta opponentAddress={walletAddress} variant="sticky" />}
-    </>
+    </div>
   );
 }

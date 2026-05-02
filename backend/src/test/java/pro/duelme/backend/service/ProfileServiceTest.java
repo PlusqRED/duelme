@@ -32,51 +32,26 @@ class ProfileServiceTest {
 
     @Test
     void upsertCreatesNewProfile() {
-        var request = new ProfileRequest(
-            "testuser",
-            "git gud or die trying",
-            "About me",
-            "she/her",
-            "EU evenings",
-            true,
-            List.of("chess")
-        );
+        var request = new ProfileRequest("testuser", "active", "John", "Doe", "male", "About me", List.of("chess"));
 
         ProfileResponse response = profileService.upsert("0xABC123", request);
 
         assertThat(response.walletAddress()).isEqualTo("0xabc123");
         assertThat(response.nickname()).isEqualTo("testuser");
-        assertThat(response.battleCry()).isEqualTo("git gud or die trying");
-        assertThat(response.pronouns()).isEqualTo("she/her");
-        assertThat(response.region()).isEqualTo("EU evenings");
-        assertThat(response.lookingForDuel()).isTrue();
         assertThat(response.games()).containsExactly("chess");
         assertThat(response.createdAt()).isNotNull();
     }
 
     @Test
     void upsertUpdatesExistingProfile() {
-        profileService.upsert("0xABC123",
-            new ProfileRequest("user1", null, null, null, null, null, null));
+        profileService.upsert("0xABC123", new ProfileRequest("user1", null, null, null, null, null, null));
 
-        var update = new ProfileRequest(
-            "user1-updated", "new cry", null, null, null, false, null);
+        var update = new ProfileRequest("user1-updated", "new status", null, null, null, null, null);
         ProfileResponse response = profileService.upsert("0xABC123", update);
 
         assertThat(response.nickname()).isEqualTo("user1-updated");
-        assertThat(response.battleCry()).isEqualTo("new cry");
-        assertThat(response.lookingForDuel()).isFalse();
+        assertThat(response.status()).isEqualTo("new status");
         assertThat(response.createdAt()).isNotNull();
-    }
-
-    @Test
-    void lookingForDuelDefaultsToFalseWhenNull() {
-        profileService.upsert("0xCAFE",
-            new ProfileRequest("u", null, null, null, null, null, null));
-
-        ProfileResponse response = profileService.getByWalletAddress("0xCAFE");
-
-        assertThat(response.lookingForDuel()).isFalse();
     }
 
     @Test
@@ -87,21 +62,17 @@ class ProfileServiceTest {
 
     @Test
     void getByWalletAddressesReturnsBatch() {
-        profileService.upsert("0xAAA",
-            new ProfileRequest("user-a", null, null, null, null, null, null));
-        profileService.upsert("0xBBB",
-            new ProfileRequest("user-b", null, null, null, null, null, null));
+        profileService.upsert("0xAAA", new ProfileRequest("user-a", null, null, null, null, null, null));
+        profileService.upsert("0xBBB", new ProfileRequest("user-b", null, null, null, null, null, null));
 
-        List<ProfileResponse> results =
-            profileService.getByWalletAddresses(List.of("0xaaa", "0xbbb", "0xccc"));
+        List<ProfileResponse> results = profileService.getByWalletAddresses(List.of("0xaaa", "0xbbb", "0xccc"));
 
         assertThat(results).hasSize(2);
     }
 
     @Test
     void deleteRemovesProfile() {
-        profileService.upsert("0xDEL",
-            new ProfileRequest("to-delete", null, null, null, null, null, null));
+        profileService.upsert("0xDEL", new ProfileRequest("to-delete", null, null, null, null, null, null));
 
         profileService.delete("0xDEL");
 
