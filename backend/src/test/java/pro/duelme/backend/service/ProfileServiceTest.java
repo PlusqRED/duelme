@@ -32,7 +32,7 @@ class ProfileServiceTest {
 
     @Test
     void upsertCreatesNewProfile() {
-        var request = new ProfileRequest("testuser", "active", "John", "Doe", "male", "About me", List.of("chess"));
+        var request = new ProfileRequest("testuser", "active", "About me", List.of("chess"));
 
         ProfileResponse response = profileService.upsert("0xABC123", request);
 
@@ -44,9 +44,9 @@ class ProfileServiceTest {
 
     @Test
     void upsertUpdatesExistingProfile() {
-        profileService.upsert("0xABC123", new ProfileRequest("user1", null, null, null, null, null, null));
+        profileService.upsert("0xABC123", new ProfileRequest("user1", null, null, null));
 
-        var update = new ProfileRequest("user1-updated", "new status", null, null, null, null, null);
+        var update = new ProfileRequest("user1-updated", "new status", null, null);
         ProfileResponse response = profileService.upsert("0xABC123", update);
 
         assertThat(response.nickname()).isEqualTo("user1-updated");
@@ -62,8 +62,8 @@ class ProfileServiceTest {
 
     @Test
     void getByWalletAddressesReturnsBatch() {
-        profileService.upsert("0xAAA", new ProfileRequest("user-a", null, null, null, null, null, null));
-        profileService.upsert("0xBBB", new ProfileRequest("user-b", null, null, null, null, null, null));
+        profileService.upsert("0xAAA", new ProfileRequest("user-a", null, null, null));
+        profileService.upsert("0xBBB", new ProfileRequest("user-b", null, null, null));
 
         List<ProfileResponse> results = profileService.getByWalletAddresses(List.of("0xaaa", "0xbbb", "0xccc"));
 
@@ -72,7 +72,7 @@ class ProfileServiceTest {
 
     @Test
     void deleteRemovesProfile() {
-        profileService.upsert("0xDEL", new ProfileRequest("to-delete", null, null, null, null, null, null));
+        profileService.upsert("0xDEL", new ProfileRequest("to-delete", null, null, null));
 
         profileService.delete("0xDEL");
 

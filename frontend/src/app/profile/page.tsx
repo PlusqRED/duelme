@@ -19,7 +19,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { ArrowLeft, Pencil, X, Check, Plus, User } from 'lucide-react';
 
-type EditingField = 'nickname' | 'status' | 'firstName' | 'lastName' | 'gender' | 'aboutMe' | 'games' | null;
+type EditingField = 'nickname' | 'status' | 'aboutMe' | 'games' | null;
 
 export default function MyProfilePage() {
   const { t, language } = useTranslation();
@@ -71,9 +71,6 @@ export default function MyProfilePage() {
     const data: ProfileRequest = {
       nickname: profile?.nickname,
       status: profile?.status,
-      firstName: profile?.firstName,
-      lastName: profile?.lastName,
-      gender: profile?.gender,
       aboutMe: profile?.aboutMe,
       games: profile?.games,
       [field]: editValue || null,
@@ -97,9 +94,6 @@ export default function MyProfilePage() {
     const data: ProfileRequest = {
       nickname: profile?.nickname,
       status: profile?.status,
-      firstName: profile?.firstName,
-      lastName: profile?.lastName,
-      gender: profile?.gender,
       aboutMe: profile?.aboutMe,
       games,
     };
@@ -250,7 +244,17 @@ export default function MyProfilePage() {
                 <p className="mt-2 truncate text-sm text-white/80 sm:text-base">{profile.status}</p>
               )}
               {walletAddress && (
-                <p className="mt-1 font-mono text-xs text-white/60">{truncateAddress(displayAddress)}</p>
+                <>
+                  <div className="mt-2">
+                    <ReputationBadge
+                      address={walletAddress as `0x${string}`}
+                      chainId={SUPPORTED_CHAINS.arbitrumSepolia.id}
+                      showStats
+                      tone="dark"
+                    />
+                  </div>
+                  <p className="mt-1 font-mono text-xs text-white/60">{truncateAddress(displayAddress)}</p>
+                </>
               )}
             </div>
           </div>
@@ -260,16 +264,8 @@ export default function MyProfilePage() {
           {/* Connected social accounts */}
           <SocialLinksSection socialLinks={profile?.socialLinks} />
 
-          {/* Core fields */}
           {renderField('nickname', t('profile.nickname'), t('profile.nicknamePlaceholder'))}
           {renderField('status', t('profile.status'), t('profile.statusPlaceholder'))}
-
-          {/* Personal info */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            {renderField('firstName', t('profile.firstName'), '—')}
-            {renderField('lastName', t('profile.lastName'), '—')}
-          </div>
-          {renderField('gender', t('profile.gender'), '—')}
           {renderField('aboutMe', t('profile.aboutMe'), t('profile.aboutMePlaceholder'), true)}
 
           {/* Games */}
@@ -377,12 +373,6 @@ export default function MyProfilePage() {
               </div>
             )}
           </div>
-
-          {walletAddress && (
-            <div className="flex justify-center">
-              <ReputationBadge address={walletAddress as `0x${string}`} chainId={SUPPORTED_CHAINS.arbitrumSepolia.id} showStats />
-            </div>
-          )}
         </div>
       </div>
     </div>

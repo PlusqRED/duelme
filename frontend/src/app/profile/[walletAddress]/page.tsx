@@ -78,6 +78,14 @@ export default function PublicProfilePage({
               {profile?.status && (
                 <p className="mt-2 truncate text-sm text-white/80 sm:text-base">{profile.status}</p>
               )}
+              <div className="mt-2">
+                <ReputationBadge
+                  address={walletAddress as `0x${string}`}
+                  chainId={SUPPORTED_CHAINS.arbitrumSepolia.id}
+                  showStats
+                  tone="dark"
+                />
+              </div>
               <p className="mt-1 font-mono text-xs text-white/60">{truncateAddress(walletAddress)}</p>
             </div>
           </div>
@@ -106,37 +114,6 @@ export default function PublicProfilePage({
 
           {hasProfile && (
             <>
-              {/* Personal info */}
-              {(profile.firstName || profile.lastName) && (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {profile.firstName && (
-                    <div className="rounded-xl border border-slate-200 bg-white p-4">
-                      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
-                        {t('profile.firstName')}
-                      </div>
-                      <p className="text-sm text-slate-900">{profile.firstName}</p>
-                    </div>
-                  )}
-                  {profile.lastName && (
-                    <div className="rounded-xl border border-slate-200 bg-white p-4">
-                      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
-                        {t('profile.lastName')}
-                      </div>
-                      <p className="text-sm text-slate-900">{profile.lastName}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {profile.gender && (
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
-                  <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
-                    {t('profile.gender')}
-                  </div>
-                  <p className="text-sm text-slate-900">{profile.gender}</p>
-                </div>
-              )}
-
               {profile.aboutMe && (
                 <div className="rounded-xl border border-slate-200 bg-white p-4">
                   <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
@@ -166,15 +143,9 @@ export default function PublicProfilePage({
             </>
           )}
 
-          {/* Wallet + Reputation */}
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <div className="flex flex-col items-center gap-3">
+            <div className="flex justify-center">
               <CopyableAddress address={walletAddress} />
-              <ReputationBadge
-                address={walletAddress as `0x${string}`}
-                chainId={SUPPORTED_CHAINS.arbitrumSepolia.id}
-                showStats
-              />
             </div>
           </div>
 
