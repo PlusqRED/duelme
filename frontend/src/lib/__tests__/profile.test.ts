@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   getProfileAvatarUrls,
   getProfileAvatarUrl,
+  getWalletIdenticon,
+  isUsableAvatarImageSize,
   isUsableSteamAvatarUrl,
   isValidInstagramHandle,
   stripInstagramAt,
@@ -190,7 +192,7 @@ describe('getProfileAvatarUrl', () => {
     ).toBeNull();
   });
 
-  it('uses Telegram username photo URL when Telegram photoUrl is missing', () => {
+  it('does not synthesize a Telegram avatar URL from username when photoUrl is missing', () => {
     expect(
       getProfileAvatarUrl({
         socialLinks: {
@@ -205,10 +207,10 @@ describe('getProfileAvatarUrl', () => {
           instagram: null,
         },
       }),
-    ).toBe('https://t.me/i/userpic/320/alice_tg.jpg');
+    ).toBeNull();
   });
 
-  it('does not build Telegram username photo URL from invalid usernames', () => {
+  it('ignores invalid Telegram username when photoUrl is missing', () => {
     expect(
       getProfileAvatarUrl({
         socialLinks: {
@@ -226,7 +228,7 @@ describe('getProfileAvatarUrl', () => {
     ).toBeNull();
   });
 
-  it('uses Telegram username photo URL as a fallback after Telegram photoUrl', () => {
+  it('uses Telegram photoUrl without adding a t.me username fallback', () => {
     expect(
       getProfileAvatarUrls({
         socialLinks: {
@@ -241,12 +243,8 @@ describe('getProfileAvatarUrl', () => {
           instagram: null,
         },
       }),
-    ).toEqual([
-      'https://cdn.telegram.org/alice.jpg',
-      'https://t.me/i/userpic/320/alice_tg.jpg',
-    ]);
+    ).toEqual(['https://cdn.telegram.org/alice.jpg']);
   });
-
 });
 
 describe('isUsableSteamAvatarUrl', () => {
@@ -255,5 +253,44 @@ describe('isUsableSteamAvatarUrl', () => {
     expect(isUsableSteamAvatarUrl('https://avatars.steamstatic.com/0000000000000000000000000000000000000000.jpg')).toBe(false);
     expect(isUsableSteamAvatarUrl('https://avatars.steamstatic.com/0000000000000000000000000000000000000000_medium.jpg')).toBe(false);
     expect(isUsableSteamAvatarUrl('https://avatars.steamstatic.com/0000000000000000000000000000000000000000_full.jpg')).toBe(false);
+  });
+});
+
+describe('isUsableAvatarImageSize', () => {
+  it('rejects Telegram placeholder-sized images', () => {
+    expect(isUsableAvatarImageSize(1, 1)).toBe(false);
+    expect(isUsableAvatarImageSize(7, 320)).toBe(false);
+    expect(isUsableAvatarImageSize(320, 7)).toBe(false);
+  });
+
+  it('accepts real avatar-sized images', () => {
+    expect(isUsableAvatarImageSize(8, 8)).toBe(true);
+    expect(isUsableAvatarImageSize(320, 320)).toBe(true);
+  });
+});
+
+describe('getWalletIdenticon', () => {
+  it('returns null when wallet address is missing', () => {
+    expect(getWalletIdenticon(null)).toBeNull();
+    expect(getWalletIdenticon('   ')).toBeNull();
+  });
+
+  it('generates a stable case-insensitive identicon for a wallet', () => {
+    const wallet = '0x1111111111111111111111111111111111111111';
+    const identicon = getWalletIdenticon(wallet);
+
+    expect(identicon).toEqual(getWalletIdenticon(wallet.toUpperCase()));
+    expect(identicon?.backgroundColor).toMatch(/^hsl\(\d{1,3}, 48%, 92%\)$/);
+    expect(identicon?.foregroundColor).toMatch(/^hsl\(\d{1,3}, 70%, 42%\)$/);
+    expect(identicon?.cells.length).toBeGreaterThanOrEqual(5);
+    expect(identicon?.cells.every((cell) => (
+      cell.x >= 0 && cell.x < 5 && cell.y >= 0 && cell.y < 5
+    ))).toBe(true);
+  });
+
+  it('generates a different identicon for a different wallet', () => {
+    expect(getWalletIdenticon('0x1111111111111111111111111111111111111111')).not.toEqual(
+      getWalletIdenticon('0x2222222222222222222222222222222222222222'),
+    );
   });
 });

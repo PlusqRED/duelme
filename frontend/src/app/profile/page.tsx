@@ -143,6 +143,7 @@ export default function MyProfilePage() {
 
   const nickname = profile?.nickname;
   const displayName = nickname ?? truncateAddress(displayAddress ?? '');
+  const avatarWalletAddress = profile?.walletAddress || walletAddress || displayAddress;
 
   function renderField(
     field: Exclude<EditingField, null | 'games'>,
@@ -238,7 +239,11 @@ export default function MyProfilePage() {
         {/* Header with gradient */}
         <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-8 text-white sm:px-8">
           <div className="flex items-center gap-5 sm:gap-6">
-            <ProfileAvatar profile={profile} displayName={displayName} />
+            <ProfileAvatar
+              profile={profile}
+              displayName={displayName}
+              walletAddress={avatarWalletAddress}
+            />
             <div className="min-w-0 flex-1">
               <h1 className="truncate text-2xl font-bold sm:text-3xl">{displayName}</h1>
               {profile?.status && (
