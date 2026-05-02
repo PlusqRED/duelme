@@ -55,7 +55,7 @@ export default function PublicProfilePage({
   const backHref = authenticated ? '/dashboard' : '/';
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
       <Link
         href={backHref}
         className="mb-6 inline-flex items-center gap-1.5 text-sm text-slate-500 transition-colors hover:text-slate-900"
@@ -66,13 +66,13 @@ export default function PublicProfilePage({
 
       <div className="animate-fade-in overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {/* Header with gradient */}
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-8 text-white">
-          <div className="flex items-center gap-4">
+        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-8 text-white sm:px-8">
+          <div className="flex items-center gap-5 sm:gap-6">
             <ProfileAvatar profile={profile} displayName={displayName} />
             <div className="min-w-0 flex-1">
-              <h1 className="text-xl font-bold truncate">{displayName}</h1>
+              <h1 className="truncate text-2xl font-bold sm:text-3xl">{displayName}</h1>
               {profile?.status && (
-                <p className="mt-1 text-sm text-white/80 truncate">{profile.status}</p>
+                <p className="mt-2 truncate text-sm text-white/80 sm:text-base">{profile.status}</p>
               )}
               <p className="mt-1 font-mono text-xs text-white/60">{truncateAddress(walletAddress)}</p>
             </div>

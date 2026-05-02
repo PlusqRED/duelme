@@ -79,11 +79,16 @@ public class TelegramJwksService {
             throw new SocialVerificationFailedException("Telegram ID token missing sub");
         }
 
+        String picture = readNonBlankStringClaim(claims, "picture");
+        if (picture == null) {
+            picture = readNonBlankStringClaim(claims, "photo_url");
+        }
+
         return new TelegramClaims(
             sub,
             readStringClaim(claims, "preferred_username"),
             readStringClaim(claims, "name"),
-            readStringClaim(claims, "picture")
+            picture
         );
     }
 
@@ -93,6 +98,11 @@ public class TelegramJwksService {
         } catch (java.text.ParseException e) {
             return null;
         }
+    }
+
+    private static String readNonBlankStringClaim(JWTClaimsSet claims, String name) {
+        String value = readStringClaim(claims, name);
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     private JWKSet getJwkSet() {

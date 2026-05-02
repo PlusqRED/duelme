@@ -156,7 +156,7 @@ describe('getProfileAvatarUrl', () => {
           },
           telegram: {
             telegramId: 'tg-1',
-            username: 'alice',
+            username: null,
             displayName: 'Alice',
             photoUrl: 'data:image/png;base64,abc',
             linkedAt: '2026-01-01T00:00:00Z',
@@ -166,6 +166,87 @@ describe('getProfileAvatarUrl', () => {
       }),
     ).toBeNull();
   });
+
+  it('ignores http avatar URLs to avoid mixed-content profile images', () => {
+    expect(
+      getProfileAvatarUrl({
+        socialLinks: {
+          steam: {
+            steamId: '76561197960287930',
+            username: 'alice',
+            avatarUrl: 'http://avatars.steamstatic.com/custom_full.jpg',
+            linkedAt: '2026-01-01T00:00:00Z',
+          },
+          telegram: {
+            telegramId: 'tg-1',
+            username: null,
+            displayName: 'Alice',
+            photoUrl: 'http://t.me/i/userpic/320/alice.jpg',
+            linkedAt: '2026-01-01T00:00:00Z',
+          },
+          instagram: null,
+        },
+      }),
+    ).toBeNull();
+  });
+
+  it('uses Telegram username photo URL when Telegram photoUrl is missing', () => {
+    expect(
+      getProfileAvatarUrl({
+        socialLinks: {
+          steam: null,
+          telegram: {
+            telegramId: 'tg-1',
+            username: 'alice_tg',
+            displayName: 'Alice',
+            photoUrl: null,
+            linkedAt: '2026-01-01T00:00:00Z',
+          },
+          instagram: null,
+        },
+      }),
+    ).toBe('https://t.me/i/userpic/320/alice_tg.jpg');
+  });
+
+  it('does not build Telegram username photo URL from invalid usernames', () => {
+    expect(
+      getProfileAvatarUrl({
+        socialLinks: {
+          steam: null,
+          telegram: {
+            telegramId: 'tg-1',
+            username: 'bad/name',
+            displayName: 'Alice',
+            photoUrl: null,
+            linkedAt: '2026-01-01T00:00:00Z',
+          },
+          instagram: null,
+        },
+      }),
+    ).toBeNull();
+  });
+
+  it('uses Telegram username photo URL as a fallback after Telegram photoUrl', () => {
+    expect(
+      getProfileAvatarUrls({
+        socialLinks: {
+          steam: null,
+          telegram: {
+            telegramId: 'tg-1',
+            username: 'alice_tg',
+            displayName: 'Alice',
+            photoUrl: 'https://cdn.telegram.org/alice.jpg',
+            linkedAt: '2026-01-01T00:00:00Z',
+          },
+          instagram: null,
+        },
+      }),
+    ).toEqual([
+      'https://cdn.telegram.org/alice.jpg',
+      'https://t.me/i/userpic/320/alice_tg.jpg',
+    ]);
+  });
+
 });
 
 describe('isUsableSteamAvatarUrl', () => {

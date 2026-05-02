@@ -41,13 +41,14 @@ export interface Profile {
 }
 
 const STEAM_DEFAULT_AVATAR_RE = /\/0{40}(?:_(?:full|medium))?\.jpg(?:[?#].*)?$/i;
+const TELEGRAM_USERNAME_RE = /^[a-zA-Z0-9_]{5,32}$/;
 
 function cleanAvatarUrl(url: string | null | undefined): string | null {
   const trimmed = url?.trim();
   if (!trimmed) return null;
   try {
     const parsed = new URL(trimmed);
-    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed.toString() : null;
+    return parsed.protocol === 'https:' ? parsed.toString() : null;
   } catch {
     return null;
   }
@@ -58,17 +59,30 @@ export function isUsableSteamAvatarUrl(url: string | null | undefined): boolean 
   return !!trimmed && !STEAM_DEFAULT_AVATAR_RE.test(trimmed);
 }
 
+function getTelegramAvatarUrlFromUsername(username: string | null | undefined): string | null {
+  const trimmed = username?.trim();
+  if (!trimmed || !TELEGRAM_USERNAME_RE.test(trimmed)) return null;
+  return `https://t.me/i/userpic/320/${encodeURIComponent(trimmed)}.jpg`;
+}
+
+function pushUniqueUrl(urls: string[], url: string | null): void {
+  if (url && !urls.includes(url)) {
+    urls.push(url);
+  }
+}
+
 export function getProfileAvatarUrls(profile: Pick<Profile, 'socialLinks'> | null | undefined): string[] {
   const urls: string[] = [];
   const steamAvatar = cleanAvatarUrl(profile?.socialLinks?.steam?.avatarUrl);
-  const telegramPhoto = cleanAvatarUrl(profile?.socialLinks?.telegram?.photoUrl);
+  const telegram = profile?.socialLinks?.telegram;
+  const telegramPhoto = cleanAvatarUrl(telegram?.photoUrl);
+  const telegramUsernamePhoto = getTelegramAvatarUrlFromUsername(telegram?.username);
 
   if (steamAvatar && isUsableSteamAvatarUrl(steamAvatar)) {
-    urls.push(steamAvatar);
+    pushUniqueUrl(urls, steamAvatar);
   }
-  if (telegramPhoto && telegramPhoto !== steamAvatar) {
-    urls.push(telegramPhoto);
-  }
+  pushUniqueUrl(urls, telegramPhoto);
+  pushUniqueUrl(urls, telegramUsernamePhoto);
 
   return urls;
 }

@@ -15,13 +15,18 @@ interface ProfileAvatarProps {
 export function ProfileAvatar({ profile, displayName, className }: ProfileAvatarProps) {
   const { t } = useTranslation();
   const avatarUrls = getProfileAvatarUrls(profile);
-  const [failedUrls, setFailedUrls] = useState<string[]>([]);
+  const avatarKey = avatarUrls.join('\n');
+  const [failedState, setFailedState] = useState<{ key: string; urls: string[] }>({
+    key: '',
+    urls: [],
+  });
+  const failedUrls = failedState.key === avatarKey ? failedState.urls : [];
   const avatarUrl = avatarUrls.find((url) => !failedUrls.includes(url));
 
   return (
     <div
       className={cn(
-        'flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white/30 bg-white/10',
+        'flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-white/30 bg-white/10 shadow-lg sm:h-32 sm:w-32',
         className,
       )}
     >
@@ -33,11 +38,17 @@ export function ProfileAvatar({ profile, displayName, className }: ProfileAvatar
           referrerPolicy="no-referrer"
           className="h-full w-full object-cover"
           onError={() => {
-            setFailedUrls((prev) => prev.includes(avatarUrl) ? prev : [...prev, avatarUrl]);
+            setFailedState((prev) => {
+              const urls = prev.key === avatarKey ? prev.urls : [];
+              return {
+                key: avatarKey,
+                urls: urls.includes(avatarUrl) ? urls : [...urls, avatarUrl],
+              };
+            });
           }}
         />
       ) : (
-        <User aria-hidden="true" className="h-8 w-8 text-white/80" />
+        <User aria-hidden="true" className="h-10 w-10 text-white/80 sm:h-14 sm:w-14" />
       )}
     </div>
   );

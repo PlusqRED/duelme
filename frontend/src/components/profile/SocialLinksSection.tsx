@@ -28,7 +28,7 @@ export function SocialLinksSection({ socialLinks }: SocialLinksSectionProps) {
         <p className="mt-1 text-xs leading-relaxed text-slate-500">{t('profile.socialLinks.subtitle')}</p>
       </div>
 
-      <div className="grid divide-y divide-slate-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+      <div className="grid divide-y divide-slate-200 lg:grid-cols-3 lg:divide-x lg:divide-y-0">
         <SocialLinkCard
           platform="steam"
           state={steam ? 'linked' : 'notLinked'}
