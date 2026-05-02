@@ -167,7 +167,7 @@ export function SocialLinkCard({
               target="_blank"
               rel="noopener noreferrer"
               title={t('profile.socialLinks.open', { platform: platformName })}
-              className="inline-flex max-w-full transition hover:-translate-y-0.5 hover:shadow-md"
+              className="inline-flex max-w-full self-start rounded-full transition hover:-translate-y-0.5 hover:shadow-md"
             >
               {accountBadge}
             </a>
