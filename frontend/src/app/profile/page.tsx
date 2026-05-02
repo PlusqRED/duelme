@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ReputationBadge } from '@/components/duel/ReputationBadge';
 import { OAuthCallbackHandler } from '@/components/profile/OAuthCallbackHandler';
+import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { SocialLinksSection } from '@/components/profile/SocialLinksSection';
 import { useMyProfile } from '@/hooks/useMyProfile';
 import { useAppToast } from '@/hooks/useAppToast';
@@ -237,9 +238,7 @@ export default function MyProfilePage() {
         {/* Header with gradient */}
         <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-8 text-white">
           <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-white/30 bg-white/10">
-              <User className="h-8 w-8 text-white/80" />
-            </div>
+            <ProfileAvatar profile={profile} displayName={displayName} />
             <div className="min-w-0 flex-1">
               <h1 className="text-xl font-bold truncate">{displayName}</h1>
               {profile?.status && (

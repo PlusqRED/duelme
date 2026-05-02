@@ -40,6 +40,43 @@ export interface Profile {
   updatedAt: string | null;
 }
 
+const STEAM_DEFAULT_AVATAR_RE = /\/0{40}(?:_(?:full|medium))?\.jpg(?:[?#].*)?$/i;
+
+function cleanAvatarUrl(url: string | null | undefined): string | null {
+  const trimmed = url?.trim();
+  if (!trimmed) return null;
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+export function isUsableSteamAvatarUrl(url: string | null | undefined): boolean {
+  const trimmed = cleanAvatarUrl(url);
+  return !!trimmed && !STEAM_DEFAULT_AVATAR_RE.test(trimmed);
+}
+
+export function getProfileAvatarUrls(profile: Pick<Profile, 'socialLinks'> | null | undefined): string[] {
+  const urls: string[] = [];
+  const steamAvatar = cleanAvatarUrl(profile?.socialLinks?.steam?.avatarUrl);
+  const telegramPhoto = cleanAvatarUrl(profile?.socialLinks?.telegram?.photoUrl);
+
+  if (steamAvatar && isUsableSteamAvatarUrl(steamAvatar)) {
+    urls.push(steamAvatar);
+  }
+  if (telegramPhoto && telegramPhoto !== steamAvatar) {
+    urls.push(telegramPhoto);
+  }
+
+  return urls;
+}
+
+export function getProfileAvatarUrl(profile: Pick<Profile, 'socialLinks'> | null | undefined): string | null {
+  return getProfileAvatarUrls(profile)[0] ?? null;
+}
+
 export interface ProfileRequest {
   nickname?: string | null;
   status?: string | null;

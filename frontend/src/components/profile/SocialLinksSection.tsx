@@ -22,13 +22,13 @@ export function SocialLinksSection({ socialLinks }: SocialLinksSectionProps) {
   const instagram = socialLinks?.instagram ?? null;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
-      <div className="mb-1">
+    <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <div className="border-b border-slate-200 px-4 py-3">
         <h2 className="text-sm font-semibold text-slate-900">{t('profile.socialLinks.title')}</h2>
-        <p className="text-xs text-slate-500">{t('profile.socialLinks.subtitle')}</p>
+        <p className="mt-1 text-xs leading-relaxed text-slate-500">{t('profile.socialLinks.subtitle')}</p>
       </div>
 
-      <div className="mt-3 flex flex-col gap-3 sm:grid sm:grid-cols-3">
+      <div className="grid divide-y divide-slate-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
         <SocialLinkCard
           platform="steam"
           state={steam ? 'linked' : 'notLinked'}
@@ -73,6 +73,6 @@ export function SocialLinksSection({ socialLinks }: SocialLinksSectionProps) {
           if (!open) setUnlinkPlatform(null);
         }}
       />
-    </div>
+    </section>
   );
 }

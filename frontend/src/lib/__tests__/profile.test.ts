@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { isValidInstagramHandle, stripInstagramAt } from '../profile';
+import {
+  getProfileAvatarUrls,
+  getProfileAvatarUrl,
+  isUsableSteamAvatarUrl,
+  isValidInstagramHandle,
+  stripInstagramAt,
+} from '../profile';
 
 describe('stripInstagramAt', () => {
   it('strips a leading @', () => {
@@ -58,5 +64,115 @@ describe('isValidInstagramHandle', () => {
     expect(isValidInstagramHandle(null)).toBe(false);
     // @ts-expect-error -- runtime safety: non-string input
     expect(isValidInstagramHandle(undefined)).toBe(false);
+  });
+});
+
+describe('getProfileAvatarUrl', () => {
+  it('prefers a custom Steam avatar over Telegram photo', () => {
+    expect(
+      getProfileAvatarUrl({
+        socialLinks: {
+          steam: {
+            steamId: '76561197960287930',
+            username: 'alice',
+            avatarUrl: 'https://avatars.steamstatic.com/custom_full.jpg',
+            linkedAt: '2026-01-01T00:00:00Z',
+          },
+          telegram: {
+            telegramId: 'tg-1',
+            username: 'alice',
+            displayName: 'Alice',
+            photoUrl: 'https://t.me/i/userpic/320/alice.jpg',
+            linkedAt: '2026-01-01T00:00:00Z',
+          },
+          instagram: null,
+        },
+      }),
+    ).toBe('https://avatars.steamstatic.com/custom_full.jpg');
+  });
+
+  it('falls back to Telegram when Steam has the default empty avatar', () => {
+    expect(
+      getProfileAvatarUrl({
+        socialLinks: {
+          steam: {
+            steamId: '76561197960287930',
+            username: 'alice',
+            avatarUrl: 'https://avatars.steamstatic.com/0000000000000000000000000000000000000000_full.jpg',
+            linkedAt: '2026-01-01T00:00:00Z',
+          },
+          telegram: {
+            telegramId: 'tg-1',
+            username: 'alice',
+            displayName: 'Alice',
+            photoUrl: 'https://t.me/i/userpic/320/alice.jpg',
+            linkedAt: '2026-01-01T00:00:00Z',
+          },
+          instagram: null,
+        },
+      }),
+    ).toBe('https://t.me/i/userpic/320/alice.jpg');
+  });
+
+  it('returns null when no social avatar is usable', () => {
+    expect(getProfileAvatarUrl({ socialLinks: null })).toBeNull();
+  });
+
+  it('returns candidate URLs in fallback order', () => {
+    expect(
+      getProfileAvatarUrls({
+        socialLinks: {
+          steam: {
+            steamId: '76561197960287930',
+            username: 'alice',
+            avatarUrl: 'https://avatars.steamstatic.com/custom_full.jpg',
+            linkedAt: '2026-01-01T00:00:00Z',
+          },
+          telegram: {
+            telegramId: 'tg-1',
+            username: 'alice',
+            displayName: 'Alice',
+            photoUrl: 'https://t.me/i/userpic/320/alice.jpg',
+            linkedAt: '2026-01-01T00:00:00Z',
+          },
+          instagram: null,
+        },
+      }),
+    ).toEqual([
+      'https://avatars.steamstatic.com/custom_full.jpg',
+      'https://t.me/i/userpic/320/alice.jpg',
+    ]);
+  });
+
+  it('ignores non-http avatar URLs', () => {
+    expect(
+      getProfileAvatarUrl({
+        socialLinks: {
+          steam: {
+            steamId: '76561197960287930',
+            username: 'alice',
+            avatarUrl: 'javascript:alert(1)',
+            linkedAt: '2026-01-01T00:00:00Z',
+          },
+          telegram: {
+            telegramId: 'tg-1',
+            username: 'alice',
+            displayName: 'Alice',
+            photoUrl: 'data:image/png;base64,abc',
+            linkedAt: '2026-01-01T00:00:00Z',
+          },
+          instagram: null,
+        },
+      }),
+    ).toBeNull();
+  });
+});
+
+describe('isUsableSteamAvatarUrl', () => {
+  it('rejects blank and default Steam avatars', () => {
+    expect(isUsableSteamAvatarUrl('')).toBe(false);
+    expect(isUsableSteamAvatarUrl('https://avatars.steamstatic.com/0000000000000000000000000000000000000000.jpg')).toBe(false);
+    expect(isUsableSteamAvatarUrl('https://avatars.steamstatic.com/0000000000000000000000000000000000000000_medium.jpg')).toBe(false);
+    expect(isUsableSteamAvatarUrl('https://avatars.steamstatic.com/0000000000000000000000000000000000000000_full.jpg')).toBe(false);
   });
 });
