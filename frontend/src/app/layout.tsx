@@ -16,16 +16,16 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: 'DuelMe \u2014 P2P Gaming Duels for USDT',
+    default: 'DuelMe \u2014 1v1 USDT Duels. 0% Fee. On-Chain.',
     template: '%s | DuelMe',
   },
   description:
-    'Challenge anyone to a PvP gaming duel for USDT. Create a duel, share the link, play your game, and claim your winnings. Powered by smart contracts on Arbitrum & Polygon.',
+    'Stake USDT, win the full pot. Smart-contract escrow on Arbitrum \u2014 no platform fee, no admin override. Bring any game.',
   metadataBase: new URL('https://duelme.fun'),
   openGraph: {
-    title: 'DuelMe \u2014 P2P Gaming Duels for USDT',
+    title: 'DuelMe \u2014 1v1 USDT Duels. 0% Fee. On-Chain.',
     description:
-      'Challenge anyone to a PvP gaming duel for USDT. Smart contract escrow. Instant payouts.',
+      '1v1 USDT duels with full-pot payouts. Smart-contract escrow on Arbitrum, 0% platform fee, on-chain reputation.',
     url: 'https://duelme.fun',
     siteName: 'DuelMe',
     type: 'website',
@@ -33,9 +33,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'DuelMe \u2014 P2P Gaming Duels for USDT',
+    title: 'DuelMe \u2014 1v1 USDT Duels. 0% Fee. On-Chain.',
     description:
-      'Challenge anyone to a PvP gaming duel for USDT. Smart contract escrow. Instant payouts.',
+      '1v1 USDT duels with full-pot payouts. Smart-contract escrow on Arbitrum, 0% platform fee, on-chain reputation.',
   },
   robots: {
     index: true,
