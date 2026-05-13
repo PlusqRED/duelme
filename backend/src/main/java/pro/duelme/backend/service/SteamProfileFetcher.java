@@ -9,6 +9,7 @@ import org.springframework.web.client.RestClient;
 import pro.duelme.backend.config.SocialLinkProperties;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 /**
@@ -22,8 +23,7 @@ import java.util.Optional;
 public class SteamProfileFetcher {
 
     private static final Logger log = LoggerFactory.getLogger(SteamProfileFetcher.class);
-    private static final String SUMMARIES_URL =
-        "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/";
+    private static final String DEFAULT_AVATAR_HASH = "0000000000000000000000000000000000000000";
 
     private final RestClient restClient;
     private final String apiKey;
@@ -58,16 +58,45 @@ public class SteamProfileFetcher {
                 return Optional.empty();
             }
             Player p = players.get(0);
-            return Optional.of(new SteamPlayerSummary(p.personaname(), p.avatarfull()));
+            return Optional.of(new SteamPlayerSummary(
+                p.personaname(),
+                usableAvatarUrl(p.avatarhash(), p.avatarfull())
+            ));
         } catch (RuntimeException e) {
             log.warn("Steam profile fetch failed for {}: {}", steamId, e.getMessage());
             return Optional.empty();
         }
     }
 
+    static String usableAvatarUrl(String avatarHash, String avatarUrl) {
+        String url = blankToNull(avatarUrl);
+        if (url == null || isDefaultAvatarHashFromUrl(url)) {
+            return null;
+        }
+        String hash = blankToNull(avatarHash);
+        if (hash != null && DEFAULT_AVATAR_HASH.equalsIgnoreCase(hash)) {
+            return null;
+        }
+        return url;
+    }
+
+    private static String blankToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
+    }
+
+    private static boolean isDefaultAvatarHashFromUrl(String url) {
+        String lowerUrl = url.toLowerCase(Locale.ROOT);
+        return lowerUrl.contains("/" + DEFAULT_AVATAR_HASH + ".jpg")
+            || lowerUrl.contains("/" + DEFAULT_AVATAR_HASH + "_medium.jpg")
+            || lowerUrl.contains("/" + DEFAULT_AVATAR_HASH + "_full.jpg");
+    }
+
     public record SteamPlayerSummary(String username, String avatarUrl) {}
 
     private record SummariesResponse(@JsonProperty("response") InnerResponse response) {}
     private record InnerResponse(List<Player> players) {}
-    private record Player(String steamid, String personaname, String avatarfull) {}
+    private record Player(String steamid, String personaname, String avatarhash, String avatarfull) {}
 }

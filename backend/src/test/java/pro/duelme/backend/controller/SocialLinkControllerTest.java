@@ -123,7 +123,7 @@ class SocialLinkControllerTest {
     void steamCallbackAlreadyLinkedRedirectsWithAlreadyLinked() throws Exception {
         // Pre-populate a different profile owning the same Steam ID.
         profileRepository.save(new Profile(
-            null, "0xother", null, null, null, null, null, null, null,
+            null, "0xother", null, null, null, null,
             new SocialLinks(
                 new SteamLink("76561197960287930", "other", null, Instant.now()),
                 null, null),
@@ -222,7 +222,7 @@ class SocialLinkControllerTest {
     @Test
     void unlinkSteamReturns204AndClearsLink() throws Exception {
         profileRepository.save(new Profile(
-            null, "0xabc", null, null, null, null, null, null, null,
+            null, "0xabc", null, null, null, null,
             new SocialLinks(
                 new SteamLink("76561197960287930", "alice", null, Instant.now()),
                 new TelegramLink("tg1", "a_tg", "A", null, Instant.now()),

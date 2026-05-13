@@ -4,6 +4,7 @@ import { use } from 'react';
 import Link from 'next/link';
 import { ReputationBadge } from '@/components/duel/ReputationBadge';
 import { CopyableAddress } from '@/components/duel/CopyableAddress';
+import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { SocialLinksDisplay } from '@/components/profile/SocialLinksDisplay';
 import { useProfile } from '@/hooks/useProfile';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -54,7 +55,7 @@ export default function PublicProfilePage({
   const backHref = authenticated ? '/dashboard' : '/';
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
       <Link
         href={backHref}
         className="mb-6 inline-flex items-center gap-1.5 text-sm text-slate-500 transition-colors hover:text-slate-900"
@@ -65,16 +66,26 @@ export default function PublicProfilePage({
 
       <div className="animate-fade-in overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {/* Header with gradient */}
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-8 text-white">
-          <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-white/30 bg-white/10">
-              <User className="h-8 w-8 text-white/80" />
-            </div>
+        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-8 text-white sm:px-8">
+          <div className="flex items-center gap-5 sm:gap-6">
+            <ProfileAvatar
+              profile={profile}
+              displayName={displayName}
+              walletAddress={profile?.walletAddress || walletAddress}
+            />
             <div className="min-w-0 flex-1">
-              <h1 className="text-xl font-bold truncate">{displayName}</h1>
+              <h1 className="truncate text-2xl font-bold sm:text-3xl">{displayName}</h1>
               {profile?.status && (
-                <p className="mt-1 text-sm text-white/80 truncate">{profile.status}</p>
+                <p className="mt-2 truncate text-sm text-white/80 sm:text-base">{profile.status}</p>
               )}
+              <div className="mt-2">
+                <ReputationBadge
+                  address={walletAddress as `0x${string}`}
+                  chainId={SUPPORTED_CHAINS.arbitrumSepolia.id}
+                  showStats
+                  tone="dark"
+                />
+              </div>
               <p className="mt-1 font-mono text-xs text-white/60">{truncateAddress(walletAddress)}</p>
             </div>
           </div>
@@ -103,37 +114,6 @@ export default function PublicProfilePage({
 
           {hasProfile && (
             <>
-              {/* Personal info */}
-              {(profile.firstName || profile.lastName) && (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {profile.firstName && (
-                    <div className="rounded-xl border border-slate-200 bg-white p-4">
-                      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
-                        {t('profile.firstName')}
-                      </div>
-                      <p className="text-sm text-slate-900">{profile.firstName}</p>
-                    </div>
-                  )}
-                  {profile.lastName && (
-                    <div className="rounded-xl border border-slate-200 bg-white p-4">
-                      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
-                        {t('profile.lastName')}
-                      </div>
-                      <p className="text-sm text-slate-900">{profile.lastName}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {profile.gender && (
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
-                  <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
-                    {t('profile.gender')}
-                  </div>
-                  <p className="text-sm text-slate-900">{profile.gender}</p>
-                </div>
-              )}
-
               {profile.aboutMe && (
                 <div className="rounded-xl border border-slate-200 bg-white p-4">
                   <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
@@ -163,15 +143,9 @@ export default function PublicProfilePage({
             </>
           )}
 
-          {/* Wallet + Reputation */}
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <div className="flex flex-col items-center gap-3">
+            <div className="flex justify-center">
               <CopyableAddress address={walletAddress} />
-              <ReputationBadge
-                address={walletAddress as `0x${string}`}
-                chainId={SUPPORTED_CHAINS.arbitrumSepolia.id}
-                showStats
-              />
             </div>
           </div>
 

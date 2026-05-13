@@ -1,6 +1,16 @@
-build/
-bin/
 .gradle/
+bin/
+# Keep build/libs/*.jar and build/native/nativeCompile/duelme-backend; drop the rest.
+build/classes/
+build/tmp/
+build/reports/
+build/test-results/
+build/resources/
+build/distributions/
+build/generated/
+build/agent/
+build/jacoco/
+build/native/agent-output/
 .env
 .env.*
 Dockerfile

@@ -82,6 +82,37 @@ class TelegramJwksServiceTest {
     }
 
     @Test
+    void verifyAcceptsTelegramPhotoUrlClaimAsPictureFallback() throws JOSEException {
+        String token = signToken(new JWTClaimsSet.Builder()
+            .issuer(ISSUER)
+            .audience(CLIENT_ID)
+            .subject("123456789")
+            .claim("photo_url", "https://telesco.pe/photo-url")
+            .expirationTime(Date.from(Instant.now().plusSeconds(600)))
+            .build());
+
+        var claims = service().verifyIdToken(token);
+
+        assertThat(claims.picture()).isEqualTo("https://telesco.pe/photo-url");
+    }
+
+    @Test
+    void verifyUsesPhotoUrlWhenPictureClaimIsBlank() throws JOSEException {
+        String token = signToken(new JWTClaimsSet.Builder()
+            .issuer(ISSUER)
+            .audience(CLIENT_ID)
+            .subject("123456789")
+            .claim("picture", " ")
+            .claim("photo_url", "https://telesco.pe/photo-url")
+            .expirationTime(Date.from(Instant.now().plusSeconds(600)))
+            .build());
+
+        var claims = service().verifyIdToken(token);
+
+        assertThat(claims.picture()).isEqualTo("https://telesco.pe/photo-url");
+    }
+
+    @Test
     void verifyRejectsWrongIssuer() throws JOSEException {
         String token = signToken(new JWTClaimsSet.Builder()
             .issuer("https://evil.example.com")

@@ -11,7 +11,11 @@ services:
     volumes:
       - mongodb_data:/data/db
     healthcheck:
-      test: ["CMD", "mongosh", "-u", "${MONGO_ROOT_USERNAME}", "-p", "${MONGO_ROOT_PASSWORD}", "--authenticationDatabase", "admin", "--eval", "db.runCommand({ping:1}).ok", "--quiet"]
+      # `$$` keeps the credentials out of `docker inspect .Config.Healthcheck.Test`.
+      # Compose leaves `$$VAR` as `$VAR` at apply time; the container's sh
+      # expands it at runtime against MONGO_INITDB_ROOT_USERNAME/_PASSWORD,
+      # which the mongo entrypoint already exports from `environment:` above.
+      test: ["CMD-SHELL", "mongosh --quiet -u \"$$MONGO_INITDB_ROOT_USERNAME\" -p \"$$MONGO_INITDB_ROOT_PASSWORD\" --authenticationDatabase admin --eval 'db.runCommand({ping:1}).ok'"]
       interval: 10s
       timeout: 3s
       start_period: 10s
@@ -69,7 +73,9 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
-    mem_limit: 256m
+    # Dev backend runs in JVM mode (not native) — Spring Boot 4 needs more
+    # heap headroom than the native image. Prod stays at 256m.
+    mem_limit: 512m
     cpus: 1.0
     pids_limit: 128
     logging:

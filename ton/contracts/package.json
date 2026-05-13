@@ -1,0 +1,23 @@
+{
+  "name": "@duelme/ton-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TON DuelMe master contract written in Tolk. Built and tested with Acton.",
+  "scripts": {
+    "build": "acton build",
+    "test": "acton test",
+    "test:coverage": "acton test --coverage",
+    "deploy:testnet": "acton script scripts/deploy.tolk --net testnet",
+    "deploy:mainnet": "acton script scripts/deploy.tolk --net mainnet",
+    "format": "acton fmt",
+    "lint": "acton lint"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@ton/core": "^0.62.0",
+    "@ton/crypto": "^3.3.0",
+    "@ton/ton": "^15.1.0"
+  }
+}

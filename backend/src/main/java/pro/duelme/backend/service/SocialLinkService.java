@@ -185,9 +185,6 @@ public class SocialLinkService {
             existing.walletAddress(),
             existing.nickname(),
             existing.status(),
-            existing.firstName(),
-            existing.lastName(),
-            existing.gender(),
             existing.aboutMe(),
             existing.games(),
             next,
@@ -199,7 +196,7 @@ public class SocialLinkService {
     private static Profile newProfileWith(String wallet, SocialLinks links) {
         return new Profile(
             null, wallet,
-            null, null, null, null, null, null, null,
+            null, null, null, null,
             links,
             null, null
         );

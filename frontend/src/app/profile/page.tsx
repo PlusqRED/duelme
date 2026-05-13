@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ReputationBadge } from '@/components/duel/ReputationBadge';
 import { OAuthCallbackHandler } from '@/components/profile/OAuthCallbackHandler';
+import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { SocialLinksSection } from '@/components/profile/SocialLinksSection';
 import { useMyProfile } from '@/hooks/useMyProfile';
 import { useAppToast } from '@/hooks/useAppToast';
@@ -18,7 +19,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { ArrowLeft, Pencil, X, Check, Plus, User } from 'lucide-react';
 
-type EditingField = 'nickname' | 'status' | 'firstName' | 'lastName' | 'gender' | 'aboutMe' | 'games' | null;
+type EditingField = 'nickname' | 'status' | 'aboutMe' | 'games' | null;
 
 export default function MyProfilePage() {
   const { t, language } = useTranslation();
@@ -70,9 +71,6 @@ export default function MyProfilePage() {
     const data: ProfileRequest = {
       nickname: profile?.nickname,
       status: profile?.status,
-      firstName: profile?.firstName,
-      lastName: profile?.lastName,
-      gender: profile?.gender,
       aboutMe: profile?.aboutMe,
       games: profile?.games,
       [field]: editValue || null,
@@ -96,9 +94,6 @@ export default function MyProfilePage() {
     const data: ProfileRequest = {
       nickname: profile?.nickname,
       status: profile?.status,
-      firstName: profile?.firstName,
-      lastName: profile?.lastName,
-      gender: profile?.gender,
       aboutMe: profile?.aboutMe,
       games,
     };
@@ -142,6 +137,7 @@ export default function MyProfilePage() {
 
   const nickname = profile?.nickname;
   const displayName = nickname ?? truncateAddress(displayAddress ?? '');
+  const avatarWalletAddress = profile?.walletAddress || walletAddress || displayAddress;
 
   function renderField(
     field: Exclude<EditingField, null | 'games'>,
@@ -221,7 +217,7 @@ export default function MyProfilePage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
       <Suspense fallback={null}>
         <OAuthCallbackHandler />
       </Suspense>
@@ -235,34 +231,41 @@ export default function MyProfilePage() {
 
       <div className="animate-fade-in overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {/* Header with gradient */}
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-8 text-white">
-          <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-white/30 bg-white/10">
-              <User className="h-8 w-8 text-white/80" />
-            </div>
+        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-8 text-white sm:px-8">
+          <div className="flex items-center gap-5 sm:gap-6">
+            <ProfileAvatar
+              profile={profile}
+              displayName={displayName}
+              walletAddress={avatarWalletAddress}
+            />
             <div className="min-w-0 flex-1">
-              <h1 className="text-xl font-bold truncate">{displayName}</h1>
+              <h1 className="truncate text-2xl font-bold sm:text-3xl">{displayName}</h1>
               {profile?.status && (
-                <p className="mt-1 text-sm text-white/80 truncate">{profile.status}</p>
+                <p className="mt-2 truncate text-sm text-white/80 sm:text-base">{profile.status}</p>
               )}
               {walletAddress && (
-                <p className="mt-1 font-mono text-xs text-white/60">{truncateAddress(displayAddress)}</p>
+                <>
+                  <div className="mt-2">
+                    <ReputationBadge
+                      address={walletAddress as `0x${string}`}
+                      chainId={SUPPORTED_CHAINS.arbitrumSepolia.id}
+                      showStats
+                      tone="dark"
+                    />
+                  </div>
+                  <p className="mt-1 font-mono text-xs text-white/60">{truncateAddress(displayAddress)}</p>
+                </>
               )}
             </div>
           </div>
         </div>
 
         <div className="flex flex-col gap-4 p-6">
-          {/* Core fields */}
+          {/* Connected social accounts */}
+          <SocialLinksSection socialLinks={profile?.socialLinks} />
+
           {renderField('nickname', t('profile.nickname'), t('profile.nicknamePlaceholder'))}
           {renderField('status', t('profile.status'), t('profile.statusPlaceholder'))}
-
-          {/* Personal info */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            {renderField('firstName', t('profile.firstName'), '—')}
-            {renderField('lastName', t('profile.lastName'), '—')}
-          </div>
-          {renderField('gender', t('profile.gender'), '—')}
           {renderField('aboutMe', t('profile.aboutMe'), t('profile.aboutMePlaceholder'), true)}
 
           {/* Games */}
@@ -347,9 +350,6 @@ export default function MyProfilePage() {
             )}
           </div>
 
-          {/* Connected social accounts */}
-          <SocialLinksSection socialLinks={profile?.socialLinks} />
-
           {/* Account info */}
           <div className="grid gap-4 sm:grid-cols-2">
             {profile?.createdAt && (
@@ -373,12 +373,6 @@ export default function MyProfilePage() {
               </div>
             )}
           </div>
-
-          {walletAddress && (
-            <div className="flex justify-center">
-              <ReputationBadge address={walletAddress as `0x${string}`} chainId={SUPPORTED_CHAINS.arbitrumSepolia.id} showStats />
-            </div>
-          )}
         </div>
       </div>
     </div>

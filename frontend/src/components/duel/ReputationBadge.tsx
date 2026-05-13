@@ -50,9 +50,10 @@ interface ReputationBadgeProps {
   address: `0x${string}` | undefined;
   chainId: number;
   showStats?: boolean;
+  tone?: 'light' | 'dark';
 }
 
-export function ReputationBadge({ address, chainId, showStats = false }: ReputationBadgeProps) {
+export function ReputationBadge({ address, chainId, showStats = false, tone = 'light' }: ReputationBadgeProps) {
   const { t } = useTranslation();
   const { honored, total, score, level, isLoading } = useReputation(address, chainId);
 
@@ -74,7 +75,7 @@ export function ReputationBadge({ address, chainId, showStats = false }: Reputat
         {t(cfg.labelKey)}
       </span>
       {showStats && total > 0 && (
-        <span className="text-[10px] text-slate-400">
+        <span className={`text-[10px] ${tone === 'dark' ? 'text-white/80' : 'text-slate-400'}`}>
           {honored}/{total} · {score >= 0 ? Math.round(score * 100) : 0}%
         </span>
       )}
