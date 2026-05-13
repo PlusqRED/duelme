@@ -1,0 +1,18 @@
+build/
+node_modules/
+coverage/
+.acton/
+*.boc
+.env
+.env.local
+
+# Acton related files
+gen/
+lcov.info
+libraries.toml
+global.libraries.toml
+
+# Mnemonic and wallet files
+*.mnemonic
+wallets.toml
+global.wallets.toml
