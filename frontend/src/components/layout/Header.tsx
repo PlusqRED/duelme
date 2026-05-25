@@ -14,15 +14,22 @@ import { usePrivy, useExportWallet, useIdentityToken } from '@privy-io/react-aut
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useReadContract, useBalance } from 'wagmi';
 import { formatUnits, parseUnits, encodeFunctionData } from 'viem';
-import { TESTNET_CHAIN_IDS, USDT_DECIMALS } from '@/lib/constants';
+import { TESTNET_CHAIN_IDS, USDT_DECIMALS, DEFAULT_CHAIN_ID, CHAIN_NAMES } from '@/lib/constants';
 import { balanceOfAbi, getUsdtAddress, transferAbi } from '@/lib/contracts';
 import { emitBalanceRefreshBurst, subscribeToBalanceRefresh } from '@/lib/balanceRefresh';
 import { FaucetClaimError, claimFaucet } from '@/lib/faucetApi';
 
-const CHAIN_META: Record<number, { name: string; testnet?: boolean }> = {
-  421614: { name: 'Arb Sepolia', testnet: true },
-  42161: { name: 'Arbitrum' },
-};
+// Derived from CHAIN_NAMES + TESTNET_CHAIN_IDS so the labels stay in sync with
+// the rest of the app (e.g. duel listings, search filters).
+const CHAIN_META: Record<number, { name: string; testnet?: boolean }> = Object.fromEntries(
+  Object.entries(CHAIN_NAMES).map(([id, name]) => {
+    const numericId = Number(id);
+    return [
+      numericId,
+      TESTNET_CHAIN_IDS.has(numericId) ? { name, testnet: true } : { name },
+    ];
+  })
+);
 
 export function Header() {
   const { t, language, setLanguage } = useTranslation();
@@ -35,7 +42,7 @@ export function Header() {
   const [isSending, setIsSending] = useState(false);
   const [isClaimingFaucet, setIsClaimingFaucet] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [selectedChain, setSelectedChain] = useState<number>(421614);
+  const [selectedChain, setSelectedChain] = useState<number>(DEFAULT_CHAIN_ID);
   const [balanceFlash, setBalanceFlash] = useState(false);
 
   const isNonProdHost = useIsNonProductionHost();

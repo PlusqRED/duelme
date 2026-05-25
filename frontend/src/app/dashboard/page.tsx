@@ -15,7 +15,7 @@ import { useDashboardClaims } from '@/hooks/useDashboardClaims';
 import { usePrivy } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { usePlayerDuels } from '@/hooks/usePlayerDuels';
-import { SUPPORTED_CHAINS } from '@/lib/constants';
+import { DEFAULT_CHAIN } from '@/lib/constants';
 import { getClaimableAmountForAddress, isRefundableDuel } from '@/lib/duel';
 import { buildDashboardDuelSearchText } from '@/lib/duelSearch';
 import { formatUSDT } from '@/lib/utils';
@@ -23,7 +23,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Swords, Trophy, XCircle, BarChart3, Info, Wallet, Search, RotateCcw } from 'lucide-react';
 import { ActionFlowDialog } from '@/components/duel/ActionFlowDialog';
 
-const DASHBOARD_CHAIN = SUPPORTED_CHAINS.arbitrumSepolia;
+const DASHBOARD_CHAIN = DEFAULT_CHAIN;
 const PAGE_SIZE = 20;
 
 export default function DashboardPage() {

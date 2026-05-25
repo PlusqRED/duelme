@@ -241,12 +241,14 @@ jobs:
             tag: dev
             scope: backend-dev
             target: jvm
+            chain_key: ''
           - service: frontend
             context: frontend
             image: ghcr.io/plusqred/duelme-frontend
             tag: dev
             scope: frontend-dev
             target: ''
+            chain_key: arbitrumSepolia
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -259,17 +261,17 @@ jobs:
           path: backend/build/libs/
 
       - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4
 
       - name: Login to GHCR
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
         with:
           context: ${{ matrix.context }}
           target: ${{ matrix.target }}
@@ -277,7 +279,9 @@ jobs:
           tags: |
             ${{ matrix.image }}:${{ matrix.tag }}
             ${{ matrix.image }}:${{ matrix.tag }}-${{ github.sha }}
-          build-args: NEXT_PUBLIC_PRIVY_APP_ID=${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
+          build-args: |
+            NEXT_PUBLIC_PRIVY_APP_ID=${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
+            NEXT_PUBLIC_DEFAULT_CHAIN_KEY=${{ matrix.chain_key }}
           cache-from: type=gha,scope=${{ matrix.scope }}
           cache-to: type=gha,mode=max,scope=${{ matrix.scope }}
 
@@ -398,12 +402,14 @@ jobs:
             tag: latest
             scope: backend-prod
             target: native
+            chain_key: ''
           - service: frontend
             context: frontend
             image: ghcr.io/plusqred/duelme-frontend
             tag: latest
             scope: frontend-prod
             target: ''
+            chain_key: arbitrum
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -420,17 +426,17 @@ jobs:
         run: chmod +x backend/build/native/nativeCompile/duelme-backend
 
       - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4
 
       - name: Login to GHCR
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
         with:
           context: ${{ matrix.context }}
           target: ${{ matrix.target }}
@@ -438,7 +444,9 @@ jobs:
           tags: |
             ${{ matrix.image }}:${{ matrix.tag }}
             ${{ matrix.image }}:${{ matrix.tag }}-${{ github.sha }}
-          build-args: NEXT_PUBLIC_PRIVY_APP_ID=${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
+          build-args: |
+            NEXT_PUBLIC_PRIVY_APP_ID=${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
+            NEXT_PUBLIC_DEFAULT_CHAIN_KEY=${{ matrix.chain_key }}
           cache-from: type=gha,scope=${{ matrix.scope }}
           cache-to: type=gha,mode=max,scope=${{ matrix.scope }}
 

@@ -1,18 +1,9 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
-import { getDefaultChainKey, type ChainKey } from '@/lib/defaultChain';
+import { DEFAULT_CHAIN_KEY, type ChainKey } from '@/lib/constants';
 
-const SSR_DEFAULT: ChainKey = 'arbitrumSepolia';
-
-function noopSubscribe(): () => void {
-  return () => {};
-}
-
-function getServerSnapshot(): ChainKey {
-  return SSR_DEFAULT;
-}
-
+// Default chain is now build-time constant — kept as a hook so existing call
+// sites stay unchanged and we keep the option of returning derived state later.
 export function useDefaultChain(): ChainKey {
-  return useSyncExternalStore(noopSubscribe, getDefaultChainKey, getServerSnapshot);
+  return DEFAULT_CHAIN_KEY;
 }

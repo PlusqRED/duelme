@@ -8,7 +8,7 @@ import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { SocialLinksDisplay } from '@/components/profile/SocialLinksDisplay';
 import { useProfile } from '@/hooks/useProfile';
 import { useTranslation } from '@/i18n/useTranslation';
-import { SUPPORTED_CHAINS } from '@/lib/constants';
+import { DEFAULT_CHAIN_ID } from '@/lib/constants';
 import { truncateAddress } from '@/lib/utils';
 import { usePrivy } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
@@ -81,7 +81,7 @@ export default function PublicProfilePage({
               <div className="mt-2">
                 <ReputationBadge
                   address={walletAddress as `0x${string}`}
-                  chainId={SUPPORTED_CHAINS.arbitrumSepolia.id}
+                  chainId={DEFAULT_CHAIN_ID}
                   showStats
                   tone="dark"
                 />

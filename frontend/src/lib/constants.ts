@@ -17,9 +17,20 @@ export const SUPPORTED_CHAINS = {
 
 export type ChainKey = keyof typeof SUPPORTED_CHAINS;
 
-export const PRODUCTION_HOSTNAME = 'duelme.pro';
+// Default chain is chosen at build time via NEXT_PUBLIC_DEFAULT_CHAIN_KEY.
+// CI sets it to `arbitrum` for prod (duelme.pro) and `arbitrumSepolia` for dev.
+// Local builds without the env var fall back to testnet — safer default.
+function resolveDefaultChainKey(): ChainKey {
+  const raw = process.env.NEXT_PUBLIC_DEFAULT_CHAIN_KEY;
+  if (raw && (raw === 'arbitrum' || raw === 'arbitrumSepolia')) {
+    return raw;
+  }
+  return 'arbitrumSepolia';
+}
 
-export const DEFAULT_CHAIN_ID = SUPPORTED_CHAINS.arbitrumSepolia.id;
+export const DEFAULT_CHAIN_KEY: ChainKey = resolveDefaultChainKey();
+export const DEFAULT_CHAIN = SUPPORTED_CHAINS[DEFAULT_CHAIN_KEY];
+export const DEFAULT_CHAIN_ID = DEFAULT_CHAIN.id;
 
 export const MIN_WAGER = 3; // 3 USDT (display value)
 export const MIN_WAGER_RAW = 3_000_000n; // 3 USDT in 6 decimals
@@ -35,7 +46,7 @@ export const USDT_DECIMALS = 6;
 
 export const DUELME_ADDRESSES: Record<number, `0x${string}`> = {
   421614: '0xc09bF9E3c458224675717c40fa2ACF28343E2A1c', // Arbitrum Sepolia
-  42161: '0x0000000000000000000000000000000000000000', // Arbitrum One (TBD)
+  42161: '0x0000000000000000000000000000000000000000', // Arbitrum One — populated after Deploy
 };
 
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as `0x${string}`;

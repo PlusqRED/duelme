@@ -1,15 +1,15 @@
-import { PRODUCTION_HOSTNAME, type ChainKey } from '@/lib/constants';
+import { DEFAULT_CHAIN_KEY, type ChainKey } from '@/lib/constants';
 
 export type { ChainKey };
 
+// Default chain is fixed at build time via NEXT_PUBLIC_DEFAULT_CHAIN_KEY.
+// duelme.pro builds with `arbitrum`, dev.duelme.pro builds with `arbitrumSepolia`.
 export function getDefaultChainKey(): ChainKey {
-  if (typeof window === 'undefined') return 'arbitrumSepolia';
-  return window.location.hostname === PRODUCTION_HOSTNAME ? 'arbitrum' : 'arbitrumSepolia';
+  return DEFAULT_CHAIN_KEY;
 }
 
-// Non-production hosts (dev.duelme.pro, localhost, preview) get testnet-only
-// helpers like the MockUSDT faucet button. Production must never expose them.
+// Mirrors getDefaultChainKey — anything that gates testnet-only UI (faucet button,
+// MockUSDT helpers) reads this. True when the build targets a non-prod chain.
 export function isNonProductionHost(): boolean {
-  if (typeof window === 'undefined') return false;
-  return window.location.hostname !== PRODUCTION_HOSTNAME;
+  return DEFAULT_CHAIN_KEY !== 'arbitrum';
 }

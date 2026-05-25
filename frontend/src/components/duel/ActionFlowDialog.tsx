@@ -5,7 +5,7 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { getActionFlowSteps, type ActionFlowConfig, type ActionFlowSession, type ActionFlowSummaryContext } from '@/lib/actionFlow';
 import { buildFlowAction, type GuidedTransactionAction, type GuidedTransactionDialogConfig, type GuidedTransactionStepView } from '@/lib/guidedTransaction';
 import { GuidedTransactionDialog } from '@/components/duel/GuidedTransactionDialog';
-import { DUELME_ADDRESSES, SUPPORTED_CHAINS } from '@/lib/constants';
+import { DUELME_ADDRESSES, DEFAULT_CHAIN } from '@/lib/constants';
 
 interface ActionFlowDialogProps {
   open: boolean;
@@ -38,7 +38,7 @@ export function ActionFlowDialog({
 
   if (!flow || !config) return null;
 
-  const chainConfig = SUPPORTED_CHAINS.arbitrumSepolia;
+  const chainConfig = DEFAULT_CHAIN;
   const contractAddress = DUELME_ADDRESSES[chainConfig.id];
 
   const steps: GuidedTransactionStepView[] = getActionFlowSteps({

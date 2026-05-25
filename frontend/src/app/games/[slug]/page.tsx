@@ -10,12 +10,12 @@ import { useGameDuels } from '@/hooks/useGameDuels';
 import { useNicknames } from '@/hooks/useNicknames';
 import { useReputationLevels } from '@/hooks/useReputationLevels';
 import { useTranslation } from '@/i18n/useTranslation';
-import { SUPPORTED_CHAINS } from '@/lib/constants';
+import { DEFAULT_CHAIN } from '@/lib/constants';
 import { buildDashboardDuelSearchText } from '@/lib/duelSearch';
 import { formatUSDT } from '@/lib/utils';
 import { ArrowLeft, BarChart3, Gamepad2, Search, Swords, Zap } from 'lucide-react';
 
-const CHAIN = SUPPORTED_CHAINS.arbitrumSepolia;
+const CHAIN = DEFAULT_CHAIN;
 const PAGE_SIZE = 20;
 
 export default function GameDetailPage({
