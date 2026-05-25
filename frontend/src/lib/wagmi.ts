@@ -32,9 +32,33 @@ const TENDERLY_ARBITRUM_SEPOLIA = 'https://gateway.tenderly.co/public/arbitrum-s
 // "Allowed Origins" feature. NEXT_PUBLIC_* vars are inlined into the JS bundle,
 // so the URL (and its key) is extractable — origin allowlist is what stops
 // abuse.
-const ARBITRUM_RPC = process.env.NEXT_PUBLIC_ARBITRUM_RPC_URL || TENDERLY_ARBITRUM;
-const ARBITRUM_SEPOLIA_RPC =
-  process.env.NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL || TENDERLY_ARBITRUM_SEPOLIA;
+//
+// Defensive guard: a non-absolute URL (e.g. someone pasted just the API key
+// into the secret) would be resolved by the browser's fetch() relative to the
+// current location, sending RPC payloads to our own domain. We caught this in
+// prod once — the request landed on https://duelme.pro/duel/{key}, the page
+// returned HTML, and viem threw "HTTP request failed" with the cryptic
+// "Unexpected token '<'" cause. Validate up front and ignore garbage.
+export function resolveRpcUrl(envValue: string | undefined, fallback: string): string {
+  if (!envValue) return fallback;
+  try {
+    const parsed = new URL(envValue);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      console.warn(`[wagmi] Ignoring RPC URL with non-http(s) protocol: ${envValue}. Using fallback.`);
+      return fallback;
+    }
+    return envValue;
+  } catch {
+    console.warn(`[wagmi] Ignoring malformed RPC URL: ${envValue}. Did you paste just the API key instead of the full https://... URL? Using fallback.`);
+    return fallback;
+  }
+}
+
+const ARBITRUM_RPC = resolveRpcUrl(process.env.NEXT_PUBLIC_ARBITRUM_RPC_URL, TENDERLY_ARBITRUM);
+const ARBITRUM_SEPOLIA_RPC = resolveRpcUrl(
+  process.env.NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL,
+  TENDERLY_ARBITRUM_SEPOLIA
+);
 
 export const arbitrum = addRpcUrlOverrideToChain(arbitrumBase, ARBITRUM_RPC);
 export const arbitrumSepolia = addRpcUrlOverrideToChain(arbitrumSepoliaBase, ARBITRUM_SEPOLIA_RPC);
