@@ -5,6 +5,7 @@ import {
   getBufferedTestnetFeeParams,
   getBufferedTestnetGasLimit,
   getBufferedTestnetTransactionParams,
+  getMainnetTransactionParams,
 } from '@/lib/testnetGas';
 
 describe('getBufferedTestnetGasLimit', () => {
@@ -78,5 +79,69 @@ describe('getBufferedTestnetTransactionParams', () => {
       maxFeePerGas: 40_014_000n,
       maxPriorityFeePerGas: 2_000n,
     });
+  });
+});
+
+describe('getMainnetTransactionParams', () => {
+  it('returns all three gas params populated — Privy needs the full set', () => {
+    const result = getMainnetTransactionParams({
+      estimatedGas: 50_000n,
+      feeEstimate: { maxFeePerGas: 30_000_000n, maxPriorityFeePerGas: 0n, gasPrice: 20_000_000n },
+      baseFeePerGas: 20_000_000n,
+    });
+
+    expect(result.gas).toBeGreaterThan(0n);
+    expect(result.maxFeePerGas).toBeGreaterThan(0n);
+    expect(result.maxPriorityFeePerGas).toBeGreaterThan(0n);
+  });
+
+  it('applies a 1.2x buffer to the gas estimate', () => {
+    expect(
+      getMainnetTransactionParams({
+        estimatedGas: 50_000n,
+        feeEstimate: { maxFeePerGas: 1n, maxPriorityFeePerGas: 0n },
+        baseFeePerGas: 1n,
+      }).gas
+    ).toBe(60_000n);
+  });
+
+  it('falls back to a 1-wei priority fee when the RPC reports zero — Arbitrum has no MEV', () => {
+    expect(
+      getMainnetTransactionParams({
+        estimatedGas: 50_000n,
+        feeEstimate: { maxFeePerGas: 0n, maxPriorityFeePerGas: undefined },
+        baseFeePerGas: 0n,
+      }).maxPriorityFeePerGas
+    ).toBe(1n);
+  });
+
+  it('floors maxFeePerGas at gasPrice to survive a base-fee spike between estimate and send', () => {
+    expect(
+      getMainnetTransactionParams({
+        estimatedGas: 50_000n,
+        feeEstimate: { gasPrice: 100_000_000n, maxFeePerGas: 0n, maxPriorityFeePerGas: 1n },
+        baseFeePerGas: 1n,
+      }).maxFeePerGas
+    ).toBe(100_000_000n);
+  });
+
+  it('caps at buffered baseFee + priority when that is the highest signal', () => {
+    expect(
+      getMainnetTransactionParams({
+        estimatedGas: 50_000n,
+        feeEstimate: { maxFeePerGas: 1n, maxPriorityFeePerGas: 1n, gasPrice: 1n },
+        baseFeePerGas: 20_000_000n,
+      }).maxFeePerGas
+    ).toBe(30_000_001n); // 20_000_000 * 1.5 + 1 priority
+  });
+
+  it('does not need a minimum gas floor — eth_estimateGas is reliable on mainnet', () => {
+    expect(
+      getMainnetTransactionParams({
+        estimatedGas: 21_000n,
+        feeEstimate: { maxFeePerGas: 1n, maxPriorityFeePerGas: 0n },
+        baseFeePerGas: 1n,
+      }).gas
+    ).toBe(25_200n); // exactly 1.2x, no floor
   });
 });
