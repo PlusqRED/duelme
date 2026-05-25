@@ -12,10 +12,11 @@
 <!-- CONTRACT_ADDRESSES:START -->
 ## Current deployed contracts
 
-_Auto-generated from `contracts/broadcast/Deploy.s.sol/421614/run-latest.json`. Updated by `.githooks/pre-commit`._
+_Auto-generated from `contracts/broadcast/DeployMainnet.s.sol/42161/run-latest.json`, `contracts/broadcast/Deploy.s.sol/421614/run-latest.json`. Updated by `.githooks/pre-commit`._
 
 | Network | Contract | Address |
 |---|---|---|
+| Arbitrum One | `DuelMe` | `0xbd2266ab4b62e34fd5282608abeeed425f6d7f22` |
 | Arbitrum Sepolia | `MockUSDT` | `0xbf345834d808a058e1278b50f3844ad86686f401` |
 | Arbitrum Sepolia | `DuelMe` | `0xc09bf9e3c458224675717c40fa2acf28343e2a1c` |
 
