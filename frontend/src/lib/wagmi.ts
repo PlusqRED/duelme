@@ -6,13 +6,20 @@ import { AVAILABLE_CHAIN_KEYS } from '@/lib/constants';
 
 // Privy embedded wallets DO NOT use the wagmi http() transport — they pull the
 // RPC URL from the Chain object's rpcUrls. Without an override, Privy hits its
-// own default RPC, which is rate-limited and intermittently fails with
-// "Failed to fetch" / "HTTP request failed" under real user load. Patching the
-// chain object via addRpcUrlOverrideToChain reroutes the embedded-wallet path
-// to a reliable public node. For production scale, swap these for an Alchemy /
-// QuickNode endpoint (set via env var if you want zero-redeploy switching).
-const ARBITRUM_RPC = 'https://arbitrum-one-rpc.publicnode.com';
-const ARBITRUM_SEPOLIA_RPC = 'https://arbitrum-sepolia-rpc.publicnode.com';
+// own default RPC, which is rate-limited and fails under load.
+//
+// IMPORTANT: do NOT swap these for arbitrum-one-rpc.publicnode.com. That
+// endpoint exposes the legacy `eth_fillTransaction` JSON-RPC method, which
+// viem's `prepareTransactionRequest` then calls — and the response leaks
+// `gasPrice: "0x0"` alongside the EIP-1559 fee fields, producing a signed
+// transaction with all-zero gas. Privy's UI shows a successful estimate but
+// the resulting broadcast fails. See https://github.com/wevm/viem/issues/4323.
+// drpc.org and the official Offchain Labs RPC do NOT implement
+// eth_fillTransaction, so viem follows the EIP-1559 happy path.
+// For production scale, swap these for an Alchemy / QuickNode endpoint that
+// also avoids exposing eth_fillTransaction.
+const ARBITRUM_RPC = 'https://arbitrum.drpc.org';
+const ARBITRUM_SEPOLIA_RPC = 'https://arbitrum-sepolia.drpc.org';
 
 export const arbitrum = addRpcUrlOverrideToChain(arbitrumBase, ARBITRUM_RPC);
 export const arbitrumSepolia = addRpcUrlOverrideToChain(arbitrumSepoliaBase, ARBITRUM_SEPOLIA_RPC);
@@ -29,9 +36,9 @@ export const supportedChains = AVAILABLE_CHAIN_KEYS.map(
   (key) => CHAIN_BY_KEY[key]
 ) as unknown as readonly [typeof arbitrum | typeof arbitrumSepolia, ...(typeof arbitrum | typeof arbitrumSepolia)[]];
 
-// wagmi reads from its own transports (NOT Chain.rpcUrls). We give it the same
-// reliable nodes as the chain override, with the official Arbitrum RPC as a
-// last-resort backstop for read calls.
+// wagmi reads from its own transports (NOT Chain.rpcUrls). drpc first, official
+// Offchain Labs RPC as a backstop. Both safely avoid the eth_fillTransaction
+// bug. publicnode is intentionally absent.
 export const wagmiConfig = createConfig({
   chains: supportedChains,
   transports: {
@@ -41,7 +48,6 @@ export const wagmiConfig = createConfig({
     ]),
     [arbitrum.id]: fallback([
       http(ARBITRUM_RPC),
-      http('https://arbitrum.drpc.org'),
       http('https://arb1.arbitrum.io/rpc'),
     ]),
   },
