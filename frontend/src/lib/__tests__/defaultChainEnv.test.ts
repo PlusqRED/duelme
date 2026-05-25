@@ -41,6 +41,30 @@ describe('DEFAULT_CHAIN_KEY resolves from NEXT_PUBLIC_DEFAULT_CHAIN_KEY', () => 
   });
 });
 
+describe('AVAILABLE_CHAIN_KEYS restricts wallet UI per build', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('restricts to mainnet only on a prod (arbitrum) build', async () => {
+    vi.stubEnv('NEXT_PUBLIC_DEFAULT_CHAIN_KEY', 'arbitrum');
+    const { AVAILABLE_CHAIN_KEYS, AVAILABLE_CHAIN_IDS } = await import('../constants');
+    expect(AVAILABLE_CHAIN_KEYS).toEqual(['arbitrum']);
+    expect(AVAILABLE_CHAIN_IDS).toEqual([42161]);
+  });
+
+  it('exposes both chains on a dev (arbitrumSepolia) build', async () => {
+    vi.stubEnv('NEXT_PUBLIC_DEFAULT_CHAIN_KEY', 'arbitrumSepolia');
+    const { AVAILABLE_CHAIN_KEYS, AVAILABLE_CHAIN_IDS } = await import('../constants');
+    expect(AVAILABLE_CHAIN_KEYS).toEqual(['arbitrumSepolia', 'arbitrum']);
+    expect(AVAILABLE_CHAIN_IDS).toEqual([421614, 42161]);
+  });
+});
+
 describe('isNonProductionHost mirrors the build-time chain key', () => {
   beforeEach(() => {
     vi.resetModules();

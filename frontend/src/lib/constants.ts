@@ -32,6 +32,18 @@ export const DEFAULT_CHAIN_KEY: ChainKey = resolveDefaultChainKey();
 export const DEFAULT_CHAIN = SUPPORTED_CHAINS[DEFAULT_CHAIN_KEY];
 export const DEFAULT_CHAIN_ID = DEFAULT_CHAIN.id;
 
+// Chains a user can actually interact with in this build. Prod (Arbitrum One)
+// locks down to mainnet only — no testnet switch, balance fetch, or wallet
+// connect on Sepolia. Dev keeps both so testers can compare environments.
+export const AVAILABLE_CHAIN_KEYS: readonly ChainKey[] =
+  DEFAULT_CHAIN_KEY === 'arbitrum'
+    ? (['arbitrum'] as const)
+    : (['arbitrumSepolia', 'arbitrum'] as const);
+
+export const AVAILABLE_CHAIN_IDS: readonly number[] = AVAILABLE_CHAIN_KEYS.map(
+  (key) => SUPPORTED_CHAINS[key].id
+);
+
 export const MIN_WAGER = 3; // 3 USDT (display value)
 export const MIN_WAGER_RAW = 3_000_000n; // 3 USDT in 6 decimals
 export const MAX_WAGER_SLIDER = 500; // upper bound of the create-duel wager slider; text input still accepts larger values

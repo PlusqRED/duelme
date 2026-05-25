@@ -14,22 +14,22 @@ import { usePrivy, useExportWallet, useIdentityToken } from '@privy-io/react-aut
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useReadContract, useBalance } from 'wagmi';
 import { formatUnits, parseUnits, encodeFunctionData } from 'viem';
-import { TESTNET_CHAIN_IDS, USDT_DECIMALS, DEFAULT_CHAIN_ID, CHAIN_NAMES } from '@/lib/constants';
+import { TESTNET_CHAIN_IDS, USDT_DECIMALS, DEFAULT_CHAIN_ID, CHAIN_NAMES, AVAILABLE_CHAIN_IDS } from '@/lib/constants';
 import { balanceOfAbi, getUsdtAddress, transferAbi } from '@/lib/contracts';
 import { emitBalanceRefreshBurst, subscribeToBalanceRefresh } from '@/lib/balanceRefresh';
 import { FaucetClaimError, claimFaucet } from '@/lib/faucetApi';
 
-// Derived from CHAIN_NAMES + TESTNET_CHAIN_IDS so the labels stay in sync with
-// the rest of the app (e.g. duel listings, search filters).
+// Restricted to chains available in this build so prod (duelme.pro) renders
+// Arbitrum One only — no testnet switcher, no Sepolia balance fetch, no
+// "Testnet" badge. Dev keeps both since AVAILABLE_CHAIN_IDS is broader there.
 const CHAIN_META: Record<number, { name: string; testnet?: boolean }> = Object.fromEntries(
-  Object.entries(CHAIN_NAMES).map(([id, name]) => {
-    const numericId = Number(id);
-    return [
-      numericId,
-      TESTNET_CHAIN_IDS.has(numericId) ? { name, testnet: true } : { name },
-    ];
-  })
+  AVAILABLE_CHAIN_IDS.map((id) => [
+    id,
+    TESTNET_CHAIN_IDS.has(id) ? { name: CHAIN_NAMES[id], testnet: true } : { name: CHAIN_NAMES[id] },
+  ])
 );
+
+const CAN_SWITCH_CHAIN = AVAILABLE_CHAIN_IDS.length > 1;
 
 export function Header() {
   const { t, language, setLanguage } = useTranslation();
@@ -62,14 +62,20 @@ export function Header() {
   const { profile: myProfile } = useMyProfile();
   const displayName = myProfile?.nickname ?? walletShort ?? '';
 
-  // Read balances from all chains
+  // Read balances on each chain this build supports. The hook calls are static
+  // (wagmi rule) but each query.enabled gates the actual RPC call, so prod
+  // never hits Sepolia and dev sees both balances.
   const { data: arbSepoliaRaw, refetch: refetchArbSepolia } = useReadContract({
     address: getUsdtAddress(421614),
     abi: balanceOfAbi,
     functionName: 'balanceOf',
     args: walletAddress ? [walletAddress] : undefined,
     chainId: 421614,
-    query: { enabled: !!walletAddress, refetchInterval: 30_000, staleTime: 0 },
+    query: {
+      enabled: !!walletAddress && AVAILABLE_CHAIN_IDS.includes(421614),
+      refetchInterval: 30_000,
+      staleTime: 0,
+    },
   });
 
   const { data: arbRaw, refetch: refetchArb } = useReadContract({
@@ -78,7 +84,11 @@ export function Header() {
     functionName: 'balanceOf',
     args: walletAddress ? [walletAddress] : undefined,
     chainId: 42161,
-    query: { enabled: !!walletAddress, refetchInterval: 30_000, staleTime: 0 },
+    query: {
+      enabled: !!walletAddress && AVAILABLE_CHAIN_IDS.includes(42161),
+      refetchInterval: 30_000,
+      staleTime: 0,
+    },
   });
 
   // Read ETH balance on selected chain (for gas)
@@ -255,36 +265,38 @@ export function Header() {
         </button>
       </div>
 
-      {/* Chain switcher */}
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-0.5">
-          {Object.entries(CHAIN_META).map(([id, meta]) => {
-            const chainId = Number(id);
-            const isActive = selectedChain === chainId;
-            return (
-              <button
-                key={id}
-                onClick={() => setSelectedChain(chainId)}
-                className={`flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
-                  isActive
-                    ? meta.testnet
-                      ? 'bg-amber-50 text-amber-800 shadow-sm ring-1 ring-amber-200'
-                      : 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                {meta.name}
-              </button>
-            );
-          })}
-        </div>
-        {chainMeta?.testnet && (
-          <div className="flex items-center justify-center gap-1 rounded-md bg-amber-50 px-2 py-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-            <span className="text-[10px] font-medium text-amber-700">Testnet</span>
+      {/* Chain switcher — hidden on prod where only Arbitrum One is available */}
+      {CAN_SWITCH_CHAIN && (
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-0.5">
+            {Object.entries(CHAIN_META).map(([id, meta]) => {
+              const chainId = Number(id);
+              const isActive = selectedChain === chainId;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setSelectedChain(chainId)}
+                  className={`flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
+                    isActive
+                      ? meta.testnet
+                        ? 'bg-amber-50 text-amber-800 shadow-sm ring-1 ring-amber-200'
+                        : 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {meta.name}
+                </button>
+              );
+            })}
           </div>
-        )}
-      </div>
+          {chainMeta?.testnet && (
+            <div className="flex items-center justify-center gap-1 rounded-md bg-amber-50 px-2 py-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+              <span className="text-[10px] font-medium text-amber-700">Testnet</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Balance */}
       <div className={`rounded-lg px-3 py-2.5 transition-colors ${

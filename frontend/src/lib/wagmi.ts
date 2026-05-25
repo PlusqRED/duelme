@@ -1,15 +1,19 @@
 import { http } from 'wagmi';
 import { createConfig } from '@privy-io/wagmi';
 import { arbitrumSepolia, arbitrum } from 'wagmi/chains';
-import { DEFAULT_CHAIN_KEY } from '@/lib/constants';
+import { AVAILABLE_CHAIN_KEYS } from '@/lib/constants';
 
-// Order matters: wagmi treats the first chain as the connection default that
-// embedded wallets / unsupported-chain prompts fall back to. Build flips this
-// per environment via NEXT_PUBLIC_DEFAULT_CHAIN_KEY.
-export const supportedChains =
-  DEFAULT_CHAIN_KEY === 'arbitrum'
-    ? ([arbitrum, arbitrumSepolia] as const)
-    : ([arbitrumSepolia, arbitrum] as const);
+const CHAIN_BY_KEY = {
+  arbitrum,
+  arbitrumSepolia,
+} as const;
+
+// Build-time list — order matters: wagmi treats the first chain as the
+// connection default for embedded wallets and unsupported-chain prompts. Prod
+// gets [arbitrum] only so the wallet UI can't drift onto testnet.
+export const supportedChains = AVAILABLE_CHAIN_KEYS.map(
+  (key) => CHAIN_BY_KEY[key]
+) as unknown as readonly [typeof arbitrum | typeof arbitrumSepolia, ...(typeof arbitrum | typeof arbitrumSepolia)[]];
 
 export const wagmiConfig = createConfig({
   chains: supportedChains,
