@@ -282,6 +282,8 @@ jobs:
           build-args: |
             NEXT_PUBLIC_PRIVY_APP_ID=${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
             NEXT_PUBLIC_DEFAULT_CHAIN_KEY=${{ matrix.chain_key }}
+            NEXT_PUBLIC_ARBITRUM_RPC_URL=${{ secrets.NEXT_PUBLIC_ARBITRUM_RPC_URL }}
+            NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL=${{ secrets.NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL }}
           cache-from: type=gha,scope=${{ matrix.scope }}
           cache-to: type=gha,mode=max,scope=${{ matrix.scope }}
 
@@ -447,6 +449,8 @@ jobs:
           build-args: |
             NEXT_PUBLIC_PRIVY_APP_ID=${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
             NEXT_PUBLIC_DEFAULT_CHAIN_KEY=${{ matrix.chain_key }}
+            NEXT_PUBLIC_ARBITRUM_RPC_URL=${{ secrets.NEXT_PUBLIC_ARBITRUM_RPC_URL }}
+            NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL=${{ secrets.NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL }}
           cache-from: type=gha,scope=${{ matrix.scope }}
           cache-to: type=gha,mode=max,scope=${{ matrix.scope }}
 

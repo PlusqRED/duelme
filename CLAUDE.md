@@ -506,6 +506,8 @@ Runtime configuration source of truth: GitHub repository/environment secrets. Th
 - `PRIVY_APP_ID` — Privy app ID (required for backend JWT verification)
 - `MONGODB_URI` — MongoDB connection string (default: `mongodb://localhost:27017/duelme`); Spring Boot 4 property: `spring.mongodb.uri` (not `spring.data.mongodb.uri`)
 - `NEXT_PUBLIC_API_URL` — Backend API base URL (default: `/api/v1`)
+- `NEXT_PUBLIC_ARBITRUM_RPC_URL` — authenticated RPC for Arbitrum One (Alchemy/QuickNode). Used both as the Privy embedded-wallet override and as the first wagmi fallback. If unset, falls back to Tenderly Gateway public. Lock the URL down via the provider dashboard's "Allowed Origins" — NEXT_PUBLIC_* vars are inlined into the JS bundle.
+- `NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL` — same but for Arbitrum Sepolia. Optional; Tenderly public works for dev.
 - `APP_BASE_URL` — backend's view of the frontend origin, used to build OAuth redirect targets (`https://dev.duelme.pro` for dev, `https://duelme.pro` for prod)
 - `SOCIAL_LINK_STATE_SECRET` — HMAC secret (>=32 bytes of entropy) used to sign the state tokens that survive the Steam/Telegram redirect round-trip
 - `STEAM_API_KEY` — optional; if set, linked Steam accounts are enriched with username and avatar via `GetPlayerSummaries`
@@ -513,8 +515,8 @@ Runtime configuration source of truth: GitHub repository/environment secrets. Th
 - `TELEGRAM_CLIENT_ID` / `TELEGRAM_CLIENT_SECRET` — OIDC credentials issued by @BotFather under Bot Settings → Web Login
 - `TELEGRAM_RETURN_URL` — absolute URL Telegram redirects back to after login; must match the allowed URL registered with @BotFather (`https://dev.duelme.pro/api/v1/profiles/me/social/telegram/callback` or `https://duelme.pro/api/v1/profiles/me/social/telegram/callback`)
 - `TELEGRAM_ISSUER` — OIDC issuer, defaults to `https://oauth.telegram.org`
-- Currently deployed on Arbitrum Sepolia (testnet, chainId 421614)
-- Contract address in `DUELME_ADDRESSES` map in `constants.ts`
+- Deployed on Arbitrum One (mainnet, chainId 42161) and Arbitrum Sepolia (testnet, chainId 421614). Build-time `NEXT_PUBLIC_DEFAULT_CHAIN_KEY` (`arbitrum` for prod, `arbitrumSepolia` for dev) selects which one users land on.
+- Contract addresses in `DUELME_ADDRESSES` map in `constants.ts`
 
 ## Common Pitfalls
 
@@ -523,7 +525,9 @@ Runtime configuration source of truth: GitHub repository/environment secrets. Th
 - Invite-only duels rely on the full private link (URL fragment) — do not fall back to sharing plain `/duel/{id}` URLs
 - USDT has a blocklist — keep payouts pull-based and do not reintroduce push transfers
 - Wilson Score gives low scores for small sample sizes — players with 0 abandoned duels are never "unreliable"
-- Only `contracts/broadcast/Deploy.s.sol/421614/run-latest.json` should be tracked; timestamped `run-*.json` files stay ignored
+- Only `contracts/broadcast/{Deploy,DeployMainnet}.s.sol/<chainId>/run-latest.json` should be tracked; timestamped `run-*.json` files stay ignored (filter is in top-level `.gitignore`)
+- Do NOT use `arbitrum-one-rpc.publicnode.com` for Arbitrum RPC — it exposes legacy `eth_fillTransaction`, which viem 2.47+ calls during `prepareTransactionRequest` and gets back `gasPrice: "0x0"`, producing signed transactions with all-zero gas/fees. Privy SDK then surfaces this as "HTTP request failed". See https://github.com/wevm/viem/issues/4323 (open as of May 2026). Use Alchemy/QuickNode/Tenderly/drpc/arb1.arbitrum.io instead — they don't implement `eth_fillTransaction`
+- Privy embedded wallets sign with all-zero gas/nonce when the SDK auto-populate path runs; bypass by passing `gas` / `maxFeePerGas` / `maxPriorityFeePerGas` / `nonce` explicitly in every `writeContract` call. Implemented centrally in `useDuelActions.writeWithGas` — do not call `writeContract` directly from action functions
 - README contract addresses are generated from `run-latest.json`; let `scripts/sync_readme_contract_addresses.py` / the pre-commit hook update that block
 - In this environment, source `contracts/.env` before manual deploys (`set -a && . ./.env && set +a`)
 - Use shared constants from `constants.ts` (`ZERO_ADDRESS`, `CHAIN_NAMES`) and `contracts.ts` (`ACTIVE_STATES`, `balanceOfAbi`, `transferAbi`, `getUsdtAddress`) — never redefine locally
