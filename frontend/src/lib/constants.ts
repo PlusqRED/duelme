@@ -58,7 +58,7 @@ export const USDT_DECIMALS = 6;
 
 export const DUELME_ADDRESSES: Record<number, `0x${string}`> = {
   421614: '0xc09bF9E3c458224675717c40fa2ACF28343E2A1c', // Arbitrum Sepolia
-  42161: '0x0000000000000000000000000000000000000000', // Arbitrum One — populated after Deploy
+  42161: '0xBd2266AB4b62E34FD5282608abeEEd425F6D7F22', // Arbitrum One
 };
 
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as `0x${string}`;
