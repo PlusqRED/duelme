@@ -12,18 +12,52 @@ import {
   ARBITRUM_SEPOLIA_APPROVE_MIN_GAS,
   ARBITRUM_SEPOLIA_CREATE_DUEL_MIN_GAS,
   getBufferedTestnetTransactionParams,
+  getMainnetTransactionParams,
 } from '@/lib/testnetGas';
 
 type DuelPublicClient = NonNullable<ReturnType<typeof usePublicClient>>;
+type EstimateGasFn = (publicClient: DuelPublicClient) => Promise<bigint>;
+
+// Default min-gas floor used for non-create/approve actions on Sepolia.
+// Sepolia's eth_estimateGas occasionally under-reports; this is generous but
+// still fits inside a single L2 block. Mainnet ignores the floor.
+const DEFAULT_TESTNET_MIN_GAS = 200_000n;
+
+async function buildTransactionParams(
+  publicClient: DuelPublicClient,
+  estimateGas: EstimateGasFn,
+  chainId: number,
+  minimumTestnetGas: bigint
+) {
+  const [estimatedGas, estimatedFees, latestBlock] = await Promise.all([
+    estimateGas(publicClient),
+    publicClient.estimateFeesPerGas(),
+    publicClient.getBlock(),
+  ]);
+
+  if (chainId === SUPPORTED_CHAINS.arbitrumSepolia.id) {
+    return getBufferedTestnetTransactionParams({
+      estimatedGas,
+      minimumGas: minimumTestnetGas,
+      feeEstimate: estimatedFees,
+      baseFeePerGas: latestBlock.baseFeePerGas,
+    });
+  }
+
+  return getMainnetTransactionParams({
+    estimatedGas,
+    feeEstimate: estimatedFees,
+    baseFeePerGas: latestBlock.baseFeePerGas,
+  });
+}
+
+type WriteConfig = Parameters<ReturnType<typeof useWriteContract>['writeContract']>[0];
+type EstimateContractGasConfig = Parameters<DuelPublicClient['estimateContractGas']>[0];
 
 export function useDuelActions(chainId: number) {
   const contractAddress = DUELME_ADDRESSES[chainId];
   const { address: accountAddress } = useAccount();
   const publicClient = usePublicClient({ chainId });
-  const shouldUseSepoliaGasBuffer =
-    chainId === SUPPORTED_CHAINS.arbitrumSepolia.id &&
-    publicClient !== undefined &&
-    accountAddress !== undefined;
 
   const {
     writeContract,
@@ -37,237 +71,109 @@ export function useDuelActions(chainId: number) {
     hash,
   });
 
+  // Privy embedded wallets sign with all-zero gas params when their internal
+  // prepareTransactionRequest path runs — see Privy docs:
+  // https://docs.privy.io/basics/react/advanced/configuring-evm-networks
+  // ("If you only pass a subset of the parameters, Privy will estimate the
+  // rest according to its defaults, which may result in unpredictable
+  // behavior.") We pre-fill gas / maxFeePerGas / maxPriorityFeePerGas on every
+  // write so the wallet provider never has to populate them. MetaMask and
+  // other injected wallets accept the explicit values too.
+  async function writeWithGas(
+    config: WriteConfig,
+    minimumTestnetGas: bigint = DEFAULT_TESTNET_MIN_GAS
+  ) {
+    if (!publicClient || !accountAddress) {
+      writeContract(config);
+      return;
+    }
+
+    try {
+      const params = await buildTransactionParams(
+        publicClient,
+        (client) =>
+          client.estimateContractGas({
+            ...config,
+            account: accountAddress,
+          } as EstimateContractGasConfig),
+        chainId,
+        minimumTestnetGas
+      );
+      writeContract({ ...config, ...params } as WriteConfig);
+    } catch (estimateError) {
+      // Estimate failure is rare (drpc returns 5xx, contract simulation reverts).
+      // Surface it so it's not a silent UX dead-end, then let the wallet try to
+      // populate as a last resort — on mainnet with Privy this still fails but
+      // the user at least sees the same end-state as before this safeguard.
+      console.error('useDuelActions: gas pre-fill failed, falling back to wallet populate', estimateError);
+      writeContract(config);
+    }
+  }
+
+  // Most duel actions take a single duelId and write to the DuelMe contract
+  // with no per-action gas floor (Sepolia uses DEFAULT_TESTNET_MIN_GAS).
+  function bindDuelMeWrite<TName extends string>(functionName: TName, minTestnetGas?: bigint) {
+    return async (...args: readonly unknown[]) => {
+      await writeWithGas(
+        {
+          address: contractAddress,
+          abi: duelMeAbi,
+          functionName,
+          args,
+          chainId,
+        } as WriteConfig,
+        minTestnetGas
+      );
+    };
+  }
+
   async function createDuel(amount: bigint, inviteHash: `0x${string}`, message = '') {
     const args = message
       ? ([amount, inviteHash, message] as const)
       : ([amount, inviteHash] as const);
-    const config = {
-      address: contractAddress,
-      abi: duelMeAbi,
-      functionName: 'createDuel',
-      args,
-      chainId,
-    } as const;
-
-    if (shouldUseSepoliaGasBuffer) {
-      const transactionParams = await getSepoliaTransactionParams(
-        publicClient,
-        (client) => client.estimateContractGas({
-          ...config,
-          account: accountAddress,
-        }),
-        ARBITRUM_SEPOLIA_CREATE_DUEL_MIN_GAS
-      );
-
-      writeContract({
-        ...config,
-        ...transactionParams,
-      });
-      return;
-    }
-
-    writeContract(config);
+    await writeWithGas(
+      {
+        address: contractAddress,
+        abi: duelMeAbi,
+        functionName: 'createDuel',
+        args,
+        chainId,
+      } as WriteConfig,
+      ARBITRUM_SEPOLIA_CREATE_DUEL_MIN_GAS
+    );
   }
 
   async function approveToken(token: `0x${string}`, amount: bigint) {
-    const config = {
-      address: token,
-      abi: erc20Abi,
-      functionName: 'approve',
-      args: [contractAddress, amount],
-      chainId,
-    } as const;
-
-    if (shouldUseSepoliaGasBuffer) {
-      const transactionParams = await getSepoliaTransactionParams(
-        publicClient,
-        (client) => client.estimateContractGas({
-          ...config,
-          account: accountAddress,
-        }),
-        ARBITRUM_SEPOLIA_APPROVE_MIN_GAS
-      );
-
-      writeContract({
-        ...config,
-        ...transactionParams,
-      });
-      return;
-    }
-
-    writeContract({
-      ...config,
-    });
-  }
-
-  function joinDuel(duelId: bigint, inviteSecret: `0x${string}`) {
-    writeContract({
-      address: contractAddress,
-      abi: duelMeAbi,
-      functionName: 'joinDuel',
-      args: [duelId, inviteSecret],
-      chainId,
-    });
-  }
-
-  function declineDuel(duelId: bigint, inviteSecret: `0x${string}`) {
-    writeContract({
-      address: contractAddress,
-      abi: duelMeAbi,
-      functionName: 'declineDuel',
-      args: [duelId, inviteSecret],
-      chainId,
-    });
-  }
-
-  function claimVictory(duelId: bigint) {
-    writeContract({
-      address: contractAddress,
-      abi: duelMeAbi,
-      functionName: 'claimVictory',
-      args: [duelId],
-      chainId,
-    });
-  }
-
-  function requestMutualCancellation(duelId: bigint) {
-    writeContract({
-      address: contractAddress,
-      abi: duelMeAbi,
-      functionName: 'requestMutualCancellation',
-      args: [duelId],
-      chainId,
-    });
-  }
-
-  function acceptMutualCancellation(duelId: bigint) {
-    writeContract({
-      address: contractAddress,
-      abi: duelMeAbi,
-      functionName: 'acceptMutualCancellation',
-      args: [duelId],
-      chainId,
-    });
-  }
-
-  function declineMutualCancellation(duelId: bigint) {
-    writeContract({
-      address: contractAddress,
-      abi: duelMeAbi,
-      functionName: 'declineMutualCancellation',
-      args: [duelId],
-      chainId,
-    });
-  }
-
-  function withdrawMutualCancellationRequest(duelId: bigint) {
-    writeContract({
-      address: contractAddress,
-      abi: duelMeAbi,
-      functionName: 'withdrawMutualCancellationRequest',
-      args: [duelId],
-      chainId,
-    });
-  }
-
-  function claimPayout(duelId: bigint) {
-    writeContract({
-      address: contractAddress,
-      abi: duelMeAbi,
-      functionName: 'claimPayout',
-      args: [duelId],
-      chainId,
-    });
-  }
-
-  function claimPayouts(duelIds: bigint[]) {
-    writeContract({
-      address: contractAddress,
-      abi: duelMeAbi,
-      functionName: 'claimPayouts',
-      args: [duelIds],
-      chainId,
-    });
-  }
-
-  function admitDefeat(duelId: bigint) {
-    writeContract({
-      address: contractAddress,
-      abi: duelMeAbi,
-      functionName: 'admitDefeat',
-      args: [duelId],
-      chainId,
-    });
-  }
-
-  function confirmResult(duelId: bigint) {
-    writeContract({
-      address: contractAddress,
-      abi: duelMeAbi,
-      functionName: 'confirmResult',
-      args: [duelId],
-      chainId,
-    });
-  }
-
-  function disputeResult(duelId: bigint) {
-    writeContract({
-      address: contractAddress,
-      abi: duelMeAbi,
-      functionName: 'disputeResult',
-      args: [duelId],
-      chainId,
-    });
-  }
-
-  function refund(duelId: bigint) {
-    writeContract({
-      address: contractAddress,
-      abi: duelMeAbi,
-      functionName: 'refund',
-      args: [duelId],
-      chainId,
-    });
-  }
-
-  function refundAndClaimPayouts(duelIds: bigint[]) {
-    writeContract({
-      address: contractAddress,
-      abi: duelMeAbi,
-      functionName: 'refundAndClaimPayouts',
-      args: [duelIds],
-      chainId,
-    });
-  }
-
-  function cancelDuel(duelId: bigint) {
-    writeContract({
-      address: contractAddress,
-      abi: duelMeAbi,
-      functionName: 'cancelDuel',
-      args: [duelId],
-      chainId,
-    });
+    await writeWithGas(
+      {
+        address: token,
+        abi: erc20Abi,
+        functionName: 'approve',
+        args: [contractAddress, amount],
+        chainId,
+      } as WriteConfig,
+      ARBITRUM_SEPOLIA_APPROVE_MIN_GAS
+    );
   }
 
   return {
     createDuel,
     approveToken,
-    joinDuel,
-    declineDuel,
-    claimVictory,
-    requestMutualCancellation,
-    acceptMutualCancellation,
-    declineMutualCancellation,
-    withdrawMutualCancellationRequest,
-    claimPayout,
-    claimPayouts,
-    admitDefeat,
-    confirmResult,
-    disputeResult,
-    refund,
-    refundAndClaimPayouts,
-    cancelDuel,
+    joinDuel: bindDuelMeWrite('joinDuel'),
+    declineDuel: bindDuelMeWrite('declineDuel'),
+    claimVictory: bindDuelMeWrite('claimVictory'),
+    admitDefeat: bindDuelMeWrite('admitDefeat'),
+    confirmResult: bindDuelMeWrite('confirmResult'),
+    disputeResult: bindDuelMeWrite('disputeResult'),
+    refund: bindDuelMeWrite('refund'),
+    refundAndClaimPayouts: bindDuelMeWrite('refundAndClaimPayouts'),
+    cancelDuel: bindDuelMeWrite('cancelDuel'),
+    claimPayout: bindDuelMeWrite('claimPayout'),
+    claimPayouts: bindDuelMeWrite('claimPayouts'),
+    requestMutualCancellation: bindDuelMeWrite('requestMutualCancellation'),
+    acceptMutualCancellation: bindDuelMeWrite('acceptMutualCancellation'),
+    declineMutualCancellation: bindDuelMeWrite('declineMutualCancellation'),
+    withdrawMutualCancellationRequest: bindDuelMeWrite('withdrawMutualCancellationRequest'),
     hash,
     isPending,
     isConfirming,
@@ -276,23 +182,4 @@ export function useDuelActions(chainId: number) {
     error,
     reset,
   };
-}
-
-async function getSepoliaTransactionParams(
-  publicClient: DuelPublicClient,
-  estimateGas: (publicClient: DuelPublicClient) => Promise<bigint>,
-  minimumGas: bigint
-) {
-  const [estimatedGas, estimatedFees, latestBlock] = await Promise.all([
-    estimateGas(publicClient),
-    publicClient.estimateFeesPerGas(),
-    publicClient.getBlock(),
-  ]);
-
-  return getBufferedTestnetTransactionParams({
-    estimatedGas,
-    minimumGas,
-    feeEstimate: estimatedFees,
-    baseFeePerGas: latestBlock.baseFeePerGas,
-  });
 }
