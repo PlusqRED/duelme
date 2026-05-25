@@ -241,12 +241,14 @@ jobs:
             tag: dev
             scope: backend-dev
             target: jvm
+            chain_key: ''
           - service: frontend
             context: frontend
             image: ghcr.io/plusqred/duelme-frontend
             tag: dev
             scope: frontend-dev
             target: ''
+            chain_key: arbitrumSepolia
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -277,7 +279,9 @@ jobs:
           tags: |
             ${{ matrix.image }}:${{ matrix.tag }}
             ${{ matrix.image }}:${{ matrix.tag }}-${{ github.sha }}
-          build-args: NEXT_PUBLIC_PRIVY_APP_ID=${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
+          build-args: |
+            NEXT_PUBLIC_PRIVY_APP_ID=${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
+            NEXT_PUBLIC_DEFAULT_CHAIN_KEY=${{ matrix.chain_key }}
           cache-from: type=gha,scope=${{ matrix.scope }}
           cache-to: type=gha,mode=max,scope=${{ matrix.scope }}
 
@@ -398,12 +402,14 @@ jobs:
             tag: latest
             scope: backend-prod
             target: native
+            chain_key: ''
           - service: frontend
             context: frontend
             image: ghcr.io/plusqred/duelme-frontend
             tag: latest
             scope: frontend-prod
             target: ''
+            chain_key: arbitrum
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -438,7 +444,9 @@ jobs:
           tags: |
             ${{ matrix.image }}:${{ matrix.tag }}
             ${{ matrix.image }}:${{ matrix.tag }}-${{ github.sha }}
-          build-args: NEXT_PUBLIC_PRIVY_APP_ID=${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
+          build-args: |
+            NEXT_PUBLIC_PRIVY_APP_ID=${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
+            NEXT_PUBLIC_DEFAULT_CHAIN_KEY=${{ matrix.chain_key }}
           cache-from: type=gha,scope=${{ matrix.scope }}
           cache-to: type=gha,mode=max,scope=${{ matrix.scope }}
 

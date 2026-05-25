@@ -8,7 +8,7 @@ import { useDuelActions } from '@/hooks/useDuelActions';
 import { useTranslation } from '@/i18n/useTranslation';
 import { joinDuelFlowActions } from '@/lib/joinDuelFlowActions';
 import type { JoinDuelFlowSession } from '@/lib/joinDuelFlow';
-import { DUELME_ADDRESSES, SUPPORTED_CHAINS } from '@/lib/constants';
+import { DUELME_ADDRESSES, DEFAULT_CHAIN } from '@/lib/constants';
 import { erc20Abi } from '@/lib/contracts';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 
@@ -38,7 +38,7 @@ export function useJoinDuelFlow({
   const { switchChainAsync } = useSwitchChain();
   const { chainId: connectedChainId } = useAccount();
 
-  const chainConfig = SUPPORTED_CHAINS.arbitrumSepolia;
+  const chainConfig = DEFAULT_CHAIN;
   const contractAddress = DUELME_ADDRESSES[chainConfig.id];
   const joinActions = useDuelActions(chainConfig.id);
 

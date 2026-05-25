@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 README_PATH = ROOT / "README.md"
-RUN_LATEST_PATH = ROOT / "contracts" / "broadcast" / "Deploy.s.sol" / "421614" / "run-latest.json"
 
 START_MARKER = "<!-- CONTRACT_ADDRESSES:START -->"
 END_MARKER = "<!-- CONTRACT_ADDRESSES:END -->"
@@ -16,8 +16,31 @@ BADGE_BLOCK_END = "</p>"
 DEV_NOTE = "> Dev note: run `git config core.hooksPath .githooks` once in your clone to auto-refresh this block on every commit."
 
 
-def load_contracts() -> list[tuple[str, str]]:
-    payload = json.loads(RUN_LATEST_PATH.read_text(encoding="utf-8"))
+@dataclass(frozen=True)
+class Network:
+    label: str
+    script: str
+    chain_id: int
+
+    @property
+    def run_latest_path(self) -> Path:
+        return ROOT / "contracts" / "broadcast" / self.script / str(self.chain_id) / "run-latest.json"
+
+
+# Networks rendered in README order. Each entry is only emitted when its
+# corresponding broadcast file exists, so the testnet block remains intact
+# until DeployMainnet.s.sol is broadcast for the first time.
+NETWORKS: list[Network] = [
+    Network("Arbitrum One", "DeployMainnet.s.sol", 42161),
+    Network("Arbitrum Sepolia", "Deploy.s.sol", 421614),
+]
+
+
+def load_network_contracts(network: Network) -> list[tuple[str, str]]:
+    if not network.run_latest_path.exists():
+        return []
+
+    payload = json.loads(network.run_latest_path.read_text(encoding="utf-8"))
 
     contracts: list[tuple[str, str]] = []
     seen_names: set[str] = set()
@@ -35,25 +58,40 @@ def load_contracts() -> list[tuple[str, str]]:
         seen_names.add(contract_name)
         contracts.append((contract_name, contract_address))
 
-    if not contracts:
-        raise ValueError(f"No CREATE transactions with contract addresses found in {RUN_LATEST_PATH}")
-
     return contracts
 
 
-def render_block(contracts: list[tuple[str, str]]) -> str:
+def collect_deployments() -> list[tuple[Network, list[tuple[str, str]]]]:
+    rows: list[tuple[Network, list[tuple[str, str]]]] = []
+    for network in NETWORKS:
+        contracts = load_network_contracts(network)
+        if contracts:
+            rows.append((network, contracts))
+
+    if not rows:
+        raise ValueError("No CREATE transactions found in any tracked broadcast file")
+
+    return rows
+
+
+def render_block(deployments: list[tuple[Network, list[tuple[str, str]]]]) -> str:
+    source_paths = ", ".join(
+        f"`{network.run_latest_path.relative_to(ROOT).as_posix()}`" for network, _ in deployments
+    )
+
     lines = [
         START_MARKER,
         "## Current deployed contracts",
         "",
-        f"_Auto-generated from `{RUN_LATEST_PATH.relative_to(ROOT).as_posix()}`. Updated by `.githooks/pre-commit`._",
+        f"_Auto-generated from {source_paths}. Updated by `.githooks/pre-commit`._",
         "",
         "| Network | Contract | Address |",
         "|---|---|---|",
     ]
 
-    for contract_name, contract_address in contracts:
-        lines.append(f"| Arbitrum Sepolia | `{contract_name}` | `{contract_address}` |")
+    for network, contracts in deployments:
+        for contract_name, contract_address in contracts:
+            lines.append(f"| {network.label} | `{contract_name}` | `{contract_address}` |")
 
     lines.extend(["", DEV_NOTE, "", END_MARKER])
 
@@ -90,8 +128,8 @@ def update_readme(readme_text: str, generated_block: str) -> str:
 
 
 def main() -> None:
-    contracts = load_contracts()
-    generated_block = render_block(contracts)
+    deployments = collect_deployments()
+    generated_block = render_block(deployments)
     current_readme = README_PATH.read_text(encoding="utf-8")
     updated_readme = update_readme(current_readme, generated_block)
 

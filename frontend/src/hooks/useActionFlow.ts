@@ -6,7 +6,7 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { useDuelActions } from '@/hooks/useDuelActions';
 import { useActionFlowLifecycle } from '@/hooks/useActionFlowLifecycle';
 import { getGuidedFlowErrorMessage } from '@/lib/guidedFlowRuntime';
-import { SUPPORTED_CHAINS } from '@/lib/constants';
+import { DEFAULT_CHAIN } from '@/lib/constants';
 import type { ActionFlowConfig, ActionFlowSession } from '@/lib/actionFlow';
 
 interface UseActionFlowArgs {
@@ -18,7 +18,7 @@ export function useActionFlow({ duelId, refetchDuel }: UseActionFlowArgs) {
   const { t } = useTranslation();
   const { switchChainAsync } = useSwitchChain();
   const { chainId: connectedChainId } = useAccount();
-  const chainConfig = SUPPORTED_CHAINS.arbitrumSepolia;
+  const chainConfig = DEFAULT_CHAIN;
 
   const actions = useDuelActions(chainConfig.id);
   const [flow, setFlow] = useState<ActionFlowSession | null>(null);

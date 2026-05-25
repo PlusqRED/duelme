@@ -12,7 +12,7 @@ import { DuelState } from '@/lib/contracts';
 import { getClaimableAmountForAddress, isDuelClaimTimedOut, isDuelFullySettled } from '@/lib/duel';
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
 import { hashInviteSecret, readInviteSecretFromHash, readStoredInviteSecret, storeInviteSecret, isPublicDuel, PUBLIC_INVITE_SECRET } from '@/lib/invite';
-import { SUPPORTED_CHAINS, DEFAULT_CHAIN_ID, ZERO_ADDRESS, CLAIM_TIMEOUT } from '@/lib/constants';
+import { DEFAULT_CHAIN, DEFAULT_CHAIN_ID, ZERO_ADDRESS, CLAIM_TIMEOUT } from '@/lib/constants';
 import { useDuel } from '@/hooks/useDuel';
 import { useDuelActions } from '@/hooks/useDuelActions';
 import { formatDateTime, formatUSDT } from '@/lib/utils';
@@ -96,7 +96,7 @@ export default function DuelPage({
 
   const [pendingAction, setPendingAction] = useState<PendingAction>('idle');
 
-  const chainConfig = SUPPORTED_CHAINS.arbitrumSepolia;
+  const chainConfig = DEFAULT_CHAIN;
 
   // Auto-inject invite secret for public duels
   useEffect(() => {
