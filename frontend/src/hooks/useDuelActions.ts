@@ -25,30 +25,38 @@ const DEFAULT_TESTNET_MIN_GAS = 200_000n;
 
 async function buildTransactionParams(
   publicClient: DuelPublicClient,
+  account: `0x${string}`,
   estimateGas: EstimateGasFn,
   chainId: number,
   minimumTestnetGas: bigint
 ) {
-  const [estimatedGas, estimatedFees, latestBlock] = await Promise.all([
+  const [estimatedGas, estimatedFees, latestBlock, nonce] = await Promise.all([
     estimateGas(publicClient),
     publicClient.estimateFeesPerGas(),
     publicClient.getBlock(),
+    // Pulling nonce ourselves: Privy's prepareTransactionRequest path silently
+    // drops the nonce-fill step after viem caches eth_fillTransaction=false on
+    // the client, leaving the signed transaction with nonce: 0. The "pending"
+    // tag includes any tx already in the mempool from the same wallet, so
+    // back-to-back approve→join sequences pick up the next slot correctly.
+    publicClient.getTransactionCount({ address: account, blockTag: 'pending' }),
   ]);
 
-  if (chainId === SUPPORTED_CHAINS.arbitrumSepolia.id) {
-    return getBufferedTestnetTransactionParams({
-      estimatedGas,
-      minimumGas: minimumTestnetGas,
-      feeEstimate: estimatedFees,
-      baseFeePerGas: latestBlock.baseFeePerGas,
-    });
-  }
+  const gasParams =
+    chainId === SUPPORTED_CHAINS.arbitrumSepolia.id
+      ? getBufferedTestnetTransactionParams({
+          estimatedGas,
+          minimumGas: minimumTestnetGas,
+          feeEstimate: estimatedFees,
+          baseFeePerGas: latestBlock.baseFeePerGas,
+        })
+      : getMainnetTransactionParams({
+          estimatedGas,
+          feeEstimate: estimatedFees,
+          baseFeePerGas: latestBlock.baseFeePerGas,
+        });
 
-  return getMainnetTransactionParams({
-    estimatedGas,
-    feeEstimate: estimatedFees,
-    baseFeePerGas: latestBlock.baseFeePerGas,
-  });
+  return { ...gasParams, nonce };
 }
 
 type WriteConfig = Parameters<ReturnType<typeof useWriteContract>['writeContract']>[0];
@@ -91,6 +99,7 @@ export function useDuelActions(chainId: number) {
     try {
       const params = await buildTransactionParams(
         publicClient,
+        accountAddress,
         (client) =>
           client.estimateContractGas({
             ...config,
