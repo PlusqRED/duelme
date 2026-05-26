@@ -23,9 +23,10 @@ import java.util.Base64;
 
 /**
  * Drives Telegram's OIDC authorization-code flow (launched April 2026).
- * Authorization URL carries a PKCE challenge whose verifier we stash in
- * the state token for recovery on callback — no server-side session
- * needed.
+ * The authorization URL carries a PKCE challenge; the matching verifier
+ * is stashed alongside the wallet in {@code SocialLinkStateService} so
+ * the public callback can complete the token exchange without a Bearer
+ * header.
  */
 @Service
 public class TelegramOidcService {
@@ -50,9 +51,9 @@ public class TelegramOidcService {
 
     /**
      * Generates a PKCE-compliant code verifier (32 random bytes,
-     * base64url-encoded). Callers persist the verifier in the state
-     * token so the callback handler can re-send it to the token
-     * endpoint without any server-side session state.
+     * base64url-encoded). Callers persist the verifier alongside the
+     * state record so the callback handler can re-send it to the token
+     * endpoint.
      */
     public String generateCodeVerifier() {
         byte[] bytes = new byte[32];

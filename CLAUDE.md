@@ -147,7 +147,7 @@ Write ops: check chain → check allowance → approve if needed → execute. `c
 | `backend/src/.../service/TelegramJwksService.java` | Verifies Telegram OIDC ID tokens via cached JWKS |
 | `backend/src/.../service/TelegramOidcService.java` | Telegram OIDC auth URL + token exchange (PKCE S256) |
 | `backend/src/.../service/SteamOpenIdService.java` | Steam OpenID 2.0 login + `check_authentication` |
-| `backend/src/.../service/SocialLinkStateService.java` | HS256-signed state tokens (wallet + PKCE verifier) |
+| `backend/src/.../service/SocialLinkStateService.java` | Server-side OAuth state store (wallet + PKCE verifier, TTL-indexed in Mongo) |
 | `backend/Dockerfile` | Backend container (multi-stage, GraalVM native) |
 | `frontend/Dockerfile` | Frontend container (multi-stage, Node 22) |
 | `.github/workflows/ci.yml` | CI pipeline: test + deploy (dev & prod) |
@@ -325,7 +325,6 @@ Runtime config source of truth: GitHub repository/environment secrets. Deploy wo
 - `NEXT_PUBLIC_ARBITRUM_RPC_URL` — authenticated RPC for Arbitrum One (Alchemy/QuickNode). Used as Privy embedded-wallet override + first wagmi fallback. Falls back to Tenderly Gateway public if unset. Lock URL via provider dashboard "Allowed Origins" — `NEXT_PUBLIC_*` are inlined into the JS bundle.
 - `NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL` — same for Arbitrum Sepolia. Optional; Tenderly public works for dev.
 - `APP_BASE_URL` — backend's view of frontend origin for OAuth redirects (`https://dev.duelme.pro` / `https://duelme.pro`)
-- `SOCIAL_LINK_STATE_SECRET` — HMAC (≥32 bytes entropy) for signing state tokens across Steam/Telegram redirects
 - `STEAM_API_KEY` — optional; enables username/avatar enrichment via `GetPlayerSummaries`
 - `STEAM_RETURN_URL` — absolute Steam callback URL (`https://{env}/api/v1/profiles/me/social/steam/callback`)
 - `TELEGRAM_CLIENT_ID` / `TELEGRAM_CLIENT_SECRET` — OIDC creds from @BotFather → Bot Settings → Web Login

@@ -9,6 +9,9 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
 import pro.duelme.backend.model.FaucetClaim;
 import pro.duelme.backend.model.Profile;
+import pro.duelme.backend.model.SocialOAuthState;
+
+import java.time.Duration;
 
 @Configuration
 @EnableMongoAuditing
@@ -43,5 +46,21 @@ public class MongoConfig {
             ops.createIndex(new Index()
                 .on("socialLinks.telegram.telegramId", Sort.Direction.ASC).unique().sparse());
         };
+    }
+
+    /**
+     * TTL index on {@link SocialOAuthState#expiresAt}. {@code Duration.ZERO}
+     * tells Mongo to treat the field value itself as the absolute expiry
+     * time — the document is deleted once {@code expiresAt < now()}. Mongo
+     * runs the TTL monitor every 60s, so a small grace window above the
+     * stored expiry is normal and harmless ({@code verify} re-checks expiry
+     * in-process).
+     */
+    @Bean
+    public ApplicationRunner ensureSocialOAuthStateIndexes(MongoTemplate template) {
+        return args -> template.indexOps(SocialOAuthState.class)
+            .createIndex(new Index()
+                .on("expiresAt", Sort.Direction.ASC)
+                .expire(Duration.ZERO));
     }
 }

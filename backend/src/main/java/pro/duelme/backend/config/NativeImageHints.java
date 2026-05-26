@@ -26,9 +26,6 @@ public class NativeImageHints implements RuntimeHintsRegistrar {
             "com.nimbusds.jose.jwk.OctetSequenceKey",
             "com.nimbusds.jose.crypto.ECDSAVerifier",
             "com.nimbusds.jose.crypto.RSASSAVerifier",
-            // HS256 path: used by SocialLinkStateService for signing state tokens.
-            "com.nimbusds.jose.crypto.MACSigner",
-            "com.nimbusds.jose.crypto.MACVerifier",
             "com.nimbusds.jose.proc.JWSVerificationKeySelector",
             "com.nimbusds.jwt.JWTClaimsSet",
             "com.nimbusds.jwt.SignedJWT",
