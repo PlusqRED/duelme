@@ -14,7 +14,7 @@ export const landingTranslations = defineSection({
     'indie.eyebrow': 'Indie · in active development',
     'indie.title': 'Built solo. For the community, not for profit.',
     'indie.body':
-      'Made out of love, not for money — no investors, no salary, no plans to ever take a cut. The contract is open and verified on-chain; the core duel flow works today, while everything around it is still actively shipping. A donation link will appear here someday — only if you decide it earned one.',
+      'No investors, no salary, no plans to ever take a cut. The contract is open and verified on-chain; the core duel flow works today, everything else is still actively shipping. A donation link may appear here someday — if the project earns it.',
     'publicDuels.title': 'Public Duels',
     'publicDuels.subtitle': 'Open challenges with the stake, creator honor, game, and note visible before you join.',
     'publicDuels.empty': 'No public duels right now. Create one!',
@@ -150,7 +150,7 @@ export const landingTranslations = defineSection({
     'indie.eyebrow': 'Инди · в активной разработке',
     'indie.title': 'Делаю один. Для комьюнити, не ради прибыли.',
     'indie.body':
-      'На чистом энтузиазме, по любви к делу — без инвесторов, без зарплаты, без планов когда-либо брать комиссию. Контракт открыт и проверен в блокчейне; основной флоу уже работает, всё остальное ещё активно дорабатывается. Когда-нибудь здесь появится ссылка на донат — но только если ты решишь, что она этого заслуживает.',
+      'Без инвесторов, без зарплаты, без планов когда-либо брать комиссию. Контракт открыт и проверен в блокчейне; основной флоу уже работает, всё остальное ещё в активной разработке. Когда-нибудь здесь может появиться ссылка на донат — если проект её заслужит.',
     'publicDuels.title': 'Публичные дуэли',
     'publicDuels.subtitle': 'Открытые вызовы со ставкой, честью создателя, игрой и сообщением до входа.',
     'publicDuels.empty': 'Публичных дуэлей пока нет. Создай первую!',
