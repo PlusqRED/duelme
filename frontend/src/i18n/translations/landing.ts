@@ -11,6 +11,10 @@ export const landingTranslations = defineSection({
     'hero.totalVolume': 'Total Volume',
     'hero.duelsPlayed': 'Duels Played',
     'hero.fees': 'Platform Fee',
+    'indie.eyebrow': 'Indie · in active development',
+    'indie.title': 'Built solo. For the community, not for profit.',
+    'indie.body':
+      'No investors, no salary, no plans to ever take a cut. The contract is open and verified on-chain; the core duel flow works today, everything else is still actively shipping. A donation link may appear here someday — if the project earns it.',
     'publicDuels.title': 'Public Duels',
     'publicDuels.subtitle': 'Open challenges with the stake, creator honor, game, and note visible before you join.',
     'publicDuels.empty': 'No public duels right now. Create one!',
@@ -143,6 +147,10 @@ export const landingTranslations = defineSection({
     'hero.totalVolume': 'Общий объём',
     'hero.duelsPlayed': 'Сыграно дуэлей',
     'hero.fees': 'Комиссия платформы',
+    'indie.eyebrow': 'Инди · в активной разработке',
+    'indie.title': 'Делаю один. Для комьюнити, не ради прибыли.',
+    'indie.body':
+      'Без инвесторов, без зарплаты, без планов когда-либо брать комиссию. Контракт открыт и проверен в блокчейне; основной флоу уже работает, всё остальное ещё в активной разработке. Когда-нибудь здесь может появиться ссылка на донат — если проект её заслужит.',
     'publicDuels.title': 'Публичные дуэли',
     'publicDuels.subtitle': 'Открытые вызовы со ставкой, честью создателя, игрой и сообщением до входа.',
     'publicDuels.empty': 'Публичных дуэлей пока нет. Создай первую!',

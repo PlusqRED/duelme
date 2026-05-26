@@ -7,7 +7,7 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { usePlatformStats } from '@/hooks/usePlatformStats';
 import { formatUnits } from 'viem';
 import { USDT_DECIMALS } from '@/lib/constants';
-import { ChevronDown, Swords } from 'lucide-react';
+import { ChevronDown, Heart, Swords } from 'lucide-react';
 
 const sectionLinks = [
   { id: 'public-duels', key: 'publicDuels.title' as const },
@@ -48,6 +48,39 @@ export function HeroSection() {
       <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-center pb-10 pt-10 text-center sm:pb-14 sm:pt-14 lg:min-h-[calc(100svh-3.5rem)] lg:py-16">
           <div className="w-full max-w-4xl">
+            <div className="animate-fade-in mx-auto mb-10 w-full max-w-2xl sm:mb-12">
+              <aside
+                aria-labelledby="indie-notice-heading"
+                className="indie-notice w-full rounded-2xl border border-dashed border-indigo-300/60 bg-white/50 px-4 py-3.5 text-left shadow-[0_8px_24px_-12px_rgba(99,102,241,0.25)] backdrop-blur-sm sm:px-5 sm:py-4"
+              >
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-fuchsia-500 to-rose-400 text-white shadow-sm shadow-indigo-200/70 sm:h-10 sm:w-10">
+                    <Heart className="h-4 w-4 sm:h-5 sm:w-5" fill="currentColor" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" />
+                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-indigo-700">
+                        {t('indie.eyebrow')}
+                      </span>
+                    </div>
+                    <h2
+                      id="indie-notice-heading"
+                      className="mt-1.5 text-[15px] font-semibold text-slate-900 [text-wrap:balance]"
+                    >
+                      {t('indie.title')}
+                    </h2>
+                    <p className="mt-1 text-[13px] leading-relaxed text-slate-600 [text-wrap:pretty]">
+                      {t('indie.body')}
+                    </p>
+                  </div>
+                </div>
+              </aside>
+            </div>
+
             <h1 className="mx-auto max-w-4xl text-[clamp(2.75rem,6vw,5.2rem)] font-black leading-[0.95] tracking-[-0.04em] text-slate-950 [text-wrap:balance]">
               {t('hero.title1')}
               <br />

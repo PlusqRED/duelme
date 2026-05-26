@@ -177,6 +177,17 @@
   50% { transform: translateY(-6px); }
 }
 
+@keyframes indie-glow {
+  0%, 100% {
+    box-shadow: 0 8px 24px -12px rgba(99, 102, 241, 0.25);
+  }
+  50% {
+    box-shadow:
+      0 10px 30px -10px rgba(99, 102, 241, 0.32),
+      0 0 36px 4px rgba(165, 180, 252, 0.22);
+  }
+}
+
 @keyframes flow-horizontal {
   from { background-position: 0 0; }
   to { background-position: 24px 0; }
@@ -209,6 +220,20 @@
 
 .animate-float-y {
   animation: float-y 6s ease-in-out infinite;
+}
+
+.indie-notice {
+  animation: indie-glow 5s ease-in-out infinite;
+  transition: border-color 0.4s ease;
+}
+.indie-notice:hover {
+  border-color: rgba(129, 140, 248, 0.7);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .indie-notice {
+    animation: none;
+  }
 }
 
 .flow-line-horizontal {
