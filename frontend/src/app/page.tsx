@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { SideNav } from './SideNav';
 import { HeroSection } from './HeroSection';
 import { HowItWorks } from './HowItWorks';
+import { TrustSection } from './TrustSection';
 import { OnboardingSection } from './OnboardingSection';
 import { RecentDuelsSection } from './RecentDuelsSection';
 import { PublicDuelsSection } from './PublicDuelsSection';
@@ -34,6 +35,7 @@ export default function HomePage() {
       <PopularGamesSection />
       <HowItWorks />
       <OnboardingSection />
+      <TrustSection />
       <ReputationSection />
       <CtaSection />
     </>

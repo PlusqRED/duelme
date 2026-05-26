@@ -136,6 +136,30 @@ export const landingTranslations = defineSection({
     'cta.ready': 'Skill should pay you. Not the platform.',
     'cta.subtitle': 'Create your first duel in minutes. Quick sign-in, or connect your own wallet.',
     'cta.note': '0% platform fee. Withdraw anytime.',
+    'trust.eyebrow': "Verify, don't trust",
+    'trust.title': 'Every dollar moves on-chain. Check it yourself.',
+    'trust.subtitle':
+      'The escrow is a public, verified smart contract — not a black box. Anyone can inspect exactly how every dollar moves, line by line.',
+    'trust.contract.badge': 'Live escrow contract',
+    'trust.contract.cta': 'View on Arbiscan',
+    'trust.contract.ctaAria': 'View the DuelMe escrow contract source code on Arbiscan',
+    'trust.contract.verify1.title': 'Every transaction',
+    'trust.contract.verify1.desc': 'Watch each wager get funded, claimed, and refunded in real time.',
+    'trust.contract.verify2.title': 'Every function',
+    'trust.contract.verify2.desc': 'Inspect exactly what each contract call can — and cannot — do.',
+    'trust.contract.verify3.title': 'Full source code',
+    'trust.contract.verify3.desc': 'Read the verified, MIT-licensed code that moves the money.',
+    'trust.cred.noncustodial.title': 'Non-custodial',
+    'trust.cred.noncustodial.desc':
+      "DuelMe can't pick the winner or manually move your money. Every payout follows the contract's own rules.",
+    'trust.cred.verified.title': 'Open-source & verified',
+    'trust.cred.verified.desc':
+      'The full source is published and verified on Arbiscan under the MIT license.',
+    'trust.cred.oz.title': 'OpenZeppelin v5',
+    'trust.cred.oz.desc':
+      'Built on the audited, industry-standard security primitives trusted across DeFi.',
+    'trust.cred.tested.title': '157 tests · 92.8% coverage',
+    'trust.cred.tested.desc': 'The full duel lifecycle is locked down by an automated test suite.',
   },
   ru: {
     'hero.title1': 'Победитель забирает 100%.',
@@ -272,5 +296,32 @@ export const landingTranslations = defineSection({
     'cta.ready': 'Скилл должен платить тебе. Не платформе.',
     'cta.subtitle': 'Первую дуэль можно создать за пару минут. Простой вход или подключи свой кошелёк.',
     'cta.note': '0% комиссии платформы. Вывод в любой момент.',
+    'trust.eyebrow': 'Не верь — проверь',
+    'trust.title': 'Каждый доллар движется в блокчейне. Проверь сам.',
+    'trust.subtitle':
+      'Эскроу — это публичный проверенный смарт-контракт, а не чёрный ящик. Любой может построчно проверить, как именно движется каждый доллар.',
+    'trust.contract.badge': 'Действующий эскроу-контракт',
+    'trust.contract.cta': 'Открыть в Arbiscan',
+    'trust.contract.ctaAria': 'Открыть исходный код эскроу-контракта DuelMe в Arbiscan',
+    'trust.contract.verify1.title': 'Каждая транзакция',
+    'trust.contract.verify1.desc':
+      'Видно, как каждая ставка вносится, забирается и возвращается — в реальном времени.',
+    'trust.contract.verify2.title': 'Каждая функция',
+    'trust.contract.verify2.desc':
+      'Можно проверить, что именно может и чего не может сделать каждый вызов контракта.',
+    'trust.contract.verify3.title': 'Весь исходный код',
+    'trust.contract.verify3.desc':
+      'Читай проверенный код под лицензией MIT, который двигает деньги.',
+    'trust.cred.noncustodial.title': 'Non-custodial',
+    'trust.cred.noncustodial.desc':
+      'DuelMe не может выбрать победителя или вручную двигать твои деньги. Каждая выплата идёт по правилам контракта.',
+    'trust.cred.verified.title': 'Открытый код и верификация',
+    'trust.cred.verified.desc':
+      'Полный исходный код опубликован и верифицирован на Arbiscan под лицензией MIT.',
+    'trust.cred.oz.title': 'OpenZeppelin v5',
+    'trust.cred.oz.desc':
+      'Построен на проверенных индустриальных примитивах безопасности, которым доверяет весь DeFi.',
+    'trust.cred.tested.title': '157 тестов · покрытие 92.8%',
+    'trust.cred.tested.desc': 'Весь жизненный цикл дуэли закрыт автоматическими тестами.',
   },
 });
