@@ -7,7 +7,7 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { usePlatformStats } from '@/hooks/usePlatformStats';
 import { formatUnits } from 'viem';
 import { USDT_DECIMALS } from '@/lib/constants';
-import { ChevronDown, Swords } from 'lucide-react';
+import { ChevronDown, Heart, Swords } from 'lucide-react';
 
 const sectionLinks = [
   { id: 'public-duels', key: 'publicDuels.title' as const },
@@ -100,7 +100,38 @@ export function HeroSection() {
               ))}
             </div>
 
-            <div className="mt-10 w-full rounded-[28px] border border-white/80 bg-white/76 p-4 shadow-sm backdrop-blur-sm sm:p-5">
+            <aside
+              aria-labelledby="indie-notice-heading"
+              className="mx-auto mt-7 w-full max-w-3xl rounded-2xl border border-dashed border-indigo-300/70 bg-white/60 px-4 py-4 text-left shadow-sm backdrop-blur-sm sm:px-5"
+            >
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-fuchsia-500 to-rose-400 text-white shadow-sm shadow-indigo-200/70 sm:h-10 sm:w-10">
+                  <Heart className="h-4 w-4 sm:h-5 sm:w-5" fill="currentColor" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    </span>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-indigo-700">
+                      {t('indie.eyebrow')}
+                    </span>
+                  </div>
+                  <h2
+                    id="indie-notice-heading"
+                    className="mt-1.5 text-[15px] font-semibold text-slate-900 [text-wrap:balance]"
+                  >
+                    {t('indie.title')}
+                  </h2>
+                  <p className="mt-1 text-[13px] leading-relaxed text-slate-600 [text-wrap:pretty]">
+                    {t('indie.body')}
+                  </p>
+                </div>
+              </div>
+            </aside>
+
+            <div className="mt-7 w-full rounded-[28px] border border-white/80 bg-white/76 p-4 shadow-sm backdrop-blur-sm sm:p-5">
               <div className="grid gap-4 sm:grid-cols-3">
                 <div>
                   <div className="text-[1.7rem] font-bold tabular-nums text-slate-950">
