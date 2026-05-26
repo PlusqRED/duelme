@@ -48,7 +48,7 @@ export function HeroSection() {
       <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-center pb-10 pt-10 text-center sm:pb-14 sm:pt-14 lg:min-h-[calc(100svh-3.5rem)] lg:py-16">
           <div className="w-full max-w-4xl">
-            <div className="animate-soft-in mx-auto mb-10 w-full max-w-2xl sm:mb-12">
+            <div className="animate-fade-in mx-auto mb-10 w-full max-w-2xl sm:mb-12">
               <aside
                 aria-labelledby="indie-notice-heading"
                 className="indie-notice w-full rounded-2xl border border-dashed border-indigo-300/60 bg-white/50 px-4 py-3.5 text-left shadow-[0_8px_24px_-12px_rgba(99,102,241,0.25)] backdrop-blur-sm sm:px-5 sm:py-4"

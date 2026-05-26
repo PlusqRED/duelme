@@ -177,9 +177,15 @@
   50% { transform: translateY(-6px); }
 }
 
-@keyframes indie-float {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-4px) scale(1.005); }
+@keyframes indie-glow {
+  0%, 100% {
+    box-shadow: 0 8px 24px -12px rgba(99, 102, 241, 0.25);
+  }
+  50% {
+    box-shadow:
+      0 10px 30px -10px rgba(99, 102, 241, 0.32),
+      0 0 36px 4px rgba(165, 180, 252, 0.22);
+  }
 }
 
 @keyframes flow-horizontal {
@@ -217,13 +223,11 @@
 }
 
 .indie-notice {
-  animation: indie-float 5.5s ease-in-out infinite;
-  transition: box-shadow 0.4s ease, border-color 0.4s ease;
-  will-change: transform;
+  animation: indie-glow 5s ease-in-out infinite;
+  transition: border-color 0.4s ease;
 }
 .indie-notice:hover {
-  border-color: rgba(129, 140, 248, 0.8);
-  box-shadow: 0 14px 36px -16px rgba(99, 102, 241, 0.4);
+  border-color: rgba(129, 140, 248, 0.7);
 }
 
 @media (prefers-reduced-motion: reduce) {
