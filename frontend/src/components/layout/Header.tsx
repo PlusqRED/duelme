@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -423,7 +424,14 @@ export function Header() {
             }}
             className="flex items-center gap-2"
           >
-            <Swords className="h-5 w-5 text-indigo-600" />
+            <Image
+              src="/logo.png"
+              alt="DuelMe logo"
+              width={28}
+              height={28}
+              priority
+              className="h-7 w-7"
+            />
             <span className="text-lg font-bold text-slate-900">DuelMe</span>
           </Link>
           <div className="flex shrink-0 items-center gap-1.5">
