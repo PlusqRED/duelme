@@ -67,11 +67,14 @@ export const metadata: Metadata = {
       'max-video-preview': -1,
     },
   },
-  // Favicon is auto-registered by Next.js File Convention (`app/favicon.ico`).
+  // Favicon is auto-registered by Next.js File Convention (`app/icon.png`).
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
+  },
+  verification: {
+    yandex: '0277876dfbec9b54',
   },
 };
 
