@@ -29,7 +29,7 @@ ton/
 ```
 
 - **Smart contract** lives in `ton/contracts/contracts/duelme.tolk`. Native TON staking. Single master contract that maintains a `map<uint64, Duel>` registry plus per-player reputation counters.
-- **Mini App** lives in `ton/miniapp/`. Next.js 15 + Tailwind 3 + Framer Motion + `@tonconnect/ui-react`. The Telegram `WebApp` bridge is loaded as a `beforeInteractive` script so theme params, init data, and haptics are available from the first render.
+- **Mini App** lives in `ton/miniapp/`. Next.js 15 + Tailwind 3 + Framer Motion + `@tonconnect/ui-react`. The Telegram `WebApp` bridge is loaded as a `beforeInteractive` script so theme params, init data, and haptics are available from the first render
 
 ## Duel lifecycle (mirrors EVM `DuelMe.sol`)
 
