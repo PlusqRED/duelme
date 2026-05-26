@@ -34,8 +34,8 @@ export default function HomePage() {
       <RecentDuelsSection />
       <PopularGamesSection />
       <HowItWorks />
-      <TrustSection />
       <OnboardingSection />
+      <TrustSection />
       <ReputationSection />
       <CtaSection />
     </>
