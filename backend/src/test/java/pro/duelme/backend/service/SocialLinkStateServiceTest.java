@@ -1,26 +1,35 @@
 package pro.duelme.backend.service;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import pro.duelme.backend.config.SocialLinkProperties;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.index.IndexInfo;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.test.context.ActiveProfiles;
 import pro.duelme.backend.exception.SocialVerificationFailedException;
+import pro.duelme.backend.model.SocialOAuthState;
 
 import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@SpringBootTest
+@ActiveProfiles("test")
 class SocialLinkStateServiceTest {
 
-    private static final String SECRET = "test-state-secret-32-bytes-long-enough-hmac-sha256";
+    @Autowired private SocialLinkStateService service;
+    @Autowired private MongoTemplate template;
 
-    private final SocialLinkStateService service = new SocialLinkStateService(
-        new SocialLinkProperties(
-            "http://localhost:3000",
-            SECRET,
-            new SocialLinkProperties.Steam(null, null),
-            new SocialLinkProperties.Telegram(null, null, null, null)
-        )
-    );
+    @BeforeEach
+    void setUp() {
+        // Clear docs but preserve the TTL index registered at app
+        // startup — dropCollection would also drop the index and break
+        // ttlIndexIsRegistered when test order varies.
+        template.remove(new Query(), SocialOAuthState.class);
+    }
 
     @Test
     void signThenVerifyReturnsOriginalPayload() {
@@ -46,6 +55,16 @@ class SocialLinkStateServiceTest {
     }
 
     @Test
+    void stateTokenIsShort() {
+        // Regression guard: Telegram OIDC rejected the previous ~330-char
+        // JWT-based state with "state too long". Keep the wire format
+        // comfortably under any reasonable OAuth provider limit.
+        String token = service.sign("0xabc", SocialLinkStateService.PLATFORM_TELEGRAM, "verifier");
+
+        assertThat(token.length()).isLessThanOrEqualTo(64);
+    }
+
+    @Test
     void verifyRejectsExpiredToken() throws InterruptedException {
         String token = service.sign("0xabc",
             SocialLinkStateService.PLATFORM_STEAM, null, Duration.ofMillis(1));
@@ -58,59 +77,49 @@ class SocialLinkStateServiceTest {
     }
 
     @Test
-    void verifyRejectsTamperedToken() {
+    void verifyConsumesTokenSoReplayFails() {
         String token = service.sign("0xabc", SocialLinkStateService.PLATFORM_STEAM, null);
-        // flip the last character of the signature
-        char last = token.charAt(token.length() - 1);
-        char flipped = last == 'A' ? 'B' : 'A';
-        String tampered = token.substring(0, token.length() - 1) + flipped;
 
-        assertThatThrownBy(() -> service.verify(tampered))
-            .isInstanceOf(SocialVerificationFailedException.class);
+        service.verify(token);
+
+        assertThatThrownBy(() -> service.verify(token))
+            .isInstanceOf(SocialVerificationFailedException.class)
+            .hasMessageContaining("Invalid");
+        // And the row is truly gone, not just expired.
+        assertThat(template.findById(token, SocialOAuthState.class)).isNull();
     }
 
     @Test
-    void verifyRejectsDifferentSecret() {
-        String token = service.sign("0xabc", SocialLinkStateService.PLATFORM_STEAM, null);
-
-        var otherService = new SocialLinkStateService(
-            new SocialLinkProperties(
-                "http://localhost:3000",
-                "different-secret-32-bytes-long-for-hmac-sha256-abc",
-                new SocialLinkProperties.Steam(null, null),
-                new SocialLinkProperties.Telegram(null, null, null, null)
-            )
-        );
-
-        assertThatThrownBy(() -> otherService.verify(token))
-            .isInstanceOf(SocialVerificationFailedException.class);
+    void verifyRejectsUnknownToken() {
+        assertThatThrownBy(() -> service.verify("never-issued-token"))
+            .isInstanceOf(SocialVerificationFailedException.class)
+            .hasMessageContaining("Invalid");
     }
 
     @Test
-    void verifyRejectsMalformedToken() {
-        assertThatThrownBy(() -> service.verify("not-a-jwt"))
-            .isInstanceOf(SocialVerificationFailedException.class);
+    void verifyRejectsBlankOrNullToken() {
         assertThatThrownBy(() -> service.verify(""))
-            .isInstanceOf(SocialVerificationFailedException.class);
+            .isInstanceOf(SocialVerificationFailedException.class)
+            .hasMessageContaining("Missing");
         assertThatThrownBy(() -> service.verify(null))
-            .isInstanceOf(SocialVerificationFailedException.class);
+            .isInstanceOf(SocialVerificationFailedException.class)
+            .hasMessageContaining("Missing");
     }
 
     @Test
-    void constructorRejectsBlankSecret() {
-        assertThatThrownBy(() -> new SocialLinkStateService(
-            new SocialLinkProperties("http://localhost", "",
-                new SocialLinkProperties.Steam(null, null),
-                new SocialLinkProperties.Telegram(null, null, null, null))
-        )).isInstanceOf(IllegalStateException.class);
-    }
+    void ttlIndexIsRegistered() {
+        // Without this index, abandoned states would accumulate forever —
+        // Spring Data MongoDB does not auto-create @Indexed declarations
+        // in this project (see MongoConfig).
+        IndexInfo ttl = template.indexOps(SocialOAuthState.class)
+            .getIndexInfo().stream()
+            .filter(idx -> idx.getIndexFields().stream()
+                .anyMatch(f -> "expiresAt".equals(f.getKey())))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("expiresAt index missing"));
 
-    @Test
-    void constructorRejectsShortSecret() {
-        assertThatThrownBy(() -> new SocialLinkStateService(
-            new SocialLinkProperties("http://localhost", "too-short",
-                new SocialLinkProperties.Steam(null, null),
-                new SocialLinkProperties.Telegram(null, null, null, null))
-        )).isInstanceOf(IllegalStateException.class);
+        assertThat(ttl.getExpireAfter())
+            .as("TTL index must be configured with expireAfterSeconds=0")
+            .contains(Duration.ZERO);
     }
 }

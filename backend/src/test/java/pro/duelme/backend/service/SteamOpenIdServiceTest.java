@@ -26,7 +26,6 @@ class SteamOpenIdServiceTest {
     private SocialLinkProperties props() {
         return new SocialLinkProperties(
             "http://localhost:3000",
-            "any-secret",
             new SocialLinkProperties.Steam("test-api-key", RETURN_URL),
             new SocialLinkProperties.Telegram(null, null, null, null)
         );

@@ -3,9 +3,10 @@ package pro.duelme.backend.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Configuration for the social account linking feature. Secrets are
- * masked in {@link #toString()} to prevent accidental disclosure via
- * log lines or error reports.
+ * Configuration for the social account linking feature. Nested records
+ * ({@link Steam}, {@link Telegram}) override {@code toString} to mask
+ * their secret fields and prevent accidental disclosure via log lines
+ * or error reports.
  *
  * <p>Source of truth: {@code application.yml} — values come from env
  * vars in deployed environments (GitHub Actions → Docker {@code -e}).
@@ -15,7 +16,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "duelme.social")
 public record SocialLinkProperties(
     String appBaseUrl,
-    String stateSecret,
     Steam steam,
     Telegram telegram
 ) {
@@ -40,14 +40,5 @@ public record SocialLinkProperties(
                 + ", issuer=" + issuer
                 + "]";
         }
-    }
-
-    @Override
-    public String toString() {
-        return "SocialLinkProperties[appBaseUrl=" + appBaseUrl
-            + ", stateSecret=***MASKED***"
-            + ", steam=" + steam
-            + ", telegram=" + telegram
-            + "]";
     }
 }

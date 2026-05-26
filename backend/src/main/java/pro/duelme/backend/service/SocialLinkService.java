@@ -26,10 +26,11 @@ import static pro.duelme.backend.service.SocialLinkStateService.PLATFORM_TELEGRA
  * each platform's proof, enforces uniqueness, and persists the result
  * onto the player's {@link Profile}.
  *
- * <p>Steam and Telegram link operations always complete via a stateless
- * browser redirect: the wallet address is recovered from a signed state
- * token, not from a Bearer header. Instagram is authenticated directly
- * since it's self-reported and the handle carries no proof of ownership.
+ * <p>Steam and Telegram link operations always complete via a browser
+ * redirect: the wallet address is recovered from a short-lived
+ * server-side state record keyed by an opaque token, not from a Bearer
+ * header. Instagram is authenticated directly since it's self-reported
+ * and the handle carries no proof of ownership.
  */
 @Service
 public class SocialLinkService {

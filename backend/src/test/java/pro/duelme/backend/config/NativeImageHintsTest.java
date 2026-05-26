@@ -43,12 +43,14 @@ class NativeImageHintsTest {
     }
 
     @Test
-    void registersSocialLinkNimbusClasses() throws ClassNotFoundException {
+    void registersNimbusJwtVerificationClasses() throws ClassNotFoundException {
         RuntimeHints hints = registered();
 
-        // SocialLinkStateService uses HS256 — MACSigner/MACVerifier must survive AOT.
-        assertCtorRegistered(hints, "com.nimbusds.jose.crypto.MACSigner");
-        assertCtorRegistered(hints, "com.nimbusds.jose.crypto.MACVerifier");
+        // PrivyJwksService + TelegramJwksService parse and verify ID tokens
+        // through SignedJWT and the EC/RSA verifiers — all reached via
+        // reflection during JWKS processing.
+        assertCtorRegistered(hints, "com.nimbusds.jose.crypto.ECDSAVerifier");
+        assertCtorRegistered(hints, "com.nimbusds.jose.crypto.RSASSAVerifier");
         assertCtorRegistered(hints, "com.nimbusds.jwt.SignedJWT");
     }
 

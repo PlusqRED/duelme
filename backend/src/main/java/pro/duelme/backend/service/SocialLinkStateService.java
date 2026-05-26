@@ -1,33 +1,34 @@
 package pro.duelme.backend.service;
 
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.KeyLengthException;
-import com.nimbusds.jose.crypto.MACSigner;
-import com.nimbusds.jose.crypto.MACVerifier;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.SignedJWT;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
-import pro.duelme.backend.config.SocialLinkProperties;
 import pro.duelme.backend.exception.SocialVerificationFailedException;
+import pro.duelme.backend.model.SocialOAuthState;
 
-import java.nio.charset.StandardCharsets;
-import java.text.ParseException;
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Date;
-import java.util.UUID;
+import java.util.Base64;
 
 /**
- * Signs and verifies short-lived state tokens used during the Steam and
- * Telegram OAuth redirect flows. The tokens carry the authenticated
- * wallet address (so the public callback endpoint can attribute the
- * link) plus the PKCE {@code code_verifier} for Telegram.
+ * Mints and consumes the {@code state} parameter used during Steam and
+ * Telegram OAuth redirects. We store the wallet (and PKCE
+ * {@code code_verifier} for Telegram) server-side keyed by a random
+ * opaque token; the token itself is the only thing that travels through
+ * the OAuth roundtrip.
  *
- * <p>Implemented as an HS256 JWT — piggybacks on the project's existing
- * Nimbus JOSE dependency and native-image hints, with no custom format
- * to maintain.
+ * <p>Telegram's OIDC server enforces an undocumented but tight limit on
+ * the state parameter length, so we can't ship the payload inline as a
+ * signed JWT — a server-side lookup keeps the wire format down to ~32
+ * chars.
+ *
+ * <p>{@link #verify} uses an atomic {@code findAndRemove} so each state
+ * token can be consumed at most once, even under concurrent callbacks.
+ * Abandoned (never-verified) records are reaped by Mongo's TTL monitor
+ * via the index on {@code expiresAt} — see
+ * {@code MongoConfig#ensureSocialOAuthStateIndexes}.
  */
 @Service
 public class SocialLinkStateService {
@@ -36,23 +37,14 @@ public class SocialLinkStateService {
     public static final String PLATFORM_STEAM = "STEAM";
     public static final String PLATFORM_TELEGRAM = "TELEGRAM";
 
-    private static final String CLAIM_PLATFORM = "platform";
-    private static final String CLAIM_CODE_VERIFIER = "cv";
+    // 24 random bytes → 32-char base64url, 192 bits of entropy.
+    private static final int TOKEN_BYTES = 24;
 
-    private final byte[] secretKey;
+    private final MongoTemplate template;
+    private final SecureRandom random = new SecureRandom();
 
-    public SocialLinkStateService(SocialLinkProperties props) {
-        String secret = props.stateSecret();
-        if (secret == null || secret.isBlank()) {
-            throw new IllegalStateException(
-                "duelme.social.state-secret must be set — generate >=32 bytes of entropy");
-        }
-        byte[] bytes = secret.getBytes(StandardCharsets.UTF_8);
-        if (bytes.length < 32) {
-            throw new IllegalStateException(
-                "duelme.social.state-secret must be >=32 bytes for HS256");
-        }
-        this.secretKey = bytes;
+    public SocialLinkStateService(MongoTemplate template) {
+        this.template = template;
     }
 
     public String sign(String wallet, String platform, String codeVerifier) {
@@ -60,50 +52,28 @@ public class SocialLinkStateService {
     }
 
     public String sign(String wallet, String platform, String codeVerifier, Duration ttl) {
-        try {
-            JWTClaimsSet.Builder claims = new JWTClaimsSet.Builder()
-                .subject(wallet)
-                .claim(CLAIM_PLATFORM, platform)
-                .jwtID(UUID.randomUUID().toString())
-                .expirationTime(Date.from(Instant.now().plus(ttl)));
-            if (codeVerifier != null) {
-                claims.claim(CLAIM_CODE_VERIFIER, codeVerifier);
-            }
-            SignedJWT jwt = new SignedJWT(
-                new JWSHeader(JWSAlgorithm.HS256),
-                claims.build());
-            jwt.sign(new MACSigner(secretKey));
-            return jwt.serialize();
-        } catch (KeyLengthException e) {
-            throw new IllegalStateException("State secret too short for HS256", e);
-        } catch (JOSEException e) {
-            throw new IllegalStateException("Failed to sign state token", e);
-        }
+        byte[] bytes = new byte[TOKEN_BYTES];
+        random.nextBytes(bytes);
+        String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        template.save(new SocialOAuthState(
+            token, wallet, platform, codeVerifier, Instant.now().plus(ttl)));
+        return token;
     }
 
     public StatePayload verify(String token) {
         if (token == null || token.isBlank()) {
             throw new SocialVerificationFailedException("Missing state token");
         }
-        try {
-            SignedJWT jwt = SignedJWT.parse(token);
-            if (!jwt.verify(new MACVerifier(secretKey))) {
-                throw new SocialVerificationFailedException("Invalid state token");
-            }
-            JWTClaimsSet claims = jwt.getJWTClaimsSet();
-            Date exp = claims.getExpirationTime();
-            if (exp == null || exp.toInstant().isBefore(Instant.now())) {
-                throw new SocialVerificationFailedException("Expired state token");
-            }
-            String wallet = claims.getSubject();
-            String platform = claims.getStringClaim(CLAIM_PLATFORM);
-            if (wallet == null || platform == null) {
-                throw new SocialVerificationFailedException("Invalid state token");
-            }
-            return new StatePayload(wallet, platform, claims.getStringClaim(CLAIM_CODE_VERIFIER));
-        } catch (ParseException | JOSEException e) {
+        SocialOAuthState state = template.findAndRemove(
+            Query.query(Criteria.where("_id").is(token)),
+            SocialOAuthState.class);
+        if (state == null) {
             throw new SocialVerificationFailedException("Invalid state token");
         }
+        if (state.expiresAt().isBefore(Instant.now())) {
+            throw new SocialVerificationFailedException("Expired state token");
+        }
+        return new StatePayload(state.wallet(), state.platform(), state.codeVerifier());
     }
 
     public record StatePayload(String wallet, String platform, String codeVerifier) {}

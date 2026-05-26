@@ -53,7 +53,6 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       PRIVY_APP_ID: ${PRIVY_APP_ID:?PRIVY_APP_ID must be set in .env}
       APP_BASE_URL: ${APP_BASE_URL:-https://duelme.pro}
-      SOCIAL_LINK_STATE_SECRET: ${SOCIAL_LINK_STATE_SECRET:?SOCIAL_LINK_STATE_SECRET must be set in .env}
       STEAM_API_KEY: ${STEAM_API_KEY:-}
       STEAM_RETURN_URL: ${STEAM_RETURN_URL:-https://duelme.pro/api/v1/profiles/me/social/steam/callback}
       TELEGRAM_CLIENT_ID: ${TELEGRAM_CLIENT_ID:?TELEGRAM_CLIENT_ID must be set in .env}

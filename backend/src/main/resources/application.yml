@@ -23,7 +23,6 @@ duelme:
     usdt-amount-raw: ${FAUCET_USDT_AMOUNT_RAW:100000000}
   social:
     app-base-url: ${APP_BASE_URL:http://localhost:3000}
-    state-secret: ${SOCIAL_LINK_STATE_SECRET:}
     steam:
       api-key: ${STEAM_API_KEY:}
       return-url: ${STEAM_RETURN_URL:}

@@ -9,9 +9,12 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
 import pro.duelme.backend.model.InstagramLink;
 import pro.duelme.backend.model.Profile;
 import pro.duelme.backend.model.SocialLinks;
+import pro.duelme.backend.model.SocialOAuthState;
 import pro.duelme.backend.model.SteamLink;
 import pro.duelme.backend.model.TelegramLink;
 import pro.duelme.backend.repository.ProfileRepository;
@@ -46,6 +49,7 @@ class SocialLinkControllerTest {
     @Autowired private MockMvc mvc;
     @Autowired private ProfileRepository profileRepository;
     @Autowired private SocialLinkStateService stateService;
+    @Autowired private MongoTemplate template;
 
     @MockitoBean private SteamOpenIdService steamService;
     @MockitoBean private SteamProfileFetcher steamProfileFetcher;
@@ -54,6 +58,7 @@ class SocialLinkControllerTest {
     @BeforeEach
     void setUp() {
         profileRepository.deleteAll();
+        template.remove(new Query(), SocialOAuthState.class);
     }
 
     // --- Initiate (authenticated) -------------------------------------
@@ -144,7 +149,7 @@ class SocialLinkControllerTest {
     @Test
     void steamCallbackInvalidStateRedirects() throws Exception {
         mvc.perform(get("/api/v1/profiles/me/social/steam/callback")
-                .param("state", "not-a-valid-jwt"))
+                .param("state", "never-issued-token"))
             .andExpect(status().isFound())
             .andExpect(header().string("Location", containsString("steam=verificationFailed")));
     }

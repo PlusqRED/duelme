@@ -43,7 +43,6 @@ class TelegramJwksServiceTest {
         var service = new TelegramJwksService(
             new SocialLinkProperties(
                 "http://localhost:3000",
-                "any-secret",
                 new SocialLinkProperties.Steam(null, null),
                 new SocialLinkProperties.Telegram(CLIENT_ID, "client-secret", "return-url", ISSUER)
             )

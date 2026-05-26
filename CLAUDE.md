@@ -13,54 +13,31 @@ ops/         — Docker Compose, Caddy config
 
 ## Commands
 
-### Frontend (`frontend/`)
-```bash
-npm run dev          # Dev server (localhost:3000)
-npm run build        # Production build
-npm run lint         # ESLint
-npx tsc --noEmit     # Type-check (no emit)
-```
+**Frontend (`frontend/`):** `npm run dev` (localhost:3000) · `npm run build` · `npm run lint` · `npx tsc --noEmit`
 
-### Backend (`backend/`)
-```bash
-./gradlew build          # Compile + test (uses JDK 25 via toolchain)
-./gradlew bootRun        # Dev server (localhost:8080, needs MongoDB)
-./gradlew test           # Run tests only (embedded MongoDB via Flapdoodle)
-./gradlew bootJar        # Build fat JAR
-./gradlew nativeCompile  # GraalVM native image (~50ms startup, ~60MB RSS)
-./gradlew nativeTest     # Run tests inside native binary
-docker compose up -d     # Local MongoDB
-```
+**Backend (`backend/`):** `./gradlew build` (JDK 25 via toolchain) · `./gradlew bootRun` (localhost:8080, needs MongoDB) · `./gradlew test` (embedded MongoDB via Flapdoodle) · `./gradlew bootJar` · `./gradlew nativeCompile` (~5–10 min, ~50ms startup, ~60MB RSS) · `./gradlew nativeTest` · `docker compose up -d` (local MongoDB)
 
-### Contracts (`contracts/`)
-```bash
-forge build          # Compile
-forge test           # Run tests
-forge test -vvv      # Verbose test output
-forge coverage --report summary  # Coverage
-```
+**Contracts (`contracts/`):** `forge build` · `forge test` · `forge test -vvv` · `forge coverage --report summary`
 
 ## Git Conventions
 
-- **Never** run `git add`, `git commit`, or `git push` (or any equivalent like `git commit -a`, `git push --force`, `gh pr create`) unless the user explicitly asks for THAT specific action in their current message. Permission is per-action and per-message: "commit this" authorizes one commit, not a follow-up push; past authorization does not carry forward. Read-only git commands (`status`, `diff`, `log`, `show`) are fine without asking. After making changes, stop at the working tree and report the diff — wait for the user to ask before staging, committing, or pushing.
-- **Never** add `Co-Authored-By` or any Claude attribution to commits
-- Do not amend existing commits unless explicitly asked
-- See [Documentation Standards](#documentation-standards) for commit message format
+- **Never** run `git add` / `commit` / `push` (or any equivalent like `git commit -a`, `git push --force`, `gh pr create`) unless the user explicitly asks for THAT specific action in their current message. Permission is per-action and per-message; past authorization does not carry forward. Read-only git commands (`status`, `diff`, `log`, `show`) are fine. After changes, stop at the working tree and report the diff — wait before staging/committing/pushing.
+- **Never** add `Co-Authored-By` or any Claude attribution to commits.
+- Don't amend existing commits unless explicitly asked.
+- Commit messages: imperative mood ("Add X" not "Added X"); first line ≤72 chars; body for non-obvious context.
 
 ## Native Image Compatibility (CRITICAL)
 
-**The production backend ships as a GraalVM native image.** Dev runs in JVM mode for fast CI iteration, so a backend change can pass `./gradlew test`, deploy fine to dev, and still **silently break the prod release**. Do not assume "tests pass = ready to merge".
+**Production backend ships as a GraalVM native image.** Dev runs JVM, so a change can pass `./gradlew test`, deploy fine to dev, and still **silently break prod**. "Tests pass" ≠ "ready to merge".
 
-The `backend-native` CI job runs `./gradlew nativeCompile` on every push to `dev` / `main` and every PR targeting `dev` / `main`. **It is the gate.** `build-prod` lists it in `needs:`, so a red `backend-native` blocks the prod deploy. Do not add an `if:` condition to that job — GitHub Actions treats a skipped need as success, which would silently bypass the gate.
+The `backend-native` CI job (`./gradlew nativeCompile` on every push/PR to `dev`/`main`) is **the gate**. `build-prod` lists it in `needs:`, so a red `backend-native` blocks prod deploy. Do not add `if:` conditions — GitHub Actions treats skipped needs as success. If `backend-native` is red, do not merge to `main`.
 
-If `backend-native` is red, do not merge to `main`.
+### What commonly breaks
 
-### What commonly breaks the native image
-
-- **Reflection without hints** — `Class.forName`, `Method.invoke`, JSON/JWT libraries that reflect over types. Register hints in `backend/src/main/java/pro/duelme/backend/config/NativeImageHints.java` (see existing entries for `nimbus-jose-jwt`).
-- **Static initializers that touch I/O, networking, randomness, or class graphs that must init at runtime.** GraalVM runs `<clinit>` at build time by default. If a class must defer, add `--initialize-at-run-time=fqcn` to `graalvmNative.binaries.named("main").buildArgs` in `backend/build.gradle.kts` (see the Bouncy Castle DRBG entries).
-- **Runtime classpath / resource scanning** — `getResources("META-INF/services/...")`, runtime-loaded JARs, plugin systems, codegen libs. These need explicit resource hints or do not work at all under closed-world AOT.
-- **Adding a new dependency** — check the [GraalVM Reachability Metadata Repository](https://www.graalvm.org/native-image/libraries-and-frameworks/) and Spring Boot 4 native docs first. `web3j` and `bouncycastle` already required explicit `--initialize-at-build-time` settings — assume any heavy crypto / serialization / dynamic-proxy library needs similar care.
+- **Reflection without hints** (`Class.forName`, `Method.invoke`, JSON/JWT libs) — register in `backend/src/main/java/pro/duelme/backend/config/NativeImageHints.java` (see `nimbus-jose-jwt` entries).
+- **Static initializers touching I/O / network / randomness / runtime class graphs.** GraalVM runs `<clinit>` at build time by default. If a class must defer, add `--initialize-at-run-time=fqcn` to `graalvmNative.binaries.named("main").buildArgs` in `backend/build.gradle.kts` (see Bouncy Castle DRBG).
+- **Runtime classpath / resource scanning** (`getResources("META-INF/services/...")`, codegen libs) — needs explicit resource hints.
+- **New dependencies** — check the [GraalVM Reachability Metadata Repository](https://www.graalvm.org/native-image/libraries-and-frameworks/) first. Heavy crypto / serialization / dynamic-proxy libs usually need explicit `--initialize-at-build-time` settings (e.g. `web3j`, `bouncycastle`).
 
 ### Before merging to main, verify locally
 
@@ -70,61 +47,55 @@ cd backend
 ./build/native/nativeCompile/duelme-backend   # smoke-test boot
 ```
 
-If it fails, fix it. **Never** silence a native build failure by deleting hints, weakening build-time init, dropping the `backend-native` job, or merging anyway.
+If it fails, fix it. **Never** silence failure by deleting hints, weakening build-time init, dropping the `backend-native` job, or merging anyway.
 
 ## Architecture Decisions
 
 ### Wallet Integration
-- `createConfig` must be imported from `@privy-io/wagmi`, NOT from `wagmi`
-- `setActiveWalletForWagmi` prop on `<WagmiProvider>` ensures Privy embedded wallet is used over MetaMask
-- Chain switching must use `useSwitchChain` from wagmi (not Privy's `switchChain`)
+- `createConfig` must be imported from `@privy-io/wagmi`, NOT `wagmi`
+- `setActiveWalletForWagmi` prop on `<WagmiProvider>` ensures Privy embedded wallet beats MetaMask
+- Chain switching via wagmi's `useSwitchChain` (not Privy's `switchChain`)
 
 ### Transaction Pattern
-All write operations follow: check chain → check allowance → approve if needed → execute. `createDuel` generates a private invite secret client-side and sends only its hash on-chain; `joinDuel` and `declineDuel` use the shared invite secret. Payouts are pull-based now, so terminal duel flows should expose claimable balances instead of assuming immediate push transfers.
+Write ops: check chain → check allowance → approve if needed → execute. `createDuel` generates a private invite secret client-side and sends only its hash on-chain; `joinDuel`/`declineDuel` use the secret. Payouts are pull-based — terminal duel flows expose claimable balances, never push transfers.
 
 ### Data Fetching
 - wagmi `useReadContract` / `useReadContracts` (multicall) for on-chain reads
 - React Query with `refetchInterval: 10_000, staleTime: 0` for live data
 - Always `refetch()` + `reset()` after successful write transactions
-- Header and wallet balances also use `frontend/src/lib/balanceRefresh.ts` for event-driven refresh after balance-changing actions, while 30-second polling stays as a fallback
+- Header / wallet balances use `frontend/src/lib/balanceRefresh.ts` event bus + 30s poll fallback
 
 ### Backend
-- Java 25 + Spring Boot 4.0.3, Gradle 9.4 (Kotlin DSL)
-- MongoDB for profile storage, Spring Data MongoDB with auditing
-- Privy JWT authentication via JWKS — wallet address extracted from `linked_accounts` claim
-- Flapdoodle embedded MongoDB for tests — no external DB needed in CI
-- GraalVM Native Image support via `org.graalvm.buildtools.native` plugin
-- JDK 25 optimizations: Compact Object Headers (Lilliput), Generational ZGC, Virtual Threads
-- `NativeImageHints.java` registers reflection hints for nimbus-jose-jwt (JWKS/JWT verification)
+- Java 25 + Spring Boot 4.0.3, Gradle 9.4 (Kotlin DSL), MongoDB (Spring Data with auditing)
+- Privy JWT auth via JWKS — wallet address from `linked_accounts` claim
+- Flapdoodle embedded MongoDB for tests — no external DB in CI
+- GraalVM Native Image via `org.graalvm.buildtools.native`; JDK 25 (Compact Object Headers, Generational ZGC, Virtual Threads)
+- `NativeImageHints.java` registers reflection hints for `nimbus-jose-jwt`
 
 ### Deployment
-- Two environments: **dev** (dev.duelme.pro) and **prod** (duelme.pro)
-- CI: `.github/workflows/ci.yml` — merging to `dev` deploys dev, merging to `main` deploys prod
-- All services run in Docker containers (non-root, read-only FS, healthchecks)
+- Two envs: **dev** (dev.duelme.pro) and **prod** (duelme.pro). CI: `.github/workflows/ci.yml` — merge to `dev` deploys dev, merge to `main` deploys prod.
+- All services in Docker (non-root, read-only FS, healthchecks).
 - Dev: `ops/docker-compose.dev.yml` → `~/apps/duelme-dev/`, `:dev` tags, ports 8080/3001
 - Prod: `ops/docker-compose.prod.yml` → `~/apps/duelme-prod/`, `:latest` tags, ports 8081/3002
-- **Backend build is split: Gradle on the host, Docker is a thin runtime.** CI runs Gradle once with the full GHA cache, uploads the artifact, then `docker/build-push-action` just `COPY`s it into a minimal image. Two targets in `backend/Dockerfile`:
-  - `target=jvm` (`eclipse-temurin:25-jre`, fat JAR) — used for **dev**, `mem_limit: 512m`. Artifact built by `backend` job (`./gradlew build` produces `build/libs/*-SNAPSHOT.jar`).
-  - `target=native` (`ubuntu:26.04`, GraalVM native binary) — used for **prod**, `mem_limit: 256m`. Artifact built by `backend-native` job (`./gradlew nativeCompile` produces `build/native/nativeCompile/duelme-backend`).
-  - CI selects via `target:` + `download-artifact` per matrix entry. The native image is also smoke-built on every push/PR — see [Native Image Compatibility (CRITICAL)](#native-image-compatibility-critical).
-- **Local docker build:** Gradle is no longer inside the Dockerfile, so build the artifact first:
+- **Backend build split: Gradle on host, Docker is a thin runtime.** CI runs Gradle once with full GHA cache, uploads artifact, then `docker/build-push-action` just `COPY`s it. Two `backend/Dockerfile` targets:
+  - `target=jvm` (`eclipse-temurin:25-jre`, fat JAR) — **dev**, `mem_limit: 512m`. Built by `backend` job (`./gradlew build`).
+  - `target=native` (`ubuntu:26.04`, GraalVM binary) — **prod**, `mem_limit: 256m`. Built by `backend-native` job. Also smoke-built on every push/PR.
+- **Local docker build** (Gradle no longer inside Dockerfile):
   - JVM: `cd backend && ./gradlew bootJar -Pskip.aot=true && docker build --target jvm -t duelme-backend:local .`
   - Native: `cd backend && ./gradlew nativeCompile && docker build --target native -t duelme-backend:local .`
-  - For day-to-day backend dev, prefer `./gradlew bootRun` over docker — it is much faster.
-- Images pushed to GHCR (`ghcr.io/plusqred/duelme-{backend,frontend}:{dev,latest}`)
-- CI builds images via `docker/build-push-action`, then SSH `docker compose pull && up -d`
-- Runtime secrets and environment-specific config are stored in GitHub repository/environment secrets. Deploy jobs in `.github/workflows/ci.yml` render the remote `.env` file from those secrets immediately before `docker compose up`; do not commit secrets and do not require manually maintained `.env` files on the server.
-- Caddy on host handles TLS + reverse proxy (`/api/v1/*` → backend, rest → frontend)
-- Caddy configs: `ops/caddy/dev.duelme.pro.Caddyfile` and `ops/caddy/duelme.pro.Caddyfile`
+  - For day-to-day backend dev, prefer `./gradlew bootRun` — much faster.
+- Images: `ghcr.io/plusqred/duelme-{backend,frontend}:{dev,latest}`
+- Runtime secrets in GitHub repository/environment secrets; deploy job renders remote `.env` from them before `docker compose up`. Never commit secrets.
+- Caddy on host: TLS + reverse proxy (`/api/v1/*` → backend, rest → frontend). Configs: `ops/caddy/{dev.duelme.pro,duelme.pro}.Caddyfile`.
 
 ### Smart Contract
 - Solidity 0.8.34, OpenZeppelin (SafeERC20, ReentrancyGuard, Pausable, Ownable)
-- All state-mutating functions have `nonReentrant` + `whenNotPaused`
-- USDT uses 6 decimals — `wagerAmount` is stored raw (e.g., `5_000_000` = 5 USDT)
-- Duel payouts/refunds are claim-based via `claimPayout(uint256)` and `claimPayouts(uint256[])`
-- Mutual cancellation exists via `MutualCancelRequested` and `MutuallyCancelled`
-- Duel messages are stored on-chain as UTF-8 `string` values with max 32 code points / 128 bytes
-- Emergency withdraw has 30-day timelock for USDT; non-USDT tokens can be rescued instantly
+- All state-mutating functions: `nonReentrant` + `whenNotPaused`
+- USDT 6 decimals — `wagerAmount` stored raw (`5_000_000` = 5 USDT)
+- Pull-based payouts/refunds via `claimPayout(uint256)` / `claimPayouts(uint256[])`
+- Mutual cancellation: `MutualCancelRequested` / `MutuallyCancelled`
+- Duel messages on-chain as UTF-8 `string`, max 32 code points / 128 bytes
+- Emergency withdraw: 30-day timelock for USDT; non-USDT rescue is instant
 
 ## Key Files
 
@@ -140,14 +111,18 @@ All write operations follow: check chain → check allowance → approve if need
 | `frontend/src/hooks/useDashboardClaims.ts` | Dashboard claim/refund handlers and computed state |
 | `frontend/src/hooks/usePlayerDuels.ts` | Multicall all duels, filter by player |
 | `frontend/src/hooks/usePlatformStats.ts` | Landing-page Total Volume / Duels Played stats |
-| `frontend/src/hooks/useRecentDuels.ts` | Landing-page duel feed with newest-first ordering |
+| `frontend/src/hooks/useRecentDuels.ts` | Landing-page duel feed (newest-first) |
 | `frontend/src/hooks/useReputation.ts` | Wilson Score reputation calculation |
-| `frontend/src/hooks/useReputationLevels.ts` | Batch reputation reads for feed and search surfaces |
-| `frontend/src/lib/invite.ts` | Secure invite-secret generation/storage helpers |
+| `frontend/src/hooks/useReputationLevels.ts` | Batch reputation reads for feed/search |
+| `frontend/src/lib/invite.ts` | Secure invite-secret generation/storage |
 | `frontend/src/lib/duelMessage.ts` | Frontend Unicode duel-message validation |
-| `frontend/src/lib/duelSearch.ts` | Shared visible-field search indexing for dashboard/recent duels |
-| `frontend/src/lib/actionFlowConfigs.ts` | Guided transaction flow configs for all duel actions |
+| `frontend/src/lib/duelSearch.ts` | Shared visible-field search indexing |
+| `frontend/src/lib/actionFlowConfigs.ts` | Guided transaction flow configs for duel actions |
 | `frontend/src/lib/balanceRefresh.ts` | Shared client-side balance refresh event bus |
+| `frontend/src/lib/buildTransactionParams.ts` | Builds explicit `gas`/`maxFeePerGas`/`maxPriorityFeePerGas`/`nonce` to bypass Privy auto-populate (see Common Pitfalls) |
+| `frontend/src/lib/resilientBroadcast.ts` | Splits writes into sign + broadcast so wagmi fallback transport handles RPC retries |
+| `frontend/src/lib/testnetGas.ts` | Testnet vs mainnet gas/fee buffers; min-gas constants per duel action |
+| `frontend/src/lib/wagmi.ts` (`resolveRpcUrl`) | RPC URL env validation + fallback chain (Alchemy/QuickNode → Tenderly) |
 | `frontend/src/i18n/translations.ts` | EN/RU translations |
 | `scripts/sync_readme_contract_addresses.py` | Sync README contract block from `run-latest.json` |
 | `backend/src/.../controller/ProfileController.java` | Profile CRUD endpoints |
@@ -163,23 +138,21 @@ All write operations follow: check chain → check allowance → approve if need
 | `frontend/src/components/duel/CopyableAddress.tsx` | Address display with copy + profile link |
 | `frontend/src/app/profile/page.tsx` | Own profile page |
 | `frontend/src/app/profile/[walletAddress]/page.tsx` | Public profile page |
-| `frontend/src/components/profile/SocialLinksSection.tsx` | Own-profile connected-accounts section with dialogs |
-| `frontend/src/components/profile/SocialLinksDisplay.tsx` | Public-profile read-only social pill row |
+| `frontend/src/components/profile/SocialLinksSection.tsx` | Own-profile connected-accounts section |
+| `frontend/src/components/profile/SocialLinksDisplay.tsx` | Public-profile read-only social pills |
 | `frontend/src/components/profile/OAuthCallbackHandler.tsx` | Reads `?steam=`/`?telegram=` query and toasts |
 | `frontend/src/hooks/useSocialLinks.ts` | Social-link mutations (initiate + set/unlink) |
-| `backend/src/.../controller/SocialLinkController.java` | Social-link endpoints under `/profiles/me/social/**` |
-| `backend/src/.../service/SocialLinkService.java` | Social-link orchestrator (Steam OpenID, Telegram OIDC, Instagram) |
+| `backend/src/.../controller/SocialLinkController.java` | Social-link endpoints `/profiles/me/social/**` |
+| `backend/src/.../service/SocialLinkService.java` | Social-link orchestrator (Steam, Telegram, Instagram) |
 | `backend/src/.../service/TelegramJwksService.java` | Verifies Telegram OIDC ID tokens via cached JWKS |
-| `backend/src/.../service/TelegramOidcService.java` | Telegram OIDC auth URL + token-endpoint exchange (PKCE S256) |
-| `backend/src/.../service/SteamOpenIdService.java` | Steam OpenID 2.0 login + `check_authentication` verification |
-| `backend/src/.../service/SocialLinkStateService.java` | HS256-signed state tokens (carry wallet + PKCE verifier) |
-| `backend/Dockerfile` | Backend container image (multi-stage, GraalVM native) |
-| `frontend/Dockerfile` | Frontend container image (multi-stage, Node 22) |
+| `backend/src/.../service/TelegramOidcService.java` | Telegram OIDC auth URL + token exchange (PKCE S256) |
+| `backend/src/.../service/SteamOpenIdService.java` | Steam OpenID 2.0 login + `check_authentication` |
+| `backend/src/.../service/SocialLinkStateService.java` | Server-side OAuth state store (wallet + PKCE verifier, TTL-indexed in Mongo) |
+| `backend/Dockerfile` | Backend container (multi-stage, GraalVM native) |
+| `frontend/Dockerfile` | Frontend container (multi-stage, Node 22) |
 | `.github/workflows/ci.yml` | CI pipeline: test + deploy (dev & prod) |
-| `ops/docker-compose.dev.yml` | Dev compose stack (`:dev` tags, ports 8080/3001) |
-| `ops/docker-compose.prod.yml` | Prod compose stack (`:latest` tags, ports 8081/3002) |
-| `ops/caddy/dev.duelme.pro.Caddyfile` | Caddy reverse proxy for dev.duelme.pro |
-| `ops/caddy/duelme.pro.Caddyfile` | Caddy reverse proxy for duelme.pro |
+| `ops/docker-compose.{dev,prod}.yml` | Compose stacks |
+| `ops/caddy/{dev.duelme.pro,duelme.pro}.Caddyfile` | Caddy reverse proxy |
 
 ## Duel States
 
@@ -197,356 +170,184 @@ Created(0) → Cancelled(5)
 
 ### General Principles
 
-**File size discipline:** No source file should exceed 300 lines. When a file approaches this limit, proactively extract logical units into separate files — helper functions into utilities, sub-components into their own files, complex hooks into composable hooks. A file doing too many things is a bug waiting to happen. Apply the Single Responsibility Principle at the file level: one file = one clear purpose.
+- **File size:** ≤300 lines. Extract helpers/sub-components/composable hooks when approaching the limit. One file = one purpose (SRP).
+- **DRY:** single source of truth for every constant/type/helper/ABI. See `constants.ts` / `contracts.ts`.
+- **YAGNI:** build what the task requires. No abstractions for hypothetical futures. Three similar lines beats a premature abstraction.
+- **Fail fast:** validate at system boundaries (user input, API, contract calls). Inside, trust the types. Never silently swallow errors.
+- **Self-review before "done":** `npx tsc --noEmit` · `npm run lint` · relevant tests (`forge test`, `./gradlew test`, `npm run test`) · read the diff for debug code / missing error handling / inconsistent naming.
 
-**DRY — Single Source of Truth:** Every constant, type, helper, and ABI must have exactly one canonical definition. Import from the source. Never copy-paste a value "just for this file." If you find yourself defining the same thing in two places, extract it immediately. See `constants.ts` and `contracts.ts` for shared definitions.
+### Frontend (Next.js / React / TS / Tailwind)
 
-**YAGNI — Build What's Needed:** Do not add features, parameters, configuration options, or abstractions for hypothetical future use. Build what the task requires. Three similar lines are better than a premature abstraction. Add abstractions only when the third concrete use case demands it.
+**Mobile-first — non-negotiable.** Treat mobile as primary, not afterthought. Design at 360–640px first; `sm:`/`md:`/`lg:` are enhancements.
+- Tap targets ≥44×44px. No horizontal scroll at 360px. No hover-only affordances.
+- Multi-column layouts need explicit mobile fallback (usually vertical stack).
+- Fixed elements respect browser chrome / safe areas.
+- Always check mobile rendering when reviewing UI diffs.
 
-**Fail fast, fail clearly:** Validate at system boundaries (user input, API requests, contract calls). Inside the system, trust the types and let errors surface naturally. Never silently swallow errors — either handle them with user-facing feedback or let them propagate.
+**UI verification (Playwright + screenshots)** for any layout / visual / responsive / interactive change:
+1. `npm run lint && npm run build` from `frontend/`.
+2. Start fresh dev server on a free port — don't trust an existing `3001`/`3002`. Example: `npm run dev -- --hostname 127.0.0.1 --port 3010`.
+3. Install Chromium once if missing: `npx playwright install chromium`.
+4. Run relevant e2e when present: `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3010 npx playwright test e2e/<file>.spec.ts`. Report unrelated failures explicitly.
+5. Screenshot desktop + mobile (`--viewport-size=390,844`) with `--wait-for-timeout=3000 --full-page` to avoid first-frame loading screenshots.
+6. Inspect screenshots — check overlapping text, clipped buttons, horizontal scroll, broken spacing, primary action visibility.
+7. Clean up: delete screenshots and stop temporary dev server unless user asked you to leave them.
 
-**Self-review before completion:** Before declaring any task done, always:
-1. Run the type-checker (`npx tsc --noEmit`)
-2. Run the linter (`npm run lint`)
-3. Run relevant tests (`forge test`, `./gradlew test`, `npm run test`)
-4. Read through the diff — look for accidental debug code, missing error handling, inconsistent naming
+**Components:**
+- Functional + hooks only. `function` keyword (not arrow). Named exports only.
+- TypeScript strict — no `any`, no unchecked `as`. Use type guards / Zod for unknown data.
+- Props interface `{ComponentName}Props` directly above component.
+- One exported component per file (small internal helpers <30 lines are fine). Guard clauses first, happy path last.
+- Extract reusable logic to `hooks/`, pure logic to `lib/`.
+- `'use client'` only when browser APIs needed. Server components by default.
+- No barrel files (`index.ts` re-exports) in component dirs — breaks tree-shaking.
 
----
+**Hooks:**
+- Named `use{Feature}`, one concern each. Return objects (not arrays) for >2 values.
+- Contract reads via `useReadContract` / `useReadContracts` with explicit `query` config (`enabled`, `refetchInterval`, `staleTime`).
+- Memoize expensive computations (`useMemo`) and child callbacks (`useCallback`).
+- No async directly in `useEffect` — extract to a function or use React Query.
 
-### Frontend Standards (Next.js / React / TypeScript / Tailwind)
+**State:** URL state for nav-relevant; `useState` for ephemeral UI; React Query for server/contract (never manually sync remote data into `useState`); Context only for cross-cutting concerns.
 
-**Mobile-first — non-negotiable:** The entire frontend must deliver a first-class mobile experience — treat mobile as the primary target, not an afterthought. Every component, page, modal, toast, form, and feature must be designed and verified at mobile breakpoints (≤640px, down to 360px viewport width) before being considered done. Mobile layout is the baseline; `sm:` / `md:` / `lg:` are progressive enhancements for larger screens. Concrete rules:
-- Never design desktop-first and retrofit mobile. Start from the narrowest viewport and grow outward.
-- Tap targets must be at least 44×44px; avoid tightly packed interactive elements.
-- Text must be readable without horizontal scroll at 360px width.
-- Complex layouts (multi-column grids, tables, side-by-side panels) must have an explicit mobile fallback — usually a vertical stack.
-- No hover-only affordances. Touch devices have no hover; any interaction hinted by hover must also work on tap/focus.
-- Fixed elements (headers, bottom bars, modals) must not trap content or collide with mobile browser chrome / safe areas.
-- When reviewing any diff that touches UI, explicitly check mobile rendering in the dev tools responsive view.
+**Styling:** Tailwind utility classes only — no inline styles, no CSS modules. Use `cn()` from `lib/utils.ts`. shadcn/ui as base, customize via Tailwind. Design tokens via Tailwind theme — never hardcode colors/spacing/breakpoints.
 
-**UI verification workflow (Playwright + screenshots):** For any frontend change that affects layout, visual hierarchy, interactive controls, responsive behavior, or user-facing page states, verify it in a real browser before calling the task done.
-- Run the non-browser checks first: `npm run lint` and `npm run build` from `frontend/`.
-- Start a fresh local dev server on a known free port. Do not trust an already-running server on `3001` or `3002`; it may be an older process or a deployed-port convention. Use a fresh port such as:
-  ```bash
-  npm run dev -- --hostname 127.0.0.1 --port 3010
-  ```
-  If the port is busy, pick the next free port and use that exact URL for all checks.
-- If Playwright cannot launch Chromium, install the browser runtime once:
-  ```bash
-  npx playwright install chromium
-  ```
-- Run the relevant e2e file when one exists:
-  ```bash
-  PLAYWRIGHT_BASE_URL=http://127.0.0.1:3010 npx playwright test e2e/public-duels.spec.ts
-  ```
-  If tests fail outside the touched surface, report the exact failing tests and why they appear unrelated instead of hiding the failure.
-- Capture both desktop and mobile screenshots for the changed route. Prefer waiting for a stable selector from the changed UI; otherwise use a short timeout to avoid screenshotting the first loading frame:
-  ```bash
-  npx playwright screenshot --wait-for-timeout=3000 --full-page http://127.0.0.1:3010/duels/public /tmp/duels-public-desktop.png
-  npx playwright screenshot --viewport-size=390,844 --wait-for-timeout=3000 --full-page http://127.0.0.1:3010/duels/public /tmp/duels-public-mobile.png
-  ```
-  For data-dependent pages, capture the loaded/content state when feasible. A skeleton-only screenshot is useful for loading-state review, but it is not enough when the feature being changed is the loaded UI.
-- Inspect screenshots with the available image viewer before finalizing. Check for overlapping text, clipped buttons, horizontal scroll, broken spacing, missing visible states, and whether the primary action is obvious on both desktop and mobile.
-- Always clean up after browser verification: delete temporary screenshot files you created, and stop any temporary dev server before finishing. Only leave a server or screenshots behind when the user explicitly asks for that.
+**Errors:** `try/catch` around wallet/API calls. Toast errors via `useAppToast()` — no silent failures. Parse contract reverts to human-readable. Check `res.ok` before parsing API responses.
 
-**Component architecture:**
-- Functional components only, with hooks for all state and side effects
-- Use `function` keyword for components, not `const` arrow functions. Named exports only — no default exports
-- TypeScript strict mode — no `any`, no `as` casts without validation. Use type guards or Zod when narrowing unknown data
-- Props interfaces defined directly above the component, named `{ComponentName}Props`
-- One exported component per file. Internal helper components are fine if small (<30 lines)
-- Guard clauses first, happy path last — no deeply nested `if/else` trees. Early return for every error condition
-- Extract reusable logic into custom hooks in `hooks/`. Extract pure logic into `lib/`
-- Use `'use client'` directive only on components that need browser APIs. Keep server components as default
-- Never use barrel files (`index.ts` re-exports) in component directories — they break tree-shaking
+**Performance:** `next/dynamic` + `{ ssr: false }` for wallet-dependent UI. `useMemo` for derived lists. Don't create objects/arrays in render. `next/image` with explicit width/height + `loading="lazy"` for below-fold.
 
-**Hooks patterns:**
-- Name custom hooks `use{Feature}` — each hook should own one concern
-- Return objects (not arrays) for hooks with >2 return values: `{ data, isLoading, refetch }`
-- For contract reads: use `useReadContract` / `useReadContracts` with explicit `query` options
-- Always specify `enabled`, `refetchInterval`, and `staleTime` in query config
-- Memoize expensive computations with `useMemo`. Memoize callbacks passed to children with `useCallback`
-- Never put async calls directly in `useEffect` — extract to a function or use React Query
+**i18n:** All visible strings via `useTranslation()`. Add EN + RU keys in `translations.ts`. ICU message format for plurals/interpolation.
 
-**State management:**
-- URL state for navigation-relevant state (active tab, filters)
-- React state (`useState`) for ephemeral UI state (modals, form inputs)
-- React Query for server/contract state — never manually sync remote data into `useState`
-- Context only for cross-cutting concerns (theme, language, wallet) — not for data fetching
+**Naming:** Components `PascalCase.tsx`, hooks `camelCase.ts` prefixed `use`, utils `camelCase.ts`, primitive constants `UPPER_SNAKE_CASE`, object constants `camelCase`, types `PascalCase` (prefer `interface` for object shapes).
 
-**Styling:**
-- Tailwind CSS utility classes for all styling. No inline styles, no CSS modules
-- Use `cn()` from `lib/utils.ts` for conditional class merging (clsx + tailwind-merge)
-- shadcn/ui components as the base. Customize via Tailwind, not by overriding component internals
-- Responsive-first: mobile layout is default, `md:` / `lg:` for larger breakpoints
-- Design tokens via Tailwind theme — never hardcode colors, spacing, or breakpoints
+### Backend (Java / Spring Boot / MongoDB)
 
-**Error handling:**
-- Use `try/catch` around async operations that interact with wallets or APIs
-- Show user-facing toast via `useAppToast()` for all error states — never silent failures
-- Contract reverts: parse the error message and show a human-readable explanation
-- API errors: check `res.ok` before parsing. Return sensible defaults on failure in hooks
+**Layer separation:**
+- **Controller**: HTTP mapping / validation / response shaping only. ≤50 lines/method. No business logic.
+- **Service**: business logic, authorization, transaction boundaries. Controllers never call repositories directly.
+- **Repository**: data access only.
+- **DTO**: separate request/response records. Never expose Mongo documents. Never reuse the same record for request and response.
+- **Exception**: domain-specific, handled in `GlobalExceptionHandler`. Never catch generic `Exception`.
+- No circular service dependencies — extract shared logic into a third service.
 
-**Performance:**
-- Lazy load heavy components with `next/dynamic` and `{ ssr: false }` for wallet-dependent UI
-- Use `useMemo` for filtered/sorted lists derived from large datasets
-- Avoid re-renders: don't create objects/arrays in render — extract to `useMemo` or module scope
-- Images: use `next/image` with explicit width/height. Always set `loading="lazy"` for below-fold
+**Records & immutability:** `record` for all DTOs, value objects, Mongo documents. No setters/mutables. Compact constructor for validation. Constructor injection only (no `@Autowired` on fields, single constructor). No Lombok. `var` when type is obvious.
 
-**Internationalization:**
-- All user-visible strings go through `useTranslation()` — no hardcoded text in JSX
-- Always add both EN and RU keys in `translations.ts` when adding new strings
-- Use ICU message format for plurals and interpolation
+**Validation:** `@Valid` on `@RequestBody`. `@Validated` on controller class + `@NotBlank` / `@Size` on `@RequestParam` / `@PathVariable`. Wallet addresses always `.toLowerCase()` at service boundary. Max-length on all user string inputs.
 
-**Naming conventions:**
-- Components: `PascalCase` files and exports (`DuelCard.tsx`)
-- Hooks: `camelCase` files prefixed with `use` (`useDuel.ts`)
-- Utilities/libs: `camelCase` files (`duelSearch.ts`)
-- Constants: `UPPER_SNAKE_CASE` for primitive values, `camelCase` for objects/maps
-- Types: `PascalCase`, prefer `interface` over `type` for object shapes
+**Exceptions:** domain exceptions extend `RuntimeException`. `GlobalExceptionHandler` maps `*NotFoundException` → 404, `NotAuthorizedException` → 403, `ConstraintViolationException` / `MethodArgumentNotValidException` → 400. Never return stack traces in API responses.
 
----
+**Security:** all mutating endpoints require `@AuthenticationPrincipal`. Authorization checks in service layer (verify ownership). No default values for secrets in `application.yml` — all via env vars from GitHub secrets. Consider rate-limiting batch endpoints.
 
-### Backend Standards (Java / Spring Boot / MongoDB)
+**API documentation (MANDATORY)** — every endpoint needs OpenAPI annotations.
 
-**Layer architecture — strict separation:**
-- **Controller**: HTTP mapping, request validation, response shaping. No business logic. Max 50 lines per method
-- **Service**: Business logic, authorization checks, transaction boundaries. Controllers call services, never repositories directly
-- **Repository**: Data access only. Custom queries via Spring Data method names or `@Query`
-- **DTO**: Separate request/response records from domain models. Never expose MongoDB documents directly. Never reuse the same record for both request and response
-- **Exception**: Domain-specific exceptions handled in `GlobalExceptionHandler`. Never catch generic `Exception`
-- No circular dependencies between services — extract shared logic into a third service if needed
-
-**Java records and immutability:**
-- Use `record` for all DTOs, value objects, and MongoDB documents
-- Never use mutable fields or setters. Build new instances for modifications
-- Constructor validation via compact constructor for domain constraints
-- Constructor injection only — no `@Autowired` on fields. Single constructor per class (Spring auto-injects)
-- No Lombok — Java records and modern language features cover the same ground
-- Use `var` for local variables when the type is obvious from the right side
-
-**Input validation:**
-- `@Valid` on all `@RequestBody` parameters. Jakarta Bean Validation annotations on DTO fields
-- `@Validated` on controller class + `@NotBlank` / `@Size` on `@RequestParam` / `@PathVariable`
-- Wallet addresses: always `.toLowerCase()` at the service boundary. Store normalized
-- Sanitize and limit string inputs: max length on all user-provided text fields
-
-**Exception handling:**
-- Domain exceptions extend `RuntimeException` with descriptive messages
-- `GlobalExceptionHandler` maps exceptions to HTTP status codes:
-  - `*NotFoundException` → 404
-  - `NotAuthorizedException` → 403
-  - `ConstraintViolationException` / `MethodArgumentNotValidException` → 400
-- Never return stack traces in API responses. Log them server-side only
-
-**Security:**
-- All mutating endpoints require authentication (`@AuthenticationPrincipal`)
-- Authorization checks in service layer: verify the caller owns/created the resource
-- No default values for secrets in `application.yml` — all secrets via env vars generated from GitHub repository/environment secrets by the deploy workflow
-- Rate limiting consideration for batch endpoints
-
-**API documentation (MANDATORY):**
-Every endpoint must have complete OpenAPI annotations. This is a blocking requirement.
-
-When **adding** a new endpoint:
-1. `@Tag(name = "...", description = "...")` on the controller class
-2. `@Operation(summary = "...")` on the method
+When **adding** an endpoint:
+1. `@Tag(name, description)` on controller class
+2. `@Operation(summary)` on method
 3. `security = @SecurityRequirement(name = "bearer")` if authenticated
-4. `@ApiResponses` with all relevant response codes (200, 400, 401, 403, 404)
+4. `@ApiResponses` with all relevant codes (200, 400, 401, 403, 404)
 5. `@Parameter(hidden = true)` on `@AuthenticationPrincipal`
-6. Register in `SecurityConfig.java` with `.permitAll()` or `.authenticated()`
+6. Register in `SecurityConfig.java` with `.permitAll()` / `.authenticated()`
 
-When **modifying** an existing endpoint: update `@Operation`, security annotations, and `SecurityConfig` as needed.
+When **modifying**: update `@Operation`, security annotations, and `SecurityConfig`.
 
-OpenAPI config: `backend/src/.../config/OpenApiConfig.java`
-Swagger UI: `https://dev.duelme.pro/api/v1/swagger-ui` (dev) / `https://duelme.pro/api/v1/swagger-ui` (prod)
+OpenAPI config: `backend/src/.../config/OpenApiConfig.java`. Swagger UI at `/api/v1/swagger-ui` on each env.
 
----
+### Smart Contracts (Solidity / Foundry)
 
-### Smart Contract Standards (Solidity / Foundry)
+**Security-first:**
+- Every state-mutating function: `nonReentrant` + `whenNotPaused`. No exceptions.
+- `SafeERC20` for all token ops — never raw `.transfer()` / `.transferFrom()`.
+- CEI pattern: checks → effects → interactions.
+- `onlyOwner` for admin; verify authorization before state changes.
+- Never trust `msg.value` arithmetic — use explicit amount params.
+- Pull-over-push for payouts.
 
-**Security-first development:**
-- Every state-mutating function: `nonReentrant` + `whenNotPaused`. No exceptions
-- Use `SafeERC20` for all token operations. Never use raw `.transfer()` / `.transferFrom()`
-- CEI pattern (Checks-Effects-Interactions): validate inputs → update state → external calls
-- Access control: `onlyOwner` for admin functions. Authorization checks before state changes
-- Never trust `msg.value` arithmetic — use explicit amount parameters
-- Pull-over-push for payouts: let users claim, never push funds to arbitrary addresses
+**Gas:**
+- Don't initialize storage to defaults (0, `address(0)`, false).
+- `calldata` (not `memory`) for read-only params.
+- Pack struct storage variables by size.
+- `uint256` for loop counters.
+- Events for non-on-chain data.
+- `immutable` for constructor-set, `constant` for compile-time literals (eliminates SLOAD).
+- Cache repeated storage reads in locals (each SLOAD = 100 gas).
+- Short-circuit `require`: cheapest check first.
 
-**Gas optimization:**
-- Don't initialize storage variables to their default values (0, address(0), false)
-- Use `calldata` instead of `memory` for read-only function parameters
-- Pack storage variables: group smaller types together in struct definitions
-- Prefer `uint256` for loop counters and intermediate calculations
-- Use events for data that doesn't need on-chain access
-- `immutable` for constructor-set values, `constant` for compile-time literals (eliminates SLOAD)
-- Cache storage reads in local variables — each repeated SLOAD costs 100 gas
-- Short-circuit `require` checks: cheapest check first
+**Testing:** unit test every public/external function (happy + all revert conditions). Access control, state transitions, boundaries (0 / threshold / max), full lifecycle integration. Fuzz arithmetic-heavy fns. Target ≥90% line coverage including emergency/admin.
 
-**Testing strategy:**
-- Unit tests for every public/external function — happy path + all revert conditions
-- Test access control: verify `onlyOwner` reverts for non-owners
-- Test state transitions: verify each state can only transition to valid next states
-- Boundary tests: exact thresholds, zero values, max values
-- Integration tests: full lifecycle flows (create → join → claim → confirm → payout)
-- Fuzz tests for arithmetic-heavy functions when applicable
-- Target: >90% line coverage. Emergency/admin functions included
+**Docs:** NatSpec `@notice` on all public functions. `@param` / `@return` for non-obvious. Emit events for every state change.
 
-**Documentation:**
-- NatSpec `@notice` on all public functions
-- `@param` and `@return` for non-obvious parameters
-- Emit events for every state change — frontends depend on these
+**ABI sync:** after contract changes, `forge build` → copy ABI to `frontend/src/lib/contracts.ts` → verify frontend type-checks clean.
 
-**ABI sync:** After any contract change, regenerate ABI and sync to `frontend/src/lib/contracts.ts`. Run `forge build` → copy ABI → verify frontend type-checks clean.
+### Testing
 
----
+- **New feature:** tests alongside or immediately after.
+- **Bug fix:** failing reproduction test first, then fix.
+- **Refactor:** verify existing tests pass before+after, add coverage for uncovered paths.
+- Every public surface (contract fn, REST endpoint, exported hook) must have tests.
+- **AAA pattern:** Arrange → Act → Assert. One behavior per test. Name `test{Action}{ExpectedResult}`.
 
-### Testing Standards
+**Frontend (Vitest):** test `lib/` pure logic. Test complex hooks via `renderHook`. Test observable behavior, not implementation. Mock at boundaries.
 
-**When to write tests:**
-- New feature: write tests alongside or immediately after implementation
-- Bug fix: write a failing test that reproduces the bug first, then fix
-- Refactoring: verify existing tests pass before and after. Add tests for uncovered paths
-- Every public API surface (contract function, REST endpoint, exported hook) must have tests
+**Backend (JUnit 5 + Spring Boot Test):** `@SpringBootTest` + `@AutoConfigureMockMvc` + embedded MongoDB. Controller via `MockMvc` (status / shape / auth). Service for logic / auth / edges. `WalletAuthenticationToken` for auth simulation. `@BeforeEach` cleanup for isolation.
 
-**Test structure — AAA pattern:**
-```
-Arrange → set up preconditions and inputs
-Act     → execute the operation under test
-Assert  → verify the expected outcome
-```
-One behavior per test. Name tests descriptively: `test{Action}{ExpectedResult}` or `{action} {expected result}`.
+**Contracts (Foundry):** one file per area. `setUp()` with standard accounts. `vm.expectRevert` / `vm.expectEmit` / `vm.warp` / `vm.prank`.
 
-**Frontend tests (Vitest):**
-- Test pure logic in `lib/` (formatting, validation, search) — these are fast and valuable
-- Test hook behavior with `renderHook` for complex hooks
-- No testing of implementation details — test observable behavior
-- Mock external dependencies (contract reads, API calls) at the boundary
+**Edge cases always:** zero/max inputs, unauthorized callers, double-execution, empty / boundary-length strings, reentrancy.
 
-**Backend tests (JUnit 5 + Spring Boot Test):**
-- `@SpringBootTest` + `@AutoConfigureMockMvc` + embedded MongoDB for integration tests
-- Test controller layer through `MockMvc` — verify HTTP status, response shape, auth enforcement
-- Test service layer for business logic, authorization, edge cases
-- Use `WalletAuthenticationToken` for simulating authenticated requests
-- `@BeforeEach` cleanup: delete all documents to ensure test isolation
-- Test validation: verify 400 responses for invalid inputs
+**Coverage:** Contracts ≥90%. Backend: all endpoints + service methods (focus auth/validation). Frontend: all `lib/` pure functions.
 
-**Contract tests (Foundry):**
-- One test file per logical area (core, payouts, emergency)
-- Use setUp() with standard test accounts (creator, opponent, attacker, owner)
-- Test all revert conditions with `vm.expectRevert`
-- Test events with `vm.expectEmit`
-- Use `vm.warp` for time-dependent logic (timeouts, timelocks)
-- Use `vm.prank` for access control tests
+### Documentation
 
-**Edge cases to always check:**
-- Zero-value and max-value inputs
-- Unauthorized callers (wrong wallet, no auth token)
-- Double-execution (claim twice, join twice, cancel after cancel)
-- Empty strings and strings at boundary length
-- Reentrancy (contracts have `nonReentrant`, but test that it actually blocks)
-
-**Coverage expectations:**
-- Contracts: >90% line coverage (`forge coverage --report summary`)
-- Backend: all endpoints + all service methods tested, focus on auth + validation paths
-- Frontend: all `lib/` pure functions tested
-
----
-
-### Documentation Standards
-
-**CLAUDE.md maintenance:**
-- Keep in sync with code reality. When changing architecture, update CLAUDE.md in the same commit
-- Key Files table: add new files, remove deleted ones. Every important file should be listed
-- Common Pitfalls: add any non-obvious gotcha discovered during development
-- Done section: update after completing major features
-
-**Code comments:**
-- Don't comment obvious code. Comments explain "why", never "what"
-- Use comments for: non-obvious business rules, workarounds for external bugs, performance-critical decisions
-- TODO comments are banned in committed code — file an issue instead
-
-**Commit messages:**
-- Imperative mood: "Add X" not "Added X" or "Adds X"
-- First line: what changed and why (max 72 chars)
-- Body (if needed): context that isn't obvious from the diff
-- Never add `Co-Authored-By` or any AI attribution
-
----
+- **CLAUDE.md:** keep synced with code in the same commit. Key Files table: add new important files, remove deleted ones. Add non-obvious gotchas to Common Pitfalls.
+- **Code comments:** explain "why", never "what". Use for non-obvious business rules, external-bug workarounds, performance-critical decisions. TODO comments banned in committed code — file an issue.
+- **Commit messages:** imperative mood, first line ≤72 chars, body for non-obvious context. Never add `Co-Authored-By` or any AI attribution.
 
 ### Subagent Quality Requirements
 
-**IMPORTANT: Subagents do NOT receive CLAUDE.md automatically.** The main agent must explicitly include instructions in every subagent prompt. Every Agent tool call must begin with:
+**Subagents do NOT receive CLAUDE.md automatically.** Every Agent prompt must begin with:
 
 > "Read /home/oserver/projects/duelme/CLAUDE.md first — it contains project conventions, development standards, and quality requirements you must follow."
 
-Additionally, the prompt must include these requirements:
-
-**Context loading:** Read CLAUDE.md and the relevant source files before writing any code. Understand the project patterns, naming conventions, and architectural decisions before touching code.
-
-**Code quality mandate:**
-- Follow the project's existing patterns exactly — study neighboring files for style
-- Never introduce code smells: no duplicated constants, no oversized functions, no `any` types
-- All new code must pass: `npx tsc --noEmit`, `npm run lint`, `forge build`, `./gradlew build`
-- Handle errors at system boundaries. No silent failures
-
-**Test coverage:** Every subagent that writes implementation code must also write tests. No exceptions. If the agent creates a new service method, it writes the test. If it adds a contract function, it writes the test.
-
-**Self-review:** Before completing, the agent must:
-1. Re-read all files it modified and check for inconsistencies
-2. Verify no unused imports, dead code, or accidental debug statements
-3. Confirm naming matches project conventions
-4. Run the relevant test suite and verify all tests pass
+And must require:
+- **Context loading:** read CLAUDE.md and relevant source files before writing code.
+- **Code quality:** follow existing patterns; no duplicated constants, oversized functions, or `any` types; must pass `npx tsc --noEmit`, `npm run lint`, `forge build`, `./gradlew build`; handle errors at boundaries.
+- **Tests:** any subagent that writes implementation code also writes tests.
+- **Self-review:** re-read modified files for inconsistencies / unused imports / dead code / debug statements; confirm naming matches conventions; run relevant tests.
 
 ## Environment
 
-Runtime configuration source of truth: GitHub repository/environment secrets. The deploy workflow writes these into `~/apps/duelme-{dev,prod}/.env` over SSH and then runs Docker Compose. When adding a new backend/frontend runtime variable, update `.github/workflows/ci.yml`, the matching `ops/docker-compose.*.yml`, and this list.
+Runtime config source of truth: GitHub repository/environment secrets. Deploy workflow writes them into `~/apps/duelme-{dev,prod}/.env` over SSH before `docker compose up`. When adding a new runtime variable, update `.github/workflows/ci.yml`, the matching `ops/docker-compose.*.yml`, and this list.
 
-- `NEXT_PUBLIC_PRIVY_APP_ID` — Privy app ID (required for frontend)
-- `PRIVY_APP_ID` — Privy app ID (required for backend JWT verification)
-- `MONGODB_URI` — MongoDB connection string (default: `mongodb://localhost:27017/duelme`); Spring Boot 4 property: `spring.mongodb.uri` (not `spring.data.mongodb.uri`)
-- `NEXT_PUBLIC_API_URL` — Backend API base URL (default: `/api/v1`)
-- `NEXT_PUBLIC_ARBITRUM_RPC_URL` — authenticated RPC for Arbitrum One (Alchemy/QuickNode). Used both as the Privy embedded-wallet override and as the first wagmi fallback. If unset, falls back to Tenderly Gateway public. Lock the URL down via the provider dashboard's "Allowed Origins" — NEXT_PUBLIC_* vars are inlined into the JS bundle.
-- `NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL` — same but for Arbitrum Sepolia. Optional; Tenderly public works for dev.
-- `APP_BASE_URL` — backend's view of the frontend origin, used to build OAuth redirect targets (`https://dev.duelme.pro` for dev, `https://duelme.pro` for prod)
-- `SOCIAL_LINK_STATE_SECRET` — HMAC secret (>=32 bytes of entropy) used to sign the state tokens that survive the Steam/Telegram redirect round-trip
-- `STEAM_API_KEY` — optional; if set, linked Steam accounts are enriched with username and avatar via `GetPlayerSummaries`
-- `STEAM_RETURN_URL` — absolute URL Steam redirects back to after login (`https://dev.duelme.pro/api/v1/profiles/me/social/steam/callback` or `https://duelme.pro/api/v1/profiles/me/social/steam/callback`)
-- `TELEGRAM_CLIENT_ID` / `TELEGRAM_CLIENT_SECRET` — OIDC credentials issued by @BotFather under Bot Settings → Web Login
-- `TELEGRAM_RETURN_URL` — absolute URL Telegram redirects back to after login; must match the allowed URL registered with @BotFather (`https://dev.duelme.pro/api/v1/profiles/me/social/telegram/callback` or `https://duelme.pro/api/v1/profiles/me/social/telegram/callback`)
-- `TELEGRAM_ISSUER` — OIDC issuer, defaults to `https://oauth.telegram.org`
-- Deployed on Arbitrum One (mainnet, chainId 42161) and Arbitrum Sepolia (testnet, chainId 421614). Build-time `NEXT_PUBLIC_DEFAULT_CHAIN_KEY` (`arbitrum` for prod, `arbitrumSepolia` for dev) selects which one users land on.
-- Contract addresses in `DUELME_ADDRESSES` map in `constants.ts`
+- `NEXT_PUBLIC_PRIVY_APP_ID` — Privy app ID (frontend)
+- `PRIVY_APP_ID` — Privy app ID (backend JWT verification)
+- `MONGODB_URI` — Mongo connection (default `mongodb://localhost:27017/duelme`). Spring Boot 4 property: `spring.mongodb.uri` (not `spring.data.mongodb.uri`).
+- `NEXT_PUBLIC_API_URL` — Backend API base URL (default `/api/v1`)
+- `NEXT_PUBLIC_ARBITRUM_RPC_URL` — authenticated RPC for Arbitrum One (Alchemy/QuickNode). Used as Privy embedded-wallet override + first wagmi fallback. Falls back to Tenderly Gateway public if unset. Lock URL via provider dashboard "Allowed Origins" — `NEXT_PUBLIC_*` are inlined into the JS bundle.
+- `NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL` — same for Arbitrum Sepolia. Optional; Tenderly public works for dev.
+- `APP_BASE_URL` — backend's view of frontend origin for OAuth redirects (`https://dev.duelme.pro` / `https://duelme.pro`)
+- `STEAM_API_KEY` — optional; enables username/avatar enrichment via `GetPlayerSummaries`
+- `STEAM_RETURN_URL` — absolute Steam callback URL (`https://{env}/api/v1/profiles/me/social/steam/callback`)
+- `TELEGRAM_CLIENT_ID` / `TELEGRAM_CLIENT_SECRET` — OIDC creds from @BotFather → Bot Settings → Web Login
+- `TELEGRAM_RETURN_URL` — absolute Telegram callback URL; must match @BotFather-registered URL
+- `TELEGRAM_ISSUER` — defaults to `https://oauth.telegram.org`
+- Chains: Arbitrum One (42161) prod, Arbitrum Sepolia (421614) dev. Build-time `NEXT_PUBLIC_DEFAULT_CHAIN_KEY` (`arbitrum` / `arbitrumSepolia`) selects.
+- Contract addresses: `DUELME_ADDRESSES` map in `constants.ts`.
 
 ## Common Pitfalls
 
-- Importing `createConfig` from `wagmi` instead of `@privy-io/wagmi` breaks wallet routing silently
-- `useSetActiveWallet` in useEffect is too late — use `setActiveWalletForWagmi` sync callback
-- Invite-only duels rely on the full private link (URL fragment) — do not fall back to sharing plain `/duel/{id}` URLs
-- USDT has a blocklist — keep payouts pull-based and do not reintroduce push transfers
-- Wilson Score gives low scores for small sample sizes — players with 0 abandoned duels are never "unreliable"
-- Only `contracts/broadcast/{Deploy,DeployMainnet}.s.sol/<chainId>/run-latest.json` should be tracked; timestamped `run-*.json` files stay ignored (filter is in top-level `.gitignore`)
-- Do NOT use `arbitrum-one-rpc.publicnode.com` for Arbitrum RPC — it exposes legacy `eth_fillTransaction`, which viem 2.47+ calls during `prepareTransactionRequest` and gets back `gasPrice: "0x0"`, producing signed transactions with all-zero gas/fees. Privy SDK then surfaces this as "HTTP request failed". See https://github.com/wevm/viem/issues/4323 (open as of May 2026). Use Alchemy/QuickNode/Tenderly/drpc/arb1.arbitrum.io instead — they don't implement `eth_fillTransaction`
-- Privy embedded wallets sign with all-zero gas/nonce when the SDK auto-populate path runs; bypass by passing `gas` / `maxFeePerGas` / `maxPriorityFeePerGas` / `nonce` explicitly in every `writeContract` call. Implemented centrally in `useDuelActions.writeWithGas` — do not call `writeContract` directly from action functions
-- README contract addresses are generated from `run-latest.json`; let `scripts/sync_readme_contract_addresses.py` / the pre-commit hook update that block
-- In this environment, source `contracts/.env` before manual deploys (`set -a && . ./.env && set +a`)
-- Use shared constants from `constants.ts` (`ZERO_ADDRESS`, `CHAIN_NAMES`) and `contracts.ts` (`ACTIVE_STATES`, `balanceOfAbi`, `transferAbi`, `getUsdtAddress`) — never redefine locally
-- `PRIVY_APP_ID` env var is required for backend — no default value in application.yml
-- Frontend npm version is pinned to `^11.12.1` via `frontend/package.json` `engines` + `frontend/.npmrc` `engine-strict=true`. CI and `frontend/Dockerfile` install it explicitly via `npm install -g npm@11.12.1`. Use the same version locally — earlier patch/major bumps caused lock-file desync (e.g. `EUSAGE`/`EBADENGINE` in `npm ci`).
-- `frontend/package.json` `overrides.eslint-plugin-react-hooks: 7.0.1` is a temporary pin: `7.1.x` adds the `react-hooks/set-state-in-effect` rule which flags pre-existing patterns in `dashboard/page.tsx`, `duel/[id]/page.tsx`, `Header.tsx`, `useCreateDuelFlow.ts`, `useJoinDuelFlow.ts`. Lift the override only after refactoring those files.
+- `createConfig` from `wagmi` instead of `@privy-io/wagmi` silently breaks wallet routing.
+- `useSetActiveWallet` in `useEffect` is too late — use `setActiveWalletForWagmi` sync callback.
+- Invite-only duels rely on the full private link (URL fragment) — never fall back to plain `/duel/{id}`.
+- USDT has a blocklist — keep payouts pull-based, no push transfers.
+- Wilson Score gives low scores for small samples — players with 0 abandoned duels are never "unreliable".
+- Only `contracts/broadcast/{Deploy,DeployMainnet}.s.sol/<chainId>/run-latest.json` is tracked; timestamped `run-*.json` ignored via top-level `.gitignore`.
+- **Do NOT use `arbitrum-one-rpc.publicnode.com`** — exposes legacy `eth_fillTransaction`, which viem 2.47+ calls during `prepareTransactionRequest` and gets `gasPrice: "0x0"`, producing signed txs with all-zero gas/fees. Privy surfaces as "HTTP request failed". See [viem#4323](https://github.com/wevm/viem/issues/4323) (open as of May 2026). Use Alchemy/QuickNode/Tenderly/drpc/arb1.arbitrum.io.
+- **Privy embedded wallets** sign with all-zero gas/nonce when SDK auto-populates — bypass by passing `gas` / `maxFeePerGas` / `maxPriorityFeePerGas` / `nonce` explicitly in every `writeContract` call. Centralized in `useDuelActions.writeWithGas` (uses `buildTransactionParams` + `resilientBroadcast`) — never call `writeContract` directly from action functions.
+- README contract addresses auto-generated from `run-latest.json` by `scripts/sync_readme_contract_addresses.py` / pre-commit hook — don't edit that block manually.
+- Manual deploys here: source `contracts/.env` first (`set -a && . ./.env && set +a`).
+- Use shared constants from `constants.ts` (`ZERO_ADDRESS`, `CHAIN_NAMES`) and `contracts.ts` (`ACTIVE_STATES`, `balanceOfAbi`, `transferAbi`, `getUsdtAddress`) — never redefine locally.
+- `PRIVY_APP_ID` env required for backend (no default in `application.yml`).
+- Frontend npm pinned to `^11.12.1` via `frontend/package.json` `engines` + `frontend/.npmrc` `engine-strict=true`. CI / Dockerfile install via `npm install -g npm@11.12.1`. Mismatch caused `EUSAGE` / `EBADENGINE` in `npm ci`.
+- `overrides.eslint-plugin-react-hooks: 7.0.1` is a temporary pin — `7.1.x` adds `react-hooks/set-state-in-effect`, which flags existing patterns in `dashboard/page.tsx`, `duel/[id]/page.tsx`, `Header.tsx`, `useCreateDuelFlow.ts`, `useJoinDuelFlow.ts`. Lift only after refactoring those files.
 
-## Done — Durable Session Memory
-
-- Done: secure invite bearer-link flow with `inviteHash` on-chain and the raw secret in the URL fragment for join/decline
-- Done: pull-based payouts with claim-all / per-duel claims, payout timestamps, and localized top-center toasts
-- Done: mutual cancellation that pauses funded duels, lets the responder accept/decline, and lets the requester withdraw
-- Done: spectator-safe duel details, clearer won/lost/no-winner dashboard cards, and claimed / claim-ready markers
-- Done: Unicode duel messages (up to 32 visible code points) shown in create, duel detail, dashboard, and latest-duels surfaces
-- Done: dashboard and latest-duels search now operate on visible UI concepts, not just raw addresses
-- Done: hero metrics now show live on-chain Total Volume and Duels Played values
-- Done: personal profiles with inline editing, nickname resolution in duel components, profile links everywhere
-- Done: timed-out duel UX — "Response timed out" status across all surfaces, color-coded timeline, synthetic timeout event, reputation messaging, timed-out duels move to history tab
-- Done: `refundAndClaimPayouts` batch contract function — single-tx refund+claim, dashboard "Claim All Refunds" card, per-duel "Claim Refund" button
-- Done: game badges in latest duels feed via backend metadata enrichment
-- Done: connected-accounts feature on profile — Steam (OpenID 2.0), Telegram (OIDC authorization-code + PKCE via `oauth.telegram.org`), Instagram (self-reported handle). Pills on public profile, unique-per-wallet enforcement via sparse Mongo indexes, stateless state tokens (HS256) carry wallet + PKCE verifier across redirects.
-- Source of truth for current deploys: `contracts/broadcast/Deploy.s.sol/421614/run-latest.json`, mirrored into `README.md` and `frontend/src/lib/constants.ts`
+Source of truth for current deploys: `contracts/broadcast/Deploy.s.sol/421614/run-latest.json` (Arbitrum Sepolia / dev) and `contracts/broadcast/DeployMainnet.s.sol/42161/run-latest.json` (Arbitrum One / prod), mirrored into `README.md` and `frontend/src/lib/constants.ts`.

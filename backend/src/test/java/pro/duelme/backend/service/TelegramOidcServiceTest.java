@@ -30,7 +30,6 @@ class TelegramOidcServiceTest {
     private SocialLinkProperties props() {
         return new SocialLinkProperties(
             "http://localhost:3000",
-            "any-secret",
             new SocialLinkProperties.Steam(null, null),
             new SocialLinkProperties.Telegram(CLIENT_ID, CLIENT_SECRET, RETURN_URL, ISSUER)
         );

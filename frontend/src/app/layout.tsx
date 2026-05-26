@@ -5,6 +5,13 @@ import { Providers } from '@/components/providers/Providers';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { JsonLd } from '@/components/seo/JsonLd';
+import { SITE_NAME, SITE_URL } from '@/lib/constants';
+import {
+  SEO_DESCRIPTION_EN,
+  SEO_KEYWORDS,
+  SEO_TITLE_EN,
+  SEO_TITLE_TEMPLATE,
+} from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,32 +21,57 @@ const inter = Inter({
   display: 'swap',
 });
 
+// `alternates` (canonical + hreflang) is intentionally NOT set at the root
+// layout: Next.js merges metadata top-down, so child routes that don't
+// override would inherit the homepage canonical/hreflang. Each route sets
+// its own; hreflang lives only on the homepage until language-specific URLs
+// exist.
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: 'DuelMe \u2014 1v1 USDT Duels. 0% Fee. On-Chain.',
-    template: '%s | DuelMe',
+    default: SEO_TITLE_EN,
+    template: SEO_TITLE_TEMPLATE,
   },
-  description:
-    'Stake USDT, win the full pot. Smart-contract escrow on Arbitrum \u2014 no platform fee, no admin override. Bring any game.',
-  metadataBase: new URL('https://duelme.fun'),
+  description: SEO_DESCRIPTION_EN,
+  applicationName: SITE_NAME,
+  keywords: [...SEO_KEYWORDS],
+  authors: [{ name: SITE_NAME, url: SITE_URL }],
+  creator: SITE_NAME,
+  publisher: SITE_NAME,
+  category: 'games',
+  classification: 'Crypto Gaming, PvP, Blockchain, Web3',
   openGraph: {
-    title: 'DuelMe \u2014 1v1 USDT Duels. 0% Fee. On-Chain.',
-    description:
-      '1v1 USDT duels with full-pot payouts. Smart-contract escrow on Arbitrum, 0% platform fee, on-chain reputation.',
-    url: 'https://duelme.fun',
-    siteName: 'DuelMe',
+    title: SEO_TITLE_EN,
+    description: SEO_DESCRIPTION_EN,
+    url: SITE_URL,
+    siteName: SITE_NAME,
     type: 'website',
     locale: 'en_US',
+    alternateLocale: ['ru_RU'],
+    // OG image auto-injected from `app/opengraph-image.tsx` (Next.js File Convention).
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'DuelMe \u2014 1v1 USDT Duels. 0% Fee. On-Chain.',
-    description:
-      '1v1 USDT duels with full-pot payouts. Smart-contract escrow on Arbitrum, 0% platform fee, on-chain reputation.',
+    title: SEO_TITLE_EN,
+    description: SEO_DESCRIPTION_EN,
+    // Twitter image auto-injected from `app/twitter-image.tsx`.
   },
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
+  },
+  // Favicon is auto-registered by Next.js File Convention (`app/favicon.ico`).
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
   },
 };
 
@@ -57,7 +89,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} font-sans antialiased`}>
-        <JsonLd type="website" />
+        {/* Organization + WebApplication are global brand identity — safe on every page. */}
+        {/* FAQ is intentionally NOT here: it must live only on the page where the */}
+        {/* matching content is visible (homepage). See `app/page.tsx`. */}
+        <JsonLd type="organization" />
+        <JsonLd type="webApplication" />
         <Providers>
           <div className="flex min-h-screen flex-col bg-[#FAFAFA]">
             <Header />
