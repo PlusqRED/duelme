@@ -15,6 +15,9 @@ export const landingTranslations = defineSection({
     'indie.title': 'Built solo. For the community, not for profit.',
     'indie.body':
       'No investors, no salary, no plans to ever take a cut. The contract is open and verified on-chain; the core duel flow works today, everything else is still actively shipping. A donation link may appear here someday — if the project earns it.',
+    'indie.blogText':
+      'Like the concept? I share devlogs and decisions out in the open — drop ideas, help shape what ships next, or just follow along:',
+    'indie.blogHandle': 't.me/duelme_info',
     'publicDuels.title': 'Public Duels',
     'publicDuels.subtitle': 'Open challenges with the stake, creator honor, game, and note visible before you join.',
     'publicDuels.empty': 'No public duels right now. Create one!',
@@ -175,6 +178,9 @@ export const landingTranslations = defineSection({
     'indie.title': 'Делаю один. Для комьюнити, не ради прибыли.',
     'indie.body':
       'Без инвесторов, без зарплаты, без планов когда-либо брать комиссию. Контракт открыт и проверен в блокчейне; основной флоу уже работает, всё остальное ещё в активной разработке. Когда-нибудь здесь может появиться ссылка на донат — если проект её заслужит.',
+    'indie.blogText':
+      'Понравилась концепция? Веду блог разработки открыто — подкидывай идеи, влияй на то, что появится дальше, или просто следи за прогрессом:',
+    'indie.blogHandle': 't.me/duelme_info',
     'publicDuels.title': 'Публичные дуэли',
     'publicDuels.subtitle': 'Открытые вызовы со ставкой, честью создателя, игрой и сообщением до входа.',
     'publicDuels.empty': 'Публичных дуэлей пока нет. Создай первую!',
