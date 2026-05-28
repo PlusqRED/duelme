@@ -7,7 +7,7 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { usePlatformStats } from '@/hooks/usePlatformStats';
 import { formatUnits } from 'viem';
 import { USDT_DECIMALS } from '@/lib/constants';
-import { ChevronDown, Heart, Swords } from 'lucide-react';
+import { ChevronDown, Heart, Send, Swords } from 'lucide-react';
 
 const sectionLinks = [
   { id: 'public-duels', key: 'publicDuels.title' as const },
@@ -75,6 +75,18 @@ export function HeroSection() {
                     </h2>
                     <p className="mt-1 text-[13px] leading-relaxed text-slate-600 [text-wrap:pretty]">
                       {t('indie.body')}
+                    </p>
+                    <p className="mt-3 text-[12px] leading-relaxed text-slate-600 [text-wrap:pretty]">
+                      {t('indie.blogText')}{' '}
+                      <a
+                        href="https://t.me/duelme_info"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-0.5 inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-indigo-300/70 bg-gradient-to-r from-indigo-50 to-fuchsia-50 px-2 py-[1px] align-middle text-[11px] font-semibold text-indigo-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-400 hover:bg-white hover:shadow-md"
+                      >
+                        <Send className="h-3 w-3" />
+                        {t('indie.blogHandle')}
+                      </a>
                     </p>
                   </div>
                 </div>
