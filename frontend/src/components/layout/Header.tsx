@@ -430,7 +430,7 @@ export function Header() {
               width={28}
               height={28}
               priority
-              className="h-7 w-7"
+              className="h-7 w-7 rounded-full"
             />
             <span className="text-lg font-bold text-slate-900">DuelMe</span>
           </Link>
