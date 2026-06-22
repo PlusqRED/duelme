@@ -159,6 +159,11 @@ export async function sendSponsoredContractWrite({
       throw error;
     }
 
+    // The UI only surfaces a generic "sponsorship unavailable" message, so log
+    // the underlying paymaster / bundler / EIP-7702 cause for diagnosis instead
+    // of swallowing it.
+    console.error('[sponsored] Pimlico sponsored write failed', error);
+
     if (isLikelySponsorshipFailure(error)) {
       throw new SponsorshipUnavailableError(
         'Network fee sponsorship is temporarily unavailable.',
