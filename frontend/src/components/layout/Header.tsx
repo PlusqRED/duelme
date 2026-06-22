@@ -19,6 +19,7 @@ import { TESTNET_CHAIN_IDS, USDT_DECIMALS, DEFAULT_CHAIN_ID, CHAIN_NAMES, AVAILA
 import { balanceOfAbi, getUsdtAddress, transferAbi } from '@/lib/contracts';
 import { emitBalanceRefreshBurst, subscribeToBalanceRefresh } from '@/lib/balanceRefresh';
 import { FaucetClaimError, claimFaucet } from '@/lib/faucetApi';
+import { isSponsoredTransactionsConfigured } from '@/lib/sponsoredTransactionConfig';
 
 // Restricted to chains available in this build so prod (duelme.pro) renders
 // Arbitrum One only — no testnet switcher, no Sepolia balance fetch, no
@@ -62,6 +63,9 @@ export function Header() {
 
   const { profile: myProfile } = useMyProfile();
   const displayName = myProfile?.nickname ?? walletShort ?? '';
+  const duelFeesHandled =
+    activeWallet?.walletClientType === 'privy' &&
+    isSponsoredTransactionsConfigured(selectedChain);
 
   // Read balances on each chain this build supports. The hook calls are static
   // (wagmi rule) but each query.enabled gates the actual RPC call, so prod
@@ -92,16 +96,17 @@ export function Header() {
     },
   });
 
-  // Read ETH balance on selected chain (for gas)
+  // External-wallet fallback still needs native ETH. Privy embedded duel
+  // actions use sponsored Wallet API calls when the Alchemy policy is set.
   const { data: ethBalanceData, refetch: refetchEthBalance } = useBalance({
     address: walletAddress,
     chainId: selectedChain,
-    query: { enabled: !!walletAddress, refetchInterval: 30_000, staleTime: 0 },
+    query: { enabled: !!walletAddress && !duelFeesHandled, refetchInterval: 30_000, staleTime: 0 },
   });
 
   const ethBalance = ethBalanceData ? parseFloat(formatUnits(ethBalanceData.value, 18)) : 0;
   const formattedEth = ethBalance < 0.0001 && ethBalance > 0 ? '<0.0001' : ethBalance.toFixed(4);
-  const lowGas = ethBalance < 0.0005;
+  const lowGas = !duelFeesHandled && ethBalance < 0.0005;
 
   const balances: Record<number, number> = {
     421614: arbSepoliaRaw !== undefined ? parseFloat(formatUnits(arbSepoliaRaw, USDT_DECIMALS)) : 0,
@@ -316,14 +321,23 @@ export function Header() {
         </div>
         <span className="text-lg font-bold text-slate-900">{formattedUsdt} <span className="text-sm font-normal text-slate-400">USDT</span></span>
 
-        {/* ETH for gas */}
-        <div className="mt-1.5 flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            <Fuel className={`h-3 w-3 ${lowGas ? 'text-red-500' : 'text-slate-400'}`} />
-            <span className={`text-xs font-medium ${lowGas ? 'text-red-600' : 'text-slate-600'}`}>{formattedEth} ETH</span>
+        {duelFeesHandled ? (
+          <div className="mt-1.5 flex items-center justify-between">
+            <div className="flex items-center gap-1">
+              <Check className="h-3 w-3 text-emerald-600" />
+              <span className="text-xs font-medium text-emerald-700">{t('wallet.networkFeesHandled')}</span>
+            </div>
+            <span className="text-[10px] text-emerald-600">{t('wallet.forDuels')}</span>
           </div>
-          <span className="text-[10px] text-slate-400">gas</span>
-        </div>
+        ) : (
+          <div className="mt-1.5 flex items-center justify-between">
+            <div className="flex items-center gap-1">
+              <Fuel className={`h-3 w-3 ${lowGas ? 'text-red-500' : 'text-slate-400'}`} />
+              <span className={`text-xs font-medium ${lowGas ? 'text-red-600' : 'text-slate-600'}`}>{formattedEth} ETH</span>
+            </div>
+            <span className="text-[10px] text-slate-400">{t('wallet.networkFees')}</span>
+          </div>
+        )}
         {lowGas && (
           <p className="mt-1 text-[10px] text-red-500">
             {t('wallet.lowGasWarning')}

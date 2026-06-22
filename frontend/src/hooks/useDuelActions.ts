@@ -9,6 +9,7 @@ import {
   useWalletClient,
   useWriteContract,
 } from 'wagmi';
+import { useSign7702Authorization } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import {
   buildTransactionParams,
@@ -18,6 +19,11 @@ import {
 import { duelMeAbi, erc20Abi } from '@/lib/contracts';
 import { DUELME_ADDRESSES } from '@/lib/constants';
 import { broadcastWithFallback } from '@/lib/resilientBroadcast';
+import {
+  isSponsoredTransactionsConfigured,
+  isSponsoredWriteAllowed,
+} from '@/lib/sponsoredTransactionConfig';
+import { sendSponsoredContractWrite } from '@/lib/sponsoredTransactions';
 import {
   ARBITRUM_SEPOLIA_APPROVE_MIN_GAS,
   ARBITRUM_SEPOLIA_CREATE_DUEL_MIN_GAS,
@@ -37,6 +43,7 @@ export function useDuelActions(chainId: number) {
   const publicClient = usePublicClient({ chainId });
   const { data: walletClient } = useWalletClient({ chainId });
   const { activeWallet } = useActiveWallet();
+  const { signAuthorization } = useSign7702Authorization();
 
   // Privy embedded wallets need a custom broadcast path because their
   // eth_sendTransaction handler uses a single-URL viem http() transport with
@@ -57,6 +64,7 @@ export function useDuelActions(chainId: number) {
   const [resilientHash, setResilientHash] = useState<Hex | undefined>(undefined);
   const [resilientIsPending, setResilientIsPending] = useState(false);
   const [resilientError, setResilientError] = useState<Error | null>(null);
+  const [sponsoredIsConfirming, setSponsoredIsConfirming] = useState(false);
 
   const hash = isPrivyEmbedded ? resilientHash : wagmiHash;
   const isPending = isPrivyEmbedded ? resilientIsPending : wagmiIsPending;
@@ -66,15 +74,23 @@ export function useDuelActions(chainId: number) {
     setResilientHash(undefined);
     setResilientIsPending(false);
     setResilientError(null);
+    setSponsoredIsConfirming(false);
     wagmiReset();
   }, [wagmiReset]);
 
-  const { isLoading: isConfirming, isSuccess, data: receipt } = useWaitForTransactionReceipt({
+  const {
+    isLoading: receiptIsConfirming,
+    isSuccess,
+    data: receipt,
+  } = useWaitForTransactionReceipt({
     hash,
   });
+  const isConfirming = sponsoredIsConfirming || receiptIsConfirming;
 
-  // We pre-fill gas / maxFeePerGas / maxPriorityFeePerGas / nonce on every write
-  // so neither code path has to ask the wallet to populate them.
+  // Direct wallet writes pre-fill gas / maxFeePerGas / maxPriorityFeePerGas / nonce
+  // so neither direct path has to ask the wallet to populate them. Sponsored
+  // Pimlico user operations skip this block and let the paymaster/bundler
+  // prepare and price the user operation.
   //   - Privy embedded: avoids the all-zero gas params bug that surfaces when
   //     Privy's internal prepareTransactionRequest path runs. See Privy docs
   //     https://docs.privy.io/basics/react/advanced/configuring-evm-networks
@@ -98,6 +114,15 @@ export function useDuelActions(chainId: number) {
     // executing, even if `isPrivyEmbedded` changes during the await chain
     // (e.g. user switches wallet).
     const useResilientPath = isPrivyEmbedded;
+    const useSponsoredPath =
+      useResilientPath &&
+      !!walletClient &&
+      isSponsoredTransactionsConfigured(chainId) &&
+      isSponsoredWriteAllowed(
+        chainId,
+        config.address as `0x${string}` | undefined,
+        String(config.functionName ?? '')
+      );
 
     function reportError(err: unknown) {
       if (useResilientPath) {
@@ -121,6 +146,39 @@ export function useDuelActions(chainId: number) {
 
     if (useResilientPath && !walletClient) {
       reportError(new Error('Embedded wallet client not ready — please retry'));
+      return;
+    }
+
+    if (useSponsoredPath && walletClient) {
+      setResilientHash(undefined);
+      setResilientError(null);
+      setResilientIsPending(true);
+      setSponsoredIsConfirming(false);
+
+      try {
+        const txHash = await sendSponsoredContractWrite({
+          walletClient,
+          publicClient,
+          signAuthorization,
+          chainId,
+          address: config.address as `0x${string}`,
+          abi: config.abi as Abi,
+          functionName: String(config.functionName),
+          args: config.args ?? [],
+          onSubmitted: () => {
+            setResilientIsPending(false);
+            setSponsoredIsConfirming(true);
+          },
+        });
+        setResilientHash(txHash);
+      } catch (sponsoredError) {
+        setResilientError(
+          sponsoredError instanceof Error ? sponsoredError : new Error(String(sponsoredError))
+        );
+      } finally {
+        setResilientIsPending(false);
+        setSponsoredIsConfirming(false);
+      }
       return;
     }
 
@@ -156,6 +214,7 @@ export function useDuelActions(chainId: number) {
       setResilientHash(undefined);
       setResilientError(null);
       setResilientIsPending(true);
+      setSponsoredIsConfirming(false);
 
       try {
         const txHash = await broadcastWithFallback({

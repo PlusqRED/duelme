@@ -284,6 +284,9 @@ jobs:
             NEXT_PUBLIC_DEFAULT_CHAIN_KEY=${{ matrix.chain_key }}
             NEXT_PUBLIC_ARBITRUM_RPC_URL=${{ secrets.NEXT_PUBLIC_ARBITRUM_RPC_URL }}
             NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL=${{ secrets.NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL }}
+            NEXT_PUBLIC_PIMLICO_API_KEY=${{ secrets.NEXT_PUBLIC_PIMLICO_API_KEY }}
+            NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID_ARBITRUM=${{ secrets.NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID_ARBITRUM }}
+            NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID_ARBITRUM_SEPOLIA=${{ secrets.NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID_ARBITRUM_SEPOLIA }}
           cache-from: type=gha,scope=${{ matrix.scope }}
           cache-to: type=gha,mode=max,scope=${{ matrix.scope }}
 
@@ -449,6 +452,9 @@ jobs:
             NEXT_PUBLIC_DEFAULT_CHAIN_KEY=${{ matrix.chain_key }}
             NEXT_PUBLIC_ARBITRUM_RPC_URL=${{ secrets.NEXT_PUBLIC_ARBITRUM_RPC_URL }}
             NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL=${{ secrets.NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL }}
+            NEXT_PUBLIC_PIMLICO_API_KEY=${{ secrets.NEXT_PUBLIC_PIMLICO_API_KEY }}
+            NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID_ARBITRUM=${{ secrets.NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID_ARBITRUM }}
+            NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID_ARBITRUM_SEPOLIA=${{ secrets.NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID_ARBITRUM_SEPOLIA }}
           cache-from: type=gha,scope=${{ matrix.scope }}
           cache-to: type=gha,mode=max,scope=${{ matrix.scope }}
 
