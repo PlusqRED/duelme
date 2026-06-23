@@ -8,6 +8,7 @@ import pro.duelme.backend.model.Profile;
 import pro.duelme.backend.repository.ProfileRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ProfileService {
@@ -19,9 +20,18 @@ public class ProfileService {
     }
 
     public ProfileResponse getByWalletAddress(String walletAddress) {
-        Profile profile = repository.findByWalletAddress(walletAddress.toLowerCase())
+        return findByWalletAddress(walletAddress)
             .orElseThrow(() -> new ProfileNotFoundException(walletAddress));
-        return ProfileResponse.from(profile);
+    }
+
+    /**
+     * Returns the profile for the address if one exists, or empty otherwise.
+     * Used by the "/me" endpoint so a profile-less (but authenticated) user is
+     * a normal 204, not a 404 error — keeps the browser console clean.
+     */
+    public Optional<ProfileResponse> findByWalletAddress(String walletAddress) {
+        return repository.findByWalletAddress(walletAddress.toLowerCase())
+            .map(ProfileResponse::from);
     }
 
     public List<ProfileResponse> getByWalletAddresses(List<String> addresses) {
