@@ -97,9 +97,9 @@ export const landingTranslations = defineSection({
     'onboarding.fact1': 'You can switch to your own wallet at any time.',
     'onboarding.fact2': 'Winnings can be withdrawn, and wallet access can later move fully under your control.',
     'onboarding.fact3': 'The easy start is there to simplify onboarding, not to trap funds inside DuelMe.',
-    'onboarding.gasTitle': 'Network fees handled',
+    'onboarding.gasTitle': 'Just USDT — no ETH for gas',
     'onboarding.gasNote':
-      'For normal duel actions, DuelMe handles the network fee path. Add the wager balance once, then create, join, claim, or refund without managing ETH separately.',
+      'Wallets you create here (email or Google sign-in) need only USDT — DuelMe covers the network fee for creating, joining, claiming and refunding duels. With an external wallet like MetaMask, keep a little ETH for gas (usually slightly cheaper), or use its "pay gas in another token" option.',
     'rep.eyebrow': 'Player trust',
     'rep.howTitle': 'The smart contract protects the money. Reputation helps you judge the person.',
     'rep.howDesc':
@@ -260,9 +260,9 @@ export const landingTranslations = defineSection({
     'onboarding.fact1': 'На свой кошелёк можно переключиться в любой момент.',
     'onboarding.fact2': 'Выигрыш можно вывести, а доступ к кошельку позже полностью забрать под свой контроль.',
     'onboarding.fact3': 'Простой старт нужен для удобства, а не для того, чтобы запирать деньги внутри DuelMe.',
-    'onboarding.gasTitle': 'Комиссии обрабатываются',
+    'onboarding.gasTitle': 'Только USDT — без ETH на газ',
     'onboarding.gasNote':
-      'Для обычных действий с дуэлями DuelMe берёт путь сетевых комиссий на себя. Пополни баланс ставки один раз, затем создавай, принимай, забирай выплаты или возвраты без отдельного ETH.',
+      'Кошелькам, созданным здесь (вход через email или Google), нужен только USDT — сетевую комиссию за создание, вход, выплаты и возвраты по дуэлям DuelMe берёт на себя. Со сторонним кошельком вроде MetaMask держите немного ETH на газ (обычно чуть выгоднее) или используйте его опцию «оплата газа другим токеном».',
     'rep.eyebrow': 'Доверие к игрокам',
     'rep.howTitle': 'Смарт-контракт защищает деньги. Репутация помогает понять человека.',
     'rep.howDesc':
