@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   SocialLinkError,
+  fetchMyProfile,
   setInstagramHandle,
   startSteamLink,
   startTelegramLink,
@@ -25,6 +26,41 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+});
+
+describe('fetchMyProfile', () => {
+  it('returns the profile on 200 and sends the bearer token', async () => {
+    const fetchMock = mockFetch({
+      ok: true,
+      status: 200,
+      json: async () => ({ walletAddress: '0xme', nickname: 'gamer' }),
+    });
+
+    const profile = await fetchMyProfile('token-abc');
+
+    expect(profile).toMatchObject({ walletAddress: '0xme', nickname: 'gamer' });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toContain('/profiles/me');
+    expect(init.headers.Authorization).toBe('Bearer token-abc');
+  });
+
+  it('returns null on 204 (no profile yet) without parsing the body', async () => {
+    const json = vi.fn();
+    mockFetch({ ok: true, status: 204, json });
+
+    await expect(fetchMyProfile('token')).resolves.toBeNull();
+    expect(json).not.toHaveBeenCalled();
+  });
+
+  it('returns null on 404', async () => {
+    mockFetch({ ok: false, status: 404 });
+    await expect(fetchMyProfile('token')).resolves.toBeNull();
+  });
+
+  it('throws on other errors', async () => {
+    mockFetch({ ok: false, status: 500 });
+    await expect(fetchMyProfile('token')).rejects.toThrow('Failed to fetch profile');
+  });
 });
 
 describe('startSteamLink', () => {

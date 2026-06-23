@@ -41,12 +41,14 @@ public class ProfileController {
     @Operation(summary = "Get own profile", security = @SecurityRequirement(name = "bearer"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Profile returned"),
-            @ApiResponse(responseCode = "401", description = "Missing or invalid authentication token"),
-            @ApiResponse(responseCode = "404", description = "Profile not found")
+            @ApiResponse(responseCode = "204", description = "Authenticated user has no profile yet"),
+            @ApiResponse(responseCode = "401", description = "Missing or invalid authentication token")
     })
     @GetMapping("/me")
-    public ProfileResponse getMyProfile(@Parameter(hidden = true) @AuthenticationPrincipal String walletAddress) {
-        return profileService.getByWalletAddress(walletAddress);
+    public ResponseEntity<ProfileResponse> getMyProfile(@Parameter(hidden = true) @AuthenticationPrincipal String walletAddress) {
+        return profileService.findByWalletAddress(walletAddress)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     @Operation(summary = "Create or update own profile", security = @SecurityRequirement(name = "bearer"))

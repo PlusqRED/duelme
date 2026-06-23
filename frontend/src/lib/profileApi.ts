@@ -26,7 +26,8 @@ export async function fetchMyProfile(token: string): Promise<Profile | null> {
   const res = await fetch(`${API_BASE}/profiles/me`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (res.status === 404) return null;
+  // 204: authenticated user has no profile yet. 404 kept for backward safety.
+  if (res.status === 204 || res.status === 404) return null;
   if (!res.ok) throw new Error('Failed to fetch profile');
   return res.json();
 }

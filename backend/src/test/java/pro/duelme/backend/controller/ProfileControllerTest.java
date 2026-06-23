@@ -72,6 +72,15 @@ class ProfileControllerTest {
     }
 
     @Test
+    void getMyProfileReturns204WhenNoProfile() throws Exception {
+        var auth = new WalletAuthenticationToken("0xnoprofile");
+
+        mockMvc.perform(get("/api/v1/profiles/me")
+                .with(authentication(auth)))
+            .andExpect(status().isNoContent());
+    }
+
+    @Test
     void getProfileReturns404WhenNotFound() throws Exception {
         mockMvc.perform(get("/api/v1/profiles/0xnonexistent"))
             .andExpect(status().isNotFound());
