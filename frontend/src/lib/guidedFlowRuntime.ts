@@ -1,5 +1,6 @@
 import { BaseError } from 'viem';
 import type { TranslationKey, TranslationParams } from '@/i18n/translations';
+import { SPONSORSHIP_UNAVAILABLE_CODE } from '@/lib/sponsoredTransactionConfig';
 
 export function getGuidedFlowErrorMessage(
   error: unknown,
@@ -8,6 +9,11 @@ export function getGuidedFlowErrorMessage(
   fallbackKey: TranslationKey = 'create.flow.error.generic'
 ): string {
   const details = collectErrorDetails(error);
+
+  if (hasErrorCode(error, SPONSORSHIP_UNAVAILABLE_CODE)) {
+    return t('create.flow.error.sponsorshipUnavailable');
+  }
+
   const gasEstimateDetail = details.find((detail) =>
     [
       'intrinsic gas too low',
@@ -121,6 +127,29 @@ function getStringValue(value: Record<string, unknown>, key: string): string | u
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+function hasErrorCode(error: unknown, code: string): boolean {
+  const stack: unknown[] = [error];
+  const seenObjects = new WeakSet<object>();
+
+  while (stack.length > 0) {
+    const current = stack.pop();
+
+    if (!isRecord(current) || seenObjects.has(current)) {
+      continue;
+    }
+
+    seenObjects.add(current);
+
+    if (current.code === code) {
+      return true;
+    }
+
+    stack.push(current.cause, current.error, current.data);
+  }
+
+  return false;
 }
 
 function isGenericErrorDetail(detail: string) {

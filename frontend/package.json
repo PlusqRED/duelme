@@ -25,6 +25,8 @@
     "fuse.js": "^7.3.0",
     "lucide-react": "^0.577.0",
     "next": "16.2.2",
+    "ox": "0.14.5",
+    "permissionless": "^0.2.47",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "sonner": "^2.0.7",
@@ -47,6 +49,7 @@
     "vitest": "^4.1.2"
   },
   "overrides": {
-    "eslint-plugin-react-hooks": "7.0.1"
+    "eslint-plugin-react-hooks": "7.0.1",
+    "ox": "0.14.5"
   }
 }

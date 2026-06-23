@@ -121,6 +121,8 @@ Write ops: check chain → check allowance → approve if needed → execute. `c
 | `frontend/src/lib/balanceRefresh.ts` | Shared client-side balance refresh event bus |
 | `frontend/src/lib/buildTransactionParams.ts` | Builds explicit `gas`/`maxFeePerGas`/`maxPriorityFeePerGas`/`nonce` to bypass Privy auto-populate (see Common Pitfalls) |
 | `frontend/src/lib/resilientBroadcast.ts` | Splits writes into sign + broadcast so wagmi fallback transport handles RPC retries |
+| `frontend/src/lib/sponsoredTransactionConfig.ts` | Pimlico gas-sponsorship config (env → API key + per-chain sponsorship policy) + sponsored-write allowlist |
+| `frontend/src/lib/sponsoredTransactions.ts` | Sends gasless duel writes via Pimlico paymaster + EIP-7702 (permissionless), keeping the EOA address |
 | `frontend/src/lib/testnetGas.ts` | Testnet vs mainnet gas/fee buffers; min-gas constants per duel action |
 | `frontend/src/lib/wagmi.ts` (`resolveRpcUrl`) | RPC URL env validation + fallback chain (Alchemy/QuickNode → Tenderly) |
 | `frontend/src/i18n/translations.ts` | EN/RU translations |
@@ -324,6 +326,9 @@ Runtime config source of truth: GitHub repository/environment secrets. Deploy wo
 - `NEXT_PUBLIC_API_URL` — Backend API base URL (default `/api/v1`)
 - `NEXT_PUBLIC_ARBITRUM_RPC_URL` — authenticated RPC for Arbitrum One (Alchemy/QuickNode). Used as Privy embedded-wallet override + first wagmi fallback. Falls back to Tenderly Gateway public if unset. Lock URL via provider dashboard "Allowed Origins" — `NEXT_PUBLIC_*` are inlined into the JS bundle.
 - `NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL` — same for Arbitrum Sepolia. Optional; Tenderly public works for dev.
+- `NEXT_PUBLIC_PIMLICO_API_KEY` — Pimlico app API key for gasless duel actions (EIP-7702 + sponsored paymaster). Per environment (dev/prod). Unset ⇒ sponsorship off, writes fall back to the ETH-gas path. `NEXT_PUBLIC_*` is inlined into the bundle.
+- `NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID_ARBITRUM` — Pimlico sponsorship policy id for Arbitrum One (prod build, mainnet needs Pimlico balance funding). Set per-spender + total spend caps on the policy — the key is public, so policy limits are the real abuse control.
+- `NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID_ARBITRUM_SEPOLIA` — same for Arbitrum Sepolia (dev build). Testnet sponsorship is free.
 - `APP_BASE_URL` — backend's view of frontend origin for OAuth redirects (`https://dev.duelme.pro` / `https://duelme.pro`)
 - `STEAM_API_KEY` — optional; enables username/avatar enrichment via `GetPlayerSummaries`
 - `STEAM_RETURN_URL` — absolute Steam callback URL (`https://{env}/api/v1/profiles/me/social/steam/callback`)
@@ -343,6 +348,9 @@ Runtime config source of truth: GitHub repository/environment secrets. Deploy wo
 - Only `contracts/broadcast/{Deploy,DeployMainnet}.s.sol/<chainId>/run-latest.json` is tracked; timestamped `run-*.json` ignored via top-level `.gitignore`.
 - **Do NOT use `arbitrum-one-rpc.publicnode.com`** — exposes legacy `eth_fillTransaction`, which viem 2.47+ calls during `prepareTransactionRequest` and gets `gasPrice: "0x0"`, producing signed txs with all-zero gas/fees. Privy surfaces as "HTTP request failed". See [viem#4323](https://github.com/wevm/viem/issues/4323) (open as of May 2026). Use Alchemy/QuickNode/Tenderly/drpc/arb1.arbitrum.io.
 - **Privy embedded wallets** sign with all-zero gas/nonce when SDK auto-populates — bypass by passing `gas` / `maxFeePerGas` / `maxPriorityFeePerGas` / `nonce` explicitly in every `writeContract` call. Centralized in `useDuelActions.writeWithGas` (uses `buildTransactionParams` + `resilientBroadcast`) — never call `writeContract` directly from action functions.
+- **Gasless duel actions (Pimlico + EIP-7702):** when `NEXT_PUBLIC_PIMLICO_*` is configured, Privy embedded-wallet writes route through `sendSponsoredContractWrite` (Pimlico paymaster), signing the 7702 delegation via Privy's `useSign7702Authorization` and keeping the EOA address (so reputation/balances stay keyed to it). Unset env ⇒ silently falls back to the explicit-gas `writeWithGas` path above. The client-side `isSponsoredWriteAllowed` allowlist is UX hygiene only — the public bundle key means Pimlico policy spend caps are the actual abuse control.
+- **`permissionless` + `ox` peer clash:** `permissionless@0.2.x` declares an *optional* peer `ox@^0.8.0` that conflicts with viem 2.47's `ox@0.14.5`. Resolved by pinning `ox` in `frontend/package.json` `overrides`. Don't remove it — `npm ci` will ERESOLVE.
+- **CSP `connect-src` must allowlist every external host the frontend calls** — otherwise the browser silently blocks the `fetch` ("Refused to connect ... Content Security Policy"). Set in the `Content-Security-Policy` header in `ops/caddy/{dev.duelme.pro,duelme.pro}.Caddyfile`. Must include Pimlico (`https://api.pimlico.io`) and the RPC fallback chain from `wagmi.ts` (`https://gateway.tenderly.co`, `https://*.drpc.org`, `arb1.arbitrum.io`, `sepolia-rollup.arbitrum.io`) — plus any custom `NEXT_PUBLIC_*_RPC_URL` host (e.g. `*.g.alchemy.com`). The **live** `/etc/caddy/Caddyfile` is a hand-maintained combined file (other sites too) and is **NOT** auto-deployed by CI — edit it on the host and `sudo systemctl reload caddy` (the repo `ops/caddy/*` files are the reference copy).
 - README contract addresses auto-generated from `run-latest.json` by `scripts/sync_readme_contract_addresses.py` / pre-commit hook — don't edit that block manually.
 - Manual deploys here: source `contracts/.env` first (`set -a && . ./.env && set +a`).
 - Use shared constants from `constants.ts` (`ZERO_ADDRESS`, `CHAIN_NAMES`) and `contracts.ts` (`ACTIVE_STATES`, `balanceOfAbi`, `transferAbi`, `getUsdtAddress`) — never redefine locally.
