@@ -1,6 +1,6 @@
 services:
   mongodb:
-    image: mongo:8.2.5
+    image: mongo:8.2.12
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?MONGO_ROOT_USERNAME must be set in .env}
