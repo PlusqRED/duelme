@@ -5,6 +5,7 @@ import { useCapabilities } from 'wagmi';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { isSponsoredTransactionsConfigured } from '@/lib/sponsoredTransactionConfig';
 import { supportsSponsoredWalletCalls } from '@/lib/sponsoredWalletCalls';
+import { EMBEDDED_WALLET_CLIENT_TYPE } from '@/lib/walletSelection';
 
 export interface SponsoredFeesState {
   /** Active wallet is the Privy embedded wallet (vs an external one). */
@@ -20,7 +21,7 @@ export interface SponsoredFeesState {
 /** Whether duel writes on `chainId` are gas-sponsored for the active wallet. */
 export function useSponsoredFees(chainId: number): SponsoredFeesState {
   const { activeWallet, walletAddress } = useActiveWallet();
-  const isPrivyEmbedded = activeWallet?.walletClientType === 'privy';
+  const isPrivyEmbedded = activeWallet?.walletClientType === EMBEDDED_WALLET_CLIENT_TYPE;
   const configured = isSponsoredTransactionsConfigured(chainId);
 
   // wallet_getCapabilities is only meaningful for external wallets, and its

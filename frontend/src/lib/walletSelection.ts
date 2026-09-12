@@ -1,5 +1,8 @@
 import type { ConnectedWallet, User } from '@privy-io/react-auth';
 
+/** Privy's walletClientType for its embedded wallet — the one shared vocabulary for selection, routing, and display. */
+export const EMBEDDED_WALLET_CLIENT_TYPE = 'privy';
+
 /**
  * Determines which wallet should be active based on user's login method.
  *
@@ -15,8 +18,8 @@ export function selectWallet(
   if (!user) return null;
   if (!wallets.length) return null;
 
-  const embedded = wallets.find((w) => w.walletClientType === 'privy');
-  const external = wallets.find((w) => w.walletClientType !== 'privy');
+  const embedded = wallets.find((w) => w.walletClientType === EMBEDDED_WALLET_CLIENT_TYPE);
+  const external = wallets.find((w) => w.walletClientType !== EMBEDDED_WALLET_CLIENT_TYPE);
 
   const hasSocialLogin = user?.linkedAccounts?.some(
     (a) => a.type === 'google_oauth' || a.type === 'email' || a.type === 'apple_oauth',
