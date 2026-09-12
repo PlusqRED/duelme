@@ -19,7 +19,7 @@ import { TESTNET_CHAIN_IDS, USDT_DECIMALS, DEFAULT_CHAIN_ID, CHAIN_NAMES, AVAILA
 import { balanceOfAbi, getUsdtAddress, transferAbi } from '@/lib/contracts';
 import { emitBalanceRefreshBurst, subscribeToBalanceRefresh } from '@/lib/balanceRefresh';
 import { FaucetClaimError, claimFaucet } from '@/lib/faucetApi';
-import { isSponsoredTransactionsConfigured } from '@/lib/sponsoredTransactionConfig';
+import { useSponsoredFees } from '@/hooks/useSponsoredFees';
 
 // Restricted to chains available in this build so prod (duelme.pro) renders
 // Arbitrum One only — no testnet switcher, no Sepolia balance fetch, no
@@ -63,9 +63,8 @@ export function Header() {
 
   const { profile: myProfile } = useMyProfile();
   const displayName = myProfile?.nickname ?? walletShort ?? '';
-  const duelFeesHandled =
-    activeWallet?.walletClientType === 'privy' &&
-    isSponsoredTransactionsConfigured(selectedChain);
+  const { embeddedSponsored, externalSponsored, feesResolved } = useSponsoredFees(selectedChain);
+  const duelFeesHandled = embeddedSponsored || externalSponsored;
 
   // Read balances on each chain this build supports. The hook calls are static
   // (wagmi rule) but each query.enabled gates the actual RPC call, so prod
@@ -96,17 +95,22 @@ export function Header() {
     },
   });
 
-  // External-wallet fallback still needs native ETH. Privy embedded duel
-  // actions use sponsored Wallet API calls when the Alchemy policy is set.
+  // Wallets without a sponsored path still pay their own native ETH gas, so
+  // surface the ETH balance for them — but only once the capability probe has
+  // settled, so a sponsored wallet never fires a wasted eth_getBalance.
   const { data: ethBalanceData, refetch: refetchEthBalance } = useBalance({
     address: walletAddress,
     chainId: selectedChain,
-    query: { enabled: !!walletAddress && !duelFeesHandled, refetchInterval: 30_000, staleTime: 0 },
+    query: {
+      enabled: !!walletAddress && feesResolved && !duelFeesHandled,
+      refetchInterval: 30_000,
+      staleTime: 0,
+    },
   });
 
   const ethBalance = ethBalanceData ? parseFloat(formatUnits(ethBalanceData.value, 18)) : 0;
   const formattedEth = ethBalance < 0.0001 && ethBalance > 0 ? '<0.0001' : ethBalance.toFixed(4);
-  const lowGas = !duelFeesHandled && ethBalance < 0.0005;
+  const lowGas = feesResolved && !duelFeesHandled && ethBalance < 0.0005;
 
   const balances: Record<number, number> = {
     421614: arbSepoliaRaw !== undefined ? parseFloat(formatUnits(arbSepoliaRaw, USDT_DECIMALS)) : 0,

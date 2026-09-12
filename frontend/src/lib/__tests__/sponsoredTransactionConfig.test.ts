@@ -4,21 +4,13 @@ import {
   getSponsoredTransactionConfig,
   isSponsoredTransactionsConfigured,
   isSponsoredWriteAllowed,
-  type SponsoredTransactionEnv,
 } from '@/lib/sponsoredTransactionConfig';
-
-const API_KEY = 'pimlico-api-key';
-const ARBITRUM_POLICY = 'arb-policy';
-const SEPOLIA_POLICY = 'sepolia-policy';
-
-function env(overrides: SponsoredTransactionEnv = {}): SponsoredTransactionEnv {
-  return {
-    NEXT_PUBLIC_PIMLICO_API_KEY: API_KEY,
-    NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID_ARBITRUM: ARBITRUM_POLICY,
-    NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID_ARBITRUM_SEPOLIA: SEPOLIA_POLICY,
-    ...overrides,
-  };
-}
+import {
+  PIMLICO_TEST_API_KEY as API_KEY,
+  PIMLICO_TEST_ARBITRUM_POLICY as ARBITRUM_POLICY,
+  PIMLICO_TEST_SEPOLIA_POLICY as SEPOLIA_POLICY,
+  pimlicoTestEnv as env,
+} from './sponsorshipTestEnv';
 
 describe('sponsored transaction config', () => {
   it('selects the chain-specific Arbitrum policy and bundler url', () => {
