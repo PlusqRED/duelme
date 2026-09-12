@@ -1,6 +1,7 @@
 import type { Chain } from 'viem';
 import { arbitrum, arbitrumSepolia } from 'viem/chains';
 import { DUELME_ADDRESSES, SUPPORTED_CHAINS } from '@/lib/constants';
+import { getUsdtAddress } from '@/lib/contracts';
 
 // Error code carried by SponsorshipUnavailableError (lib/sponsoredTransactions)
 // and matched in guidedFlowRuntime. It lives in this dependency-light module so
@@ -73,9 +74,30 @@ export function getDefaultSponsoredTransactionEnv(): SponsoredTransactionEnv {
   };
 }
 
+// NEXT_PUBLIC_* env is inlined at build time and immutable, so the default-env
+// config is cached per chain — consumers call this every render. An explicit
+// `env` (the test seam) bypasses the cache.
+const defaultEnvConfigCache = new Map<number, SponsoredTransactionConfig | null>();
+
 export function getSponsoredTransactionConfig(
   chainId: number,
-  env: SponsoredTransactionEnv = getDefaultSponsoredTransactionEnv()
+  env?: SponsoredTransactionEnv
+): SponsoredTransactionConfig | null {
+  if (env) {
+    return buildSponsoredTransactionConfig(chainId, env);
+  }
+
+  let cached = defaultEnvConfigCache.get(chainId);
+  if (cached === undefined) {
+    cached = buildSponsoredTransactionConfig(chainId, getDefaultSponsoredTransactionEnv());
+    defaultEnvConfigCache.set(chainId, cached);
+  }
+  return cached;
+}
+
+function buildSponsoredTransactionConfig(
+  chainId: number,
+  env: SponsoredTransactionEnv
 ): SponsoredTransactionConfig | null {
   const chain = CHAIN_BY_ID[chainId];
   const apiKey = cleanEnvValue(env.NEXT_PUBLIC_PIMLICO_API_KEY);
@@ -95,7 +117,7 @@ export function getSponsoredTransactionConfig(
 
 export function isSponsoredTransactionsConfigured(
   chainId: number,
-  env: SponsoredTransactionEnv = getDefaultSponsoredTransactionEnv()
+  env?: SponsoredTransactionEnv
 ): boolean {
   return getSponsoredTransactionConfig(chainId, env) !== null;
 }
@@ -140,18 +162,6 @@ function getSponsorshipPolicyId(
       env.NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID_ARBITRUM_SEPOLIA ??
         env.NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID
     );
-  }
-
-  return undefined;
-}
-
-function getUsdtAddress(chainId: number): `0x${string}` | undefined {
-  if (chainId === SUPPORTED_CHAINS.arbitrum.id) {
-    return SUPPORTED_CHAINS.arbitrum.usdt;
-  }
-
-  if (chainId === SUPPORTED_CHAINS.arbitrumSepolia.id) {
-    return SUPPORTED_CHAINS.arbitrumSepolia.usdt;
   }
 
   return undefined;

@@ -15,19 +15,10 @@ import {
   type WalletClient,
 } from 'viem';
 import {
-  getSponsoredTransactionConfig,
-  isSponsoredWriteAllowed,
-  SPONSORSHIP_UNAVAILABLE_CODE,
-} from '@/lib/sponsoredTransactionConfig';
-
-export class SponsorshipUnavailableError extends Error {
-  readonly code = SPONSORSHIP_UNAVAILABLE_CODE;
-
-  constructor(message: string, options?: ErrorOptions) {
-    super(message, options);
-    this.name = 'SponsorshipUnavailableError';
-  }
-}
+  requireSponsoredWriteConfig,
+  rethrowSponsoredWriteError,
+  SponsorshipUnavailableError,
+} from '@/lib/sponsoredTransactionErrors';
 
 // viem's canonical Simple7702Account (EntryPoint v0.8) implementation. The EOA
 // delegates to this contract via the EIP-7702 authorization, which is what lets
@@ -75,19 +66,7 @@ export async function sendSponsoredContractWrite({
   args,
   onSubmitted,
 }: SponsoredContractWriteArgs): Promise<Hex> {
-  const config = getSponsoredTransactionConfig(chainId);
-
-  if (!config) {
-    throw new SponsorshipUnavailableError(
-      'Network fee sponsorship is not configured for this network.'
-    );
-  }
-
-  if (!isSponsoredWriteAllowed(chainId, address, functionName)) {
-    throw new SponsorshipUnavailableError(
-      'Network fee sponsorship is not allowed for this action.'
-    );
-  }
+  const config = requireSponsoredWriteConfig(chainId, address, functionName);
 
   const ownerAddress = walletClient.account?.address;
 
@@ -151,104 +130,6 @@ export async function sendSponsoredContractWrite({
       authorization,
     });
   } catch (error) {
-    if (isUserRejection(error)) {
-      throw error;
-    }
-
-    if (error instanceof SponsorshipUnavailableError) {
-      throw error;
-    }
-
-    // The UI only surfaces a generic "sponsorship unavailable" message, so log
-    // the underlying paymaster / bundler / EIP-7702 cause for diagnosis instead
-    // of swallowing it.
-    console.error('[sponsored] Pimlico sponsored write failed', error);
-
-    if (isLikelySponsorshipFailure(error)) {
-      throw new SponsorshipUnavailableError(
-        'Network fee sponsorship is temporarily unavailable.',
-        { cause: error }
-      );
-    }
-
-    throw error;
-  }
-}
-
-function isUserRejection(error: unknown): boolean {
-  return getErrorText(error).some((detail) => {
-    const looksUserScoped = detail.includes('user') || detail.includes('wallet');
-    return (
-      looksUserScoped &&
-      ['reject', 'denied', 'cancelled', 'canceled'].some((pattern) =>
-        detail.includes(pattern)
-      )
-    );
-  });
-}
-
-function isLikelySponsorshipFailure(error: unknown): boolean {
-  return getErrorText(error).some((detail) =>
-    [
-      'paymaster',
-      'policy',
-      'sponsor',
-      'sponsorship',
-      'bundler',
-      'user operation',
-      'useroperation',
-      '7702',
-      'calls status',
-    ].some((pattern) => detail.includes(pattern))
-  );
-}
-
-function getErrorText(error: unknown): string[] {
-  const details = new Set<string>();
-  const stack: unknown[] = [error];
-  const seen = new WeakSet<object>();
-
-  while (stack.length > 0) {
-    const current = stack.pop();
-
-    if (!current) {
-      continue;
-    }
-
-    if (typeof current === 'string') {
-      addDetail(details, current);
-      continue;
-    }
-
-    if (current instanceof Error) {
-      addDetail(details, current.message);
-      stack.push(current.cause);
-    }
-
-    if (typeof current !== 'object' || seen.has(current)) {
-      continue;
-    }
-
-    seen.add(current);
-
-    const record = current as Record<string, unknown>;
-    addDetail(details, record.shortMessage);
-    addDetail(details, record.details);
-    addDetail(details, record.message);
-    addDetail(details, record.reason);
-    stack.push(record.cause, record.error, record.data);
-  }
-
-  return Array.from(details);
-}
-
-function addDetail(details: Set<string>, value: unknown) {
-  if (typeof value !== 'string') {
-    return;
-  }
-
-  const normalized = value.trim().replace(/\s+/g, ' ').toLowerCase();
-  if (normalized) {
-    details.add(normalized);
+    rethrowSponsoredWriteError(error, '[sponsored] Pimlico sponsored write failed');
   }
 }

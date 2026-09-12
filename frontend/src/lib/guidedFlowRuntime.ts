@@ -1,6 +1,6 @@
-import { BaseError } from 'viem';
 import type { TranslationKey, TranslationParams } from '@/i18n/translations';
 import { SPONSORSHIP_UNAVAILABLE_CODE } from '@/lib/sponsoredTransactionConfig';
+import { collectErrorDetails } from '@/lib/sponsoredTransactionErrors';
 
 export function getGuidedFlowErrorMessage(
   error: unknown,
@@ -52,77 +52,6 @@ export function getGuidedFlowErrorMessage(
   }
 
   return t(fallbackKey, { chain: chainName });
-}
-
-function collectErrorDetails(error: unknown): string[] {
-  const details = new Set<string>();
-  const stack: unknown[] = [error];
-  const seenObjects = new WeakSet<object>();
-
-  while (stack.length > 0) {
-    const current = stack.pop();
-
-    if (!current) {
-      continue;
-    }
-
-    if (typeof current === 'string') {
-      addErrorDetail(details, current);
-      continue;
-    }
-
-    if (current instanceof BaseError) {
-      addErrorDetail(details, current.shortMessage);
-      addErrorDetail(details, current.details);
-      stack.push(current.cause);
-    }
-
-    if (current instanceof Error) {
-      addErrorDetail(details, current.message);
-      stack.push(current.cause);
-    }
-
-    if (typeof current !== 'object') {
-      continue;
-    }
-
-    if (seenObjects.has(current)) {
-      continue;
-    }
-
-    seenObjects.add(current);
-
-    if (!isRecord(current)) {
-      continue;
-    }
-
-    addErrorDetail(details, getStringValue(current, 'shortMessage'));
-    addErrorDetail(details, getStringValue(current, 'details'));
-    addErrorDetail(details, getStringValue(current, 'message'));
-    addErrorDetail(details, getStringValue(current, 'reason'));
-    stack.push(current.cause, current.error, current.data);
-  }
-
-  return Array.from(details);
-}
-
-function addErrorDetail(details: Set<string>, message?: string) {
-  if (!message) {
-    return;
-  }
-
-  const normalized = message.trim().replace(/\s+/g, ' ').toLowerCase();
-
-  if (!normalized) {
-    return;
-  }
-
-  details.add(normalized);
-}
-
-function getStringValue(value: Record<string, unknown>, key: string): string | undefined {
-  const candidate = value[key];
-  return typeof candidate === 'string' ? candidate : undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
