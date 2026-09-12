@@ -32,7 +32,7 @@ contract DuelMeTest is Test {
     address public dave = makeAddr("dave");
 
     uint256 public constant WAGER = 10_000_000; // 10 USDT
-    uint256 public constant MIN_WAGER = 3_000_000; // 3 USDT
+    uint96 public constant MIN_WAGER = 300_000; // 0.3 USDT
     bytes32 public constant DEFAULT_INVITE_SECRET = bytes32(uint256(1));
     bytes32 public constant DEFAULT_INVITE_HASH = keccak256(abi.encodePacked(DEFAULT_INVITE_SECRET));
     bytes32 public constant OTHER_INVITE_SECRET = bytes32(uint256(2));
@@ -40,7 +40,7 @@ contract DuelMeTest is Test {
 
     function setUp() public {
         usdt = new MockERC20("Tether USD", "USDT", 6);
-        duelMe = new DuelMe(address(usdt));
+        duelMe = new DuelMe(address(usdt), MIN_WAGER);
 
         // Mint USDT to test accounts
         usdt.mint(alice, 1_000_000_000); // 1000 USDT
@@ -121,11 +121,17 @@ contract DuelMeTest is Test {
         assertEq(address(duelMe.usdt()), address(usdt));
         assertEq(duelMe.owner(), address(this));
         assertEq(duelMe.duelCount(), 0);
+        assertEq(duelMe.minWager(), MIN_WAGER);
     }
 
     function testConstructorRejectsZeroAddress() public {
         vm.expectRevert("Invalid USDT address");
-        new DuelMe(address(0));
+        new DuelMe(address(0), MIN_WAGER);
+    }
+
+    function testConstructorRejectsMinWagerBelowFloor() public {
+        vm.expectRevert("Invalid min wager");
+        new DuelMe(address(usdt), 100_000 - 1);
     }
 
     // =====================================================================
@@ -1160,8 +1166,15 @@ contract DuelMeTest is Test {
     }
 
     function testConstants() public view {
-        assertEq(duelMe.MIN_WAGER(), 3_000_000);
-        assertEq(duelMe.CLAIM_TIMEOUT(), 3600);
+        assertEq(duelMe.claimTimeout(), 1 hours);
+        assertEq(duelMe.emergencyDelay(), 30 days);
+        assertEq(duelMe.maxMessageCodepoints(), 32);
+        assertEq(duelMe.maxMessageBytes(), 128);
+        assertEq(duelMe.MIN_WAGER_FLOOR(), 100_000);
+        assertEq(duelMe.MIN_CLAIM_TIMEOUT(), 1 hours);
+        assertEq(duelMe.MIN_EMERGENCY_DELAY(), 30 days);
+        assertEq(duelMe.MIN_MESSAGE_CODEPOINTS(), 32);
+        assertEq(duelMe.MIN_MESSAGE_BYTES(), 128);
     }
 
     // =====================================================================

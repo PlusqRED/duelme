@@ -44,8 +44,10 @@ export const AVAILABLE_CHAIN_IDS: readonly number[] = AVAILABLE_CHAIN_KEYS.map(
   (key) => SUPPORTED_CHAINS[key].id
 );
 
-export const MIN_WAGER = 3; // 3 USDT (display value)
-export const MIN_WAGER_RAW = 3_000_000n; // 3 USDT in 6 decimals
+// Fallback default for the on-chain minWager() (owner-adjustable). The live
+// value is fetched by useContractConfig; this constant only covers the moment
+// before that read resolves, so keep it equal to the deploy-time value.
+export const MIN_WAGER = 0.3; // 0.3 USDT (display value)
 export const MAX_WAGER_SLIDER = 500; // upper bound of the create-duel wager slider; text input still accepts larger values
 
 // Chain ids where the backend-signed testnet faucet can operate.
@@ -53,7 +55,11 @@ export const MAX_WAGER_SLIDER = 500; // upper bound of the create-duel wager sli
 export const TESTNET_CHAIN_IDS: ReadonlySet<number> = new Set([
   SUPPORTED_CHAINS.arbitrumSepolia.id,
 ]);
+// Fallback defaults for the owner-adjustable on-chain claimTimeout(),
+// maxMessageCodepoints() and maxMessageBytes() — same rule as MIN_WAGER above.
 export const CLAIM_TIMEOUT = 3600; // 1 hour in seconds
+export const MAX_DUEL_MESSAGE_CHARACTERS = 32;
+export const MAX_DUEL_MESSAGE_BYTES = 128;
 export const USDT_DECIMALS = 6;
 
 export const DUELME_ADDRESSES: Record<number, `0x${string}`> = {

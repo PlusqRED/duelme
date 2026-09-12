@@ -1,5 +1,5 @@
 import { DuelState, type Duel } from '@/lib/contracts';
-import { CLAIM_TIMEOUT } from '@/lib/constants';
+import { getContractConfig } from '@/lib/contractConfig';
 import type { TranslationKey } from '@/i18n/translations';
 
 export { ZERO_ADDRESS } from '@/lib/constants';
@@ -104,7 +104,7 @@ export function getCounterpartyAddress(
 export function isDuelClaimTimedOut(claimTimestamp: bigint | number): boolean {
   const ts = typeof claimTimestamp === 'bigint' ? Number(claimTimestamp) : claimTimestamp;
   if (ts <= 0) return false;
-  return Math.floor(Date.now() / 1000) >= ts + CLAIM_TIMEOUT;
+  return Math.floor(Date.now() / 1000) >= ts + getContractConfig().claimTimeout;
 }
 
 export function isRefundableDuel(

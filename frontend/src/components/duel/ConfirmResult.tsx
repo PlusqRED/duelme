@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTranslation } from '@/i18n/useTranslation';
 import { truncateAddress, formatTimeRemaining } from '@/lib/utils';
-import { CLAIM_TIMEOUT } from '@/lib/constants';
+import { useContractConfig } from '@/hooks/useContractConfig';
 import { CheckCircle, Clock, RotateCcw, TimerOff, Trophy, UserRound, XCircle } from 'lucide-react';
 
 interface ConfirmResultProps {
@@ -40,6 +40,7 @@ export function ConfirmResult({
   resolveDisplay,
 }: ConfirmResultProps) {
   const { t } = useTranslation();
+  const { claimTimeout } = useContractConfig();
   const [remaining, setRemaining] = useState(0);
   const normalizedViewer = viewerAddress?.toLowerCase();
   const normalizedClaimedBy = claimedBy.toLowerCase();
@@ -51,13 +52,13 @@ export function ConfirmResult({
     function update() {
       const now = Math.floor(Date.now() / 1000);
       const elapsed = now - claimTimestamp;
-      const left = Math.max(0, CLAIM_TIMEOUT - elapsed);
+      const left = Math.max(0, claimTimeout - elapsed);
       setRemaining(left);
     }
     update();
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
-  }, [claimTimestamp]);
+  }, [claimTimestamp, claimTimeout]);
 
   const timedOut = remaining <= 0;
 

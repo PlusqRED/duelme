@@ -29,12 +29,13 @@ contract DuelMePayoutsTest is Test {
     address public bob = makeAddr("bob");
 
     uint256 public constant WAGER = 10_000_000;
+    uint96 public constant MIN_WAGER = 300_000; // 0.3 USDT
     bytes32 public constant DEFAULT_INVITE_SECRET = bytes32(uint256(1));
     bytes32 public constant DEFAULT_INVITE_HASH = keccak256(abi.encodePacked(DEFAULT_INVITE_SECRET));
 
     function setUp() public {
         usdt = new MockPayoutERC20("Tether USD", "USDT", 6);
-        duelMe = new DuelMe(address(usdt));
+        duelMe = new DuelMe(address(usdt), MIN_WAGER);
 
         usdt.mint(alice, 1_000_000_000);
         usdt.mint(bob, 1_000_000_000);

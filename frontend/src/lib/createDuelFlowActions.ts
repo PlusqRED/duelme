@@ -9,6 +9,7 @@ import {
   getNextCreateDuelFlowStageFromReview,
 } from '@/lib/createDuelFlow';
 import { USDT_DECIMALS } from '@/lib/constants';
+import { getContractConfig } from '@/lib/contractConfig';
 import { getGuidedFlowErrorMessage } from '@/lib/guidedFlowRuntime';
 import {
   generateInviteSecret,
@@ -88,11 +89,11 @@ export function createDuelFlowActions({
       return;
     }
     if (!isValidAmount) {
-      appToast.error('create.min');
+      appToast.error('create.min', { min: getContractConfig().minWager });
       return;
     }
     if (!isValidMessage) {
-      appToast.error('create.messageTooLong');
+      appToast.error('create.messageTooLong', { max: getContractConfig().maxMessageCharacters });
       return;
     }
     const rawAmount = parseUnits(amount, USDT_DECIMALS);

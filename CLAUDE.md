@@ -94,8 +94,9 @@ Write ops: check chain → check allowance → approve if needed → execute. `c
 - USDT 6 decimals — `wagerAmount` stored raw (`5_000_000` = 5 USDT)
 - Pull-based payouts/refunds via `claimPayout(uint256)` / `claimPayouts(uint256[])`
 - Mutual cancellation: `MutualCancelRequested` / `MutuallyCancelled`
-- Duel messages on-chain as UTF-8 `string`, max 32 code points / 128 bytes
-- Emergency withdraw: 30-day timelock for USDT; non-USDT rescue is instant
+- Duel messages on-chain as UTF-8 `string`, default max 32 code points / 128 bytes
+- Emergency withdraw: timelocked for USDT (default 30 days); non-USDT rescue is instant
+- Owner-settable params with hardcoded floors: `minWager` (≥ `MIN_WAGER_FLOOR` 0.1 USDT, set at deploy — 0.3 USDT in scripts), `claimTimeout` (≥ 1h), `emergencyDelay` (≥ 30d), `maxMessageCodepoints` (≥ 32), `maxMessageBytes` (≥ 128). The five are packed into one storage slot (`uint96`/`uint64`/`uint64`/`uint16`/`uint16`). Frontend reads the live values via `useContractConfig` (see below); `MIN_WAGER`/`CLAIM_TIMEOUT`/`MAX_DUEL_MESSAGE_CHARACTERS`/`MAX_DUEL_MESSAGE_BYTES` in `constants.ts` are only pre-fetch fallbacks — keep them equal to deploy-time defaults.
 
 ## Key Files
 
@@ -107,6 +108,8 @@ Write ops: check chain → check allowance → approve if needed → execute. `c
 | `frontend/src/lib/constants.ts` | Chain configs, contract addresses, ZERO_ADDRESS, CHAIN_NAMES |
 | `frontend/src/components/providers/Providers.tsx` | Privy + wagmi + QueryClient providers |
 | `frontend/src/hooks/useDuel.ts` | Read single duel |
+| `frontend/src/hooks/useContractConfig.ts` | Reads owner-adjustable on-chain params (minWager, claimTimeout, maxMessageCodepoints, maxMessageBytes), syncs contractConfig store |
+| `frontend/src/lib/contractConfig.ts` | Module-level cache of on-chain params for non-hook helpers (fallbacks from constants.ts) |
 | `frontend/src/hooks/useDuelActions.ts` | Write actions (join, cancel, claim, refundAndClaim, etc.) |
 | `frontend/src/hooks/useWriteWithGas.ts` | Duel write dispatcher: sponsored/resilient/plain routing + merged hash/isPending/error surface |
 | `frontend/src/hooks/useDashboardClaims.ts` | Dashboard claim/refund handlers and computed state |

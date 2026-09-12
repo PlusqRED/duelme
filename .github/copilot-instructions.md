@@ -44,7 +44,7 @@
 - Import `createConfig` from `@privy-io/wagmi`, not `wagmi`. This is required for Privy wallet routing.
 - Use `useSwitchChain` from wagmi for network switching. Do not use Privy's chain switch helper for app transaction flows.
 - Keep `setActiveWalletForWagmi` on `WagmiProvider`; do not replace it with a later `useEffect`-based wallet selection flow.
-- All wager amounts are USDT with 6 decimals. UI display values and raw on-chain values are intentionally separate (`MIN_WAGER` vs. `MIN_WAGER_RAW` in `constants.ts`).
+- All wager amounts are USDT with 6 decimals. Raw on-chain values are derived from display values with `parseUnits(amount, USDT_DECIMALS)`; the UI minimum is `MIN_WAGER` in `constants.ts` and must match the deployed contract's `minWager()`.
 - Treat `SUPPORTED_CHAINS`, `DUELME_ADDRESSES`, and the per-chain USDT addresses in `constants.ts` as the source of truth for frontend chain behavior. Guards against the zero address are intentional because some listed networks are not deployed yet.
 - The app does not use an indexer. Live views rely on wagmi reads plus polling (`refetchInterval` with `staleTime: 0`) and multicall patterns.
 - `frontend/src/lib/balanceRefresh.ts` is the shared event bus for instant balance refresh after balance-changing actions.

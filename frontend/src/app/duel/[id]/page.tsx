@@ -12,7 +12,8 @@ import { DuelState } from '@/lib/contracts';
 import { getClaimableAmountForAddress, isDuelClaimTimedOut, isDuelFullySettled } from '@/lib/duel';
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
 import { hashInviteSecret, readInviteSecretFromHash, readStoredInviteSecret, storeInviteSecret, isPublicDuel, PUBLIC_INVITE_SECRET } from '@/lib/invite';
-import { DEFAULT_CHAIN, DEFAULT_CHAIN_ID, ZERO_ADDRESS, CLAIM_TIMEOUT } from '@/lib/constants';
+import { DEFAULT_CHAIN, DEFAULT_CHAIN_ID, ZERO_ADDRESS } from '@/lib/constants';
+import { useContractConfig } from '@/hooks/useContractConfig';
 import { useDuel } from '@/hooks/useDuel';
 import { useDuelActions } from '@/hooks/useDuelActions';
 import { formatDateTime, formatUSDT } from '@/lib/utils';
@@ -70,6 +71,7 @@ export default function DuelPage({
 }) {
   const { id } = use(params);
   const { t, language } = useTranslation();
+  const { claimTimeout } = useContractConfig();
   const appToast = useAppToast();
   const duelId = parseInt(id, 10);
 
@@ -313,7 +315,7 @@ export default function DuelPage({
     duel.cancelRequestedAt > 0n ? { label: t('duel.timelineCancellationRequested'), timestamp: duel.cancelRequestedAt, dotColor: 'bg-violet-500' } : null,
     duel.claimTimestamp > 0n ? { label: t('duel.timelineResultSubmitted'), timestamp: duel.claimTimestamp, dotColor: 'bg-amber-500' } : null,
     isClaimTimedOut
-      ? { label: t('duel.timelineTimedOut'), timestamp: duel.claimTimestamp + BigInt(CLAIM_TIMEOUT), dotColor: 'bg-red-500' }
+      ? { label: t('duel.timelineTimedOut'), timestamp: duel.claimTimestamp + BigInt(claimTimeout), dotColor: 'bg-red-500' }
       : null,
     duel.finalizedAt > 0n
       ? {

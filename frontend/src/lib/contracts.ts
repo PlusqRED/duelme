@@ -1,65 +1,65 @@
 export const duelMeAbi = [
   {
     type: 'function',
-    name: 'CLAIM_TIMEOUT',
+    name: 'MIN_CLAIM_TIMEOUT',
     inputs: [],
     outputs: [
       {
         name: '',
-        type: 'uint256',
-        internalType: 'uint256'
+        type: 'uint64',
+        internalType: 'uint64'
       }
     ],
     stateMutability: 'view'
   },
   {
     type: 'function',
-    name: 'EMERGENCY_DELAY',
+    name: 'MIN_EMERGENCY_DELAY',
     inputs: [],
     outputs: [
       {
         name: '',
-        type: 'uint256',
-        internalType: 'uint256'
+        type: 'uint64',
+        internalType: 'uint64'
       }
     ],
     stateMutability: 'view'
   },
   {
     type: 'function',
-    name: 'MAX_MESSAGE_BYTES',
+    name: 'MIN_MESSAGE_BYTES',
     inputs: [],
     outputs: [
       {
         name: '',
-        type: 'uint256',
-        internalType: 'uint256'
+        type: 'uint16',
+        internalType: 'uint16'
       }
     ],
     stateMutability: 'view'
   },
   {
     type: 'function',
-    name: 'MAX_MESSAGE_CODEPOINTS',
+    name: 'MIN_MESSAGE_CODEPOINTS',
     inputs: [],
     outputs: [
       {
         name: '',
-        type: 'uint256',
-        internalType: 'uint256'
+        type: 'uint16',
+        internalType: 'uint16'
       }
     ],
     stateMutability: 'view'
   },
   {
     type: 'function',
-    name: 'MIN_WAGER',
+    name: 'MIN_WAGER_FLOOR',
     inputs: [],
     outputs: [
       {
         name: '',
-        type: 'uint256',
-        internalType: 'uint256'
+        type: 'uint96',
+        internalType: 'uint96'
       }
     ],
     stateMutability: 'view'
@@ -144,10 +144,16 @@ export const duelMeAbi = [
   },
   {
     type: 'function',
-    name: 'refundAndClaimPayouts',
-    inputs: [{ name: 'duelIds', type: 'uint256[]', internalType: 'uint256[]' }],
-    outputs: [],
-    stateMutability: 'nonpayable',
+    name: 'claimTimeout',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'uint64',
+        internalType: 'uint64'
+      }
+    ],
+    stateMutability: 'view'
   },
   {
     type: 'function',
@@ -281,6 +287,19 @@ export const duelMeAbi = [
         name: '',
         type: 'uint256',
         internalType: 'uint256'
+      }
+    ],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    name: 'emergencyDelay',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'uint64',
+        internalType: 'uint64'
       }
     ],
     stateMutability: 'view'
@@ -500,6 +519,45 @@ export const duelMeAbi = [
   },
   {
     type: 'function',
+    name: 'maxMessageBytes',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'uint16',
+        internalType: 'uint16'
+      }
+    ],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    name: 'maxMessageCodepoints',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'uint16',
+        internalType: 'uint16'
+      }
+    ],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    name: 'minWager',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'uint96',
+        internalType: 'uint96'
+      }
+    ],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
     name: 'owner',
     inputs: [],
     outputs: [
@@ -563,6 +621,19 @@ export const duelMeAbi = [
         name: 'duelId',
         type: 'uint256',
         internalType: 'uint256'
+      }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'refundAndClaimPayouts',
+    inputs: [
+      {
+        name: 'duelIds',
+        type: 'uint256[]',
+        internalType: 'uint256[]'
       }
     ],
     outputs: [],
@@ -655,6 +726,71 @@ export const duelMeAbi = [
   },
   {
     type: 'function',
+    name: 'setClaimTimeout',
+    inputs: [
+      {
+        name: 'newClaimTimeout',
+        type: 'uint64',
+        internalType: 'uint64'
+      }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'setEmergencyDelay',
+    inputs: [
+      {
+        name: 'newEmergencyDelay',
+        type: 'uint64',
+        internalType: 'uint64'
+      }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'setMaxMessageBytes',
+    inputs: [
+      {
+        name: 'newMax',
+        type: 'uint16',
+        internalType: 'uint16'
+      }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'setMaxMessageCodepoints',
+    inputs: [
+      {
+        name: 'newMax',
+        type: 'uint16',
+        internalType: 'uint16'
+      }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'setMinWager',
+    inputs: [
+      {
+        name: 'newMinWager',
+        type: 'uint96',
+        internalType: 'uint96'
+      }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
     name: 'transferOwnership',
     inputs: [
       {
@@ -698,6 +834,25 @@ export const duelMeAbi = [
     ],
     outputs: [],
     stateMutability: 'nonpayable'
+  },
+  {
+    type: 'event',
+    name: 'ClaimTimeoutUpdated',
+    inputs: [
+      {
+        name: 'oldValue',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256'
+      },
+      {
+        name: 'newValue',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256'
+      }
+    ],
+    anonymous: false
   },
   {
     type: 'event',
@@ -954,6 +1109,25 @@ export const duelMeAbi = [
   },
   {
     type: 'event',
+    name: 'EmergencyDelayUpdated',
+    inputs: [
+      {
+        name: 'oldValue',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256'
+      },
+      {
+        name: 'newValue',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256'
+      }
+    ],
+    anonymous: false
+  },
+  {
+    type: 'event',
     name: 'EmergencyExecuted',
     inputs: [
       {
@@ -1013,6 +1187,63 @@ export const duelMeAbi = [
       },
       {
         name: 'executeAfter',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256'
+      }
+    ],
+    anonymous: false
+  },
+  {
+    type: 'event',
+    name: 'MaxMessageBytesUpdated',
+    inputs: [
+      {
+        name: 'oldValue',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256'
+      },
+      {
+        name: 'newValue',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256'
+      }
+    ],
+    anonymous: false
+  },
+  {
+    type: 'event',
+    name: 'MaxMessageCodepointsUpdated',
+    inputs: [
+      {
+        name: 'oldValue',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256'
+      },
+      {
+        name: 'newValue',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256'
+      }
+    ],
+    anonymous: false
+  },
+  {
+    type: 'event',
+    name: 'MinWagerUpdated',
+    inputs: [
+      {
+        name: 'oldValue',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256'
+      },
+      {
+        name: 'newValue',
         type: 'uint256',
         indexed: false,
         internalType: 'uint256'

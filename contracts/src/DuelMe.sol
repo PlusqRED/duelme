@@ -15,11 +15,29 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
 
     IERC20 public immutable usdt;
 
-    uint256 public constant MIN_WAGER = 3_000_000; // 3 USDT (6 decimals)
-    uint256 public constant CLAIM_TIMEOUT = 3600; // 1 hour
-    uint256 public constant EMERGENCY_DELAY = 30 days;
-    uint256 public constant MAX_MESSAGE_CODEPOINTS = 32;
-    uint256 public constant MAX_MESSAGE_BYTES = 128;
+    // Hard floors baked into the bytecode. The owner-adjustable parameters
+    // below can never be set past these bounds, so player protections
+    // (dispute window, rug-pull timelock) cannot be weakened after deploy.
+    uint96 public constant MIN_WAGER_FLOOR = 100_000; // 0.1 USDT (6 decimals)
+    uint64 public constant MIN_CLAIM_TIMEOUT = 1 hours;
+    uint64 public constant MIN_EMERGENCY_DELAY = 30 days;
+    uint16 public constant MIN_MESSAGE_CODEPOINTS = 32;
+    uint16 public constant MIN_MESSAGE_BYTES = 128;
+
+    // The five adjustable parameters below are sized to pack into a single
+    // storage slot (96+64+64+16+16 = 256 bits), so createDuel pays one SLOAD
+    // for all of them instead of three.
+    /// @notice Minimum wager for new duels in USDT (6 decimals). Set at deploy, owner-adjustable,
+    ///         never below MIN_WAGER_FLOOR. Keep frontend MIN_WAGER in constants.ts in sync.
+    uint96 public minWager;
+    /// @notice Window for the opponent to confirm or dispute a victory claim. Applies to in-flight claims.
+    uint64 public claimTimeout = MIN_CLAIM_TIMEOUT;
+    /// @notice Timelock before an emergency withdrawal can execute. Applies to pending requests.
+    uint64 public emergencyDelay = MIN_EMERGENCY_DELAY;
+    /// @notice Maximum duel message length in Unicode code points
+    uint16 public maxMessageCodepoints = MIN_MESSAGE_CODEPOINTS;
+    /// @notice Maximum duel message length in UTF-8 bytes
+    uint16 public maxMessageBytes = MIN_MESSAGE_BYTES;
 
     uint256 public duelCount;
 
@@ -92,10 +110,17 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
     event EmergencyRequested(uint256 indexed requestId, address indexed token, address indexed recipient, uint256 amount, uint256 executeAfter);
     event EmergencyCancelled(uint256 indexed requestId);
     event EmergencyExecuted(uint256 indexed requestId, address indexed token, address indexed recipient, uint256 amount);
+    event MinWagerUpdated(uint256 oldValue, uint256 newValue);
+    event ClaimTimeoutUpdated(uint256 oldValue, uint256 newValue);
+    event EmergencyDelayUpdated(uint256 oldValue, uint256 newValue);
+    event MaxMessageCodepointsUpdated(uint256 oldValue, uint256 newValue);
+    event MaxMessageBytesUpdated(uint256 oldValue, uint256 newValue);
 
-    constructor(address _usdt) Ownable(msg.sender) {
+    constructor(address _usdt, uint96 _minWager) Ownable(msg.sender) {
         require(_usdt != address(0), "Invalid USDT address");
+        require(_minWager >= MIN_WAGER_FLOOR, "Invalid min wager");
         usdt = IERC20(_usdt);
+        minWager = _minWager;
     }
 
     /// @notice Create a new duel by depositing a USDT wager
@@ -116,7 +141,7 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
     }
 
     function _createDuel(uint256 amount, bytes32 inviteHash, string memory message) internal returns (uint256 duelId) {
-        require(amount >= MIN_WAGER, "Wager below minimum");
+        require(amount >= minWager, "Wager below minimum");
         require(inviteHash != bytes32(0), "Invalid invite hash");
         _validateMessage(message);
 
@@ -171,7 +196,7 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
         emit DuelDeclined(duelId, msg.sender);
     }
 
-    /// @notice Claim victory in a funded duel. Starts a 1-hour countdown for the opponent to confirm or dispute.
+    /// @notice Claim victory in a funded duel. Starts the claimTimeout countdown for the opponent to confirm or dispute.
     /// @param duelId The ID of the duel
     function claimVictory(uint256 duelId) external whenNotPaused nonReentrant {
         Duel storage duel = duels[duelId];
@@ -327,7 +352,7 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
         Duel storage duel = duels[duelId];
         require(duel.state == DuelState.WinnerClaimed, "Duel not in WinnerClaimed state");
         require(
-            block.timestamp >= duel.claimTimestamp + CLAIM_TIMEOUT,
+            block.timestamp >= duel.claimTimestamp + claimTimeout,
             "Claim timeout not reached"
         );
 
@@ -390,9 +415,10 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
     ///         Duels that are not in WinnerClaimed state or have not timed out are silently skipped.
     /// @param duelIds The duel IDs to refund and claim from
     function refundAndClaimPayouts(uint256[] calldata duelIds) external whenNotPaused nonReentrant {
+        uint256 timeout = claimTimeout;
         for (uint256 i = 0; i < duelIds.length; i++) {
             Duel storage duel = duels[duelIds[i]];
-            if (duel.state == DuelState.WinnerClaimed && block.timestamp >= duel.claimTimestamp + CLAIM_TIMEOUT) {
+            if (duel.state == DuelState.WinnerClaimed && block.timestamp >= duel.claimTimestamp + timeout) {
                 duel.finalizedAt = block.timestamp;
                 duel.state = DuelState.Refunded;
                 playerStats[duel.claimedBy].duelsHonored += 1;
@@ -431,9 +457,9 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
         require(success, "ETH transfer failed");
     }
 
-    // ─── Emergency token rescue (30-day timelock) ───
+    // ─── Emergency token rescue (timelocked) ───
 
-    /// @notice Request emergency withdrawal of any ERC20 token. Starts a 30-day countdown.
+    /// @notice Request emergency withdrawal of any ERC20 token. Starts the emergencyDelay countdown.
     /// @param token The ERC20 token address to withdraw
     /// @param recipient The address that will receive the funds
     /// @param amount The amount to withdraw
@@ -451,7 +477,7 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
             requestedAt: block.timestamp
         });
 
-        emit EmergencyRequested(requestId, token, recipient, amount, block.timestamp + EMERGENCY_DELAY);
+        emit EmergencyRequested(requestId, token, recipient, amount, block.timestamp + emergencyDelay);
         return requestId;
     }
 
@@ -463,13 +489,13 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
         emit EmergencyCancelled(requestId);
     }
 
-    /// @notice Execute emergency withdrawal after the 30-day timelock
+    /// @notice Execute emergency withdrawal after the emergencyDelay timelock
     /// @param requestId The ID of the request to execute
     function executeEmergencyWithdraw(uint256 requestId) external onlyOwner {
         EmergencyRequest memory req = emergencyRequests[requestId];
         require(req.requestedAt > 0, "Request not found");
         require(
-            block.timestamp >= req.requestedAt + EMERGENCY_DELAY,
+            block.timestamp >= req.requestedAt + emergencyDelay,
             "Timelock not expired"
         );
 
@@ -479,6 +505,49 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
     }
 
     // ─── Admin ───
+
+    /// @notice Set the minimum wager for new duels (owner only)
+    /// @param newMinWager New minimum in USDT (6 decimals), at least MIN_WAGER_FLOOR
+    function setMinWager(uint96 newMinWager) external onlyOwner {
+        require(newMinWager >= MIN_WAGER_FLOOR, "Below minimum");
+        emit MinWagerUpdated(minWager, newMinWager);
+        minWager = newMinWager;
+    }
+
+    /// @notice Set the confirm/dispute window after a victory claim (owner only)
+    /// @dev Also applies to in-flight WinnerClaimed duels: a raised value extends
+    ///      their window, a lowered one shortens it (never below MIN_CLAIM_TIMEOUT)
+    /// @param newClaimTimeout New window in seconds, at least MIN_CLAIM_TIMEOUT
+    function setClaimTimeout(uint64 newClaimTimeout) external onlyOwner {
+        require(newClaimTimeout >= MIN_CLAIM_TIMEOUT, "Below minimum");
+        emit ClaimTimeoutUpdated(claimTimeout, newClaimTimeout);
+        claimTimeout = newClaimTimeout;
+    }
+
+    /// @notice Set the emergency withdrawal timelock (owner only)
+    /// @dev Also applies to already-pending emergency requests
+    /// @param newEmergencyDelay New delay in seconds, at least MIN_EMERGENCY_DELAY
+    function setEmergencyDelay(uint64 newEmergencyDelay) external onlyOwner {
+        require(newEmergencyDelay >= MIN_EMERGENCY_DELAY, "Below minimum");
+        emit EmergencyDelayUpdated(emergencyDelay, newEmergencyDelay);
+        emergencyDelay = newEmergencyDelay;
+    }
+
+    /// @notice Set the maximum duel message length in code points (owner only)
+    /// @param newMax New limit, at least MIN_MESSAGE_CODEPOINTS
+    function setMaxMessageCodepoints(uint16 newMax) external onlyOwner {
+        require(newMax >= MIN_MESSAGE_CODEPOINTS, "Below minimum");
+        emit MaxMessageCodepointsUpdated(maxMessageCodepoints, newMax);
+        maxMessageCodepoints = newMax;
+    }
+
+    /// @notice Set the maximum duel message length in UTF-8 bytes (owner only)
+    /// @param newMax New limit, at least MIN_MESSAGE_BYTES
+    function setMaxMessageBytes(uint16 newMax) external onlyOwner {
+        require(newMax >= MIN_MESSAGE_BYTES, "Below minimum");
+        emit MaxMessageBytesUpdated(maxMessageBytes, newMax);
+        maxMessageBytes = newMax;
+    }
 
     /// @notice Pause all duel operations (owner only)
     function pause() external onlyOwner {
@@ -510,11 +579,15 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
         return keccak256(abi.encodePacked(inviteSecret));
     }
 
-    function _validateMessage(string memory message) internal pure {
+    function _validateMessage(string memory message) internal view {
         bytes memory data = bytes(message);
         uint256 byteLength = data.length;
-        require(byteLength <= MAX_MESSAGE_BYTES, "Message too long");
+        if (byteLength == 0) {
+            return;
+        }
+        require(byteLength <= maxMessageBytes, "Message too long");
 
+        uint256 maxCodePoints = maxMessageCodepoints;
         uint256 i;
         uint256 codePoints;
 
@@ -568,7 +641,7 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
             }
 
             codePoints++;
-            require(codePoints <= MAX_MESSAGE_CODEPOINTS, "Message too long");
+            require(codePoints <= maxCodePoints, "Message too long");
             i += sequenceLength;
         }
     }

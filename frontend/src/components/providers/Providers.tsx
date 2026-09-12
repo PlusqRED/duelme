@@ -7,6 +7,7 @@ import type { SetActiveWalletForWagmiType } from '@privy-io/wagmi';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { wagmiConfig, supportedChains } from '@/lib/wagmi';
 import { selectWallet } from '@/lib/walletSelection';
+import { useContractConfig } from '@/hooks/useContractConfig';
 import { LanguageProvider } from '@/i18n/LanguageContext';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -34,6 +35,12 @@ function QueryCacheManager() {
     prevUserIdRef.current = currentId;
   }, [user?.id, qc]);
 
+  return null;
+}
+
+/** Keeps the shared contractConfig store synced with on-chain parameters app-wide. */
+function ContractConfigLoader() {
+  useContractConfig();
   return null;
 }
 
@@ -65,6 +72,7 @@ export function Providers({ children }: { children: ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <QueryCacheManager />
         <WagmiProvider config={wagmiConfig} setActiveWalletForWagmi={selectActiveWallet}>
+          <ContractConfigLoader />
           <LanguageProvider>
             <TooltipProvider>
               {children}

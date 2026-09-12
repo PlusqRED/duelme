@@ -19,6 +19,7 @@ import "../src/DuelMe.sol";
 ///     --etherscan-api-key $ARBISCAN_API_KEY
 contract DeployMainnet is Script {
     uint256 private constant ARBITRUM_ONE_CHAIN_ID = 42161;
+    uint96 private constant MIN_WAGER = 300_000; // 0.3 USDT (6 decimals)
 
     function run() external {
         uint256 expectedChainId = vm.envOr("EXPECTED_CHAIN_ID", ARBITRUM_ONE_CHAIN_ID);
@@ -40,11 +41,12 @@ contract DeployMainnet is Script {
         console.log("Chain id:", block.chainid);
 
         vm.startBroadcast(deployerPrivateKey);
-        DuelMe duelMe = new DuelMe(usdtAddress);
+        DuelMe duelMe = new DuelMe(usdtAddress, MIN_WAGER);
         vm.stopBroadcast();
 
         require(duelMe.owner() == deployer, "owner != deployer");
         require(address(duelMe.usdt()) == usdtAddress, "usdt() mismatch");
+        require(duelMe.minWager() == MIN_WAGER, "minWager mismatch");
         require(!duelMe.paused(), "deployed paused");
         require(duelMe.duelCount() == 0, "duelCount != 0");
 

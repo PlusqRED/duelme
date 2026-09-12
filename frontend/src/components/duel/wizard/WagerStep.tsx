@@ -2,13 +2,13 @@
 
 import { DollarSign, Trophy } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { useContractConfig } from '@/hooks/useContractConfig';
 import { useTranslation } from '@/i18n/useTranslation';
-import { MAX_WAGER_SLIDER, MIN_WAGER } from '@/lib/constants';
+import { MAX_WAGER_SLIDER } from '@/lib/constants';
 import { parseWager, projectWagerToSlider } from '@/lib/wager';
 
 const PRESETS = [3, 5, 10, 25, 50, 100];
-const SLIDER_STEP = 1;
-const SLIDER_RANGE = { min: MIN_WAGER, max: MAX_WAGER_SLIDER };
+const SLIDER_STEP = 0.1; // presentational slider granularity only
 
 interface WagerStepProps {
   amount: string;
@@ -18,8 +18,9 @@ interface WagerStepProps {
 
 export function WagerStep({ amount, onAmountChange, isValid }: WagerStepProps) {
   const { t } = useTranslation();
+  const { minWager } = useContractConfig();
   const { numeric, pot } = parseWager(amount);
-  const slider = projectWagerToSlider(numeric, SLIDER_RANGE);
+  const slider = projectWagerToSlider(numeric, { min: minWager, max: MAX_WAGER_SLIDER });
   const sliderTrack = {
     background: `linear-gradient(to right,
       rgb(99 102 241) 0%,
@@ -47,8 +48,8 @@ export function WagerStep({ amount, onAmountChange, isValid }: WagerStepProps) {
             id="wizard-wager-amount"
             type="number"
             inputMode="decimal"
-            min={MIN_WAGER}
-            step="1"
+            min={minWager}
+            step="any"
             placeholder={t('create.amountPlaceholder')}
             value={amount}
             onChange={(event) => onAmountChange(event.target.value)}
@@ -62,7 +63,7 @@ export function WagerStep({ amount, onAmountChange, isValid }: WagerStepProps) {
         <div className="flex flex-col gap-2">
           <input
             type="range"
-            min={MIN_WAGER}
+            min={minWager}
             max={MAX_WAGER_SLIDER}
             step={SLIDER_STEP}
             value={slider.value}
@@ -73,7 +74,7 @@ export function WagerStep({ amount, onAmountChange, isValid }: WagerStepProps) {
             className="h-2 w-full cursor-pointer appearance-none rounded-full outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-indigo-300 disabled:cursor-not-allowed disabled:opacity-60 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-indigo-500 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:active:scale-110 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-indigo-500 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:active:scale-110"
           />
           <div className="flex items-center justify-between text-xs font-medium text-slate-500">
-            <span>{MIN_WAGER} USDT</span>
+            <span>{minWager} USDT</span>
             <span>
               {slider.isAboveRange
                 ? t('wizard.wager.sliderAbove', { max: MAX_WAGER_SLIDER })
@@ -100,7 +101,7 @@ export function WagerStep({ amount, onAmountChange, isValid }: WagerStepProps) {
         </div>
 
         {amount && !isValid && (
-          <p className="text-xs text-red-500">{t('create.min')}</p>
+          <p className="text-xs text-red-500">{t('create.min', { min: minWager })}</p>
         )}
       </div>
 

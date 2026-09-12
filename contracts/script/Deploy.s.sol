@@ -8,6 +8,8 @@ import "../src/DuelMe.sol";
 /// @notice Deploys MockUSDT + DuelMe to testnet
 /// Usage: forge script script/Deploy.s.sol --rpc-url $ARBITRUM_SEPOLIA_RPC_URL --broadcast --verify
 contract DeployAll is Script {
+    uint96 private constant MIN_WAGER = 300_000; // 0.3 USDT (6 decimals)
+
     function run() external {
         uint256 deployerPrivateKey = vm.envOr("PRIVATE_KEY", uint256(0));
         if (deployerPrivateKey == 0) {
@@ -23,7 +25,7 @@ contract DeployAll is Script {
         console.log("MockUSDT deployed at:", address(mockUsdt));
 
         // 2. Deploy DuelMe with MockUSDT address
-        DuelMe duelMe = new DuelMe(address(mockUsdt));
+        DuelMe duelMe = new DuelMe(address(mockUsdt), MIN_WAGER);
         console.log("DuelMe deployed at:", address(duelMe));
 
         // 3. Mint 10,000 USDT to deployer for testing
