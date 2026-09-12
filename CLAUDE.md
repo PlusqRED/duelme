@@ -127,6 +127,7 @@ Write ops: check chain → check allowance → approve if needed → execute. `c
 | `frontend/src/lib/sponsoredWalletCalls.ts` | Gasless duel writes for external wallets (MetaMask) via EIP-5792 `wallet_sendCalls` + ERC-7677 paymasterService |
 | `frontend/src/lib/sponsoredTransactionErrors.ts` | SponsorshipUnavailableError, error classification + shared `collectErrorDetails` walker (also used by guidedFlowRuntime) |
 | `frontend/src/hooks/useSponsoredFees.ts` | Whether duel writes are gas-sponsored for the active wallet (embedded when Pimlico env is set; external via `wallet_getCapabilities`) |
+| `frontend/src/lib/walletDisplay.ts` | External-wallet display names for user-facing copy (`getExternalWalletName`) |
 | `frontend/src/lib/testnetGas.ts` | Testnet vs mainnet gas/fee buffers; min-gas constants per duel action |
 | `frontend/src/lib/wagmi.ts` (`resolveRpcUrl`) | RPC URL env validation + fallback chain (Alchemy/QuickNode → Tenderly) |
 | `frontend/src/i18n/translations.ts` | EN/RU translations |

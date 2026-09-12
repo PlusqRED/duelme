@@ -13,6 +13,7 @@ import { useMyProfile } from '@/hooks/useMyProfile';
 import { useIsNonProductionHost } from '@/hooks/useIsNonProductionHost';
 import { usePrivy, useExportWallet, useIdentityToken } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
+import { getExternalWalletName } from '@/lib/walletDisplay';
 import { useReadContract, useBalance } from 'wagmi';
 import { formatUnits, parseUnits, encodeFunctionData } from 'viem';
 import { TESTNET_CHAIN_IDS, USDT_DECIMALS, DEFAULT_CHAIN_ID, CHAIN_NAMES, AVAILABLE_CHAIN_IDS } from '@/lib/constants';
@@ -95,14 +96,15 @@ export function Header() {
     },
   });
 
-  // Wallets without a sponsored path still pay their own native ETH gas, so
-  // surface the ETH balance for them — but only once the capability probe has
-  // settled, so a sponsored wallet never fires a wasted eth_getBalance.
+  // Wallets without a sponsored path pay their own native ETH gas; wait for
+  // the capability probe so a sponsored wallet never fires a wasted
+  // eth_getBalance.
+  const paysOwnGas = feesResolved && !duelFeesHandled;
   const { data: ethBalanceData, refetch: refetchEthBalance } = useBalance({
     address: walletAddress,
     chainId: selectedChain,
     query: {
-      enabled: !!walletAddress && feesResolved && !duelFeesHandled,
+      enabled: !!walletAddress && paysOwnGas,
       refetchInterval: 30_000,
       staleTime: 0,
     },
@@ -110,7 +112,9 @@ export function Header() {
 
   const ethBalance = ethBalanceData ? parseFloat(formatUnits(ethBalanceData.value, 18)) : 0;
   const formattedEth = ethBalance < 0.0001 && ethBalance > 0 ? '<0.0001' : ethBalance.toFixed(4);
-  const lowGas = feesResolved && !duelFeesHandled && ethBalance < 0.0005;
+  // Require a settled balance read so the warning never flashes while loading.
+  const lowGas = paysOwnGas && ethBalanceData !== undefined && ethBalance < 0.0005;
+  const externalWalletName = getExternalWalletName(activeWallet?.walletClientType);
 
   const balances: Record<number, number> = {
     421614: arbSepoliaRaw !== undefined ? parseFloat(formatUnits(arbSepoliaRaw, USDT_DECIMALS)) : 0,
@@ -344,7 +348,9 @@ export function Header() {
         )}
         {lowGas && (
           <p className="mt-1 text-[10px] text-red-500">
-            {t('wallet.lowGasWarning')}
+            {externalWalletName
+              ? t('wallet.lowGasWarning', { wallet: externalWalletName })
+              : t('wallet.lowGasWarningGeneric')}
           </p>
         )}
 

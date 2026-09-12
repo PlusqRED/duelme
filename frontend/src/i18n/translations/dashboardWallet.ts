@@ -39,7 +39,9 @@ export const dashboardWalletTranslations = defineSection({
     'wallet.addressLabel': 'Your address',
     'wallet.usdtBalance': 'USDT Balance',
     'wallet.max': 'MAX',
-    'wallet.lowGasWarning': 'External wallet actions may need ETH for network fees.',
+    'wallet.lowGasWarning':
+      'DuelMe covers gas for email logins & smart wallets (Coinbase, Ambire, Candide), but {wallet} doesn’t support it.',
+    'wallet.lowGasWarningGeneric': 'Duel actions may need ETH for network fees.',
     'wallet.networkFeesHandled': 'Network fees handled',
     'wallet.forDuels': 'for duels',
     'wallet.networkFees': 'fees',
@@ -133,7 +135,9 @@ export const dashboardWalletTranslations = defineSection({
     'wallet.addressLabel': 'Ваш адрес',
     'wallet.usdtBalance': 'Баланс USDT',
     'wallet.max': 'МАКС',
-    'wallet.lowGasWarning': 'Для действий через внешний кошелёк может понадобиться ETH на сетевые комиссии.',
+    'wallet.lowGasWarning':
+      'DuelMe платит газ при входе через почту и в smart-кошельках (Coinbase, Ambire, Candide), но {wallet} это не поддерживает.',
+    'wallet.lowGasWarningGeneric': 'Для дуэлей может понадобиться ETH на сетевые комиссии.',
     'wallet.networkFeesHandled': 'Комиссии покрываются',
     'wallet.forDuels': 'для дуэлей',
     'wallet.networkFees': 'комиссии',
