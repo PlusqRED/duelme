@@ -71,9 +71,15 @@ describe('the backend faucet mirrors the same token', () => {
       join(REPO, 'backend/src/main/resources/application.yml'),
       'utf8'
     );
-    const match = applicationYml.match(/^\s*mock-usdt-address:\s*(0x[0-9a-fA-F]{40})\s*$/m);
+    // The quotes are load-bearing: YAML reads a bare 0x… as a hex integer, Spring binds the
+    // decimal form, and FaucetService rejects it at startup — taking the whole backend down.
+    // So the pattern requires them rather than tolerating either shape.
+    const match = applicationYml.match(/^\s*mock-usdt-address:\s*"(0x[0-9a-fA-F]{40})"\s*$/m);
 
-    expect(match, 'mock-usdt-address default not found in application.yml').not.toBeNull();
+    expect(
+      match,
+      'mock-usdt-address must be present in application.yml and quoted (a bare 0x… parses as a number)'
+    ).not.toBeNull();
     // A stale default hands testers a token DuelMe will not accept, and the symptom is an
     // empty balance rather than a faucet error — so it has to be checked, not trusted.
     expect(match![1].toLowerCase()).toBe(SUPPORTED_CHAINS.arbitrumSepolia.usdt.toLowerCase());
