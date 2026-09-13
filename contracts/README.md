@@ -13,7 +13,8 @@ Wager escrow and on-chain reputation tracking for P2P gaming duels.
 | Contract | Description |
 |---|---|
 | `DuelMe.sol` | Core contract — secure invite duels, claim-based payouts, mutual cancellation, timestamps, and PlayerStats reputation |
-| `MockUSDT.sol` | Testnet ERC20 with 6 decimals and public `faucet()` (mints 1000 USDT per call) |
+| `MockUSDT.sol` | Testnet ERC20 with 6 decimals and public `faucet()` (mints 1000 USDT per call). Implements EIP-2612 `permit`, and deliberately mirrors mainnet USD₮0's quirks — the name `USD₮0` (U+20AE) and a reverting `eip712Domain()` — so a client that builds the permit domain wrongly fails on testnet rather than in production |
+| `ERC2771Forwarder` | OpenZeppelin, deployed unmodified. The single forwarder `DuelMe` trusts; its EIP-712 domain name lives in `script/ForwarderConfig.sol` |
 
 ## Prerequisites
 
@@ -75,8 +76,10 @@ Created ──► Funded ──► WinnerClaimed ──► Resolved
 
 | Step | Function | Description |
 |---|---|---|
-| 1 | `createDuel(amount, inviteHash)` / `createDuel(amount, inviteHash, message)` | Creator deposits USDT, stores only the invite hash on-chain, optionally adds a short UTF-8 message |
+| 1 | `createDuel(amount, inviteHash)` / `createDuel(amount, inviteHash, message)` | Creator deposits USDT, stores only the invite hash on-chain, optionally adds a short UTF-8 message. Needs a prior `approve` |
+| 1a | `createDuelWithPermit(amount, inviteHash, message, deadline, v, r, s)` | Same, funded by an EIP-2612 signature instead of a separate `approve` transaction |
 | 2 | `joinDuel(duelId, inviteSecret)` | Invited opponent matches the wager, state = Funded |
+| 2a | `joinDuelWithPermit(duelId, inviteSecret, deadline, v, r, s)` | Same, funded by an EIP-2612 signature |
 | 3 | `declineDuel(duelId, inviteSecret)` | Invited opponent declines, state = Declined, creator refund becomes claimable |
 | 4 | `requestMutualCancellation(duelId)` | Either funded participant pauses the duel and asks to cancel it by agreement |
 | 5 | `acceptMutualCancellation(duelId)` | Other participant accepts, state = MutuallyCancelled, both refunds become claimable |
@@ -134,10 +137,11 @@ forge script script/Deploy.s.sol \
   --etherscan-api-key $ARBISCAN_API_KEY
 ```
 
-Deploys MockUSDT + DuelMe and mints 1000 test USDT to the deployer.
+Deploys ERC2771Forwarder + MockUSDT + DuelMe and mints 1000 test USDT to the deployer.
 
 After deploy:
 
 1. keep `broadcast/Deploy.s.sol/421614/run-latest.json` as the tracked artifact,
-2. update `frontend/src/lib/constants.ts`,
+2. update `frontend/src/lib/constants.ts` — `DUELME_ADDRESSES`, `FORWARDER_ADDRESSES`, **and** `SUPPORTED_CHAINS.arbitrumSepolia.usdt`, since MockUSDT is redeployed too,
+2a. update the `FAUCET_MOCK_USDT_ADDRESS` repository variable and the default in `backend/src/main/resources/application.yml`, or the faucet keeps handing out the previous token,
 3. sync the root `README.md` contract block with `python3 ../scripts/sync_readme_contract_addresses.py` (or use the configured git hook).

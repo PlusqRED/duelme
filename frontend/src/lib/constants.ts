@@ -2,7 +2,7 @@ export const SUPPORTED_CHAINS = {
   arbitrumSepolia: {
     id: 421614,
     name: 'Arbitrum Sepolia',
-    usdt: '0xbf345834d808a058e1278b50f3844aD86686f401' as `0x${string}`,
+    usdt: '0x9E317e8A4B943E31452902D0106F836369f8bb6F' as `0x${string}`,
     explorer: 'https://sepolia.arbiscan.io',
     rpc: 'https://sepolia-rollup.arbitrum.io/rpc',
   },
@@ -63,7 +63,7 @@ export const MAX_DUEL_MESSAGE_BYTES = 128;
 export const USDT_DECIMALS = 6;
 
 export const DUELME_ADDRESSES: Record<number, `0x${string}`> = {
-  421614: '0xc09bF9E3c458224675717c40fa2ACF28343E2A1c', // Arbitrum Sepolia
+  421614: '0x990aD70C168B184a84d6d9491303fa344154e317', // Arbitrum Sepolia
   42161: '0xBd2266AB4b62E34FD5282608abeEEd425F6D7F22', // Arbitrum One
 };
 
@@ -71,7 +71,9 @@ export const DUELME_ADDRESSES: Record<number, `0x${string}`> = {
 // contracts/broadcast/{Deploy,DeployMainnet}.s.sol/<chainId>/run-latest.json after the
 // redeploy, exactly like DUELME_ADDRESSES above. A chain missing from this map simply has
 // no relaying: the /api/relay route refuses it and duel writes stay self-paid.
-export const FORWARDER_ADDRESSES: Record<number, `0x${string}`> = {};
+export const FORWARDER_ADDRESSES: Record<number, `0x${string}`> = {
+  421614: '0x6bd063648f3B09fD111789Fd0194dc72eE44573E', // Arbitrum Sepolia
+};
 
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as `0x${string}`;
 

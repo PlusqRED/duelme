@@ -63,6 +63,9 @@ services:
       # key travel through .env.
       FAUCET_ENABLED: ${FAUCET_ENABLED:-false}
       FAUCET_PRIVATE_KEY: ${FAUCET_PRIVATE_KEY:-}
+      # Must match the MockUSDT the current DuelMe deployment points at — a redeploy
+      # changes it, and a stale value hands testers a token the contract will not accept.
+      FAUCET_MOCK_USDT_ADDRESS: ${FAUCET_MOCK_USDT_ADDRESS:-}
     ports:
       - "127.0.0.1:8080:8080"
     read_only: true

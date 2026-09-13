@@ -17,8 +17,9 @@ _Auto-generated from `contracts/broadcast/DeployMainnet.s.sol/42161/run-latest.j
 | Network | Contract | Address |
 |---|---|---|
 | Arbitrum One | `DuelMe` | `0xbd2266ab4b62e34fd5282608abeeed425f6d7f22` |
-| Arbitrum Sepolia | `MockUSDT` | `0xbf345834d808a058e1278b50f3844ad86686f401` |
-| Arbitrum Sepolia | `DuelMe` | `0xc09bf9e3c458224675717c40fa2acf28343e2a1c` |
+| Arbitrum Sepolia | `ERC2771Forwarder` | `0x6bd063648f3b09fd111789fd0194dc72ee44573e` |
+| Arbitrum Sepolia | `MockUSDT` | `0x9e317e8a4b943e31452902d0106f836369f8bb6f` |
+| Arbitrum Sepolia | `DuelMe` | `0x990ad70c168b184a84d6d9491303fa344154e317` |
 
 > Dev note: run `git config core.hooksPath .githooks` once in your clone to auto-refresh this block on every commit.
 
@@ -50,6 +51,7 @@ Creator deposits USDT → shares private invite link → Opponent matches wager 
 | Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS 4 |
 | Backend | Java 25, Spring Boot 4, MongoDB, GraalVM Native Image |
 | Auth | Privy (embedded + external wallets), wagmi, viem |
+| Gasless | ERC-2771 meta-transactions + EIP-2612 permit — players need no ETH |
 | Infra | Docker, GHCR, Caddy, GitHub Actions |
 
 ## Project structure

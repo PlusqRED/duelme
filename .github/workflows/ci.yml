@@ -334,6 +334,8 @@ jobs:
           # Testnet faucet key for the dev-only ETH + MockUSDT dispenser.
           # Use a dedicated hot wallet, NEVER a key that holds mainnet funds.
           FAUCET_PRIVATE_KEY: ${{ secrets.FAUCET_PRIVATE_KEY }}
+          # Redeploying the contracts changes the MockUSDT address; keep this in step.
+          FAUCET_MOCK_USDT_ADDRESS: ${{ vars.FAUCET_MOCK_USDT_ADDRESS }}
         run: |
           ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'mkdir -p ~/apps/duelme-dev'
           scp -q ops/docker-compose.dev.yml "$DEPLOY_USER@$DEPLOY_HOST:~/apps/duelme-dev/docker-compose.yml"
@@ -355,6 +357,7 @@ jobs:
           RELAYER_GLOBAL_DAILY_BUDGET_WEI=$RELAYER_GLOBAL_DAILY_BUDGET_WEI
           FAUCET_ENABLED=true
           FAUCET_PRIVATE_KEY=$FAUCET_PRIVATE_KEY
+          FAUCET_MOCK_USDT_ADDRESS=$FAUCET_MOCK_USDT_ADDRESS
           ENVEOF
           ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
             cd ~/apps/duelme-dev

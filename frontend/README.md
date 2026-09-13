@@ -52,7 +52,7 @@ src/
 │
 ├── components/
 │   ├── duel/               # Duel-specific components
-│   │   ├── CreateDuelForm  # Wager input, presets, approve→create flow
+│   │   ├── CreateDuelForm  # Wager input, presets, permit/approve→create flow
 │   │   ├── DuelCard        # Duel list card
 │   │   ├── DuelStatus      # State badge + info display
 │   │   ├── ClaimButtons    # claimVictory / admitDefeat actions
@@ -165,16 +165,25 @@ Privy and other service keys are configured through environment variables. Check
 
 ## Key patterns
 
-### Approve → Create flow with private invites
+### Funding a duel: permit or approve
 
-The `CreateDuelForm` handles the two-step ERC20 flow:
+Which shape the guided flow runs depends on whether the gas relayer is available
+(`useRelayerStatus`), and the invite secret is generated the same way either way.
 
-1. Check existing allowance via `useReadContract`
-2. Generate a high-entropy invite secret client-side and hash it for on-chain storage
-3. If allowance is sufficient — call `createDuel` directly (with optional Unicode challenge message)
-4. If not — call `approve`, then auto-trigger `createDuel` on success via `useEffect`
+**Relayed (gasless).** The player signs an EIP-2612 permit and an EIP-712 ForwardRequest —
+no transaction, no ETH. `useDuelActions` calls `createDuelWithPermit` / `joinDuelWithPermit`
+through `/api/relay`, and the approve step is not shown at all. The permit domain is rebuilt
+from the token's `name()` + version `"1"` and checked against its `DOMAIN_SEPARATOR()` before
+anything is signed.
 
-The raw invite secret lives only in the shared URL fragment and local browser storage; the contract stores only its hash.
+**Self-paid.** The classic two-step ERC20 flow: check the allowance via `useReadContract`,
+`approve` if it is short, then `createDuel`. The player pays gas for both.
+
+There is no automatic fallback between them — a relayer refusal surfaces as an error rather
+than silently reverting to a transaction the player has to fund.
+
+The raw invite secret lives only in the shared URL fragment and local browser storage; the
+contract stores only its hash.
 
 ### Contract interaction hooks
 
