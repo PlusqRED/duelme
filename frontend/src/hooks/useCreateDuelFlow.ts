@@ -49,13 +49,16 @@ export function useCreateDuelFlow({
   const chainConfig = SUPPORTED_CHAINS[selectedChain];
   const contractAddress = DUELME_ADDRESSES[chainConfig.id];
   const duelActions = useDuelActions(chainConfig.id);
+  // The relayed path funds the wager with an EIP-2612 signature carried inside the duel
+  // call, so there is no allowance to top up and no approve step to show.
+  const fundsViaPermit = duelActions.isRelayEnabled;
   const { data: currentAllowance, refetch: refetchAllowance } = useReadContract({
     address: chainConfig.usdt,
     abi: erc20Abi,
     functionName: 'allowance',
     args: walletAddress && contractAddress ? [walletAddress, contractAddress] : undefined,
     chainId: chainConfig.id,
-    query: { enabled: !!walletAddress && !!contractAddress },
+    query: { enabled: !fundsViaPermit && !!walletAddress && !!contractAddress },
   });
   const readLatestAllowance = useCallback(async () => {
     setAllowanceRefreshCount((count) => count + 1);
@@ -73,6 +76,14 @@ export function useCreateDuelFlow({
     }
   }, [refetchAllowance]);
 
+  const refetchAllowanceIfRelevant = useCallback(async () => {
+    if (fundsViaPermit) {
+      return;
+    }
+
+    await refetchAllowance();
+  }, [fundsViaPermit, refetchAllowance]);
+
   const canCloseFlow =
     flow?.actionState !== 'awaiting-wallet' &&
     flow?.actionState !== 'confirming' &&
@@ -82,6 +93,7 @@ export function useCreateDuelFlow({
     (flow.stage === 'switch-network' ||
       (flow.stage === 'review' && connectedChainId !== flow.draft.chainId));
   const needsApproval =
+    !fundsViaPermit &&
     flow !== null &&
     (flow.stage === 'approve' ||
       ((flow.stage === 'review' || flow.stage === 'switch-network') &&
@@ -99,6 +111,7 @@ export function useCreateDuelFlow({
     connectedChainId,
     contractAddress,
     createDuel: duelActions.createDuel,
+    fundsViaPermit,
     gameName,
     isPublic,
     isValidAmount,
@@ -125,7 +138,7 @@ export function useCreateDuelFlow({
     isPending: duelActions.isPending,
     isSuccess: duelActions.isSuccess,
     receipt: duelActions.receipt,
-    refetchAllowance,
+    refetchAllowance: refetchAllowanceIfRelevant,
     reset: duelActions.reset,
     setFlow,
     setRedirectTarget,
@@ -135,12 +148,13 @@ export function useCreateDuelFlow({
   const shouldRefreshReviewAllowance = flow?.stage === 'review';
 
   useEffect(() => {
-    if (!shouldRefreshReviewAllowance) {
+    // React Query's refetch() ignores `enabled`, so the gate has to be here too.
+    if (!shouldRefreshReviewAllowance || fundsViaPermit) {
       return;
     }
 
     void readLatestAllowance().catch(() => undefined);
-  }, [shouldRefreshReviewAllowance, readLatestAllowance]);
+  }, [shouldRefreshReviewAllowance, fundsViaPermit, readLatestAllowance]);
 
   useEffect(() => {
     if (!redirectTarget) {

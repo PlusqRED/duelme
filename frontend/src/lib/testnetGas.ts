@@ -110,6 +110,15 @@ export function getMainnetTransactionParams({
       1n) /
     MAINNET_GAS_BUFFER_DENOMINATOR;
 
+  return { gas, ...getMainnetFeeParams(feeEstimate, baseFeePerGas) };
+}
+
+// Fee half of the mainnet policy, split out because the gas relayer picks its own gas limit
+// (see relayRequest.relayGasLimit) but must not pick its own fees.
+export function getMainnetFeeParams(
+  feeEstimate: TestnetFeeEstimate,
+  baseFeePerGas: bigint | null | undefined
+): TestnetFeeParams {
   // Arbitrum One has no MEV/priority fees — the sequencer doesn't reorder, so
   // eth_maxPriorityFeePerGas legitimately returns 0n. Floor at 1 wei because
   // some wallets (and Privy's serializer) reject zero-priority transactions.
@@ -136,7 +145,7 @@ export function getMainnetTransactionParams({
     feeEstimate.gasPrice,
   );
 
-  return { gas, maxFeePerGas, maxPriorityFeePerGas };
+  return { maxFeePerGas, maxPriorityFeePerGas };
 }
 
 function maxBigInt(...values: Array<bigint | null | undefined>) {

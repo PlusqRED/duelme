@@ -57,7 +57,10 @@ If it fails, fix it. **Never** silence failure by deleting hints, weakening buil
 - Chain switching via wagmi's `useSwitchChain` (not Privy's `switchChain`)
 
 ### Transaction Pattern
-Write ops: check chain → check allowance → approve if needed → execute. `createDuel` generates a private invite secret client-side and sends only its hash on-chain; `joinDuel`/`declineDuel` use the secret. Payouts are pull-based — terminal duel flows expose claimable balances, never push transfers.
+Write ops, relayed: check chain → sign EIP-2612 permit (funding calls only) → sign
+ForwardRequest → POST `/api/relay`. Self-paid: check chain → check allowance → approve if
+needed → execute. `useDuelActions` picks between them from `useRelayerStatus`, and the
+guided flows drop the approve step entirely when `fundsViaPermit` is set. `createDuel` generates a private invite secret client-side and sends only its hash on-chain; `joinDuel`/`declineDuel` use the secret. Payouts are pull-based — terminal duel flows expose claimable balances, never push transfers.
 
 ### Data Fetching
 - wagmi `useReadContract` / `useReadContracts` (multicall) for on-chain reads
@@ -88,8 +91,20 @@ Write ops: check chain → check allowance → approve if needed → execute. `c
 - Runtime secrets in GitHub repository/environment secrets; deploy job renders remote `.env` from them before `docker compose up`. Never commit secrets.
 - Caddy on host: TLS + reverse proxy (`/api/v1/*` → backend, rest → frontend). Configs: `ops/caddy/{dev.duelme.pro,duelme.pro}.Caddyfile`.
 
+### Gasless Duel Actions (ERC-2771)
+`DuelMe` trusts one immutable `ERC2771Forwarder`, set at deploy. The client signs an EIP-712
+`ForwardRequest`; `/api/relay` verifies it with `forwarder.verify`, refuses anything outside
+`RELAYABLE_DUEL_FUNCTIONS`, meters a per-address daily gas budget under a relayer-wide daily ceiling, and sends
+`forwarder.execute` with one transaction in flight. Funding uses EIP-2612 —
+`createDuelWithPermit` / `joinDuelWithPermit` — so no separate `approve` is needed. There is
+no automatic fallback: once `useRelayerStatus` reports relaying on, `useDuelActions` routes
+every relayable duel write through `/api/relay` and the guided flows pin `needsApproval` to
+false, so a refusal (spent daily budget, `"Permit failed"` on a delegated EOA) surfaces as an
+error rather than reverting to the self-paid approve path. Relaying being *off* — no forwarder
+address, no relayer key — is the case the self-paid path still covers.
+
 ### Smart Contract
-- Solidity 0.8.34, OpenZeppelin (SafeERC20, ReentrancyGuard, Pausable, Ownable)
+- Solidity 0.8.34, OpenZeppelin (SafeERC20, ReentrancyGuard, Pausable, Ownable, ERC2771Context)
 - All state-mutating functions: `nonReentrant` + `whenNotPaused`
 - USDT 6 decimals — `wagerAmount` stored raw (`5_000_000` = 5 USDT)
 - Pull-based payouts/refunds via `claimPayout(uint256)` / `claimPayouts(uint256[])`
@@ -103,6 +118,7 @@ Write ops: check chain → check allowance → approve if needed → execute. `c
 | File | Purpose |
 |------|---------|
 | `contracts/src/DuelMe.sol` | Core duel contract |
+| `contracts/script/ForwarderConfig.sol` | Forwarder EIP-712 domain name shared by both deploy scripts |
 | `frontend/src/lib/wagmi.ts` | wagmi config (Privy adapter) |
 | `frontend/src/lib/contracts.ts` | ABI, DuelState enum, ACTIVE_STATES, ERC20 ABIs, getUsdtAddress |
 | `frontend/src/lib/constants.ts` | Chain configs, contract addresses, ZERO_ADDRESS, CHAIN_NAMES |
@@ -111,7 +127,7 @@ Write ops: check chain → check allowance → approve if needed → execute. `c
 | `frontend/src/hooks/useContractConfig.ts` | Reads owner-adjustable on-chain params (minWager, claimTimeout, maxMessageCodepoints, maxMessageBytes), syncs contractConfig store |
 | `frontend/src/lib/contractConfig.ts` | Module-level cache of on-chain params for non-hook helpers (fallbacks from constants.ts) |
 | `frontend/src/hooks/useDuelActions.ts` | Write actions (join, cancel, claim, refundAndClaim, etc.) |
-| `frontend/src/hooks/useWriteWithGas.ts` | Duel write dispatcher: sponsored/resilient/plain routing + merged hash/isPending/error surface |
+| `frontend/src/hooks/useWriteWithGas.ts` | Duel write dispatcher: resilient/plain routing + merged hash/isPending/error surface |
 | `frontend/src/hooks/useDashboardClaims.ts` | Dashboard claim/refund handlers and computed state |
 | `frontend/src/hooks/usePlayerDuels.ts` | Multicall all duels, filter by player |
 | `frontend/src/hooks/usePlatformStats.ts` | Landing-page Total Volume / Duels Played stats |
@@ -125,11 +141,16 @@ Write ops: check chain → check allowance → approve if needed → execute. `c
 | `frontend/src/lib/balanceRefresh.ts` | Shared client-side balance refresh event bus |
 | `frontend/src/lib/buildTransactionParams.ts` | Builds explicit `gas`/`maxFeePerGas`/`maxPriorityFeePerGas`/`nonce` to bypass Privy auto-populate (see Common Pitfalls) |
 | `frontend/src/lib/resilientBroadcast.ts` | Splits writes into sign + broadcast so wagmi fallback transport handles RPC retries |
-| `frontend/src/lib/sponsoredTransactionConfig.ts` | Pimlico gas-sponsorship config (env → API key + per-chain sponsorship policy) + sponsored-write allowlist |
-| `frontend/src/lib/sponsoredTransactions.ts` | Sends gasless duel writes via Pimlico paymaster + EIP-7702 (permissionless), keeping the EOA address |
-| `frontend/src/lib/sponsoredWalletCalls.ts` | Gasless duel writes for external wallets (MetaMask) via EIP-5792 `wallet_sendCalls` + ERC-7677 paymasterService |
-| `frontend/src/lib/sponsoredTransactionErrors.ts` | SponsorshipUnavailableError, error classification + shared `collectErrorDetails` walker (also used by guidedFlowRuntime) |
-| `frontend/src/hooks/useSponsoredFees.ts` | Whether duel writes are gas-sponsored for the active wallet (embedded when Pimlico env is set; external via `wallet_getCapabilities`) |
+| `frontend/src/lib/errorDetails.ts` | Flattens an error graph into lowercase detail strings for failure classification; `bestErrorDetail` picks the one worth showing |
+| `frontend/src/app/api/relay/route.ts` | Gas relayer: verifies a signed ERC-2771 request and sends `ERC2771Forwarder.execute` |
+| `frontend/src/lib/relayRequest.ts` | Relay wire types, relayable-function allowlist, payload validation, outer gas-limit rule |
+| `frontend/src/lib/relayerConfig.ts` | Server-only relayer wiring (key, RPC, budget, viem clients) |
+| `frontend/src/lib/relayerBudget.ts` | In-memory per-address daily gas budget (reserve / settle / release) |
+| `frontend/src/lib/relayerQueue.ts` | Serializes relayed sends so one transaction is in flight at a time |
+| `frontend/src/lib/forwardRequest.ts` | Signs the EIP-712 ForwardRequest (domain name, gas padding) |
+| `frontend/src/lib/permitSignature.ts` | Signs an EIP-2612 permit, rebuilding and verifying the token's EIP-712 domain |
+| `frontend/src/lib/relayApi.ts` | `/api/relay` client + `RelayRequestError` carrying the server's code |
+| `frontend/src/hooks/useRelayerStatus.ts` | Whether duel writes on a chain can be relayed (forwarder address + server probe) |
 | `frontend/src/lib/walletDisplay.ts` | External-wallet display names for user-facing copy (`getExternalWalletName`) |
 | `frontend/src/lib/testnetGas.ts` | Testnet vs mainnet gas/fee buffers; min-gas constants per duel action |
 | `frontend/src/lib/wagmi.ts` (`resolveRpcUrl`) | RPC URL env validation + fallback chain (Alchemy/QuickNode → Tenderly) |
@@ -334,9 +355,10 @@ Runtime config source of truth: GitHub repository/environment secrets. Deploy wo
 - `NEXT_PUBLIC_API_URL` — Backend API base URL (default `/api/v1`)
 - `NEXT_PUBLIC_ARBITRUM_RPC_URL` — authenticated RPC for Arbitrum One (Alchemy/QuickNode). Used as Privy embedded-wallet override + first wagmi fallback. Falls back to Tenderly Gateway public if unset. Lock URL via provider dashboard "Allowed Origins" — `NEXT_PUBLIC_*` are inlined into the JS bundle.
 - `NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL` — same for Arbitrum Sepolia. Optional; Tenderly public works for dev.
-- `NEXT_PUBLIC_PIMLICO_API_KEY` — Pimlico app API key for gasless duel actions (EIP-7702 + sponsored paymaster). Per environment (dev/prod). Unset ⇒ sponsorship off, writes fall back to the ETH-gas path. `NEXT_PUBLIC_*` is inlined into the bundle.
-- `NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID_ARBITRUM` — Pimlico sponsorship policy id for Arbitrum One (prod build, mainnet needs Pimlico balance funding). Set per-spender + total spend caps on the policy — the key is public, so policy limits are the real abuse control.
-- `NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID_ARBITRUM_SEPOLIA` — same for Arbitrum Sepolia (dev build). Testnet sponsorship is free.
+- `RELAYER_PRIVATE_KEY` — hot wallet that pays gas for relayed duel actions (frontend container, **runtime** not build-time). Unset ⇒ `/api/relay` returns 503 and duel writes stay self-paid. Dedicated key; fund it with only what the daily budgets can spend.
+- `RELAYER_RPC_URL` — server-side RPC for the relayer. Optional; defaults to the default chain's public RPC. A browser-origin-locked `NEXT_PUBLIC_*` key will NOT work here — server requests send no `Origin`.
+- `RELAYER_DAILY_BUDGET_WEI` — per-address daily gas allowance in wei. Optional; defaults to 0.0005 ETH.
+- `RELAYER_GLOBAL_DAILY_BUDGET_WEI` — relayer-wide daily ceiling in wei. Optional; defaults to 0.01 ETH. Addresses are free to create, so this — not the per-address budget — is what bounds a sybil drain.
 - `APP_BASE_URL` — backend's view of frontend origin for OAuth redirects (`https://dev.duelme.pro` / `https://duelme.pro`)
 - `STEAM_API_KEY` — optional; enables username/avatar enrichment via `GetPlayerSummaries`
 - `STEAM_RETURN_URL` — absolute Steam callback URL (`https://{env}/api/v1/profiles/me/social/steam/callback`)
@@ -356,10 +378,17 @@ Runtime config source of truth: GitHub repository/environment secrets. Deploy wo
 - Only `contracts/broadcast/{Deploy,DeployMainnet}.s.sol/<chainId>/run-latest.json` is tracked; timestamped `run-*.json` ignored via top-level `.gitignore`.
 - **Do NOT use `arbitrum-one-rpc.publicnode.com`** — exposes legacy `eth_fillTransaction`, which viem 2.47+ calls during `prepareTransactionRequest` and gets `gasPrice: "0x0"`, producing signed txs with all-zero gas/fees. Privy surfaces as "HTTP request failed". See [viem#4323](https://github.com/wevm/viem/issues/4323) (open as of May 2026). Use Alchemy/QuickNode/Tenderly/drpc/arb1.arbitrum.io.
 - **Privy embedded wallets** sign with all-zero gas/nonce when SDK auto-populates — bypass by passing `gas` / `maxFeePerGas` / `maxPriorityFeePerGas` / `nonce` explicitly in every `writeContract` call. Centralized in `useWriteWithGas` (used by `useDuelActions`; uses `buildTransactionParams` + `resilientBroadcast`) — never call `writeContract` directly from action functions.
-- **Gasless duel actions (Pimlico + EIP-7702):** when `NEXT_PUBLIC_PIMLICO_*` is configured, Privy embedded-wallet writes route through `sendSponsoredContractWrite` (Pimlico paymaster), signing the 7702 delegation via Privy's `useSign7702Authorization` and keeping the EOA address (so reputation/balances stay keyed to it). Unset env ⇒ silently falls back to the explicit-gas `writeWithGas` path above. The client-side `isSponsoredWriteAllowed` allowlist is UX hygiene only — the public bundle key means Pimlico policy spend caps are the actual abuse control.
-- **Gasless for external wallets (EIP-5792):** external wallets (MetaMask etc.) can't sign a raw EIP-7702 authorization for a dapp, so they can't use the path above. Instead, if the wallet reports the ERC-7677 `paymasterService` capability via `wallet_getCapabilities`, duel writes route through `sendSponsoredWalletCalls` (`wallet_sendCalls` with the Pimlico paymaster URL + `sponsorshipPolicyId` context — the wallet handles delegation itself). Wallets without the capability keep the self-paid ETH path, and a capable wallet also falls back to self-paid when sponsorship fails before the wallet broadcasts (policy spend cap, paymaster outage). The Header wallet modal shows the ETH-fees row for the non-sponsored case (`useSponsoredFees` drives both the routing and the UI badge).
-- **`permissionless` + `ox` peer clash:** `permissionless@0.2.x` declares an *optional* peer `ox@^0.8.0` that conflicts with viem 2.47's `ox@0.14.5`. Resolved by pinning `ox` in `frontend/package.json` `overrides`. Don't remove it — `npm ci` will ERESOLVE.
-- **CSP `connect-src` must allowlist every external host the frontend calls** — otherwise the browser silently blocks the `fetch` ("Refused to connect ... Content Security Policy"). Set in the `Content-Security-Policy` header in `ops/caddy/{dev.duelme.pro,duelme.pro}.Caddyfile`. Must include Pimlico (`https://api.pimlico.io`) and the RPC fallback chain from `wagmi.ts` (`https://gateway.tenderly.co`, `https://*.drpc.org`, `arb1.arbitrum.io`, `sepolia-rollup.arbitrum.io`) — plus any custom `NEXT_PUBLIC_*_RPC_URL` host (e.g. `*.g.alchemy.com`). The Privy wallet-login UI (`loginMethods` includes `'wallet'`) also needs the WalletConnect/Privy set per [Privy's CSP guide](https://docs.privy.io/security/implementation-guide/content-security-policy): `connect-src` += `https://explorer-api.walletconnect.com wss://relay.walletconnect.com wss://relay.walletconnect.org wss://www.walletlink.org https://*.rpc.privy.systems`; `frame-src` += `https://verify.walletconnect.com https://verify.walletconnect.org https://challenges.cloudflare.com`; `script-src` += `https://challenges.cloudflare.com` (Privy Turnstile). The **live** `/etc/caddy/Caddyfile` is a hand-maintained combined file (other sites too) and is **NOT** auto-deployed by CI — edit it on the host and `sudo systemctl reload caddy` (the repo `ops/caddy/*` files are the reference copy).
+- **`ox` peer clash:** `@privy-io/react-auth` declares an *optional* peer `permissionless@^0.2.x`, which in turn declares an optional peer `ox@^0.8.0` that conflicts with viem 2.47's `ox@0.14.5`. Resolved by pinning `ox` in `frontend/package.json` `overrides`. Don't remove it — `npm ci` will ERESOLVE, even though DuelMe itself no longer depends on `permissionless`.
+- **CSP `connect-src` must allowlist every external host the frontend calls** — otherwise the browser silently blocks the `fetch` ("Refused to connect ... Content Security Policy"). Set in the `Content-Security-Policy` header in `ops/caddy/{dev.duelme.pro,duelme.pro}.Caddyfile`. Must include the RPC fallback chain from `wagmi.ts` (`https://gateway.tenderly.co`, `https://*.drpc.org`, `arb1.arbitrum.io`, `sepolia-rollup.arbitrum.io`) — plus any custom `NEXT_PUBLIC_*_RPC_URL` host (e.g. `*.g.alchemy.com`). The Privy wallet-login UI (`loginMethods` includes `'wallet'`) also needs the WalletConnect/Privy set per [Privy's CSP guide](https://docs.privy.io/security/implementation-guide/content-security-policy): `connect-src` += `https://explorer-api.walletconnect.com wss://relay.walletconnect.com wss://relay.walletconnect.org wss://www.walletlink.org https://*.rpc.privy.systems`; `frame-src` += `https://verify.walletconnect.com https://verify.walletconnect.org https://challenges.cloudflare.com`; `script-src` += `https://challenges.cloudflare.com` (Privy Turnstile). The **live** `/etc/caddy/Caddyfile` is a hand-maintained combined file (other sites too) and is **NOT** auto-deployed by CI — edit it on the host and `sudo systemctl reload caddy` (the repo `ops/caddy/*` files are the reference copy).
+- **Relayer gas limit must clear `request.gas * 64 / 63` plus forwarder overhead.** `ERC2771Forwarder._checkForwardedGas` triggers `invalid()` — burning the *entire* limit, not just the unused part — when the forwarded call did not get the gas the request promised. On Arbitrum the L1 posting fee is charged out of the same limit and only `eth_estimateGas` knows its size, so `relayGasLimit` adds the floor ON TOP of the estimate; `max(floor, estimate)` would starve the inner call. Measured forwarder overhead beyond the floor is ~25k.
+- **`ERC2771Forwarder.execute` does not bubble up the inner revert reason** — a failed forwarded call surfaces as a bare `Errors.FailedCall()`. `/api/relay` re-simulates the inner call directly as the signer to recover the real message.
+- **`collectErrorDetails` returns viem's multi-line dump first.** An error's own `message` is visited before its `shortMessage` / `reason`, so the first entry is the whole "Contract Call / Request Arguments / Version" blob. Use `bestErrorDetail` (shortest non-placeholder detail) whenever the string reaches a person.
+- **`fundsViaPermit` has to gate every allowance check, not just the last one.** `handleContinueFlow`, `handleSwitchNetwork` and `handleCreateTransaction` / `handleJoinTransaction` all decide the approve step; a relayed flow that reads the allowance in any of them routes a zero-ETH player into a self-paid `approve`. They share `resolveNeedsApproval` in `{create,join}DuelFlowActions.ts`.
+- **`FORWARDER_NAME` must match on both sides.** `frontend/src/lib/forwardRequest.ts` and `contracts/script/ForwarderConfig.sol` (which both deploy scripts read) both spell `"DuelMe Forwarder"`; it is the EIP-712 domain name, so a mismatch makes every signature fail `verify` with no other symptom.
+- **`ForwardRequestData` has no `nonce` field in OpenZeppelin 5.x** — the forwarder reads it from `Nonces` at execution time and folds it into the signed struct hash via the typehash. It must be signed but never sent. `deadline` is a `uint48`, not `uint256` (the EIP-2612 permit deadline is `uint256` — do not mix them up).
+- **Mainnet USDT (USD₮0, Arbitrum One) has no ERC-5267 `eip712Domain()`** and its `name()` is `USD₮0` with U+20AE, not an ASCII "T". Build the permit domain from `name()` + version `"1"` and verify it against the token's own `DOMAIN_SEPARATOR()`. `MockUSDT` deliberately mirrors both traits so a mistake fails on dev. Covered by `contracts/test/UsdtPermitFork.t.sol` (skipped without `ARBITRUM_RPC_URL`).
+- **USD₮0 validates permit through ERC-1271 whenever the owner address has code**, which an EIP-7702 delegation gives a plain EOA. Such a player's permit can fail (`"Permit failed"`). The contract still accepts the plain `createDuel` / `joinDuel` once an allowance exists, but the UI does not currently offer that route while relaying is on — the approve step is pinned off — and `approve` cannot be relayed anyway, since the token does not trust our forwarder. So this player is blocked in the guided flow; reaching them needs a product decision, not just ETH.
+- **The relayer's budget ledger is in-memory**, so it resets on redeploy and is not shared across replicas. Accurate for the current single-container-per-env deployment; more than one replica needs a shared store.
 - README contract addresses auto-generated from `run-latest.json` by `scripts/sync_readme_contract_addresses.py` / pre-commit hook — don't edit that block manually.
 - Manual deploys here: source `contracts/.env` first (`set -a && . ./.env && set +a`).
 - Use shared constants from `constants.ts` (`ZERO_ADDRESS`, `CHAIN_NAMES`) and `contracts.ts` (`ACTIVE_STATES`, `balanceOfAbi`, `transferAbi`, `getUsdtAddress`) — never redefine locally.

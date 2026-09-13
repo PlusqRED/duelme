@@ -4,6 +4,7 @@ pragma solidity ^0.8.34;
 import "forge-std/Test.sol";
 import "../src/DuelMe.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/metatx/ERC2771Forwarder.sol";
 
 contract MockPayoutERC20 is ERC20 {
     uint8 private immutable _tokenDecimals;
@@ -35,7 +36,7 @@ contract DuelMePayoutsTest is Test {
 
     function setUp() public {
         usdt = new MockPayoutERC20("Tether USD", "USDT", 6);
-        duelMe = new DuelMe(address(usdt), MIN_WAGER);
+        duelMe = new DuelMe(address(usdt), MIN_WAGER, address(new ERC2771Forwarder("DuelMe Forwarder")));
 
         usdt.mint(alice, 1_000_000_000);
         usdt.mint(bob, 1_000_000_000);

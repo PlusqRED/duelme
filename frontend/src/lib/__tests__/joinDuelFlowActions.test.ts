@@ -51,6 +51,7 @@ function setup(overrides: Partial<JoinDuelFlowActionsOptions> = {}) {
     connectedChainId: 421614,
     contractAddress: CONTRACT,
     duelId: 7,
+    fundsViaPermit: false,
     inviteSecret: INVITE_SECRET,
     joinDuel: vi.fn(),
     readLatestAllowance: vi.fn(async () => 1000n),
@@ -125,5 +126,52 @@ describe('joinDuelFlowActions', () => {
     expect(harness.appToast.error).not.toHaveBeenCalled();
     expect(harness.options.reset).toHaveBeenCalledOnce();
     expect(harness.flow?.stage).toBe('review');
+  });
+});
+
+describe('joinDuelFlowActions — permit-funded (relayed) path', () => {
+  it('continues straight to the join step instead of asking for an allowance', async () => {
+    const harness = setup({ fundsViaPermit: true, readLatestAllowance: vi.fn(async () => 0n) });
+    harness.actions.handleOpenJoinFlow();
+
+    await harness.actions.handleContinueFlow(harness.flow);
+
+    expect(harness.options.readLatestAllowance).not.toHaveBeenCalled();
+    expect(harness.flow?.stage).toBe('join-duel');
+  });
+
+  it('lands on the join step after a network switch rather than the approve step', async () => {
+    const harness = setup({
+      fundsViaPermit: true,
+      connectedChainId: 42161,
+      readLatestAllowance: vi.fn(async () => 0n),
+    });
+    harness.actions.handleOpenJoinFlow();
+
+    await harness.actions.handleSwitchNetwork(harness.flow);
+
+    expect(harness.options.readLatestAllowance).not.toHaveBeenCalled();
+    expect(harness.flow?.stage).toBe('join-duel');
+  });
+
+  it('still routes a self-paid flow with a short allowance to the approve step', async () => {
+    const harness = setup({ readLatestAllowance: vi.fn(async () => 0n) });
+    harness.actions.handleOpenJoinFlow();
+
+    await harness.actions.handleContinueFlow(harness.flow);
+
+    expect(harness.options.readLatestAllowance).toHaveBeenCalledOnce();
+    expect(harness.flow?.stage).toBe('approve');
+  });
+
+  it('sends the wager to joinDuel without reading the allowance', async () => {
+    const harness = setup({ fundsViaPermit: true, readLatestAllowance: vi.fn(async () => 0n) });
+    harness.actions.handleOpenJoinFlow();
+
+    await harness.actions.handleJoinTransaction(harness.flow);
+
+    // Zero allowance and it still reaches the join step: the permit is the authorisation.
+    expect(harness.options.readLatestAllowance).not.toHaveBeenCalled();
+    expect(harness.options.joinDuel).toHaveBeenCalledWith(7n, INVITE_SECRET, 100n);
   });
 });

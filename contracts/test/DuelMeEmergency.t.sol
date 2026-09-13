@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 import "../src/DuelMe.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/metatx/ERC2771Forwarder.sol";
 
 contract MockEmergencyERC20 is ERC20 {
     uint8 private immutable _tokenDecimals;
@@ -56,7 +57,7 @@ contract DuelMeEmergencyTest is Test {
 
         usdt = new MockEmergencyERC20("Tether USD", "USDT", 6);
         otherToken = new MockEmergencyERC20("Other Token", "OTH", 18);
-        duelMe = new DuelMe(address(usdt), MIN_WAGER);
+        duelMe = new DuelMe(address(usdt), MIN_WAGER, address(new ERC2771Forwarder("DuelMe Forwarder")));
 
         // Mint USDT to test accounts
         usdt.mint(alice, 1_000_000_000);

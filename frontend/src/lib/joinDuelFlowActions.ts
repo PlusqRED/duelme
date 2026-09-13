@@ -8,6 +8,7 @@ import {
   getNextJoinDuelFlowStageFromReview,
 } from '@/lib/joinDuelFlow';
 import { getGuidedFlowErrorMessage } from '@/lib/guidedFlowRuntime';
+import { resolveNeedsApproval } from '@/lib/guidedFlowSteps';
 import { hashInviteSecret } from '@/lib/invite';
 
 interface JoinDuelFlowActionsOptions {
@@ -18,7 +19,15 @@ interface JoinDuelFlowActionsOptions {
   contractAddress: `0x${string}`;
   duelId: number;
   inviteSecret: `0x${string}` | null;
-  joinDuel: (duelId: bigint, inviteSecret: `0x${string}`) => Promise<void> | void;
+  joinDuel: (duelId: bigint, inviteSecret: `0x${string}`, wagerAmount: bigint) => Promise<void> | void;
+  /**
+   * True when the wager is authorised by an EIP-2612 signature instead of an allowance —
+   * the relayed path. The approve step is then not just skipped in the UI: the allowance
+   * guard below must not bounce the flow back to it either, because there is no allowance
+   * to find and the permit is signed as part of the duel call itself.
+   */
+  fundsViaPermit: boolean;
+
   readLatestAllowance: () => Promise<bigint | undefined>;
   reset: () => void;
   setFlow: Dispatch<SetStateAction<JoinDuelFlowSession | null>>;
@@ -40,6 +49,7 @@ export function joinDuelFlowActions({
   contractAddress,
   duelId,
   inviteSecret,
+  fundsViaPermit,
   joinDuel,
   readLatestAllowance,
   reset,
@@ -115,7 +125,7 @@ export function joinDuelFlowActions({
       return;
     }
     try {
-      const latestAllowance = await readLatestAllowance();
+      const needsApproval = await resolveNeedsApproval({ fundsViaPermit, readLatestAllowance, rawAmount: flow.draft.rawAmount });
       setFlow((current) =>
         !current
           ? current
@@ -123,9 +133,7 @@ export function joinDuelFlowActions({
               ...current,
               stage: getNextJoinDuelFlowStageFromReview({
                 needsNetworkSwitch: false,
-                needsApproval:
-                  latestAllowance === undefined ||
-                  latestAllowance < current.draft.rawAmount,
+                needsApproval,
               }),
               actionState: 'idle',
               errorMessage: null,
@@ -155,7 +163,7 @@ export function joinDuelFlowActions({
     );
     try {
       await switchChainAsync({ chainId: flow.draft.chainId });
-      const latestAllowance = await readLatestAllowance();
+      const needsApproval = await resolveNeedsApproval({ fundsViaPermit, readLatestAllowance, rawAmount: flow.draft.rawAmount });
       setFlow((current) =>
         !current
           ? current
@@ -165,11 +173,7 @@ export function joinDuelFlowActions({
                 ...current.completedSteps,
                 switchNetwork: true,
               },
-              stage: getJoinDuelFlowStageAfterNetwork({
-                needsApproval:
-                  latestAllowance === undefined ||
-                  latestAllowance < current.draft.rawAmount,
-              }),
+              stage: getJoinDuelFlowStageAfterNetwork({ needsApproval }),
               actionState: 'idle',
               errorMessage: null,
             }
@@ -204,19 +208,19 @@ export function joinDuelFlowActions({
       moveToIdleStep('switch-network');
       return;
     }
-    let latestAllowance: bigint | undefined;
+    let needsApproval: boolean;
     try {
-      latestAllowance = await readLatestAllowance();
+      needsApproval = await resolveNeedsApproval({ fundsViaPermit, readLatestAllowance, rawAmount: flow.draft.rawAmount });
     } catch (allowanceError) {
       setFlowError(allowanceError);
       return;
     }
-    if (latestAllowance === undefined || latestAllowance < flow.draft.rawAmount) {
+    if (needsApproval) {
       moveToIdleStep('approve');
       return;
     }
     startContractStep('join-duel', () =>
-      joinDuel(flow.draft.duelId, flow.draft.inviteSecret)
+      joinDuel(flow.draft.duelId, flow.draft.inviteSecret, flow.draft.rawAmount)
     );
   }
 
