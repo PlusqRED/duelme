@@ -13,14 +13,13 @@ import { useMyProfile } from '@/hooks/useMyProfile';
 import { useIsNonProductionHost } from '@/hooks/useIsNonProductionHost';
 import { usePrivy, useExportWallet, useIdentityToken } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
-import { getExternalWalletName } from '@/lib/walletDisplay';
 import { useReadContract, useBalance } from 'wagmi';
 import { formatUnits, parseUnits, encodeFunctionData } from 'viem';
 import { TESTNET_CHAIN_IDS, USDT_DECIMALS, DEFAULT_CHAIN_ID, CHAIN_NAMES, AVAILABLE_CHAIN_IDS } from '@/lib/constants';
 import { balanceOfAbi, getUsdtAddress, transferAbi } from '@/lib/contracts';
 import { emitBalanceRefreshBurst, subscribeToBalanceRefresh } from '@/lib/balanceRefresh';
 import { FaucetClaimError, claimFaucet } from '@/lib/faucetApi';
-import { useSponsoredFees } from '@/hooks/useSponsoredFees';
+import { useRelayerStatus } from '@/hooks/useRelayerStatus';
 
 // Restricted to chains available in this build so prod (duelme.pro) renders
 // Arbitrum One only — no testnet switcher, no Sepolia balance fetch, no
@@ -64,8 +63,7 @@ export function Header() {
 
   const { profile: myProfile } = useMyProfile();
   const displayName = myProfile?.nickname ?? walletShort ?? '';
-  const { embeddedSponsored, externalSponsored, feesResolved } = useSponsoredFees(selectedChain);
-  const duelFeesHandled = embeddedSponsored || externalSponsored;
+  const { isRelayEnabled, isRelayResolved } = useRelayerStatus(selectedChain);
 
   // Read balances on each chain this build supports. The hook calls are static
   // (wagmi rule) but each query.enabled gates the actual RPC call, so prod
@@ -96,10 +94,9 @@ export function Header() {
     },
   });
 
-  // Wallets without a sponsored path pay their own native ETH gas; wait for
-  // the capability probe so a sponsored wallet never fires a wasted
-  // eth_getBalance.
-  const paysOwnGas = feesResolved && !duelFeesHandled;
+  // Only wallets paying their own gas need an ETH balance. Waiting for the relayer probe
+  // keeps a relayed wallet from firing a pointless eth_getBalance on every render.
+  const paysOwnGas = isRelayResolved && !isRelayEnabled;
   const { data: ethBalanceData, refetch: refetchEthBalance } = useBalance({
     address: walletAddress,
     chainId: selectedChain,
@@ -114,7 +111,6 @@ export function Header() {
   const formattedEth = ethBalance < 0.0001 && ethBalance > 0 ? '<0.0001' : ethBalance.toFixed(4);
   // Require a settled balance read so the warning never flashes while loading.
   const lowGas = paysOwnGas && ethBalanceData !== undefined && ethBalance < 0.0005;
-  const externalWalletName = getExternalWalletName(activeWallet?.walletClientType);
 
   const balances: Record<number, number> = {
     421614: arbSepoliaRaw !== undefined ? parseFloat(formatUnits(arbSepoliaRaw, USDT_DECIMALS)) : 0,
@@ -329,7 +325,7 @@ export function Header() {
         </div>
         <span className="text-lg font-bold text-slate-900">{formattedUsdt} <span className="text-sm font-normal text-slate-400">USDT</span></span>
 
-        {duelFeesHandled ? (
+        {isRelayEnabled ? (
           <div className="mt-1.5 flex items-center justify-between">
             <div className="flex items-center gap-1">
               <Check className="h-3 w-3 text-emerald-600" />
@@ -348,9 +344,7 @@ export function Header() {
         )}
         {lowGas && (
           <p className="mt-1 text-[10px] text-red-500">
-            {externalWalletName
-              ? t('wallet.lowGasWarning', { wallet: externalWalletName })
-              : t('wallet.lowGasWarningGeneric')}
+            {t('wallet.lowGasWarning')}
           </p>
         )}
 

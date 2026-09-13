@@ -67,6 +67,12 @@ export const DUELME_ADDRESSES: Record<number, `0x${string}`> = {
   42161: '0xBd2266AB4b62E34FD5282608abeEEd425F6D7F22', // Arbitrum One
 };
 
+// ERC-2771 forwarder trusted by the DuelMe deployment on the same chain. Filled from
+// contracts/broadcast/{Deploy,DeployMainnet}.s.sol/<chainId>/run-latest.json after the
+// redeploy, exactly like DUELME_ADDRESSES above. A chain missing from this map simply has
+// no relaying: the /api/relay route refuses it and duel writes stay self-paid.
+export const FORWARDER_ADDRESSES: Record<number, `0x${string}`> = {};
+
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as `0x${string}`;
 
 export const CHAIN_NAMES: Record<number, string> = {

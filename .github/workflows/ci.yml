@@ -284,9 +284,6 @@ jobs:
             NEXT_PUBLIC_DEFAULT_CHAIN_KEY=${{ matrix.chain_key }}
             NEXT_PUBLIC_ARBITRUM_RPC_URL=${{ secrets.NEXT_PUBLIC_ARBITRUM_RPC_URL }}
             NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL=${{ secrets.NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL }}
-            NEXT_PUBLIC_PIMLICO_API_KEY=${{ secrets.NEXT_PUBLIC_PIMLICO_API_KEY }}
-            NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID_ARBITRUM=${{ secrets.NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID_ARBITRUM }}
-            NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID_ARBITRUM_SEPOLIA=${{ secrets.NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID_ARBITRUM_SEPOLIA }}
           cache-from: type=gha,scope=${{ matrix.scope }}
           cache-to: type=gha,mode=max,scope=${{ matrix.scope }}
 
@@ -328,6 +325,12 @@ jobs:
           TELEGRAM_CLIENT_SECRET: ${{ secrets.TELEGRAM_CLIENT_SECRET }}
           TELEGRAM_RETURN_URL: ${{ secrets.TELEGRAM_RETURN_URL }}
           TELEGRAM_ISSUER: ${{ secrets.TELEGRAM_ISSUER }}
+          # Gas relayer for ERC-2771 duel actions. Dedicated hot wallet — fund it with only
+          # what the per-address daily budget can spend.
+          RELAYER_PRIVATE_KEY: ${{ secrets.RELAYER_PRIVATE_KEY }}
+          RELAYER_RPC_URL: ${{ secrets.RELAYER_RPC_URL }}
+          RELAYER_DAILY_BUDGET_WEI: ${{ vars.RELAYER_DAILY_BUDGET_WEI }}
+          RELAYER_GLOBAL_DAILY_BUDGET_WEI: ${{ vars.RELAYER_GLOBAL_DAILY_BUDGET_WEI }}
           # Testnet faucet key for the dev-only ETH + MockUSDT dispenser.
           # Use a dedicated hot wallet, NEVER a key that holds mainnet funds.
           FAUCET_PRIVATE_KEY: ${{ secrets.FAUCET_PRIVATE_KEY }}
@@ -346,6 +349,10 @@ jobs:
           TELEGRAM_CLIENT_SECRET=$TELEGRAM_CLIENT_SECRET
           TELEGRAM_RETURN_URL=$TELEGRAM_RETURN_URL
           TELEGRAM_ISSUER=$TELEGRAM_ISSUER
+          RELAYER_PRIVATE_KEY=$RELAYER_PRIVATE_KEY
+          RELAYER_RPC_URL=$RELAYER_RPC_URL
+          RELAYER_DAILY_BUDGET_WEI=$RELAYER_DAILY_BUDGET_WEI
+          RELAYER_GLOBAL_DAILY_BUDGET_WEI=$RELAYER_GLOBAL_DAILY_BUDGET_WEI
           FAUCET_ENABLED=true
           FAUCET_PRIVATE_KEY=$FAUCET_PRIVATE_KEY
           ENVEOF
@@ -452,9 +459,6 @@ jobs:
             NEXT_PUBLIC_DEFAULT_CHAIN_KEY=${{ matrix.chain_key }}
             NEXT_PUBLIC_ARBITRUM_RPC_URL=${{ secrets.NEXT_PUBLIC_ARBITRUM_RPC_URL }}
             NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL=${{ secrets.NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL }}
-            NEXT_PUBLIC_PIMLICO_API_KEY=${{ secrets.NEXT_PUBLIC_PIMLICO_API_KEY }}
-            NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID_ARBITRUM=${{ secrets.NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID_ARBITRUM }}
-            NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID_ARBITRUM_SEPOLIA=${{ secrets.NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID_ARBITRUM_SEPOLIA }}
           cache-from: type=gha,scope=${{ matrix.scope }}
           cache-to: type=gha,mode=max,scope=${{ matrix.scope }}
 
@@ -496,6 +500,12 @@ jobs:
           TELEGRAM_CLIENT_SECRET: ${{ secrets.TELEGRAM_CLIENT_SECRET }}
           TELEGRAM_RETURN_URL: ${{ secrets.TELEGRAM_RETURN_URL }}
           TELEGRAM_ISSUER: ${{ secrets.TELEGRAM_ISSUER }}
+          # Gas relayer for ERC-2771 duel actions. Dedicated hot wallet — fund it with only
+          # what the per-address daily budget can spend.
+          RELAYER_PRIVATE_KEY: ${{ secrets.RELAYER_PRIVATE_KEY }}
+          RELAYER_RPC_URL: ${{ secrets.RELAYER_RPC_URL }}
+          RELAYER_DAILY_BUDGET_WEI: ${{ vars.RELAYER_DAILY_BUDGET_WEI }}
+          RELAYER_GLOBAL_DAILY_BUDGET_WEI: ${{ vars.RELAYER_GLOBAL_DAILY_BUDGET_WEI }}
         run: |
           ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'mkdir -p ~/apps/duelme-prod'
           scp -q ops/docker-compose.prod.yml "$DEPLOY_USER@$DEPLOY_HOST:~/apps/duelme-prod/docker-compose.yml"
@@ -511,6 +521,10 @@ jobs:
           TELEGRAM_CLIENT_SECRET=$TELEGRAM_CLIENT_SECRET
           TELEGRAM_RETURN_URL=$TELEGRAM_RETURN_URL
           TELEGRAM_ISSUER=$TELEGRAM_ISSUER
+          RELAYER_PRIVATE_KEY=$RELAYER_PRIVATE_KEY
+          RELAYER_RPC_URL=$RELAYER_RPC_URL
+          RELAYER_DAILY_BUDGET_WEI=$RELAYER_DAILY_BUDGET_WEI
+          RELAYER_GLOBAL_DAILY_BUDGET_WEI=$RELAYER_GLOBAL_DAILY_BUDGET_WEI
           ENVEOF
           ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
             cd ~/apps/duelme-prod

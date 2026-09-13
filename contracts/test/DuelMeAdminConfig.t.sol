@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 import "../src/DuelMe.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/metatx/ERC2771Forwarder.sol";
 
 /// @dev Simple ERC20 mock with public mint for testing
 contract MockConfigERC20 is ERC20 {
@@ -36,7 +37,7 @@ contract DuelMeAdminConfigTest is Test {
 
     function setUp() public {
         usdt = new MockConfigERC20("Tether USD", "USDT", 6);
-        duelMe = new DuelMe(address(usdt), MIN_WAGER);
+        duelMe = new DuelMe(address(usdt), MIN_WAGER, address(new ERC2771Forwarder("DuelMe Forwarder")));
 
         usdt.mint(alice, 1_000_000_000);
         usdt.mint(bob, 1_000_000_000);

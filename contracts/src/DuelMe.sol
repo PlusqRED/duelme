@@ -3,14 +3,21 @@ pragma solidity ^0.8.34;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/metatx/ERC2771Context.sol";
 
 /// @title DuelMe - A Web3 Gaming Duel Platform
 /// @notice Allows two players to wager USDT on a duel with on-chain reputation tracking
-/// @dev Uses OpenZeppelin SafeERC20, ReentrancyGuard, Pausable, and Ownable
-contract DuelMe is Ownable, Pausable, ReentrancyGuard {
+/// @dev Uses OpenZeppelin SafeERC20, ReentrancyGuard, Pausable, Ownable and ERC2771Context.
+///      Every player-facing entry point resolves its caller through `_msgSender()`, so the
+///      same call works both directly and relayed through the single trusted ERC-2771
+///      forwarder set at deploy time. The `*WithPermit` variants let a player fund a duel
+///      with an EIP-2612 signature instead of a separate `approve` transaction, which is
+///      what makes the whole flow gasless for them.
+contract DuelMe is ERC2771Context, Ownable, Pausable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     IERC20 public immutable usdt;
@@ -116,9 +123,20 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
     event MaxMessageCodepointsUpdated(uint256 oldValue, uint256 newValue);
     event MaxMessageBytesUpdated(uint256 oldValue, uint256 newValue);
 
-    constructor(address _usdt, uint96 _minWager) Ownable(msg.sender) {
+    /// @param _usdt The wager token. Must implement EIP-2612 `permit` for the `*WithPermit` entry points.
+    /// @param _minWager Initial minimum wager in USDT (6 decimals), at least MIN_WAGER_FLOOR
+    /// @param _trustedForwarder The one ERC-2771 forwarder allowed to relay calls on a player's behalf.
+    ///        Immutable: a compromised or replaced forwarder would be able to impersonate every player,
+    ///        so swapping it means redeploying this contract.
+    /// @dev `msg.sender` (not `_msgSender()`) is deliberate here — deployment is always a direct
+    ///      transaction, and the forwarder immutable is not readable from within this constructor.
+    constructor(address _usdt, uint96 _minWager, address _trustedForwarder)
+        ERC2771Context(_trustedForwarder)
+        Ownable(msg.sender)
+    {
         require(_usdt != address(0), "Invalid USDT address");
         require(_minWager >= MIN_WAGER_FLOOR, "Invalid min wager");
+        require(_trustedForwarder != address(0), "Invalid forwarder");
         usdt = IERC20(_usdt);
         minWager = _minWager;
     }
@@ -140,43 +158,94 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
         return _createDuel(amount, inviteHash, message);
     }
 
+    /// @notice Create a new duel, authorising the wager transfer with an EIP-2612 permit signature
+    ///         instead of a prior `approve` transaction
+    /// @param amount The wager amount in USDT (6 decimals)
+    /// @param inviteHash The hash of the secret invite token required to accept or decline this duel
+    /// @param message Optional short duel message shown in the UI. Pass "" for none.
+    /// @param permitDeadline Expiry timestamp of the permit signature
+    /// @param v Permit signature component
+    /// @param r Permit signature component
+    /// @param s Permit signature component
+    /// @return duelId The unique identifier for the created duel
+    function createDuelWithPermit(
+        uint256 amount,
+        bytes32 inviteHash,
+        string calldata message,
+        uint256 permitDeadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external whenNotPaused nonReentrant returns (uint256) {
+        _permit(_msgSender(), amount, permitDeadline, v, r, s);
+        return _createDuel(amount, inviteHash, message);
+    }
+
     function _createDuel(uint256 amount, bytes32 inviteHash, string memory message) internal returns (uint256 duelId) {
         require(amount >= minWager, "Wager below minimum");
         require(inviteHash != bytes32(0), "Invalid invite hash");
         _validateMessage(message);
 
-        usdt.safeTransferFrom(msg.sender, address(this), amount);
+        address creator = _msgSender();
+        usdt.safeTransferFrom(creator, address(this), amount);
 
         duelId = duelCount;
         duelCount++;
 
         Duel storage duel = duels[duelId];
-        duel.creator = msg.sender;
+        duel.creator = creator;
         duel.wagerAmount = amount;
         duel.inviteHash = inviteHash;
         duel.message = message;
         duel.createdAt = block.timestamp;
         // All other fields default to zero/address(0)/false/DuelState.Created
 
-        emit DuelCreated(duelId, msg.sender, amount);
+        emit DuelCreated(duelId, creator, amount);
     }
 
     /// @notice Join an existing duel by depositing the matching wager
     /// @param duelId The ID of the duel to join
     /// @param inviteSecret The secret invite token shared by the creator
     function joinDuel(uint256 duelId, bytes32 inviteSecret) external whenNotPaused nonReentrant {
+        _joinDuel(duelId, inviteSecret);
+    }
+
+    /// @notice Join an existing duel, authorising the wager transfer with an EIP-2612 permit
+    ///         signature instead of a prior `approve` transaction
+    /// @param duelId The ID of the duel to join
+    /// @param inviteSecret The secret invite token shared by the creator
+    /// @param permitDeadline Expiry timestamp of the permit signature
+    /// @param v Permit signature component
+    /// @param r Permit signature component
+    /// @param s Permit signature component
+    function joinDuelWithPermit(
+        uint256 duelId,
+        bytes32 inviteSecret,
+        uint256 permitDeadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external whenNotPaused nonReentrant {
+        // The permit is signed for exactly this duel's wager. A wrong duelId permits the
+        // wrong amount, but _joinDuel then reverts and rolls the allowance back with it.
+        _permit(_msgSender(), duels[duelId].wagerAmount, permitDeadline, v, r, s);
+        _joinDuel(duelId, inviteSecret);
+    }
+
+    function _joinDuel(uint256 duelId, bytes32 inviteSecret) internal {
         Duel storage duel = duels[duelId];
+        address opponent = _msgSender();
         require(duel.state == DuelState.Created, "Duel not in Created state");
-        require(msg.sender != duel.creator, "Cannot join own duel");
+        require(opponent != duel.creator, "Cannot join own duel");
         require(_hashInviteSecret(inviteSecret) == duel.inviteHash, "Invalid invite");
 
-        usdt.safeTransferFrom(msg.sender, address(this), duel.wagerAmount);
+        usdt.safeTransferFrom(opponent, address(this), duel.wagerAmount);
 
-        duel.opponent = msg.sender;
+        duel.opponent = opponent;
         duel.fundedAt = block.timestamp;
         duel.state = DuelState.Funded;
 
-        emit DuelJoined(duelId, msg.sender);
+        emit DuelJoined(duelId, opponent);
     }
 
     /// @notice Decline an invite-only duel before it is funded, refunding the creator.
@@ -184,131 +253,139 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
     /// @param inviteSecret The secret invite token shared by the creator
     function declineDuel(uint256 duelId, bytes32 inviteSecret) external whenNotPaused nonReentrant {
         Duel storage duel = duels[duelId];
+        address decliner = _msgSender();
         require(duel.state == DuelState.Created, "Duel not in Created state");
-        require(msg.sender != duel.creator, "Creator cannot decline");
+        require(decliner != duel.creator, "Creator cannot decline");
         require(_hashInviteSecret(inviteSecret) == duel.inviteHash, "Invalid invite");
 
-        duel.opponent = msg.sender;
+        duel.opponent = decliner;
         duel.finalizedAt = block.timestamp;
         duel.state = DuelState.Declined;
         _setPayouts(duel, duel.wagerAmount, 0);
 
-        emit DuelDeclined(duelId, msg.sender);
+        emit DuelDeclined(duelId, decliner);
     }
 
     /// @notice Claim victory in a funded duel. Starts the claimTimeout countdown for the opponent to confirm or dispute.
     /// @param duelId The ID of the duel
     function claimVictory(uint256 duelId) external whenNotPaused nonReentrant {
         Duel storage duel = duels[duelId];
+        address claimer = _msgSender();
         require(duel.state == DuelState.Funded, "Duel not in Funded state");
         require(
-            msg.sender == duel.creator || msg.sender == duel.opponent,
+            claimer == duel.creator || claimer == duel.opponent,
             "Not a participant"
         );
 
-        duel.claimedWinner = msg.sender;
-        duel.claimedBy = msg.sender;
+        duel.claimedWinner = claimer;
+        duel.claimedBy = claimer;
         duel.claimTimestamp = block.timestamp;
         duel.state = DuelState.WinnerClaimed;
 
-        emit VictoryClaimed(duelId, msg.sender, msg.sender);
+        emit VictoryClaimed(duelId, claimer, claimer);
     }
 
     /// @notice Admit defeat in a funded duel. Sets the other player as the winner.
     /// @param duelId The ID of the duel
     function admitDefeat(uint256 duelId) external whenNotPaused nonReentrant {
         Duel storage duel = duels[duelId];
+        address loser = _msgSender();
         require(duel.state == DuelState.Funded, "Duel not in Funded state");
         require(
-            msg.sender == duel.creator || msg.sender == duel.opponent,
+            loser == duel.creator || loser == duel.opponent,
             "Not a participant"
         );
 
-        address winner = msg.sender == duel.creator ? duel.opponent : duel.creator;
+        address winner = loser == duel.creator ? duel.opponent : duel.creator;
 
         duel.claimedWinner = winner;
-        duel.claimedBy = msg.sender;
+        duel.claimedBy = loser;
         duel.claimTimestamp = block.timestamp;
         duel.state = DuelState.WinnerClaimed;
 
-        emit VictoryClaimed(duelId, msg.sender, winner);
+        emit VictoryClaimed(duelId, loser, winner);
     }
 
     /// @notice Request cancellation of a funded duel by mutual agreement.
     /// @param duelId The ID of the duel
     function requestMutualCancellation(uint256 duelId) external whenNotPaused nonReentrant {
         Duel storage duel = duels[duelId];
+        address requester = _msgSender();
         require(duel.state == DuelState.Funded, "Duel not in Funded state");
         require(
-            msg.sender == duel.creator || msg.sender == duel.opponent,
+            requester == duel.creator || requester == duel.opponent,
             "Not a participant"
         );
 
-        duel.cancelRequestedBy = msg.sender;
+        duel.cancelRequestedBy = requester;
         duel.cancelRequestedAt = block.timestamp;
         duel.state = DuelState.MutualCancelRequested;
 
-        emit DuelMutualCancellationRequested(duelId, msg.sender);
+        emit DuelMutualCancellationRequested(duelId, requester);
     }
 
     /// @notice Accept a pending mutual cancellation request and unlock full refunds for both players.
     /// @param duelId The ID of the duel
     function acceptMutualCancellation(uint256 duelId) external whenNotPaused nonReentrant {
         Duel storage duel = duels[duelId];
+        address accepter = _msgSender();
         require(duel.state == DuelState.MutualCancelRequested, "Duel not in MutualCancelRequested state");
         require(
-            msg.sender == duel.creator || msg.sender == duel.opponent,
+            accepter == duel.creator || accepter == duel.opponent,
             "Not a participant"
         );
-        require(msg.sender != duel.cancelRequestedBy, "Requester cannot accept");
+        require(accepter != duel.cancelRequestedBy, "Requester cannot accept");
 
         duel.finalizedAt = block.timestamp;
         duel.state = DuelState.MutuallyCancelled;
         _setPayouts(duel, duel.wagerAmount, duel.wagerAmount);
 
-        emit DuelMutuallyCancelled(duelId, duel.cancelRequestedBy, msg.sender);
+        emit DuelMutuallyCancelled(duelId, duel.cancelRequestedBy, accepter);
     }
 
     /// @notice Decline a pending mutual cancellation request and resume the duel.
     /// @param duelId The ID of the duel
     function declineMutualCancellation(uint256 duelId) external whenNotPaused nonReentrant {
         Duel storage duel = duels[duelId];
+        address decliner = _msgSender();
         require(duel.state == DuelState.MutualCancelRequested, "Duel not in MutualCancelRequested state");
         require(
-            msg.sender == duel.creator || msg.sender == duel.opponent,
+            decliner == duel.creator || decliner == duel.opponent,
             "Not a participant"
         );
-        require(msg.sender != duel.cancelRequestedBy, "Requester cannot decline");
+        require(decliner != duel.cancelRequestedBy, "Requester cannot decline");
 
         _clearMutualCancellationRequest(duel);
         duel.state = DuelState.Funded;
 
-        emit DuelMutualCancellationDeclined(duelId, msg.sender);
+        emit DuelMutualCancellationDeclined(duelId, decliner);
     }
 
     /// @notice Withdraw your own pending mutual cancellation request and resume the duel.
     /// @param duelId The ID of the duel
     function withdrawMutualCancellationRequest(uint256 duelId) external whenNotPaused nonReentrant {
         Duel storage duel = duels[duelId];
+        address requester = _msgSender();
         require(duel.state == DuelState.MutualCancelRequested, "Duel not in MutualCancelRequested state");
-        require(msg.sender == duel.cancelRequestedBy, "Only requester can withdraw");
+        require(requester == duel.cancelRequestedBy, "Only requester can withdraw");
 
         _clearMutualCancellationRequest(duel);
         duel.state = DuelState.Funded;
 
-        emit DuelMutualCancellationWithdrawn(duelId, msg.sender);
+        emit DuelMutualCancellationWithdrawn(duelId, requester);
     }
 
     /// @notice Confirm the claimed result. Must be called by the OTHER player (not the one who called claimVictory/admitDefeat).
     /// @param duelId The ID of the duel
     function confirmResult(uint256 duelId) external whenNotPaused nonReentrant {
         Duel storage duel = duels[duelId];
+        address confirmer = _msgSender();
         require(duel.state == DuelState.WinnerClaimed, "Duel not in WinnerClaimed state");
         require(
-            msg.sender == duel.creator || msg.sender == duel.opponent,
+            confirmer == duel.creator || confirmer == duel.opponent,
             "Not a participant"
         );
-        require(msg.sender != duel.claimedBy, "Cannot confirm own claim");
+        require(confirmer != duel.claimedBy, "Cannot confirm own claim");
 
         duel.finalizedAt = block.timestamp;
         duel.state = DuelState.Resolved;
@@ -330,19 +407,20 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
     /// @param duelId The ID of the duel
     function disputeResult(uint256 duelId) external whenNotPaused nonReentrant {
         Duel storage duel = duels[duelId];
+        address disputer = _msgSender();
         require(duel.state == DuelState.WinnerClaimed, "Duel not in WinnerClaimed state");
         require(
-            msg.sender == duel.creator || msg.sender == duel.opponent,
+            disputer == duel.creator || disputer == duel.opponent,
             "Not a participant"
         );
-        require(msg.sender != duel.claimedBy, "Cannot dispute own claim");
+        require(disputer != duel.claimedBy, "Cannot dispute own claim");
 
         duel.finalizedAt = block.timestamp;
         duel.state = DuelState.Disputed;
 
         _setPayouts(duel, duel.wagerAmount, duel.wagerAmount);
 
-        emit DuelDisputed(duelId, msg.sender);
+        emit DuelDisputed(duelId, disputer);
     }
 
     /// @notice Refund both players if the claim times out without confirmation.
@@ -376,7 +454,7 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
     function cancelDuel(uint256 duelId) external whenNotPaused nonReentrant {
         Duel storage duel = duels[duelId];
         require(duel.state == DuelState.Created, "Duel not in Created state");
-        require(msg.sender == duel.creator, "Only creator can cancel");
+        require(_msgSender() == duel.creator, "Only creator can cancel");
 
         duel.finalizedAt = block.timestamp;
         duel.state = DuelState.Cancelled;
@@ -389,26 +467,28 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
     /// @param duelId The ID of the duel to claim from
     function claimPayout(uint256 duelId) external whenNotPaused nonReentrant {
         Duel storage duel = duels[duelId];
-        require(msg.sender == duel.creator || msg.sender == duel.opponent, "Not a participant");
+        address claimant = _msgSender();
+        require(claimant == duel.creator || claimant == duel.opponent, "Not a participant");
 
-        uint256 amount = _claimSinglePayout(duel, duelId, msg.sender);
+        uint256 amount = _claimSinglePayout(duel, duelId, claimant);
         require(amount > 0, "Nothing to claim");
 
-        usdt.safeTransfer(msg.sender, amount);
+        usdt.safeTransfer(claimant, amount);
     }
 
     /// @notice Claim any available payouts for the caller across the supplied duels
     /// @param duelIds The duel IDs to attempt to claim from
     function claimPayouts(uint256[] calldata duelIds) external whenNotPaused nonReentrant {
+        address claimant = _msgSender();
         uint256 totalAmount;
 
         for (uint256 i = 0; i < duelIds.length; i++) {
-            totalAmount += _claimSinglePayout(duels[duelIds[i]], duelIds[i], msg.sender);
+            totalAmount += _claimSinglePayout(duels[duelIds[i]], duelIds[i], claimant);
         }
 
         require(totalAmount > 0, "Nothing to claim");
 
-        usdt.safeTransfer(msg.sender, totalAmount);
+        usdt.safeTransfer(claimant, totalAmount);
     }
 
     /// @notice Refund all timed-out duels and claim the caller's payouts in one transaction.
@@ -429,12 +509,13 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
             }
         }
 
+        address claimant = _msgSender();
         uint256 totalAmount;
         for (uint256 i = 0; i < duelIds.length; i++) {
-            totalAmount += _claimSinglePayout(duels[duelIds[i]], duelIds[i], msg.sender);
+            totalAmount += _claimSinglePayout(duels[duelIds[i]], duelIds[i], claimant);
         }
         require(totalAmount > 0, "Nothing to claim");
-        usdt.safeTransfer(msg.sender, totalAmount);
+        usdt.safeTransfer(claimant, totalAmount);
     }
 
     /// @notice Rescue any ERC20 token accidentally sent to this contract (except USDT)
@@ -573,6 +654,52 @@ contract DuelMe is Ownable, Pausable, ReentrancyGuard {
     function getPlayerStats(address user) external view returns (uint32 honored, uint32 abandoned) {
         PlayerStats memory s = playerStats[user];
         return (s.duelsHonored, s.duelsAbandoned);
+    }
+
+    // ─── ERC-2771 context resolution ───
+    // DuelMe reaches Context through both Ownable/Pausable and ERC2771Context, so Solidity
+    // makes the derived contract pick a winner explicitly. ERC2771Context wins: it returns
+    // the forwarder-supplied signer for relayed calls and plain msg.sender otherwise.
+
+    function _msgSender() internal view virtual override(Context, ERC2771Context) returns (address) {
+        return ERC2771Context._msgSender();
+    }
+
+    function _msgData() internal view virtual override(Context, ERC2771Context) returns (bytes calldata) {
+        return ERC2771Context._msgData();
+    }
+
+    function _contextSuffixLength() internal view virtual override(Context, ERC2771Context) returns (uint256) {
+        return ERC2771Context._contextSuffixLength();
+    }
+
+    /// @dev Administrative authority is deliberately NOT relayable. Ownable checks the caller
+    ///      through _msgSender(), which the override above resolves from the forwarder-supplied
+    ///      suffix — that would let a single off-chain signature from the owner key move
+    ///      ownership, pause every duel or start an emergency withdrawal, with the attacker
+    ///      paying the gas and submitting it whenever they like. The forwarder is there so
+    ///      players need no ETH; the owner has ETH. Pinning this one check back to msg.sender
+    ///      covers every onlyOwner entry point plus inherited transferOwnership /
+    ///      renounceOwnership in one place, and leaves player paths relayed.
+    function _checkOwner() internal view virtual override {
+        if (owner() != msg.sender) {
+            revert OwnableUnauthorizedAccount(msg.sender);
+        }
+    }
+
+    /// @dev Grants this contract an EIP-2612 allowance of `amount` from `owner`.
+    ///      The signature is public the moment the relayer's transaction reaches the mempool,
+    ///      so anyone can replay it straight onto the token first. That front-run burns the
+    ///      token nonce and makes our own `permit` revert — while leaving behind exactly the
+    ///      allowance we asked for. Swallowing the revert turns that griefing vector into a
+    ///      no-op; the allowance check in the catch branch keeps a genuinely bad signature
+    ///      failing loudly instead of falling through to an opaque transferFrom revert.
+    function _permit(address owner, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) internal {
+        try IERC20Permit(address(usdt)).permit(owner, address(this), amount, deadline, v, r, s) {
+            return;
+        } catch {
+            require(usdt.allowance(owner, address(this)) >= amount, "Permit failed");
+        }
     }
 
     function _hashInviteSecret(bytes32 inviteSecret) internal pure returns (bytes32) {

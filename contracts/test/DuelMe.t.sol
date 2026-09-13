@@ -4,6 +4,7 @@ pragma solidity ^0.8.34;
 import "forge-std/Test.sol";
 import "../src/DuelMe.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/metatx/ERC2771Forwarder.sol";
 
 /// @dev Simple ERC20 mock with public mint for testing
 contract MockERC20 is ERC20 {
@@ -25,6 +26,7 @@ contract MockERC20 is ERC20 {
 contract DuelMeTest is Test {
     DuelMe public duelMe;
     MockERC20 public usdt;
+    ERC2771Forwarder public forwarder;
 
     address public alice = makeAddr("alice");
     address public bob = makeAddr("bob");
@@ -40,7 +42,8 @@ contract DuelMeTest is Test {
 
     function setUp() public {
         usdt = new MockERC20("Tether USD", "USDT", 6);
-        duelMe = new DuelMe(address(usdt), MIN_WAGER);
+        forwarder = new ERC2771Forwarder("DuelMe Forwarder");
+        duelMe = new DuelMe(address(usdt), MIN_WAGER, address(forwarder));
 
         // Mint USDT to test accounts
         usdt.mint(alice, 1_000_000_000); // 1000 USDT
@@ -122,16 +125,24 @@ contract DuelMeTest is Test {
         assertEq(duelMe.owner(), address(this));
         assertEq(duelMe.duelCount(), 0);
         assertEq(duelMe.minWager(), MIN_WAGER);
+        assertEq(duelMe.trustedForwarder(), address(forwarder));
+        assertTrue(duelMe.isTrustedForwarder(address(forwarder)));
+        assertFalse(duelMe.isTrustedForwarder(alice));
     }
 
     function testConstructorRejectsZeroAddress() public {
         vm.expectRevert("Invalid USDT address");
-        new DuelMe(address(0), MIN_WAGER);
+        new DuelMe(address(0), MIN_WAGER, address(forwarder));
     }
 
     function testConstructorRejectsMinWagerBelowFloor() public {
         vm.expectRevert("Invalid min wager");
-        new DuelMe(address(usdt), 100_000 - 1);
+        new DuelMe(address(usdt), 100_000 - 1, address(forwarder));
+    }
+
+    function testConstructorRejectsZeroForwarder() public {
+        vm.expectRevert("Invalid forwarder");
+        new DuelMe(address(usdt), MIN_WAGER, address(0));
     }
 
     // =====================================================================

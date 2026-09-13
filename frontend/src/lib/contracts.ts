@@ -1,5 +1,26 @@
 export const duelMeAbi = [
   {
+    type: 'constructor',
+    inputs: [
+      {
+        name: '_usdt',
+        type: 'address',
+        internalType: 'address'
+      },
+      {
+        name: '_minWager',
+        type: 'uint96',
+        internalType: 'uint96'
+      },
+      {
+        name: '_trustedForwarder',
+        type: 'address',
+        internalType: 'address'
+      }
+    ],
+    stateMutability: 'nonpayable'
+  },
+  {
     type: 'function',
     name: 'MIN_CLAIM_TIMEOUT',
     inputs: [],
@@ -221,6 +242,55 @@ export const duelMeAbi = [
       },
       {
         name: 'inviteHash',
+        type: 'bytes32',
+        internalType: 'bytes32'
+      }
+    ],
+    outputs: [
+      {
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256'
+      }
+    ],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'createDuelWithPermit',
+    inputs: [
+      {
+        name: 'amount',
+        type: 'uint256',
+        internalType: 'uint256'
+      },
+      {
+        name: 'inviteHash',
+        type: 'bytes32',
+        internalType: 'bytes32'
+      },
+      {
+        name: 'message',
+        type: 'string',
+        internalType: 'string'
+      },
+      {
+        name: 'permitDeadline',
+        type: 'uint256',
+        internalType: 'uint256'
+      },
+      {
+        name: 'v',
+        type: 'uint8',
+        internalType: 'uint8'
+      },
+      {
+        name: 'r',
+        type: 'bytes32',
+        internalType: 'bytes32'
+      },
+      {
+        name: 's',
         type: 'bytes32',
         internalType: 'bytes32'
       }
@@ -501,6 +571,25 @@ export const duelMeAbi = [
   },
   {
     type: 'function',
+    name: 'isTrustedForwarder',
+    inputs: [
+      {
+        name: 'forwarder',
+        type: 'address',
+        internalType: 'address'
+      }
+    ],
+    outputs: [
+      {
+        name: '',
+        type: 'bool',
+        internalType: 'bool'
+      }
+    ],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
     name: 'joinDuel',
     inputs: [
       {
@@ -510,6 +599,44 @@ export const duelMeAbi = [
       },
       {
         name: 'inviteSecret',
+        type: 'bytes32',
+        internalType: 'bytes32'
+      }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'joinDuelWithPermit',
+    inputs: [
+      {
+        name: 'duelId',
+        type: 'uint256',
+        internalType: 'uint256'
+      },
+      {
+        name: 'inviteSecret',
+        type: 'bytes32',
+        internalType: 'bytes32'
+      },
+      {
+        name: 'permitDeadline',
+        type: 'uint256',
+        internalType: 'uint256'
+      },
+      {
+        name: 'v',
+        type: 'uint8',
+        internalType: 'uint8'
+      },
+      {
+        name: 'r',
+        type: 'bytes32',
+        internalType: 'bytes32'
+      },
+      {
+        name: 's',
         type: 'bytes32',
         internalType: 'bytes32'
       }
@@ -801,6 +928,19 @@ export const duelMeAbi = [
     ],
     outputs: [],
     stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'trustedForwarder',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'address',
+        internalType: 'address'
+      }
+    ],
+    stateMutability: 'view'
   },
   {
     type: 'function',
@@ -1368,6 +1508,79 @@ export const duelMeAbi = [
         internalType: 'address'
       }
     ]
+  }
+] as const;
+
+// Minimal ERC2771Forwarder surface. `execute` is what the relayer sends; `verify` is the
+// admission check it runs first; `nonces` is what the client folds into the signed
+// ForwardRequest struct hash (ForwardRequestData itself carries no nonce field).
+// Field order mirrors the on-chain struct and must stay in lockstep with it, so verify and
+// execute share one definition rather than two copies that can drift apart.
+const forwardRequestTuple = {
+  name: 'request',
+  type: 'tuple',
+  components: [
+    { name: 'from', type: 'address' },
+    { name: 'to', type: 'address' },
+    { name: 'value', type: 'uint256' },
+    { name: 'gas', type: 'uint256' },
+    { name: 'deadline', type: 'uint48' },
+    { name: 'data', type: 'bytes' },
+    { name: 'signature', type: 'bytes' }
+  ]
+} as const;
+
+export const erc2771ForwarderAbi = [
+  {
+    type: 'function',
+    name: 'verify',
+    stateMutability: 'view',
+    inputs: [forwardRequestTuple],
+    outputs: [{ name: '', type: 'bool' }]
+  },
+  {
+    type: 'function',
+    name: 'execute',
+    stateMutability: 'payable',
+    inputs: [forwardRequestTuple],
+    outputs: []
+  },
+  {
+    type: 'function',
+    name: 'nonces',
+    stateMutability: 'view',
+    inputs: [{ name: 'owner', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }]
+  }
+] as const;
+
+// EIP-2612 reads needed to build a permit signature. `permit` itself is never called from
+// the client — it rides inside createDuelWithPermit / joinDuelWithPermit calldata.
+// DOMAIN_SEPARATOR is read so the locally rebuilt domain can be checked against the
+// token's own: mainnet USDT has no ERC-5267 eip712Domain(), so the domain has to be
+// reconstructed from name() + version "1", and a silent mismatch would only show up as an
+// unexplained invalid signature.
+export const erc20PermitAbi = [
+  {
+    type: 'function',
+    name: 'name',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'string' }]
+  },
+  {
+    type: 'function',
+    name: 'nonces',
+    stateMutability: 'view',
+    inputs: [{ name: 'owner', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }]
+  },
+  {
+    type: 'function',
+    name: 'DOMAIN_SEPARATOR',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'bytes32' }]
   }
 ] as const;
 
