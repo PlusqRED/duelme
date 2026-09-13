@@ -2,7 +2,7 @@
 
 import { useReadContract } from 'wagmi';
 import { duelMeAbi, type Duel, type DuelState } from '@/lib/contracts';
-import { DUELME_ADDRESSES } from '@/lib/constants';
+import { DUELME_ADDRESSES, ZERO_ADDRESS } from '@/lib/constants';
 
 interface UseDuelResult {
   duel: Duel | undefined;
@@ -21,7 +21,7 @@ export function useDuel(duelId: bigint, chainId: number): UseDuelResult {
     args: [duelId],
     chainId,
     query: {
-      enabled: !!contractAddress && contractAddress !== '0x0000000000000000000000000000000000000000',
+      enabled: !!contractAddress && contractAddress !== ZERO_ADDRESS,
     },
   });
 

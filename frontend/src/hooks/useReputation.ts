@@ -2,7 +2,7 @@
 
 import { useReadContract } from 'wagmi';
 import { duelMeAbi } from '@/lib/contracts';
-import { DUELME_ADDRESSES } from '@/lib/constants';
+import { DUELME_ADDRESSES, ZERO_ADDRESS } from '@/lib/constants';
 import {
   getReputationLevel,
   wilsonScore,
@@ -36,7 +36,7 @@ export function useReputation(
       enabled:
         !!address &&
         !!contractAddress &&
-        contractAddress !== '0x0000000000000000000000000000000000000000',
+        contractAddress !== ZERO_ADDRESS,
     },
   });
 

@@ -1,3 +1,5 @@
+import { USDT_ADDRESSES } from '@/lib/constants';
+
 export const duelMeAbi = [
   {
     type: 'constructor',
@@ -1672,11 +1674,14 @@ export const transferAbi = [
   },
 ] as const;
 
+// Reads straight from SUPPORTED_CHAINS. This used to inline its own copy of the map to
+// "avoid a circular import" — constants.ts imports nothing, so there was no cycle, and the
+// second copy went stale the first time MockUSDT was redeployed: the permit path then read
+// nonces() off the previous token and the duel failed with an unexplained revert.
 export function getUsdtAddress(chainId: number | undefined) {
-  // Avoid circular import — inline the chain→USDT mapping
-  const map: Record<number, `0x${string}`> = {
-    421614: '0xbf345834d808a058e1278b50f3844aD86686f401',
-    42161: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
-  };
-  return chainId ? map[chainId] : undefined;
+  if (chainId === undefined) {
+    return undefined;
+  }
+
+  return USDT_ADDRESSES[chainId];
 }

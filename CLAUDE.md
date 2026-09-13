@@ -13,7 +13,7 @@ ops/         — Docker Compose, Caddy config
 
 ## Commands
 
-**Frontend (`frontend/`):** `npm run dev` (localhost:3000) · `npm run build` · `npm run lint` · `npx tsc --noEmit`
+**Frontend (`frontend/`):** `npm run dev` (localhost:3000) · `npm run build` · `npm run lint` · `npx tsc --noEmit` · `npm test` (Vitest) · `npm run test:watch`
 
 **Backend (`backend/`):** `./gradlew build` (JDK 25 via toolchain) · `./gradlew bootRun` (localhost:8080, needs MongoDB) · `./gradlew test` (embedded MongoDB via Flapdoodle) · `./gradlew bootJar` · `./gradlew nativeCompile` (~5–10 min, ~50ms startup, ~60MB RSS) · `./gradlew nativeTest` · `docker compose up -d` (local MongoDB)
 
@@ -155,6 +155,8 @@ address, no relayer key — is the case the self-paid path still covers.
 | `frontend/src/lib/wagmi.ts` (`resolveRpcUrl`) | RPC URL env validation + fallback chain (Alchemy/QuickNode → Tenderly) |
 | `frontend/src/i18n/translations.ts` | EN/RU translations |
 | `scripts/sync_readme_contract_addresses.py` | Sync README contract block from `run-latest.json` |
+| `frontend/src/lib/__tests__/deployedAddresses.test.ts` | Fails the build when `constants.ts` or the backend faucet default drifts from the broadcast artifact |
+| `frontend/src/lib/__tests__/contractAddresses.test.ts` | Fails the build when an in-app address map stops agreeing with `constants.ts` |
 | `backend/src/.../controller/ProfileController.java` | Profile CRUD endpoints |
 | `backend/src/.../security/PrivyJwksService.java` | Privy JWT verification via JWKS |
 | `backend/src/.../security/PrivyJwtAuthenticationFilter.java` | Bearer token → wallet auth filter |
@@ -354,8 +356,7 @@ Runtime config source of truth: GitHub repository/environment secrets. Deploy wo
 - `NEXT_PUBLIC_API_URL` — Backend API base URL (default `/api/v1`)
 - `NEXT_PUBLIC_ARBITRUM_RPC_URL` — authenticated RPC for Arbitrum One (Alchemy/QuickNode). Used as Privy embedded-wallet override + first wagmi fallback. Falls back to Tenderly Gateway public if unset. Lock URL via provider dashboard "Allowed Origins" — `NEXT_PUBLIC_*` are inlined into the JS bundle.
 - `NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL` — same for Arbitrum Sepolia. Optional; Tenderly public works for dev.
-- `FAUCET_ENABLED` / `FAUCET_PRIVATE_KEY` — dev-only testnet dispenser (ETH + MockUSDT). Prod pins `FAUCET_ENABLED: "false"` in `ops/docker-compose.prod.yml` regardless of `.env`.
-- `FAUCET_MOCK_USDT_ADDRESS` — the MockUSDT the faucet dispenses. **Must match the token the live DuelMe was deployed against.** MockUSDT is redeployed whenever DuelMe is (it carries the EIP-2612 permit the gasless flow needs), so a stale value hands testers a token the contract will not accept — and it fails as an unexplained empty balance, not as a faucet error. `application.yml` carries a default; set the repository variable after every testnet redeploy.
+- `FAUCET_ENABLED` / `FAUCET_PRIVATE_KEY` — dev-only testnet dispenser (ETH + MockUSDT). The token it hands out is **not** an env var: `faucet.mock-usdt-address` in `application.yml` is the value, deliberately not overridable, and pinned to the broadcast artifact by `deployedAddresses.test.ts`. A redeploy edits it in the same commit as `constants.ts`. Prod pins `FAUCET_ENABLED: "false"` in `ops/docker-compose.prod.yml` regardless of `.env`.
 - `RELAYER_PRIVATE_KEY` — hot wallet that pays gas for relayed duel actions (frontend container, **runtime** not build-time). Unset ⇒ `/api/relay` returns 503 and duel writes stay self-paid. Dedicated key; fund it with only what the daily budgets can spend.
 - `RELAYER_RPC_URL` — server-side RPC for the relayer. Optional; defaults to the default chain's public RPC. A browser-origin-locked `NEXT_PUBLIC_*` key will NOT work here — server requests send no `Origin`.
 - `RELAYER_DAILY_BUDGET_WEI` — per-address daily gas allowance in wei. Optional; defaults to 0.0005 ETH.
@@ -392,6 +393,7 @@ Runtime config source of truth: GitHub repository/environment secrets. Deploy wo
 - **The relayer's budget ledger is in-memory**, so it resets on redeploy and is not shared across replicas. Accurate for the current single-container-per-env deployment; more than one replica needs a shared store.
 - README contract addresses auto-generated from `run-latest.json` by `scripts/sync_readme_contract_addresses.py` / pre-commit hook — don't edit that block manually.
 - Manual deploys here: source `contracts/.env` first (`set -a && . ./.env && set +a`).
+- **Contract addresses and chain ids have exactly one source.** `contracts/broadcast/*/run-latest.json` is what is deployed; `constants.ts` mirrors it by hand; everything else reads `constants.ts`. Never inline an address or a chain id anywhere else — `getUsdtAddress` once kept its own copy "to avoid a circular import" (`constants.ts` imports nothing, so there was no cycle), and after a MockUSDT redeploy the permit path read `nonces()` off the previous token, so duels failed with a revert that named no address. `deployedAddresses.test.ts` pins `constants.ts` and `application.yml`'s faucet default to the broadcast artifact; `contractAddresses.test.ts` pins `getUsdtAddress`, `CHAIN_NAMES` and the forwarder map to `constants.ts`. Both run in the `frontend` CI job (`npm test`). What no test can reach is the dev deploy's `FAUCET_MOCK_USDT_ADDRESS` repository variable — it overrides the pinned `application.yml` default, so a green CI still hands testers the wrong MockUSDT if that variable is stale.
 - Use shared constants from `constants.ts` (`ZERO_ADDRESS`, `CHAIN_NAMES`) and `contracts.ts` (`ACTIVE_STATES`, `balanceOfAbi`, `transferAbi`, `getUsdtAddress`) — never redefine locally.
 - `PRIVY_APP_ID` env required for backend (no default in `application.yml`).
 - Frontend npm pinned to `^11.12.1` via `frontend/package.json` `engines` + `frontend/.npmrc` `engine-strict=true`. CI / Dockerfile install via `npm install -g npm@11.12.1`. Mismatch caused `EUSAGE` / `EBADENGINE` in `npm ci`.

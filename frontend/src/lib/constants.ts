@@ -1,19 +1,36 @@
+// Everything the app knows about a chain lives on its entry here — including the contract
+// addresses, which are copied by hand from contracts/broadcast/*/run-latest.json after a
+// redeploy. The chain-id-keyed records further down are DERIVED from these entries, never
+// written out separately: a second hand-maintained map is what let getUsdtAddress go stale
+// and sign permits against a dead token.
 export const SUPPORTED_CHAINS = {
   arbitrumSepolia: {
     id: 421614,
     name: 'Arbitrum Sepolia',
+    shortName: 'Arb Sepolia',
+    testnet: true,
     usdt: '0x9E317e8A4B943E31452902D0106F836369f8bb6F' as `0x${string}`,
+    duelMe: '0x990aD70C168B184a84d6d9491303fa344154e317' as `0x${string}`,
+    // ERC-2771 forwarder the DuelMe on this chain trusts. Omit it and the chain simply has
+    // no relaying — /api/relay refuses it and duel writes stay self-paid.
+    forwarder: '0x6bd063648f3B09fD111789Fd0194dc72eE44573E' as `0x${string}` | undefined,
     explorer: 'https://sepolia.arbiscan.io',
     rpc: 'https://sepolia-rollup.arbitrum.io/rpc',
   },
   arbitrum: {
     id: 42161,
     name: 'Arbitrum One',
+    shortName: 'Arbitrum One',
+    testnet: false,
     usdt: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9' as `0x${string}`,
+    duelMe: '0xBd2266AB4b62E34FD5282608abeEEd425F6D7F22' as `0x${string}`,
+    forwarder: undefined as `0x${string}` | undefined,
     explorer: 'https://arbiscan.io',
     rpc: 'https://arb1.arbitrum.io/rpc',
   },
 } as const;
+
+const ALL_CHAINS = Object.values(SUPPORTED_CHAINS);
 
 export type ChainKey = keyof typeof SUPPORTED_CHAINS;
 
@@ -52,9 +69,9 @@ export const MAX_WAGER_SLIDER = 500; // upper bound of the create-duel wager sli
 
 // Chain ids where the backend-signed testnet faucet can operate.
 // Used to gate the faucet button in the UI.
-export const TESTNET_CHAIN_IDS: ReadonlySet<number> = new Set([
-  SUPPORTED_CHAINS.arbitrumSepolia.id,
-]);
+export const TESTNET_CHAIN_IDS: ReadonlySet<number> = new Set(
+  ALL_CHAINS.filter((chain) => chain.testnet).map((chain) => chain.id)
+);
 // Fallback defaults for the owner-adjustable on-chain claimTimeout(),
 // maxMessageCodepoints() and maxMessageBytes() — same rule as MIN_WAGER above.
 export const CLAIM_TIMEOUT = 3600; // 1 hour in seconds
@@ -62,25 +79,23 @@ export const MAX_DUEL_MESSAGE_CHARACTERS = 32;
 export const MAX_DUEL_MESSAGE_BYTES = 128;
 export const USDT_DECIMALS = 6;
 
-export const DUELME_ADDRESSES: Record<number, `0x${string}`> = {
-  421614: '0x990aD70C168B184a84d6d9491303fa344154e317', // Arbitrum Sepolia
-  42161: '0xBd2266AB4b62E34FD5282608abeEEd425F6D7F22', // Arbitrum One
-};
+export const USDT_ADDRESSES: Record<number, `0x${string}`> = Object.fromEntries(
+  ALL_CHAINS.map((chain) => [chain.id, chain.usdt])
+);
 
-// ERC-2771 forwarder trusted by the DuelMe deployment on the same chain. Filled from
-// contracts/broadcast/{Deploy,DeployMainnet}.s.sol/<chainId>/run-latest.json after the
-// redeploy, exactly like DUELME_ADDRESSES above. A chain missing from this map simply has
-// no relaying: the /api/relay route refuses it and duel writes stay self-paid.
-export const FORWARDER_ADDRESSES: Record<number, `0x${string}`> = {
-  421614: '0x6bd063648f3B09fD111789Fd0194dc72eE44573E', // Arbitrum Sepolia
-};
+export const DUELME_ADDRESSES: Record<number, `0x${string}`> = Object.fromEntries(
+  ALL_CHAINS.map((chain) => [chain.id, chain.duelMe])
+);
+
+export const FORWARDER_ADDRESSES: Record<number, `0x${string}`> = Object.fromEntries(
+  ALL_CHAINS.flatMap((chain) => (chain.forwarder ? [[chain.id, chain.forwarder] as const] : []))
+);
 
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as `0x${string}`;
 
-export const CHAIN_NAMES: Record<number, string> = {
-  421614: 'Arb Sepolia',
-  42161: 'Arbitrum One',
-};
+export const CHAIN_NAMES: Record<number, string> = Object.fromEntries(
+  ALL_CHAINS.map((chain) => [chain.id, chain.shortName])
+);
 
 export const SITE_URL = 'https://duelme.pro';
 export const SITE_NAME = 'DuelMe';

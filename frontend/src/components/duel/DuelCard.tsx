@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { PlayerDuel } from '@/hooks/usePlayerDuels';
 import { useTranslation } from '@/i18n/useTranslation';
+import { ZERO_ADDRESS } from '@/lib/constants';
 import { DuelState } from '@/lib/contracts';
 import {
   getClaimableAmountForAddress,
@@ -72,7 +73,7 @@ export function DuelCard({
   const showOutcomeBadge = TERMINAL_STATES.has(duel.state) || isClaimTimedOut;
   const hasMessage = hasVisibleDuelMessage(duel.message);
   const counterparty = getCounterpartyAddress(duel, viewerAddress);
-  const opponentAddress = counterparty && counterparty !== '0x0000000000000000000000000000000000000000'
+  const opponentAddress = counterparty && counterparty !== ZERO_ADDRESS
     ? counterparty
     : duel.opponent;
 
@@ -107,7 +108,7 @@ export function DuelCard({
 
             <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
               <span className="text-slate-400">{t('dashboard.opponentLabel')}</span>
-              {opponentAddress === '0x0000000000000000000000000000000000000000' ? (
+              {opponentAddress === ZERO_ADDRESS ? (
                 <span className="text-slate-400">{t('dashboard.waitingOpponent')}</span>
               ) : (
                 <>

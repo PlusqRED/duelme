@@ -18,7 +18,10 @@ duelme:
     private-key: ${FAUCET_PRIVATE_KEY:}
     rpc-url: ${FAUCET_RPC_URL:https://sepolia-rollup.arbitrum.io/rpc}
     chain-id: ${FAUCET_CHAIN_ID:421614}
-    mock-usdt-address: ${FAUCET_MOCK_USDT_ADDRESS:0x9E317e8A4B943E31452902D0106F836369f8bb6F}
+    # Not overridable by env on purpose: this must be the MockUSDT the live DuelMe was
+    # deployed against, which is the same redeploy that edits frontend constants.ts.
+    # deployedAddresses.test.ts pins it to the broadcast artifact.
+    mock-usdt-address: 0x9E317e8A4B943E31452902D0106F836369f8bb6F
     eth-amount-eth: ${FAUCET_ETH_AMOUNT_ETH:0.001}
     usdt-amount-raw: ${FAUCET_USDT_AMOUNT_RAW:100000000}
   social:

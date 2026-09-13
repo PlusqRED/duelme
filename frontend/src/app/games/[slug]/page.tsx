@@ -34,11 +34,8 @@ export default function GameDetailPage({
   const [activePage, setActivePage] = useState(1);
   const [historyPage, setHistoryPage] = useState(1);
 
-  const ZERO = '0x0000000000000000000000000000000000000000';
   const allAddresses = useMemo(
-    () => [...activeDuels, ...historyDuels]
-      .flatMap((d) => [d.creator, d.opponent])
-      .filter((a) => a !== ZERO),
+    () => [...activeDuels, ...historyDuels].flatMap((d) => [d.creator, d.opponent]),
     [activeDuels, historyDuels],
   );
   const { reputationByAddress } = useReputationLevels(allAddresses, CHAIN.id);
