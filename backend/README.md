@@ -1,6 +1,11 @@
 # DuelMe Backend
 
-REST API for user profiles, linked to Ethereum wallets via [Privy](https://www.privy.io/) JWT authentication.
+REST API behind the DuelMe app: player profiles and linked social accounts, the game catalog,
+off-chain duel metadata, and the testnet faucet. Callers are identified by wallet address, taken
+from a [Privy](https://www.privy.io/) JWT.
+
+What is *not* here: duels themselves. Wagers, state and payouts live in the contract, and the
+frontend reads them from chain directly. This service only holds what does not belong on-chain.
 
 ## Tech Stack
 
@@ -11,7 +16,7 @@ REST API for user profiles, linked to Ethereum wallets via [Privy](https://www.p
 | Database | MongoDB |
 | Auth | Privy JWT (JWKS / ES256) |
 | Build | Gradle 9.4 (Kotlin DSL) |
-| Native | GraalVM Native Image (optional) |
+| Native | GraalVM Native Image — the production runtime, not an option |
 | Tests | JUnit 5 + Flapdoodle embedded MongoDB |
 
 ## Quick Start
@@ -56,7 +61,7 @@ Produces a self-contained binary: ~50 ms startup, ~60 MB RSS.
 ./build/native/nativeCompile/duelme-backend
 ```
 
-> Requires GraalVM JDK 25. The build takes 3-5 min and ~4 GB RAM.
+> Requires GraalVM JDK 25. The build takes 5-10 min and ~4 GB RAM.
 
 ### Native tests
 
@@ -108,15 +113,21 @@ Request → Caddy (TLS) → /api/v1/* → Spring Boot (:8080 dev / :8081 prod)
 
 ```
 src/main/java/pro/duelme/backend/
-  config/         SecurityConfig, MongoConfig, WebConfig, NativeImageHints
-  security/       PrivyJwksService, JwtFilter, WalletAuthenticationToken
-  controller/     ProfileController, HealthController
-  service/        ProfileService
-  repository/     ProfileRepository (Spring Data MongoDB)
-  model/          Profile (record, @Document)
-  dto/            ProfileRequest, ProfileResponse
-  exception/      GlobalExceptionHandler, ProfileNotFoundException
+  config/         SecurityConfig, MongoConfig, WebConfig, OpenApiConfig, NativeImageHints
+  security/       PrivyJwksService, PrivyJwtAuthenticationFilter, WalletAuthenticationToken
+  controller/     Profile · SocialLink · Game · DuelMeta · Faucet · Health
+  service/        one per controller, plus the OAuth providers (Steam OpenID,
+                  Telegram OIDC + JWKS, Instagram handle validation) and the
+                  server-side OAuth state store
+  repository/     Spring Data MongoDB interfaces
+  model/          @Document records: Profile, SocialLinks, Game, DuelMeta,
+                  FaucetClaim, SocialOAuthState
+  dto/            request/response records — never a document on the wire
+  exception/      domain exceptions + GlobalExceptionHandler
 ```
+
+Layering is strict: controllers do HTTP only, services own business logic and authorization,
+repositories do data access, and a controller never touches a repository.
 
 ## Testing
 
@@ -129,10 +140,24 @@ Tests use Flapdoodle embedded MongoDB — no external database required.
 
 ## Deploy
 
-CI builds a GraalVM native image inside Docker and pushes to GHCR:
+Gradle runs on the CI host, with the full Actions cache; Docker is a thin runtime that only
+copies the artifact in. Building inside the Dockerfile meant recompiling from cold every time.
 
 ```
-CI → docker build (native compile) → ghcr.io/plusqred/duelme-backend:{dev,latest} → SSH deploy → docker compose up
+CI: ./gradlew bootJar | nativeCompile → upload artifact
+    → docker build (COPY only) → ghcr.io/plusqred/duelme-backend:{dev,latest}
+    → SSH deploy → docker compose up
 ```
 
-The native binary runs in a minimal `ubuntu:26.04` container with read-only filesystem, dropped capabilities, and healthcheck. See `Dockerfile` and `ops/docker-compose.{dev,prod}.yml`.
+Two `Dockerfile` targets: `jvm` (`eclipse-temurin:25-jre`, fat JAR) for dev at 512 MB, and
+`native` (`ubuntu:26.04`, GraalVM binary) for prod at 256 MB. Both run non-root with a read-only
+filesystem, dropped capabilities and a healthcheck. See `ops/docker-compose.{dev,prod}.yml`.
+
+**`nativeCompile` is the gate for prod.** A change can pass `./gradlew test`, deploy fine to dev,
+and still break the native build — reflection without hints, a static initializer touching I/O, a
+new dependency without reachability metadata. The `backend-native` CI job runs on every push and
+`build-prod` needs it. Verify locally before merging to `main`:
+
+```bash
+./gradlew nativeCompile && ./build/native/nativeCompile/duelme-backend
+```

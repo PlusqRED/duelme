@@ -57,18 +57,21 @@ forge test --match-test "testRefund*"
 | `test/DuelMeMetaTx.t.sol` | ERC-2771 relaying: sender resolution, what is and is not relayable | 29 |
 | `test/DuelMeAdminConfig.t.sol` | Owner-adjustable params, creation pause, two-step ownership | 27 |
 | `test/DuelMePermit.t.sol` | EIP-2612 funding, permit front-running | 22 |
-| `test/DuelMePayouts.t.sol` | Claim payouts, claiming to another address, batch claims | 17 |
 | `test/DuelMeInvites.t.sol` | Open duels, address-bound duels, ids that name no duel, invite binding and its golden vector | 19 |
+| `test/DuelMePayouts.t.sol` | Claim payouts, claiming to another address, batch claims | 17 |
 | `test/DuelMeViews.t.sol` | Batch reads, player record, derived payouts | 11 |
 | `test/DuelMeTokenSafety.t.sol` | Refusing a token that takes a transfer fee | 3 |
-| `test/DuelMeInvariant.t.sol` | Solvency under random sequences (8192 calls per invariant), nothing written past `duelCount`, plus the handler's own lifecycle smoke test | 4 |
+| `test/DuelMeInvariant.t.sol` | Solvency under random sequences, nothing written past `duelCount`, plus the handler's own lifecycle smoke test | 4 |
 | `test/UsdtPermitFork.t.sol` | Real USD₮0 on Arbitrum One — skipped without `ARBITRUM_RPC_URL` | 5 |
 
-Run the full suite with:
+Suites share `test/helpers/`: `DuelMeFixture` (token + forwarder + contract, alice and bob funded
+and approved, and the common duel helpers), `MetaTxSigner` for the suites that need signing keys,
+and `DuelMeTestConstants` for the values both bases start from. A suite calls `_deployFixture()`
+from `setUp` rather than building its own world.
 
-```bash
-forge test
-```
+The invariant run is set to `runs = 64, depth = 128` in `foundry.toml` — 8192 calls, deliberately
+below Foundry's 256×500 default, to keep CI inside its time budget. Raise both before trusting it
+to find something rare.
 
 ## Duel lifecycle
 
@@ -103,7 +106,7 @@ never created reads back as a zeroed struct, and it must not pass for one waitin
 | 9 | `disputeResult(duelId)` | Other participant disputes, state = Disputed, both refunds become claimable |
 | 10 | `refund(duelId)` | After 1h timeout, state = Refunded, both 50/50 refunds become claimable |
 | 11 | `cancelDuel(duelId)` | Creator cancels before join, state = Cancelled, creator refund becomes claimable |
-| 12 | `claimPayout(duelId)` / `claimPayouts(duelIds)`, plus `claimPayoutTo` / `claimPayoutsTo` / `refundAndClaimPayoutsTo` | Withdraw claimable winnings or refunds. The `*To` variants matter when the token blacklists the claimant's address, and let a player bank winnings elsewhere |
+| 12 | `claimPayout(duelId)` / `claimPayouts(duelIds)` / `refundAndClaimPayouts(duelIds)`, each with a `*To(…, address to)` sibling | Withdraw claimable winnings or refunds. The `*To` variants matter when the token blacklists the claimant's address, and let a player bank winnings elsewhere |
 | — | `getDuels(offset, limit)` / `getDuelsByIds(ids)` | Batch reads for listing screens, so a client never issues one call per duel |
 
 ## Reputation (PlayerStats)
@@ -124,6 +127,9 @@ Five counters per wallet in a single storage slot: `duelsHonored`, `duelsAbandon
   stops a new result being declared; settling a result that already exists (`confirmResult`,
   `disputeResult`, `refund`), cancelling, and every claim stay open. The brake cannot hold money a
   player has already won, and cannot turn a pending win into a refund by running out its clock
+  The cost of that choice: while paused, a `Funded` duel has no *unilateral* exit, since both
+  `claimVictory` and `admitDefeat` are pausable and `refund` needs `WinnerClaimed`. Two wagers stay
+  escrowed until the pause lifts or both players agree to cancel
 - **`setDuelCreationPaused(bool)`** as the migration switch: no new duels, everything already on the
   board plays out and pays out
 - **Two-step ownership** (`Ownable2Step`), with `_checkOwner` and `acceptOwnership` pinned to
