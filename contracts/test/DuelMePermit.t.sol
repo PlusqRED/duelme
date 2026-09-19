@@ -23,6 +23,7 @@ contract DuelMePermitTest is MetaTxSigner {
     address public attacker = makeAddr("attacker");
 
 
+
     function setUp() public {
         (alice, aliceKey) = makeAddrAndKey("alice");
         (bob, bobKey) = makeAddrAndKey("bob");
@@ -30,6 +31,7 @@ contract DuelMePermitTest is MetaTxSigner {
         usdt = new MockUSDT();
         forwarder = new ERC2771Forwarder(FORWARDER_NAME);
         duelMe = new DuelMe(address(usdt), MIN_WAGER, address(forwarder));
+        INVITE_HASH = duelMe.hashInviteSecret(INVITE_SECRET);
 
         usdt.mint(alice, 1_000_000_000);
         usdt.mint(bob, 1_000_000_000);
@@ -71,6 +73,61 @@ contract DuelMePermitTest is MetaTxSigner {
     // Direct permit calls
     // =====================================================================
 
+    /// @dev The two new entry points meet here: permit funding plus an invited opponent. A
+    ///      dropped `invitedOpponent` in the hand-off to `_createDuel` would silently turn every
+    ///      invited permit-duel into one anyone can take, and no other test would notice.
+    function testCreateDuelForWithPermitBindsTheDuelToTheInvitee() public {
+        uint256 deadline = _deadline();
+        (uint8 v, bytes32 r, bytes32 s) = _signPermit(address(usdt), aliceKey, address(duelMe), WAGER, deadline);
+
+        vm.prank(alice);
+        uint256 duelId = duelMe.createDuelForWithPermit(WAGER, INVITE_HASH, bob, "gg", deadline, v, r, s);
+
+        DuelMe.DuelView memory duel = duelMe.getDuel(duelId);
+        assertEq(duel.creator, alice);
+        assertEq(duel.invitedOpponent, bob, "the duel is addressed to bob");
+        assertEq(duel.opponent, address(0), "nobody has joined yet");
+        assertEq(duel.wagerAmount, WAGER);
+        assertEq(duel.message, "gg");
+        assertEq(usdt.allowance(alice, address(duelMe)), 0, "permit allowance fully consumed");
+    }
+
+    function testCreateDuelForWithPermitRefusesAnyoneButTheInvitee() public {
+        uint256 deadline = _deadline();
+        (uint8 v, bytes32 r, bytes32 s) = _signPermit(address(usdt), aliceKey, address(duelMe), WAGER, deadline);
+
+        vm.prank(alice);
+        uint256 duelId = duelMe.createDuelForWithPermit(WAGER, INVITE_HASH, bob, "", deadline, v, r, s);
+
+        vm.prank(attacker);
+        usdt.approve(address(duelMe), type(uint256).max);
+        usdt.mint(attacker, WAGER);
+
+        vm.prank(attacker);
+        vm.expectRevert("Not the invited opponent");
+        duelMe.joinDuel(duelId, INVITE_SECRET);
+    }
+
+    function testCreateDuelForWithPermitCannotInviteYourself() public {
+        uint256 deadline = _deadline();
+        (uint8 v, bytes32 r, bytes32 s) = _signPermit(address(usdt), aliceKey, address(duelMe), WAGER, deadline);
+
+        vm.prank(alice);
+        vm.expectRevert("Cannot invite yourself");
+        duelMe.createDuelForWithPermit(WAGER, INVITE_HASH, alice, "", deadline, v, r, s);
+    }
+
+    function testCreateDuelForWithPermitWhenPausedReverts() public {
+        duelMe.pause();
+
+        uint256 deadline = _deadline();
+        (uint8 v, bytes32 r, bytes32 s) = _signPermit(address(usdt), aliceKey, address(duelMe), WAGER, deadline);
+
+        vm.prank(alice);
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        duelMe.createDuelForWithPermit(WAGER, INVITE_HASH, bob, "", deadline, v, r, s);
+    }
+
     function testCreateDuelWithPermitNeedsNoPriorApproval() public {
         assertEq(usdt.allowance(alice, address(duelMe)), 0, "must start with no allowance");
         uint256 balanceBefore = usdt.balanceOf(alice);
@@ -81,7 +138,7 @@ contract DuelMePermitTest is MetaTxSigner {
         vm.prank(alice);
         uint256 duelId = duelMe.createDuelWithPermit(WAGER, INVITE_HASH, "", deadline, v, r, s);
 
-        DuelMe.Duel memory duel = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory duel = duelMe.getDuel(duelId);
         assertEq(duel.creator, alice);
         assertEq(duel.wagerAmount, WAGER);
         assertEq(usdt.balanceOf(alice), balanceBefore - WAGER);
@@ -108,7 +165,7 @@ contract DuelMePermitTest is MetaTxSigner {
         vm.prank(bob);
         duelMe.joinDuelWithPermit(duelId, INVITE_SECRET, deadline, v, r, s);
 
-        DuelMe.Duel memory duel = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory duel = duelMe.getDuel(duelId);
         assertEq(duel.opponent, bob);
         assertEq(uint8(duel.state), uint8(DuelMe.DuelState.Funded));
         assertEq(usdt.allowance(bob, address(duelMe)), 0, "permit allowance fully consumed");
@@ -272,7 +329,7 @@ contract DuelMePermitTest is MetaTxSigner {
         _relayAs(forwarder, relayer, aliceKey, address(duelMe), _createWithPermitData(aliceKey, WAGER, ""));
         _relayAs(forwarder, relayer, bobKey, address(duelMe), _joinWithPermitData(bobKey, 0, WAGER));
 
-        DuelMe.Duel memory duel = duelMe.getDuel(0);
+        DuelMe.DuelView memory duel = duelMe.getDuel(0);
         assertEq(duel.creator, alice, "creator resolved through the forwarder");
         assertEq(duel.opponent, bob, "opponent resolved through the forwarder");
         assertEq(uint8(duel.state), uint8(DuelMe.DuelState.Funded));

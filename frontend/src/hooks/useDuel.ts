@@ -1,7 +1,7 @@
 'use client';
 
 import { useReadContract } from 'wagmi';
-import { duelMeAbi, type Duel, type DuelState } from '@/lib/contracts';
+import { duelMeAbi, type Duel } from '@/lib/contracts';
 import { DUELME_ADDRESSES, ZERO_ADDRESS } from '@/lib/constants';
 
 interface UseDuelResult {
@@ -25,28 +25,16 @@ export function useDuel(duelId: bigint, chainId: number): UseDuelResult {
     },
   });
 
-  const duel: Duel | undefined = data
-      ? {
-          creator: data.creator,
-          opponent: data.opponent,
-          wagerAmount: data.wagerAmount,
-          inviteHash: data.inviteHash,
-          message: data.message,
-          claimedWinner: data.claimedWinner,
-          claimedBy: data.claimedBy,
-          cancelRequestedBy: data.cancelRequestedBy,
-          createdAt: data.createdAt,
-          fundedAt: data.fundedAt,
-          cancelRequestedAt: data.cancelRequestedAt,
-          claimTimestamp: data.claimTimestamp,
-          finalizedAt: data.finalizedAt,
-          creatorPayout: data.creatorPayout,
-          opponentPayout: data.opponentPayout,
-          creatorClaimed: data.creatorClaimed,
-          opponentClaimed: data.opponentClaimed,
-          state: data.state as DuelState,
-        }
-      : undefined;
+  // The decoded struct is already the shape `Duel` describes — spelling the fields out again is
+  // how `invitedOpponent` went missing here once. Handed through rather than spread: wagmi's
+  // `data` is referentially stable between refetches, and a fresh object each render would
+  // re-fire every `[duel]` effect on the duel page, including one that writes to localStorage.
+  //
+  // Annotated, never asserted. `data as Duel` would keep compiling after the ABI stopped decoding
+  // a field `Duel` declares — `Duel` is assignable to the narrower decoded type, so the assertion
+  // stays legal and `duel.invitedOpponent` is `undefined` at runtime. An annotation is checked the
+  // strict way round, so that drift fails here instead of as a TypeError on the duel page.
+  const duel: Duel | undefined = data;
 
   return { duel, isLoading, isError, refetch };
 }

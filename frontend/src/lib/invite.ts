@@ -1,4 +1,4 @@
-import { isHex, keccak256, size, toHex } from 'viem';
+import { encodeAbiParameters, isHex, keccak256, size, toHex } from 'viem';
 
 const INVITE_STORAGE_PREFIX = 'duelme-invite';
 
@@ -8,8 +8,22 @@ export function generateInviteSecret(): `0x${string}` {
   return toHex(bytes);
 }
 
-export function hashInviteSecret(inviteSecret: `0x${string}`): `0x${string}` {
-  return keccak256(inviteSecret);
+/**
+ * Mirrors the public `DuelMe.hashInviteSecret`. The contract address and chain id are hashed in with the
+ * secret, so an invite link cannot be replayed against a duel on another deployment — the same
+ * secret produces a different hash on dev, on mainnet, and on any future redeploy.
+ */
+export function hashInviteSecret(
+  inviteSecret: `0x${string}`,
+  contractAddress: `0x${string}`,
+  chainId: number
+): `0x${string}` {
+  return keccak256(
+    encodeAbiParameters(
+      [{ type: 'address' }, { type: 'uint256' }, { type: 'bytes32' }],
+      [contractAddress, BigInt(chainId), inviteSecret]
+    )
+  );
 }
 
 export function isInviteSecret(value: string | null | undefined): value is `0x${string}` {
@@ -43,15 +57,43 @@ export function readInviteSecretFromHash(): `0x${string}` | null {
   return isInviteSecret(hash) ? hash : null;
 }
 
-/** Well-known invite secret for public duels — anyone can compute it. */
-export const PUBLIC_INVITE_SECRET: `0x${string}` = '0x0000000000000000000000000000000000000000000000000000000000000001';
+/**
+ * An open duel stores bytes32(0) as its invite hash — the contract reads that as "anyone may
+ * join, no secret involved". It replaces the old convention of publishing a well-known secret:
+ * that secret also unlocked `declineDuel`, so any passer-by could kill a duel in the open lobby.
+ */
+export const OPEN_DUEL_INVITE_HASH: `0x${string}` = `0x${'0'.repeat(64)}`;
 
-/** keccak256 hash of PUBLIC_INVITE_SECRET — stored on-chain for public duels. */
-export const PUBLIC_INVITE_HASH: `0x${string}` = keccak256(PUBLIC_INVITE_SECRET);
+/**
+ * Placeholder secret for joining an open duel. The contract ignores it when the duel carries no
+ * invite hash, so both duel kinds go through the same call.
+ */
+export const OPEN_DUEL_INVITE_SECRET: `0x${string}` = OPEN_DUEL_INVITE_HASH;
 
-/** Returns true if the duel's inviteHash matches the well-known public hash. */
-export function isPublicDuel(inviteHash: `0x${string}`): boolean {
-  return inviteHash.toLowerCase() === PUBLIC_INVITE_HASH.toLowerCase();
+/**
+ * True when the duel carries no secret. It says nothing about who may join: a duel can be
+ * secret-less and still addressed to one player, which is why the join and decline controls gate
+ * on `invitedOpponent` as well.
+ */
+export function isPublicDuel(inviteHash: string): boolean {
+  return inviteHash.toLowerCase() === OPEN_DUEL_INVITE_HASH;
+}
+
+/**
+ * Does this secret open this duel? The comparison lives here, with the formula, rather than at
+ * each call site: the hash is bound to the contract and chain, so every caller needs both, and a
+ * forgotten `toLowerCase()` degrades into a "private invite missing" toast with no other symptom.
+ */
+export function matchesInviteHash(
+  inviteSecret: `0x${string}` | null | undefined,
+  inviteHash: string,
+  contractAddress: `0x${string}`,
+  chainId: number
+): boolean {
+  if (!inviteSecret) {
+    return false;
+  }
+  return hashInviteSecret(inviteSecret, contractAddress, chainId).toLowerCase() === inviteHash.toLowerCase();
 }
 
 /** Build a shareable link for any duel type. Public duels get a clean URL. */

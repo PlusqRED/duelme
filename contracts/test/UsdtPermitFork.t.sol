@@ -34,6 +34,7 @@ contract UsdtPermitForkTest is MetaTxSigner {
     address internal relayer = makeAddr("relayer");
 
 
+
     function setUp() public {
         string memory rpcUrl = vm.envOr("ARBITRUM_RPC_URL", string(""));
         if (bytes(rpcUrl).length == 0) {
@@ -49,6 +50,7 @@ contract UsdtPermitForkTest is MetaTxSigner {
         usdt = IERC20(ARBITRUM_USDT);
         forwarder = new ERC2771Forwarder(FORWARDER_NAME);
         duelMe = new DuelMe(ARBITRUM_USDT, MIN_WAGER, address(forwarder));
+        INVITE_HASH = duelMe.hashInviteSecret(INVITE_SECRET);
 
         // Forge's canonical test addresses are real addresses with real mainnet state, and
         // makeAddr("alice") happens to carry a live EIP-7702 delegation on Arbitrum One.
@@ -86,7 +88,7 @@ contract UsdtPermitForkTest is MetaTxSigner {
         _relayAs(forwarder, relayer, aliceKey, address(duelMe), _createWithPermitData(aliceKey, WAGER));
         _relayAs(forwarder, relayer, bobKey, address(duelMe), _joinWithPermitData(bobKey, 0, WAGER));
 
-        DuelMe.Duel memory duel = duelMe.getDuel(0);
+        DuelMe.DuelView memory duel = duelMe.getDuel(0);
         assertEq(duel.creator, alice);
         assertEq(duel.opponent, bob);
         assertEq(uint8(duel.state), uint8(DuelMe.DuelState.Funded));
@@ -102,7 +104,7 @@ contract UsdtPermitForkTest is MetaTxSigner {
         _relayAs(forwarder, relayer, bobKey, address(duelMe), abi.encodeCall(DuelMe.confirmResult, (0)));
 
         uint256 balanceBefore = usdt.balanceOf(alice);
-        _relayAs(forwarder, relayer, aliceKey, address(duelMe), abi.encodeCall(DuelMe.claimPayout, (0)));
+        _relayAs(forwarder, relayer, aliceKey, address(duelMe), abi.encodeCall(DuelMe.claimPayout, (uint256(0))));
 
         assertEq(usdt.balanceOf(alice), balanceBefore + WAGER * 2);
     }

@@ -3,29 +3,12 @@ pragma solidity ^0.8.34;
 
 import "forge-std/Test.sol";
 import "../src/DuelMe.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/metatx/ERC2771Forwarder.sol";
-
-/// @dev Simple ERC20 mock with public mint for testing
-contract MockERC20 is ERC20 {
-    uint8 private _decimals;
-
-    constructor(string memory name_, string memory symbol_, uint8 decimals_) ERC20(name_, symbol_) {
-        _decimals = decimals_;
-    }
-
-    function mint(address to, uint256 amount) external {
-        _mint(to, amount);
-    }
-
-    function decimals() public view override returns (uint8) {
-        return _decimals;
-    }
-}
+import "./helpers/PlainUsdt.sol";
 
 contract DuelMeTest is Test {
     DuelMe public duelMe;
-    MockERC20 public usdt;
+    PlainUsdt public usdt;
     ERC2771Forwarder public forwarder;
 
     address public alice = makeAddr("alice");
@@ -36,14 +19,20 @@ contract DuelMeTest is Test {
     uint256 public constant WAGER = 10_000_000; // 10 USDT
     uint96 public constant MIN_WAGER = 300_000; // 0.3 USDT
     bytes32 public constant DEFAULT_INVITE_SECRET = bytes32(uint256(1));
-    bytes32 public constant DEFAULT_INVITE_HASH = keccak256(abi.encodePacked(DEFAULT_INVITE_SECRET));
+
+    /// @dev Set in setUp from the contract itself, so the formula lives in exactly one place.
+    ///      Non-zero placeholder on purpose: a suite that forgets the assignment fails as
+    ///      "Invalid invite" instead of silently creating open duels.
+    bytes32 public DEFAULT_INVITE_HASH = keccak256("test/DuelMe.t.sol: DEFAULT_INVITE_HASH not set in setUp");
+
     bytes32 public constant OTHER_INVITE_SECRET = bytes32(uint256(2));
     string internal constant UNICODE_MESSAGE = unicode"АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
 
     function setUp() public {
-        usdt = new MockERC20("Tether USD", "USDT", 6);
+        usdt = new PlainUsdt();
         forwarder = new ERC2771Forwarder("DuelMe Forwarder");
         duelMe = new DuelMe(address(usdt), MIN_WAGER, address(forwarder));
+        DEFAULT_INVITE_HASH = duelMe.hashInviteSecret(DEFAULT_INVITE_SECRET);
 
         // Mint USDT to test accounts
         usdt.mint(alice, 1_000_000_000); // 1000 USDT
@@ -67,9 +56,9 @@ contract DuelMeTest is Test {
     // =====================================================================
 
     function _assertStats(address player, uint32 expectedHonored, uint32 expectedAbandoned, string memory label) internal view {
-        (uint32 honored, uint32 abandoned) = duelMe.getPlayerStats(player);
-        assertEq(honored, expectedHonored, string.concat(label, " - honored"));
-        assertEq(abandoned, expectedAbandoned, string.concat(label, " - abandoned"));
+        DuelMe.PlayerStats memory stats = duelMe.getPlayerStats(player);
+        assertEq(stats.duelsHonored, expectedHonored, string.concat(label, " - honored"));
+        assertEq(stats.duelsAbandoned, expectedAbandoned, string.concat(label, " - abandoned"));
     }
 
     function _assertPayouts(
@@ -79,7 +68,7 @@ contract DuelMeTest is Test {
         bool expectedCreatorClaimed,
         bool expectedOpponentClaimed
     ) internal view {
-        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory d = duelMe.getDuel(duelId);
         assertEq(d.creatorPayout, expectedCreatorPayout, "creator payout");
         assertEq(d.opponentPayout, expectedOpponentPayout, "opponent payout");
         assertEq(d.creatorClaimed, expectedCreatorClaimed, "creator claimed");
@@ -158,7 +147,7 @@ contract DuelMeTest is Test {
         assertEq(duelId, 0, "First duel ID should be 0");
         assertEq(duelMe.duelCount(), 1, "duelCount should be 1");
 
-        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory d = duelMe.getDuel(duelId);
         assertEq(d.creator, alice);
         assertEq(d.opponent, address(0));
         assertEq(d.wagerAmount, WAGER);
@@ -186,7 +175,7 @@ contract DuelMeTest is Test {
         vm.prank(alice);
         uint256 duelId = duelMe.createDuel(MIN_WAGER, DEFAULT_INVITE_HASH);
 
-        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory d = duelMe.getDuel(duelId);
         assertEq(d.wagerAmount, MIN_WAGER);
     }
 
@@ -202,10 +191,17 @@ contract DuelMeTest is Test {
         duelMe.createDuel(0, DEFAULT_INVITE_HASH);
     }
 
-    function testCreateDuelRejectsZeroInviteHash() public {
+    function testCreateDuelWithZeroInviteHashIsOpenToAnyone() public {
         vm.prank(alice);
-        vm.expectRevert("Invalid invite hash");
-        duelMe.createDuel(WAGER, bytes32(0));
+        uint256 duelId = duelMe.createDuel(WAGER, bytes32(0));
+
+        // An open duel has no secret to present — anyone may take it.
+        vm.prank(bob);
+        duelMe.joinDuel(duelId, bytes32(0));
+
+        DuelMe.DuelView memory d = duelMe.getDuel(duelId);
+        assertEq(d.opponent, bob);
+        assertEq(uint256(d.state), uint256(DuelMe.DuelState.Funded));
     }
 
     function testCreateDuelLargeWager() public {
@@ -215,7 +211,7 @@ contract DuelMeTest is Test {
         vm.prank(alice);
         uint256 duelId = duelMe.createDuel(largeWager, DEFAULT_INVITE_HASH);
 
-        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory d = duelMe.getDuel(duelId);
         assertEq(d.wagerAmount, largeWager);
     }
 
@@ -223,7 +219,7 @@ contract DuelMeTest is Test {
         vm.prank(alice);
         uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH, UNICODE_MESSAGE);
 
-        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory d = duelMe.getDuel(duelId);
         assertEq(d.message, UNICODE_MESSAGE);
     }
 
@@ -278,9 +274,18 @@ contract DuelMeTest is Test {
 
     function testCreateDuelEmitsEvent() public {
         vm.prank(alice);
-        vm.expectEmit(true, true, false, true);
-        emit DuelMe.DuelCreated(0, alice, WAGER);
+        // All three topics: `invitedOpponent` is indexed, and it is what a client filters
+        // "duels addressed to me" on — leaving topic3 unchecked passes on any address.
+        vm.expectEmit(true, true, true, true);
+        emit DuelMe.DuelCreated(0, alice, address(0), WAGER, DEFAULT_INVITE_HASH, "");
         duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
+    }
+
+    function testCreateDuelForEmitsTheInvitedOpponent() public {
+        vm.prank(alice);
+        vm.expectEmit(true, true, true, true);
+        emit DuelMe.DuelCreated(0, alice, bob, WAGER, DEFAULT_INVITE_HASH, "gg");
+        duelMe.createDuelFor(WAGER, DEFAULT_INVITE_HASH, bob, "gg");
     }
 
     // =====================================================================
@@ -297,7 +302,7 @@ contract DuelMeTest is Test {
         vm.prank(bob);
         duelMe.joinDuel(duelId, DEFAULT_INVITE_SECRET);
 
-        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory d = duelMe.getDuel(duelId);
         assertEq(d.opponent, bob);
         assertEq(d.fundedAt, block.timestamp);
         assertEq(uint256(d.state), uint256(DuelMe.DuelState.Funded));
@@ -368,7 +373,7 @@ contract DuelMeTest is Test {
 
         vm.prank(bob);
         vm.expectEmit(true, true, false, true);
-        emit DuelMe.DuelJoined(duelId, bob);
+        emit DuelMe.DuelJoined(duelId, bob, WAGER);
         duelMe.joinDuel(duelId, DEFAULT_INVITE_SECRET);
     }
 
@@ -385,7 +390,7 @@ contract DuelMeTest is Test {
         vm.prank(bob);
         duelMe.declineDuel(duelId, DEFAULT_INVITE_SECRET);
 
-        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory d = duelMe.getDuel(duelId);
         assertEq(d.opponent, bob);
         assertEq(uint256(d.state), uint256(DuelMe.DuelState.Declined));
         assertEq(usdt.balanceOf(alice), aliceBalBefore);
@@ -456,7 +461,7 @@ contract DuelMeTest is Test {
         vm.prank(alice);
         duelMe.claimVictory(duelId);
 
-        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory d = duelMe.getDuel(duelId);
         assertEq(uint256(d.state), uint256(DuelMe.DuelState.WinnerClaimed));
         assertEq(d.claimedWinner, alice);
         assertEq(d.claimedBy, alice);
@@ -469,7 +474,7 @@ contract DuelMeTest is Test {
         vm.prank(bob);
         duelMe.claimVictory(duelId);
 
-        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory d = duelMe.getDuel(duelId);
         assertEq(d.claimedWinner, bob);
         assertEq(d.claimedBy, bob);
     }
@@ -534,10 +539,13 @@ contract DuelMeTest is Test {
         vm.prank(bob);
         duelMe.admitDefeat(duelId);
 
-        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory d = duelMe.getDuel(duelId);
         assertEq(d.claimedWinner, alice);
         assertEq(d.claimedBy, bob);
-        assertEq(uint256(d.state), uint256(DuelMe.DuelState.WinnerClaimed));
+        assertEq(uint256(d.state), uint256(DuelMe.DuelState.Resolved), "admitting defeat resolves outright");
+        _assertPayouts(duelId, WAGER * 2, 0, false, false);
+        _assertStats(alice, 1, 0, "Alice");
+        _assertStats(bob, 1, 0, "Bob");
     }
 
     function testAdmitDefeatByCreator() public {
@@ -546,7 +554,7 @@ contract DuelMeTest is Test {
         vm.prank(alice);
         duelMe.admitDefeat(duelId);
 
-        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory d = duelMe.getDuel(duelId);
         assertEq(d.claimedWinner, bob);
         assertEq(d.claimedBy, alice);
     }
@@ -597,7 +605,7 @@ contract DuelMeTest is Test {
         vm.prank(bob);
         duelMe.confirmResult(duelId);
 
-        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory d = duelMe.getDuel(duelId);
         assertEq(uint256(d.state), uint256(DuelMe.DuelState.Resolved));
         assertEq(usdt.balanceOf(alice), aliceBalBefore);
         assertEq(usdt.balanceOf(address(duelMe)), WAGER * 2);
@@ -613,26 +621,16 @@ contract DuelMeTest is Test {
         _assertStats(bob, 1, 0, "Bob");
     }
 
-    function testConfirmResultAfterAdmitDefeat() public {
+    function testConfirmResultAfterAdmitDefeatReverts() public {
         uint256 duelId = _createAndFundDuel();
 
-        // Bob admits defeat → alice is claimed winner
         vm.prank(bob);
         duelMe.admitDefeat(duelId);
 
-        uint256 aliceBalBefore = usdt.balanceOf(alice);
-
-        // Alice confirms (she is the other participant)
+        // Nothing is left to confirm — the duel resolved the moment defeat was admitted.
         vm.prank(alice);
+        vm.expectRevert("Duel not in WinnerClaimed state");
         duelMe.confirmResult(duelId);
-
-        _assertPayouts(duelId, WAGER * 2, 0, false, false);
-
-        _claimPayout(alice, duelId);
-
-        assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER * 2);
-        _assertStats(alice, 1, 0, "Alice");
-        _assertStats(bob, 1, 0, "Bob");
     }
 
     function testConfirmResultOpponentClaimsVictory() public {
@@ -724,7 +722,7 @@ contract DuelMeTest is Test {
         vm.prank(bob);
         duelMe.disputeResult(duelId);
 
-        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory d = duelMe.getDuel(duelId);
         assertEq(uint256(d.state), uint256(DuelMe.DuelState.Disputed));
         assertEq(usdt.balanceOf(alice), aliceBalBefore);
         assertEq(usdt.balanceOf(bob), bobBalBefore);
@@ -791,7 +789,7 @@ contract DuelMeTest is Test {
         vm.prank(charlie); // anyone can trigger
         duelMe.refund(duelId);
 
-        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory d = duelMe.getDuel(duelId);
         assertEq(uint256(d.state), uint256(DuelMe.DuelState.Refunded));
         assertEq(usdt.balanceOf(alice), aliceBalBefore);
         assertEq(usdt.balanceOf(bob), bobBalBefore);
@@ -833,7 +831,7 @@ contract DuelMeTest is Test {
         vm.warp(block.timestamp + 3600);
         duelMe.refund(duelId);
 
-        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory d = duelMe.getDuel(duelId);
         assertEq(uint256(d.state), uint256(DuelMe.DuelState.Refunded));
     }
 
@@ -899,7 +897,7 @@ contract DuelMeTest is Test {
         vm.prank(alice);
         duelMe.cancelDuel(duelId);
 
-        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory d = duelMe.getDuel(duelId);
         assertEq(uint256(d.state), uint256(DuelMe.DuelState.Cancelled));
         _assertPayouts(duelId, WAGER, 0, false, false);
         assertEq(usdt.balanceOf(alice), aliceBalBefore);
@@ -990,8 +988,6 @@ contract DuelMeTest is Test {
         duelMe.joinDuel(duel2, DEFAULT_INVITE_SECRET);
         vm.prank(bob);
         duelMe.admitDefeat(duel2);
-        vm.prank(alice);
-        duelMe.confirmResult(duel2);
 
         _assertStats(alice, 2, 0, "Alice after duel 2");
         _assertStats(bob, 2, 0, "Bob after duel 2");
@@ -1112,41 +1108,70 @@ contract DuelMeTest is Test {
         duelMe.admitDefeat(duelId);
     }
 
-    function testConfirmResultWhenPausedReverts() public {
+    /// @dev A pause must not decide a contested duel. If confirming were pausable, the claim
+    ///      window would run out during the pause, `refund` (which is not pausable) would turn
+    ///      the win into a draw, and the player who was prevented from confirming would be the
+    ///      one stamped as having abandoned it.
+    function testConfirmResultWorksWhilePaused() public {
         uint256 duelId = _createFundAndClaim();
         duelMe.pause();
 
         vm.prank(bob);
-        vm.expectRevert();
         duelMe.confirmResult(duelId);
+
+        assertEq(uint256(duelMe.getDuel(duelId).state), uint256(DuelMe.DuelState.Resolved));
+        _assertPayouts(duelId, WAGER * 2, 0, false, false);
+        _assertStats(bob, 1, 0, "Bob");
     }
 
-    function testDisputeResultWhenPausedReverts() public {
+    function testDisputeResultWorksWhilePaused() public {
         uint256 duelId = _createFundAndClaim();
         duelMe.pause();
 
         vm.prank(bob);
-        vm.expectRevert();
         duelMe.disputeResult(duelId);
+
+        assertEq(uint256(duelMe.getDuel(duelId).state), uint256(DuelMe.DuelState.Disputed));
+        _assertPayouts(duelId, WAGER, WAGER, false, false);
     }
 
-    function testRefundWhenPausedReverts() public {
+    /// @dev The asymmetry that made this rule necessary: with a pausable confirm and an
+    ///      unpausable refund, pausing over a claim window rewrites the outcome.
+    function testPauseCannotTurnAWinIntoARefund() public {
+        uint256 duelId = _createFundAndClaim();
+        duelMe.pause();
+        vm.warp(block.timestamp + duelMe.claimTimeout() + 1);
+
+        vm.prank(bob);
+        duelMe.confirmResult(duelId);
+
+        vm.expectRevert("Duel not in WinnerClaimed state");
+        duelMe.refund(duelId);
+
+        _assertStats(bob, 1, 0, "Bob still honoured the duel");
+    }
+
+    function testRefundWorksWhilePaused() public {
         uint256 duelId = _createFundAndClaim();
         vm.warp(block.timestamp + 3601);
         duelMe.pause();
 
-        vm.expectRevert();
         duelMe.refund(duelId);
+
+        assertEq(uint256(duelMe.getDuel(duelId).state), uint256(DuelMe.DuelState.Refunded));
     }
 
-    function testCancelDuelWhenPausedReverts() public {
+    function testCancelDuelWorksWhilePaused() public {
         vm.prank(alice);
         uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
         duelMe.pause();
 
+        // A pause stops the contract taking new money; it must not trap a stake nobody matched.
         vm.prank(alice);
-        vm.expectRevert();
         duelMe.cancelDuel(duelId);
+
+        assertEq(uint256(duelMe.getDuel(duelId).state), uint256(DuelMe.DuelState.Cancelled));
+        _claimPayout(alice, duelId);
     }
 
     function testUnpauseRestoresFunctionality() public {
@@ -1161,7 +1186,7 @@ contract DuelMeTest is Test {
         vm.prank(bob);
         duelMe.joinDuel(duelId, DEFAULT_INVITE_SECRET);
 
-        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory d = duelMe.getDuel(duelId);
         assertEq(uint256(d.state), uint256(DuelMe.DuelState.Funded));
     }
 
@@ -1169,11 +1194,13 @@ contract DuelMeTest is Test {
     // getDuel / view functions
     // =====================================================================
 
+    /// @dev An id nobody issued reads back as `Nonexistent`, not as a duel waiting for an
+    ///      opponent — the distinction the whole zero-value sentinel exists to make.
     function testGetDuelNonexistent() public view {
-        DuelMe.Duel memory d = duelMe.getDuel(999);
+        DuelMe.DuelView memory d = duelMe.getDuel(999);
         assertEq(d.creator, address(0));
         assertEq(d.wagerAmount, 0);
-        assertEq(uint256(d.state), uint256(DuelMe.DuelState.Created)); // default is 0
+        assertEq(uint256(d.state), uint256(DuelMe.DuelState.Nonexistent));
     }
 
     function testConstants() public view {
@@ -1212,17 +1239,15 @@ contract DuelMeTest is Test {
         duelMe.confirmResult(duel0);
 
         // Duel 1 should still be Funded
-        DuelMe.Duel memory d1 = duelMe.getDuel(duel1);
+        DuelMe.DuelView memory d1 = duelMe.getDuel(duel1);
         assertEq(uint256(d1.state), uint256(DuelMe.DuelState.Funded));
 
         // Resolve duel 1
         vm.prank(dave);
         duelMe.admitDefeat(duel1);
-        vm.prank(charlie);
-        duelMe.confirmResult(duel1);
 
         // Verify payouts are correct
-        DuelMe.Duel memory d0 = duelMe.getDuel(duel0);
+        DuelMe.DuelView memory d0 = duelMe.getDuel(duel0);
         assertEq(uint256(d0.state), uint256(DuelMe.DuelState.Resolved));
         d1 = duelMe.getDuel(duel1);
         assertEq(uint256(d1.state), uint256(DuelMe.DuelState.Resolved));
@@ -1236,22 +1261,18 @@ contract DuelMeTest is Test {
     }
 
     // =====================================================================
-    // Full lifecycle: admit defeat → other player confirms
+    // Full lifecycle: admit defeat → resolved on the spot
     // =====================================================================
 
-    function testFullFlowAdmitDefeatThenConfirm() public {
+    function testFullFlowAdmitDefeat() public {
         uint256 duelId = _createAndFundDuel();
         uint256 aliceBalBefore = usdt.balanceOf(alice);
 
-        // Bob admits defeat → alice wins
+        // Bob admits defeat → alice wins, with no confirmation round
         vm.prank(bob);
         duelMe.admitDefeat(duelId);
 
-        // Alice (the other player) confirms
-        vm.prank(alice);
-        duelMe.confirmResult(duelId);
-
-        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory d = duelMe.getDuel(duelId);
         assertEq(uint256(d.state), uint256(DuelMe.DuelState.Resolved));
         assertEq(d.claimedWinner, alice);
         _assertPayouts(duelId, WAGER * 2, 0, false, false);
@@ -1378,7 +1399,7 @@ contract DuelMeTest is Test {
         assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER, "Alice should receive her wager back");
         assertEq(usdt.balanceOf(address(duelMe)), WAGER, "Contract holds bob's unclaimed share");
 
-        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory d = duelMe.getDuel(duelId);
         assertEq(uint256(d.state), uint256(DuelMe.DuelState.Refunded));
         assertEq(d.creatorClaimed, true);
         assertEq(d.opponentClaimed, false);
@@ -1393,7 +1414,7 @@ contract DuelMeTest is Test {
         uint256 duel1 = _createFundAndClaim();
 
         // Duel 2: bob creates with OTHER_INVITE_SECRET hash, alice joins, bob claims victory → bob is claimer
-        bytes32 otherHash = keccak256(abi.encodePacked(OTHER_INVITE_SECRET));
+        bytes32 otherHash = duelMe.hashInviteSecret(OTHER_INVITE_SECRET);
         vm.prank(bob);
         uint256 duel2 = duelMe.createDuel(WAGER, otherHash);
         vm.prank(alice);
@@ -1416,9 +1437,9 @@ contract DuelMeTest is Test {
 
         assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER * 2, "Alice claims from both duels");
 
-        DuelMe.Duel memory d1 = duelMe.getDuel(duel1);
+        DuelMe.DuelView memory d1 = duelMe.getDuel(duel1);
         assertEq(uint256(d1.state), uint256(DuelMe.DuelState.Refunded));
-        DuelMe.Duel memory d2 = duelMe.getDuel(duel2);
+        DuelMe.DuelView memory d2 = duelMe.getDuel(duel2);
         assertEq(uint256(d2.state), uint256(DuelMe.DuelState.Refunded));
     }
 
@@ -1440,7 +1461,7 @@ contract DuelMeTest is Test {
 
         assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER, "Alice still claims her share");
 
-        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory d = duelMe.getDuel(duelId);
         assertEq(uint256(d.state), uint256(DuelMe.DuelState.Refunded));
         assertEq(d.creatorClaimed, true);
     }
@@ -1457,7 +1478,7 @@ contract DuelMeTest is Test {
         duelMe.refundAndClaimPayouts(ids);
 
         // State should still be WinnerClaimed (nothing changed)
-        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory d = duelMe.getDuel(duelId);
         assertEq(uint256(d.state), uint256(DuelMe.DuelState.WinnerClaimed));
     }
 
@@ -1475,7 +1496,7 @@ contract DuelMeTest is Test {
 
         // Even though the call reverted, check the duel was NOT refunded yet
         // (the revert rolls back all state changes in the call)
-        DuelMe.Duel memory d = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory d = duelMe.getDuel(duelId);
         assertEq(uint256(d.state), uint256(DuelMe.DuelState.WinnerClaimed), "Revert rolls back refund");
     }
 
@@ -1487,7 +1508,7 @@ contract DuelMeTest is Test {
         duelMe.refundAndClaimPayouts(ids);
     }
 
-    function testRefundAndClaimPayoutsWhenPausedReverts() public {
+    function testRefundAndClaimPayoutsWorkWhilePaused() public {
         uint256 duelId = _createFundAndClaim();
         vm.warp(block.timestamp + 3601);
         duelMe.pause();
@@ -1495,9 +1516,12 @@ contract DuelMeTest is Test {
         uint256[] memory ids = new uint256[](1);
         ids[0] = duelId;
 
+        uint256 balanceBefore = usdt.balanceOf(alice);
         vm.prank(alice);
-        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
         duelMe.refundAndClaimPayouts(ids);
+
+        assertEq(usdt.balanceOf(alice), balanceBefore + WAGER);
+        assertEq(uint256(duelMe.getDuel(duelId).state), uint256(DuelMe.DuelState.Refunded));
     }
 
     function testRefundAndClaimPayoutsMixedStates() public {
@@ -1520,11 +1544,11 @@ contract DuelMeTest is Test {
 
         assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER * 3, "Alice receives WAGER (refund) + 2*WAGER (resolve)");
 
-        DuelMe.Duel memory d1 = duelMe.getDuel(id1);
+        DuelMe.DuelView memory d1 = duelMe.getDuel(id1);
         assertEq(uint256(d1.state), uint256(DuelMe.DuelState.Refunded));
         assertEq(d1.creatorClaimed, true);
 
-        DuelMe.Duel memory d2 = duelMe.getDuel(id2);
+        DuelMe.DuelView memory d2 = duelMe.getDuel(id2);
         assertEq(uint256(d2.state), uint256(DuelMe.DuelState.Resolved));
         assertEq(d2.creatorClaimed, true);
     }
@@ -1563,5 +1587,23 @@ contract DuelMeTest is Test {
         // Alice gets exactly 1x WAGER (not 2x)
         assertEq(usdt.balanceOf(alice), aliceBalBefore + WAGER);
         _assertPayouts(duelId, WAGER, WAGER, true, false);
+    }
+
+    /// @dev The other half of the pin in `frontend/src/lib/__tests__/contractMirrors.test.ts`:
+    ///      the client reads `state` as a raw number, so a renumber on either side reinterprets
+    ///      every duel — `Resolved` read as `Refunded` — with nothing failing to compile.
+    ///      `Nonexistent` holding zero is the invariant the whole sentinel rests on.
+    function testDuelStateNumbering() public pure {
+        assertEq(uint8(DuelMe.DuelState.Nonexistent), 0, "a zeroed slot must not be a real state");
+        assertEq(uint8(DuelMe.DuelState.Created), 1);
+        assertEq(uint8(DuelMe.DuelState.Funded), 2);
+        assertEq(uint8(DuelMe.DuelState.WinnerClaimed), 3);
+        assertEq(uint8(DuelMe.DuelState.Resolved), 4);
+        assertEq(uint8(DuelMe.DuelState.Refunded), 5);
+        assertEq(uint8(DuelMe.DuelState.Cancelled), 6);
+        assertEq(uint8(DuelMe.DuelState.Declined), 7);
+        assertEq(uint8(DuelMe.DuelState.Disputed), 8);
+        assertEq(uint8(DuelMe.DuelState.MutualCancelRequested), 9);
+        assertEq(uint8(DuelMe.DuelState.MutuallyCancelled), 10);
     }
 }

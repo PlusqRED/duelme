@@ -150,7 +150,13 @@ abstract contract MetaTxSigner is Test {
     uint256 internal constant WAGER = 10_000_000; // 10 USDT
     uint96 internal constant MIN_WAGER = 300_000; // 0.3 USDT
     bytes32 internal constant INVITE_SECRET = bytes32(uint256(1));
-    bytes32 internal constant INVITE_HASH = keccak256(abi.encodePacked(INVITE_SECRET));
+
+    /// @dev Assigned in each suite's `setUp` from `duelMe.hashInviteSecret(INVITE_SECRET)`, so the
+    ///      formula lives only in the contract. The placeholder is deliberately non-zero:
+    ///      `bytes32(0)` is how the contract spells "open duel", so a suite that forgot the
+    ///      assignment would silently create duels anyone can join and every invite assertion in
+    ///      it would pass for the wrong reason. This value fails as "Invalid invite" instead.
+    bytes32 internal INVITE_HASH = keccak256("MetaTxSigner: INVITE_HASH not set in setUp");
 
     /// @dev Signs a request and pushes it through the forwarder as `relayer` would. The
     ///      verify assertion is deliberately inside the shared helper: a suite that forgot it

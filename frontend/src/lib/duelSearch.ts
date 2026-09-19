@@ -17,6 +17,9 @@ import { getReputationLabelKey, type ReputationLevel } from '@/lib/reputation';
 type Translate = (key: TranslationKey, params?: TranslationParams) => string;
 
 const CANONICAL_STATE_TERMS: Record<DuelState, string[]> = {
+  // A duel this app renders is never `Nonexistent` — screens list ids below `duelCount`, and a
+  // direct link to an id nobody issued takes the not-found branch. Present for exhaustiveness.
+  [DuelState.Nonexistent]: [],
   [DuelState.Created]: ['waiting for opponent', 'created'],
   [DuelState.Funded]: ['in progress', 'funded', 'live'],
   [DuelState.WinnerClaimed]: ['waiting for confirmation', 'result submitted'],

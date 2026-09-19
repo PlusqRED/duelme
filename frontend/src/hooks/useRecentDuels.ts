@@ -1,10 +1,11 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useReadContract, useReadContracts } from 'wagmi';
 import { formatUnits } from 'viem';
-import { duelMeAbi, DuelState } from '@/lib/contracts';
-import { DUELME_ADDRESSES, USDT_DECIMALS, ZERO_ADDRESS, CHAIN_NAMES, DEFAULT_CHAIN_ID } from '@/lib/constants';
+import { DuelState } from '@/lib/contracts';
+import { getRelevantDuelTimestamp } from '@/lib/duel';
+import { USDT_DECIMALS, ZERO_ADDRESS, CHAIN_NAMES, DEFAULT_CHAIN_ID } from '@/lib/constants';
+import { useDuelRange } from './useDuelReads';
 
 export interface RecentDuel {
   id: number;
@@ -22,75 +23,21 @@ export interface RecentDuel {
 
 
 export function useRecentDuels() {
-  const contractAddress = DUELME_ADDRESSES[DEFAULT_CHAIN_ID];
-  const enabled = !!contractAddress && contractAddress !== ZERO_ADDRESS;
-
-  const { data: duelCount, isLoading: isCountLoading } = useReadContract({
-    address: contractAddress,
-    abi: duelMeAbi,
-    functionName: 'duelCount',
-    chainId: DEFAULT_CHAIN_ID,
-    query: { enabled, refetchInterval: 15_000, staleTime: 0 },
-  });
-
-  const count = duelCount ? Number(duelCount) : 0;
-
-  const duelContracts = useMemo(() => {
-    if (!count || !enabled) return [];
-    return Array.from({ length: count }, (_, i) => ({
-      address: contractAddress,
-      abi: duelMeAbi,
-      functionName: 'getDuel' as const,
-      args: [BigInt(i)] as const,
-      chainId: DEFAULT_CHAIN_ID,
-    }));
-  }, [count, contractAddress, enabled]);
-
-  const { data: duelResults, isLoading: isDuelsLoading } = useReadContracts({
-    contracts: duelContracts,
-    query: { enabled: duelContracts.length > 0, refetchInterval: 15_000, staleTime: 0 },
-  });
+  const { duels: duelRecords, isLoading, isError } = useDuelRange({ chainId: DEFAULT_CHAIN_ID });
 
   const duels = useMemo<RecentDuel[]>(() => {
-    if (!duelResults) return [];
-
     const recent: RecentDuel[] = [];
 
-    for (let i = 0; i < duelResults.length; i++) {
-      const res = duelResults[i];
-      if (res.status !== 'success' || !res.result) continue;
-
-      const d = res.result as {
-        creator: `0x${string}`;
-        opponent: `0x${string}`;
-        wagerAmount: bigint;
-        message: string;
-        claimedWinner: `0x${string}`;
-        createdAt: bigint;
-        fundedAt: bigint;
-        cancelRequestedAt: bigint;
-        claimTimestamp: bigint;
-        finalizedAt: bigint;
-        state: number;
-      };
-
+    for (const d of duelRecords) {
+      // `_duelView` reports no opponent until someone joins, so this also drops duels still
+      // waiting and duels cancelled before anyone did.
       if (d.opponent === ZERO_ADDRESS) continue;
-      if (d.state === DuelState.Created) continue;
 
       const state = d.state as DuelState;
-      const lastEventAt =
-        d.finalizedAt > 0n
-          ? d.finalizedAt
-          : d.cancelRequestedAt > 0n
-            ? d.cancelRequestedAt
-          : d.claimTimestamp > 0n
-            ? d.claimTimestamp
-            : d.fundedAt > 0n
-              ? d.fundedAt
-              : d.createdAt;
+      const lastEventAt = getRelevantDuelTimestamp(d);
 
       recent.push({
-        id: i,
+        id: d.id,
         player1: d.creator,
         player2: d.opponent,
         wager: parseFloat(formatUnits(d.wagerAmount, USDT_DECIMALS)),
@@ -112,11 +59,11 @@ export function useRecentDuels() {
 
         return a.lastEventAt > b.lastEventAt ? -1 : 1;
       });
-  }, [duelResults]);
+  }, [duelRecords]);
 
   return {
     duels,
-    isLoading: isCountLoading || isDuelsLoading,
-    isError: false,
+    isLoading,
+    isError,
   };
 }

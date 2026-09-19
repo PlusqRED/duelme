@@ -48,12 +48,21 @@ forge test --match-test testCreateDuel
 forge test --match-test "testRefund*"
 ```
 
-### Current test coverage — 107 tests
+### Current test coverage — 282 tests (plus 5 fork tests)
 
 | Suite | Focus | Count |
 |---|---|---|
-| `test/DuelMe.t.sol` | Core lifecycle, invite security, reputation, pausable behavior, UTF-8 messages | 95 |
-| `test/DuelMePayouts.t.sol` | Claim payouts, lifecycle timestamps, mutual cancellation, batch claims | 12 |
+| `test/DuelMe.t.sol` | Core lifecycle, invite security, reputation, pause behaviour, UTF-8 messages, state numbering | 110 |
+| `test/DuelMeEmergency.t.sol` | Timelocked emergency withdrawal, token and ETH rescue | 40 |
+| `test/DuelMeMetaTx.t.sol` | ERC-2771 relaying: sender resolution, what is and is not relayable | 29 |
+| `test/DuelMeAdminConfig.t.sol` | Owner-adjustable params, creation pause, two-step ownership | 27 |
+| `test/DuelMePermit.t.sol` | EIP-2612 funding, permit front-running | 22 |
+| `test/DuelMePayouts.t.sol` | Claim payouts, claiming to another address, batch claims | 17 |
+| `test/DuelMeInvites.t.sol` | Open duels, address-bound duels, ids that name no duel, invite binding and its golden vector | 19 |
+| `test/DuelMeViews.t.sol` | Batch reads, player record, derived payouts | 11 |
+| `test/DuelMeTokenSafety.t.sol` | Refusing a token that takes a transfer fee | 3 |
+| `test/DuelMeInvariant.t.sol` | Solvency under random sequences (8192 calls per invariant), nothing written past `duelCount`, plus the handler's own lifecycle smoke test | 4 |
+| `test/UsdtPermitFork.t.sol` | Real USD₮0 on Arbitrum One — skipped without `ARBITRUM_RPC_URL` | 5 |
 
 Run the full suite with:
 
@@ -64,52 +73,75 @@ forge test
 ## Duel lifecycle
 
 ```
-Created ──► Funded ──► WinnerClaimed ──► Resolved
-  │           │              │
-  │           │              ├────► Disputed
-  │           │              └────► Refunded (after 1h timeout)
-  │           └────► MutualCancelRequested ──► Funded
-  │                                              └────► MutuallyCancelled
-  ├────► Cancelled
-  └────► Declined
+Nonexistent ──► Created ──► Funded ──► WinnerClaimed ──► Resolved
+(no such id)      │           │              │
+                  │           │              ├────► Disputed
+                  │           │              └────► Refunded (after 1h timeout)
+                  │           ├────► Resolved (admitDefeat — no confirmation round)
+                  │           └────► MutualCancelRequested ──► Funded
+                  │                                              └────► MutuallyCancelled
+                  ├────► Cancelled
+                  └────► Declined
 ```
+
+`Nonexistent` is the enum's zero value on purpose: duels live in a mapping, so an id that was
+never created reads back as a zeroed struct, and it must not pass for one waiting for an opponent.
 
 | Step | Function | Description |
 |---|---|---|
-| 1 | `createDuel(amount, inviteHash)` / `createDuel(amount, inviteHash, message)` | Creator deposits USDT, stores only the invite hash on-chain, optionally adds a short UTF-8 message. Needs a prior `approve` |
-| 1a | `createDuelWithPermit(amount, inviteHash, message, deadline, v, r, s)` | Same, funded by an EIP-2612 signature instead of a separate `approve` transaction |
-| 2 | `joinDuel(duelId, inviteSecret)` | Invited opponent matches the wager, state = Funded |
+| 1 | `createDuel(amount, inviteHash[, message])` / `createDuelFor(amount, inviteHash, invitedOpponent, message)` | Creator deposits USDT and stores only the invite hash. `inviteHash == bytes32(0)` makes the duel open to anyone; a non-zero `invitedOpponent` restricts it to one address. Needs a prior `approve` |
+| 1a | `createDuelWithPermit(…)` / `createDuelForWithPermit(…)` | Same, funded by an EIP-2612 signature instead of a separate `approve` transaction |
+| 2 | `joinDuel(duelId, inviteSecret)` | Opponent matches the wager, state = Funded. The secret is ignored for an open duel |
 | 2a | `joinDuelWithPermit(duelId, inviteSecret, deadline, v, r, s)` | Same, funded by an EIP-2612 signature |
-| 3 | `declineDuel(duelId, inviteSecret)` | Invited opponent declines, state = Declined, creator refund becomes claimable |
+| 3 | `declineDuel(duelId, inviteSecret)` | Invited opponent declines, state = Declined, creator refund becomes claimable. Refused only for a duel that is open in both senses (no hash and no `invitedOpponent`) — its invite is public, so anyone could otherwise end it |
 | 4 | `requestMutualCancellation(duelId)` | Either funded participant pauses the duel and asks to cancel it by agreement |
 | 5 | `acceptMutualCancellation(duelId)` | Other participant accepts, state = MutuallyCancelled, both refunds become claimable |
 | 6 | `declineMutualCancellation(duelId)` / `withdrawMutualCancellationRequest(duelId)` | Duel resumes in `Funded` |
-| 7 | `claimVictory(duelId)` / `admitDefeat(duelId)` | Either participant submits the result, state = WinnerClaimed, 1h timer starts |
-| 8 | `confirmResult(duelId)` | Other participant confirms, state = Resolved, winner payout becomes claimable |
+| 7 | `claimVictory(duelId)` | Participant claims the win, state = WinnerClaimed, 1h timer starts |
+| 7a | `admitDefeat(duelId)` | Participant concedes — state = Resolved immediately. A statement against your own interest needs no confirmation |
+| 8 | `confirmResult(duelId)` | Other participant confirms a claim, state = Resolved, winner payout becomes claimable |
 | 9 | `disputeResult(duelId)` | Other participant disputes, state = Disputed, both refunds become claimable |
 | 10 | `refund(duelId)` | After 1h timeout, state = Refunded, both 50/50 refunds become claimable |
 | 11 | `cancelDuel(duelId)` | Creator cancels before join, state = Cancelled, creator refund becomes claimable |
-| 12 | `claimPayout(duelId)` / `claimPayouts(duelIds)` | Withdraw claimable winnings or refunds from terminal outcomes |
+| 12 | `claimPayout(duelId)` / `claimPayouts(duelIds)`, plus `claimPayoutTo` / `claimPayoutsTo` / `refundAndClaimPayoutsTo` | Withdraw claimable winnings or refunds. The `*To` variants matter when the token blacklists the claimant's address, and let a player bank winnings elsewhere |
+| — | `getDuels(offset, limit)` / `getDuelsByIds(ids)` | Batch reads for listing screens, so a client never issues one call per duel |
 
 ## Reputation (PlayerStats)
 
-On-chain counters per wallet: `duelsHonored` and `duelsAbandoned`.
+Five counters per wallet in a single storage slot: `duelsHonored`, `duelsAbandoned`, `duelsWon`,
+`duelsLost` and `volume` (the player's own stake across duels that reached a result).
 
-| Outcome | Honored | Abandoned |
-|---|---|---|
-| `confirmResult` | Both players +1 | — |
-| `refund` | Claimer +1 | Non-responder +1 |
-| `cancelDuel` / `declineDuel` / `acceptMutualCancellation` / `disputeResult` | — | — |
+| Outcome | Honored | Abandoned | Won / Lost | Volume |
+|---|---|---|---|---|
+| `confirmResult` / `admitDefeat` | Both players +1 | — | Winner +1 won, loser +1 lost | Both + wager |
+| `refund` (claim timed out) | Claimer +1 | Non-responder +1 | — | Both + wager |
+| `cancelDuel` / `declineDuel` / `acceptMutualCancellation` / `disputeResult` | — | — | — | — |
 
 ## Security
 
 - **ReentrancyGuard** on all token-moving functions
-- **Pausable** with owner-only `pause()`/`unpause()`
-- **SafeERC20** for all transfers
-- **Claim-based payouts** to avoid risky push-payment behavior with USDT-like tokens
-- **Invite hash model** so the duel id alone is not enough to join or decline
+- **Pausable** with owner-only `pause()`/`unpause()`. It stops the contract taking new money and
+  stops a new result being declared; settling a result that already exists (`confirmResult`,
+  `disputeResult`, `refund`), cancelling, and every claim stay open. The brake cannot hold money a
+  player has already won, and cannot turn a pending win into a refund by running out its clock
+- **`setDuelCreationPaused(bool)`** as the migration switch: no new duels, everything already on the
+  board plays out and pays out
+- **Two-step ownership** (`Ownable2Step`), with `_checkOwner` and `acceptOwnership` pinned to
+  `msg.sender` so no owner action can be relayed through the forwarder
+- **SafeERC20** for all transfers, and every incoming wager is checked against the balance delta —
+  a token that takes a transfer fee is refused rather than silently under-collateralising duels
+- **Claim-based payouts**, derived from the terminal state rather than stored, so state and payout
+  cannot disagree
+- **A duel id only names a duel once `createDuel` has issued it.** `Nonexistent`, not `Created`,
+  holds the zero value of `DuelState`, so `duels[id]` past `duelCount` reads back as no duel at
+  all. While `Created` held zero such a slot read back as a real, fully open duel and `joinDuel`
+  admitted anyone on it; `_requireWaitingDuel` is now the single preamble on every path whose
+  required state is `Created`. Never give `Created` the zero value again
+- **Invite hash bound to this contract and chain** (`keccak256(abi.encode(address(this), chainid, secret))`),
+  so an invite cannot be replayed against another deployment. `bytes32(0)` means no secret is
+  needed; a duel with neither a secret nor an `invitedOpponent` is open to all and cannot be declined
 - **UTF-8 message validation** capped at 32 code points / 128 bytes
-- **MIN_WAGER = 3 USDT** to prevent dust spam
+- **`MIN_WAGER_FLOOR` = 0.1 USDT**, with the deploy scripts setting `minWager` to 0.3 USDT
 - **Timelocked emergency USDT withdrawal** (`30 days`) plus immediate rescue for non-USDT tokens
 
 ## Deploy to testnet

@@ -115,6 +115,8 @@ export function isRefundableDuel(
 
 export function getDuelStateLabelKey(state: DuelState, timedOut?: boolean): TranslationKey {
   switch (state) {
+    case DuelState.Nonexistent:
+      return 'duel.notFound';
     case DuelState.Created:
       return 'duel.waiting';
     case DuelState.Funded:

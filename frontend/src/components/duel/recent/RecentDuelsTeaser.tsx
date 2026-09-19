@@ -14,7 +14,7 @@ const LANDING_TEASER_LIMIT = 6;
 
 export function RecentDuelsTeaser() {
   const { t } = useTranslation();
-  const { duels, isLoading } = useRecentDuels();
+  const { duels, isLoading, isError } = useRecentDuels();
 
   const visibleDuels = useMemo(
     () => duels.slice(0, LANDING_TEASER_LIMIT),
@@ -32,6 +32,11 @@ export function RecentDuelsTeaser() {
 
   return (
     <div className="w-full">
+      {isError && (
+        <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          {t('duel.partiallyLoaded')}
+        </p>
+      )}
       <RecentDuelsGrid
         duels={visibleDuels}
         isLoading={isLoading}

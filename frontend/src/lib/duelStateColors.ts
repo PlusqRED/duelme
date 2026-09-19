@@ -8,6 +8,13 @@ export interface DuelStateConfig {
 }
 
 export const DUEL_STATE_CONFIG: Record<DuelState, DuelStateConfig> = {
+  // A duel this app renders is never `Nonexistent` — screens list ids below `duelCount`, and a
+  // direct link to an id nobody issued takes the not-found branch. Present for exhaustiveness.
+  [DuelState.Nonexistent]: {
+    key: 'duel.notFound',
+    colorClass: 'bg-slate-50 text-slate-500 border-slate-200',
+    accentClass: 'border-t-slate-300',
+  },
   [DuelState.Created]: {
     key: 'duel.waiting',
     colorClass: 'bg-blue-50 text-blue-700 border-blue-200',

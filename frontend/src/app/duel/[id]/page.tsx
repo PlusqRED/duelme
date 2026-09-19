@@ -11,8 +11,8 @@ import type { TranslationKey } from '@/i18n/translations';
 import { DuelState } from '@/lib/contracts';
 import { getClaimableAmountForAddress, isDuelClaimTimedOut, isDuelFullySettled } from '@/lib/duel';
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
-import { hashInviteSecret, readInviteSecretFromHash, readStoredInviteSecret, storeInviteSecret, isPublicDuel, PUBLIC_INVITE_SECRET } from '@/lib/invite';
-import { DEFAULT_CHAIN, DEFAULT_CHAIN_ID, ZERO_ADDRESS } from '@/lib/constants';
+import { matchesInviteHash, readInviteSecretFromHash, readStoredInviteSecret, storeInviteSecret, isPublicDuel, OPEN_DUEL_INVITE_SECRET } from '@/lib/invite';
+import { DEFAULT_CHAIN, DEFAULT_CHAIN_ID, DUELME_ADDRESSES, ZERO_ADDRESS } from '@/lib/constants';
 import { useContractConfig } from '@/hooks/useContractConfig';
 import { useDuel } from '@/hooks/useDuel';
 import { useDuelActions } from '@/hooks/useDuelActions';
@@ -43,6 +43,9 @@ const STATUS_CONFIG: Record<
   DuelState,
   { icon: React.ElementType; gradient: string; label: string }
 > = {
+  // A duel this app renders is never `Nonexistent` — screens list ids below `duelCount`, and a
+  // direct link to an id nobody issued takes the not-found branch. Present for exhaustiveness.
+  [DuelState.Nonexistent]: { icon: XCircle, gradient: 'from-slate-400 to-slate-500', label: 'duel.notFound' },
   [DuelState.Created]: { icon: Hourglass, gradient: 'from-blue-600 to-indigo-600', label: 'duel.waiting' },
   [DuelState.Funded]: { icon: Swords, gradient: 'from-indigo-600 to-violet-600', label: 'duel.inProgress' },
   [DuelState.WinnerClaimed]: { icon: Clock, gradient: 'from-amber-500 to-orange-500', label: 'duel.waitingConfirm' },
@@ -78,6 +81,7 @@ export default function DuelPage({
   const { authenticated, login } = usePrivy();
   const { walletAddress } = useActiveWallet();
   const [inviteSecret, setInviteSecret] = useState<`0x${string}` | null>(null);
+  const duelMeAddress = DUELME_ADDRESSES[DEFAULT_CHAIN_ID] ?? ZERO_ADDRESS;
 
   const { switchChainAsync } = useSwitchChain();
   const { chainId: connectedChainId } = useAccount();
@@ -104,7 +108,7 @@ export default function DuelPage({
   useEffect(() => {
     if (!duel) return;
     if (isPublicDuel(duel.inviteHash)) {
-      setInviteSecret((current) => current === PUBLIC_INVITE_SECRET ? current : PUBLIC_INVITE_SECRET);
+      setInviteSecret((current) => current === OPEN_DUEL_INVITE_SECRET ? current : OPEN_DUEL_INVITE_SECRET);
     }
   }, [duel]);
 
@@ -183,7 +187,13 @@ export default function DuelPage({
 
   async function handleDecline() {
     if (!duel) return;
-    if (!inviteSecret || hashInviteSecret(inviteSecret).toLowerCase() !== duel.inviteHash.toLowerCase()) {
+    // A duel with no invite hash carries no secret to check — it is declinable when it names an
+    // invited opponent instead, and the contract ignores the secret we pass. Demanding a match
+    // here locked that player out of their own Decline button.
+    if (
+      !isPublicDuel(duel.inviteHash)
+      && !matchesInviteHash(inviteSecret, duel.inviteHash, duelMeAddress, DEFAULT_CHAIN_ID)
+    ) {
       appToast.error('duel.privateInviteMissing');
       return;
     }
@@ -191,7 +201,7 @@ export default function DuelPage({
     if (!(await ensureChain())) return;
     setPendingAction('declining');
     appToast.info('toast.decliningDuel');
-    declineDuel(BigInt(duelId), inviteSecret);
+    declineDuel(BigInt(duelId), inviteSecret ?? OPEN_DUEL_INVITE_SECRET);
   }
 
   async function handleCancel() {
@@ -231,7 +241,7 @@ export default function DuelPage({
     );
   }
 
-  if (isError || !duel) {
+  if (isError || !duel || duel.state === DuelState.Nonexistent) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-12 text-center">
         <p className="text-slate-500">{t('duel.notFound')}</p>
@@ -267,9 +277,17 @@ export default function DuelPage({
   const canManageParticipantDuel = authenticated && isParticipant;
   const isClaimAuthor = walletAddress === duel.claimedBy.toLowerCase();
   const isCancelRequester = walletAddress === duel.cancelRequestedBy.toLowerCase();
-  const hasInviteAccess = !!inviteSecret
-    && hashInviteSecret(inviteSecret).toLowerCase() === duel.inviteHash.toLowerCase();
+  const hasInviteAccess = matchesInviteHash(inviteSecret, duel.inviteHash, duelMeAddress, DEFAULT_CHAIN_ID);
   const isDuelPublic = isPublicDuel(duel.inviteHash);
+  // A duel can be addressed to one player with or without a secret. Holding the invite is not
+  // enough then — only that address can join or decline, and everyone else gets an on-chain
+  // "Not the invited opponent" revert.
+  const isAddressBoundDuel = duel.invitedOpponent !== ZERO_ADDRESS;
+  const isInvitedOpponent = !!walletAddress && walletAddress === duel.invitedOpponent.toLowerCase();
+  // The contract refuses a decline only for a duel that is open in *both* senses — no secret and
+  // no invited opponent — since its invite is public and any passer-by could otherwise end it.
+  // A duel addressed to one player is declinable by that player, secret or not.
+  const isDeclinableDuel = !isDuelPublic || isAddressBoundDuel;
   const hasResolvedViewerAddress = !authenticated || !!walletAddress;
   const canRespondToWaitingDuel =
     isWaitingOpponent &&
@@ -278,7 +296,8 @@ export default function DuelPage({
     canRespondToWaitingDuel &&
     authenticated &&
     !!walletAddress &&
-    !isCreator;
+    !isCreator &&
+    (!isAddressBoundDuel || isInvitedOpponent);
   const canLoginToJoinWaitingDuel =
     canRespondToWaitingDuel &&
     !authenticated;
@@ -550,7 +569,7 @@ export default function DuelPage({
                   <Swords className="mr-2 h-4 w-4" />
                   {t('action.join')} — {wagerDisplay} USDT
                 </Button>
-                {!isDuelPublic && hasInviteAccess && (
+                {isDeclinableDuel && (
                   <Button
                     size="lg"
                     variant="outline"

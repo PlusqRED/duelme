@@ -14,6 +14,9 @@ interface DuelStatusProps {
 }
 
 const STATUS_COLORS: Record<DuelState, string> = {
+  // A duel this app renders is never `Nonexistent` — screens list ids below `duelCount`, and a
+  // direct link to an id nobody issued takes the not-found branch. Present for exhaustiveness.
+  [DuelState.Nonexistent]: 'bg-slate-50 text-slate-500 border-slate-200',
   [DuelState.Created]: 'bg-blue-50 text-blue-700 border-blue-200',
   [DuelState.Funded]: 'bg-green-50 text-green-700 border-green-200',
   [DuelState.WinnerClaimed]: 'bg-amber-50 text-amber-700 border-amber-200',

@@ -62,6 +62,8 @@ contract DeployMainnet is Script {
         require(address(duelMe.usdt()) == usdtAddress, "usdt() mismatch");
         require(duelMe.minWager() == MIN_WAGER, "minWager mismatch");
         require(!duelMe.paused(), "deployed paused");
+        require(!duelMe.duelCreationPaused(), "deployed with duel creation paused");
+        require(duelMe.pendingOwner() == address(0), "deployed with a pending owner");
         require(duelMe.duelCount() == 0, "duelCount != 0");
         require(duelMe.trustedForwarder() == address(forwarder), "trustedForwarder mismatch");
         require(duelMe.isTrustedForwarder(address(forwarder)), "forwarder not trusted");

@@ -9,3 +9,10 @@ optimizer_runs = 200
 remappings = [
     "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/"
 ]
+
+# The solvency suite in test/DuelMeInvariant.t.sol. Every handler action swallows its own
+# revert, so anything that escapes to the runner is a real failure.
+[invariant]
+runs = 64
+depth = 128
+fail_on_revert = true

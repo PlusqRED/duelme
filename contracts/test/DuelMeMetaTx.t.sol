@@ -34,6 +34,7 @@ contract DuelMeMetaTxTest is MetaTxSigner {
     address public relayer = makeAddr("relayer");
 
 
+
     function setUp() public {
         (owner, ownerKey) = makeAddrAndKey("owner");
         (alice, aliceKey) = makeAddrAndKey("alice");
@@ -44,6 +45,7 @@ contract DuelMeMetaTxTest is MetaTxSigner {
 
         vm.prank(owner);
         duelMe = new DuelMe(address(usdt), MIN_WAGER, address(forwarder));
+        INVITE_HASH = duelMe.hashInviteSecret(INVITE_SECRET);
 
         usdt.mint(alice, 1_000_000_000);
         usdt.mint(bob, 1_000_000_000);
@@ -95,7 +97,7 @@ contract DuelMeMetaTxTest is MetaTxSigner {
 
         _relayAs(forwarder, relayer, aliceKey, address(duelMe), _createDuelData(WAGER, INVITE_HASH));
 
-        DuelMe.Duel memory duel = duelMe.getDuel(0);
+        DuelMe.DuelView memory duel = duelMe.getDuel(0);
         assertEq(duel.creator, alice, "creator must be the signer");
         assertEq(usdt.balanceOf(alice), aliceBalanceBefore - WAGER);
         assertEq(usdt.balanceOf(address(forwarder)), 0, "forwarder must never hold funds");
@@ -105,7 +107,7 @@ contract DuelMeMetaTxTest is MetaTxSigner {
     function testRelayedCreateDuelWithMessage() public {
         _relayAs(forwarder, relayer, aliceKey, address(duelMe), _createDuelData(WAGER, INVITE_HASH, unicode"пора дуэли"));
 
-        DuelMe.Duel memory duel = duelMe.getDuel(0);
+        DuelMe.DuelView memory duel = duelMe.getDuel(0);
         assertEq(duel.creator, alice);
         assertEq(duel.message, unicode"пора дуэли");
     }
@@ -113,7 +115,7 @@ contract DuelMeMetaTxTest is MetaTxSigner {
     function testRelayedJoinDuelAttributesOpponentToSigner() public {
         uint256 duelId = _relayedCreateAndJoin();
 
-        DuelMe.Duel memory duel = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory duel = duelMe.getDuel(duelId);
         assertEq(duel.opponent, bob, "opponent must be the signer");
         assertEq(uint8(duel.state), uint8(DuelMe.DuelState.Funded));
     }
@@ -122,7 +124,7 @@ contract DuelMeMetaTxTest is MetaTxSigner {
         _relayAs(forwarder, relayer, aliceKey, address(duelMe), _createDuelData(WAGER, INVITE_HASH));
         _relayAs(forwarder, relayer, bobKey, address(duelMe), abi.encodeCall(DuelMe.declineDuel, (0, INVITE_SECRET)));
 
-        DuelMe.Duel memory duel = duelMe.getDuel(0);
+        DuelMe.DuelView memory duel = duelMe.getDuel(0);
         assertEq(duel.opponent, bob);
         assertEq(uint8(duel.state), uint8(DuelMe.DuelState.Declined));
     }
@@ -131,12 +133,12 @@ contract DuelMeMetaTxTest is MetaTxSigner {
         uint256 duelId = _relayedCreateAndJoin();
 
         _relayAs(forwarder, relayer, aliceKey, address(duelMe), abi.encodeCall(DuelMe.claimVictory, (duelId)));
-        DuelMe.Duel memory claimed = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory claimed = duelMe.getDuel(duelId);
         assertEq(claimed.claimedBy, alice);
         assertEq(claimed.claimedWinner, alice);
 
         _relayAs(forwarder, relayer, bobKey, address(duelMe), abi.encodeCall(DuelMe.confirmResult, (duelId)));
-        DuelMe.Duel memory resolved = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory resolved = duelMe.getDuel(duelId);
         assertEq(uint8(resolved.state), uint8(DuelMe.DuelState.Resolved));
         assertEq(resolved.creatorPayout, WAGER * 2);
     }
@@ -146,7 +148,7 @@ contract DuelMeMetaTxTest is MetaTxSigner {
 
         _relayAs(forwarder, relayer, aliceKey, address(duelMe), abi.encodeCall(DuelMe.admitDefeat, (duelId)));
 
-        DuelMe.Duel memory duel = duelMe.getDuel(duelId);
+        DuelMe.DuelView memory duel = duelMe.getDuel(duelId);
         assertEq(duel.claimedBy, alice);
         assertEq(duel.claimedWinner, bob);
     }
@@ -242,7 +244,7 @@ contract DuelMeMetaTxTest is MetaTxSigner {
         _relayAs(forwarder, relayer, aliceKey, address(duelMe), abi.encodeCall(DuelMe.refundAndClaimPayouts, (duelIds)));
 
         assertEq(usdt.balanceOf(alice), balanceBefore + WAGER);
-        (uint32 honored,) = duelMe.getPlayerStats(alice);
+        uint32 honored = duelMe.getPlayerStats(alice).duelsHonored;
         assertEq(honored, 1, "claimer keeps their reputation credit");
     }
 
@@ -466,5 +468,38 @@ contract DuelMeMetaTxTest is MetaTxSigner {
         returns (address)
     {
         return ECDSA.recover(_forwardRequestDigest(forwarder, request), request.signature);
+    }
+
+    /// @dev The owner half of the relaying rule. Player actions are relayed on purpose; an
+    ///      ownership handover is not, or a single off-chain signature from the incoming owner
+    ///      would be enough for someone else to complete it at a moment of their choosing.
+    function testRelayedAcceptOwnershipIsRejected() public {
+        vm.prank(owner);
+        duelMe.transferOwnership(alice);
+
+        ERC2771Forwarder.ForwardRequestData memory request =
+            _forwardRequest(forwarder, aliceKey, address(duelMe), abi.encodeCall(DuelMe.acceptOwnership, ()));
+
+        vm.prank(relayer);
+        vm.expectRevert();
+        forwarder.execute(request);
+
+        assertEq(duelMe.owner(), owner, "ownership must not move through the forwarder");
+
+        // The same handover goes through as a direct transaction.
+        vm.prank(alice);
+        duelMe.acceptOwnership();
+        assertEq(duelMe.owner(), alice);
+    }
+
+    /// @dev Creating is stopped, but a duel already on the board still plays out over the relay.
+    function testRelayedActionsKeepWorkingWhileDuelCreationIsPaused() public {
+        uint256 duelId = _relayedCreateAndJoin();
+        vm.prank(owner);
+        duelMe.setDuelCreationPaused(true);
+
+        _relayAs(forwarder, relayer, bobKey, address(duelMe), abi.encodeCall(DuelMe.admitDefeat, (duelId)));
+
+        assertEq(uint256(duelMe.getDuel(duelId).state), uint256(DuelMe.DuelState.Resolved));
     }
 }

@@ -26,7 +26,7 @@ const BATCH_SIZE = 12;
 
 export default function RecentDuelsPage() {
   const { t, language } = useTranslation();
-  const { duels, isLoading } = useRecentDuels();
+  const { duels, isLoading, isError } = useRecentDuels();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [stateFilter, setStateFilter] = useState<RecentStateFilter>('all');
@@ -138,6 +138,11 @@ export default function RecentDuelsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+      {isError && (
+        <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          {t('duel.partiallyLoaded')}
+        </p>
+      )}
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
           {t('recent.title')}

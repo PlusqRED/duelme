@@ -1,13 +1,11 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useReadContracts } from 'wagmi';
-import { formatUnits } from 'viem';
-import { duelMeAbi, DuelState, ACTIVE_STATES } from '@/lib/contracts';
-import { DUELME_ADDRESSES, USDT_DECIMALS, CHAIN_NAMES } from '@/lib/constants';
-import { isDuelClaimTimedOut } from '@/lib/duel';
+import { DuelState, ACTIVE_STATES } from '@/lib/contracts';
+import { isRefundableDuel } from '@/lib/duel';
 import { useDuelsByGame } from './useDuelsByGame';
-import type { PlayerDuel } from './usePlayerDuels';
+import { useDuelsByIds } from './useDuelReads';
+import { toPlayerDuel, type PlayerDuel } from './usePlayerDuels';
 
 interface GameDuelsData {
   activeDuels: PlayerDuel[];
@@ -20,23 +18,16 @@ interface GameDuelsData {
 export function useGameDuels(gameSlug: string | undefined, chainId: number) {
   const { duels: metas, isLoading: isMetaLoading } = useDuelsByGame(gameSlug);
 
-  const contractAddress = DUELME_ADDRESSES[chainId];
+  // The backend indexes duel metadata across chains; only the ones on this chain live in the
+  // contract we are about to read.
+  const metasForChain = useMemo(() => metas.filter((meta) => meta.chainId === chainId), [metas, chainId]);
+  const duelIds = useMemo(() => metasForChain.map((meta) => meta.duelId), [metasForChain]);
+  const metaByDuelId = useMemo(
+    () => new Map(metasForChain.map((meta) => [meta.duelId, meta])),
+    [metasForChain]
+  );
 
-  const duelContracts = useMemo(() => {
-    if (!metas.length || !contractAddress) return [];
-    return metas.map((m) => ({
-      address: contractAddress,
-      abi: duelMeAbi,
-      functionName: 'getDuel' as const,
-      args: [BigInt(m.duelId)] as const,
-      chainId: m.chainId,
-    }));
-  }, [metas, contractAddress]);
-
-  const { data: duelResults, isLoading: isDuelsLoading } = useReadContracts({
-    contracts: duelContracts,
-    query: { enabled: duelContracts.length > 0, refetchInterval: 10_000, staleTime: 0 },
-  });
+  const { duels: duelRecords, isLoading: isDuelsLoading } = useDuelsByIds(duelIds, { chainId });
 
   const result = useMemo<GameDuelsData>(() => {
     const activeDuels: PlayerDuel[] = [];
@@ -44,37 +35,15 @@ export function useGameDuels(gameSlug: string | undefined, chainId: number) {
     let totalVolume = 0n;
     let duelsPlayed = 0;
 
-    if (!duelResults || !metas.length) {
+    if (!metaByDuelId.size) {
       return { activeDuels, historyDuels, totalVolume, duelsPlayed, activeDuelCount: 0 };
     }
 
-    for (let i = 0; i < duelResults.length; i++) {
-      const res = duelResults[i];
-      if (res.status !== 'success' || !res.result) continue;
-
-      const d = res.result as {
-        creator: `0x${string}`;
-        opponent: `0x${string}`;
-        wagerAmount: bigint;
-        inviteHash: `0x${string}`;
-        message: string;
-        claimedWinner: `0x${string}`;
-        claimedBy: `0x${string}`;
-        cancelRequestedBy: `0x${string}`;
-        createdAt: bigint;
-        fundedAt: bigint;
-        cancelRequestedAt: bigint;
-        claimTimestamp: bigint;
-        finalizedAt: bigint;
-        creatorPayout: bigint;
-        opponentPayout: bigint;
-        creatorClaimed: boolean;
-        opponentClaimed: boolean;
-        state: number;
-      };
-
-      const meta = metas[i];
-      const wager = parseFloat(formatUnits(d.wagerAmount, USDT_DECIMALS));
+    for (const d of duelRecords) {
+      // Pair by duel id rather than by position: the records in hand can be one poll behind the
+      // metadata, and a positional pair would then attach the wrong game to the wrong duel.
+      const meta = metaByDuelId.get(d.id);
+      if (!meta) continue;
       const state = d.state as DuelState;
 
       if (d.fundedAt > 0n) {
@@ -82,37 +51,13 @@ export function useGameDuels(gameSlug: string | undefined, chainId: number) {
         duelsPlayed++;
       }
 
-      const duel: PlayerDuel = {
-        id: meta.duelId,
-        creator: d.creator,
-        opponent: d.opponent,
-        inviteHash: d.inviteHash,
-        message: d.message,
-        wager,
-        wagerAmountRaw: d.wagerAmount,
-        state,
-        claimedWinner: d.claimedWinner,
-        claimedBy: d.claimedBy,
-        cancelRequestedBy: d.cancelRequestedBy,
-        createdAt: d.createdAt,
-        fundedAt: d.fundedAt,
-        cancelRequestedAt: d.cancelRequestedAt,
-        claimTimestamp: d.claimTimestamp,
-        finalizedAt: d.finalizedAt,
-        creatorPayout: d.creatorPayout,
-        opponentPayout: d.opponentPayout,
-        creatorClaimed: d.creatorClaimed,
-        opponentClaimed: d.opponentClaimed,
-        chainId: meta.chainId,
-        chainName: CHAIN_NAMES[meta.chainId] ?? `Chain ${meta.chainId}`,
-      };
+      const duel = toPlayerDuel(d, meta.chainId);
 
-      if (ACTIVE_STATES.has(state)) {
-        if (state === DuelState.WinnerClaimed && isDuelClaimTimedOut(d.claimTimestamp)) {
-          historyDuels.push(duel);
-        } else {
-          activeDuels.push(duel);
-        }
+      // A claim that timed out is history even though its state is still active: the refund is
+      // what is left to do. `isRefundableDuel` is that rule, and `claimTimeout` is adjustable
+      // on-chain, so it is not a constant anyone should re-spell.
+      if (ACTIVE_STATES.has(state) && !isRefundableDuel(d)) {
+        activeDuels.push(duel);
       } else {
         historyDuels.push(duel);
       }
@@ -122,7 +67,7 @@ export function useGameDuels(gameSlug: string | undefined, chainId: number) {
     historyDuels.reverse();
 
     return { activeDuels, historyDuels, totalVolume, duelsPlayed, activeDuelCount: activeDuels.length };
-  }, [duelResults, metas]);
+  }, [duelRecords, metaByDuelId]);
 
   return {
     ...result,

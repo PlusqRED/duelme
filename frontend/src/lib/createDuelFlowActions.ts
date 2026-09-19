@@ -15,8 +15,7 @@ import { resolveNeedsApproval } from '@/lib/guidedFlowSteps';
 import {
   generateInviteSecret,
   hashInviteSecret,
-  PUBLIC_INVITE_HASH,
-  PUBLIC_INVITE_SECRET,
+  OPEN_DUEL_INVITE_HASH,
 } from '@/lib/invite';
 
 interface CreateDuelFlowActionsOptions {
@@ -107,7 +106,7 @@ export function createDuelFlowActions({
       return;
     }
     const rawAmount = parseUnits(amount, USDT_DECIMALS);
-    const inviteSecret = isPublic ? PUBLIC_INVITE_SECRET : generateInviteSecret();
+    const inviteSecret = isPublic ? null : generateInviteSecret();
     reset();
     setRedirectTarget(null);
     setFlow({
@@ -117,8 +116,8 @@ export function createDuelFlowActions({
         chainName,
         usdtAddress: tokenAddress,
         contractAddress,
-        inviteHash: isPublic ? PUBLIC_INVITE_HASH : hashInviteSecret(inviteSecret),
-        inviteSecret: isPublic ? null : inviteSecret,
+        inviteHash: inviteSecret ? hashInviteSecret(inviteSecret, contractAddress, chainId) : OPEN_DUEL_INVITE_HASH,
+        inviteSecret,
         isPublic,
         gameName: gameName.trim(),
         message,

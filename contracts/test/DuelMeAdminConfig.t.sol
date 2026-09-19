@@ -3,41 +3,31 @@ pragma solidity ^0.8.34;
 
 import "forge-std/Test.sol";
 import "../src/DuelMe.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/metatx/ERC2771Forwarder.sol";
-
-/// @dev Simple ERC20 mock with public mint for testing
-contract MockConfigERC20 is ERC20 {
-    uint8 private _decimals;
-
-    constructor(string memory name_, string memory symbol_, uint8 decimals_) ERC20(name_, symbol_) {
-        _decimals = decimals_;
-    }
-
-    function mint(address to, uint256 amount) external {
-        _mint(to, amount);
-    }
-
-    function decimals() public view override returns (uint8) {
-        return _decimals;
-    }
-}
+import "./helpers/PlainUsdt.sol";
 
 contract DuelMeAdminConfigTest is Test {
     DuelMe public duelMe;
-    MockConfigERC20 public usdt;
+    PlainUsdt public usdt;
 
     address public alice = makeAddr("alice");
     address public bob = makeAddr("bob");
 
     uint96 public constant MIN_WAGER = 300_000; // 0.3 USDT
+    uint256 public constant WAGER = 10_000_000; // 10 USDT
     bytes32 public constant DEFAULT_INVITE_SECRET = bytes32(uint256(1));
-    bytes32 public constant DEFAULT_INVITE_HASH = keccak256(abi.encodePacked(DEFAULT_INVITE_SECRET));
+
+    /// @dev Set in setUp from the contract itself, so the formula lives in exactly one place.
+    ///      Non-zero placeholder on purpose: a suite that forgets the assignment fails as
+    ///      "Invalid invite" instead of silently creating open duels.
+    bytes32 public DEFAULT_INVITE_HASH = keccak256("test/DuelMeAdminConfig.t.sol: DEFAULT_INVITE_HASH not set in setUp");
+
 
     function setUp() public {
-        usdt = new MockConfigERC20("Tether USD", "USDT", 6);
+        usdt = new PlainUsdt();
         duelMe = new DuelMe(address(usdt), MIN_WAGER, address(new ERC2771Forwarder("DuelMe Forwarder")));
+        DEFAULT_INVITE_HASH = duelMe.hashInviteSecret(DEFAULT_INVITE_SECRET);
 
         usdt.mint(alice, 1_000_000_000);
         usdt.mint(bob, 1_000_000_000);
@@ -231,5 +221,93 @@ contract DuelMeAdminConfigTest is Test {
             buf[i] = "a";
         }
         return string(buf);
+    }
+
+    // =====================================================================
+    // setDuelCreationPaused
+    // =====================================================================
+
+    /// @dev The migration switch: creation stops, everything already in flight keeps running.
+    ///      Without this, moving to a successor contract means either a full pause (which would
+    ///      strand funded duels) or leaving the old address open for new money indefinitely.
+    function testDuelCreationPausedBlocksOnlyCreation() public {
+        vm.prank(alice);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
+
+        duelMe.setDuelCreationPaused(true);
+
+        vm.prank(alice);
+        vm.expectRevert("Duel creation paused");
+        duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
+
+        // The duel that already exists plays out untouched.
+        vm.prank(bob);
+        duelMe.joinDuel(duelId, DEFAULT_INVITE_SECRET);
+        vm.prank(alice);
+        duelMe.claimVictory(duelId);
+        vm.prank(bob);
+        duelMe.confirmResult(duelId);
+
+        uint256 balanceBefore = usdt.balanceOf(alice);
+        vm.prank(alice);
+        duelMe.claimPayout(duelId);
+        assertEq(usdt.balanceOf(alice), balanceBefore + WAGER * 2);
+    }
+
+    function testDuelCreationPausedCanBeLifted() public {
+        duelMe.setDuelCreationPaused(true);
+        duelMe.setDuelCreationPaused(false);
+
+        vm.prank(alice);
+        duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
+        assertEq(duelMe.duelCount(), 1);
+    }
+
+    function testDuelCreationPausedOnlyOwner() public {
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
+        duelMe.setDuelCreationPaused(true);
+    }
+
+    function testDuelCreationPausedEmitsEvent() public {
+        vm.expectEmit(false, false, false, true);
+        emit DuelMe.DuelCreationPausedUpdated(true);
+        duelMe.setDuelCreationPaused(true);
+    }
+
+    // =====================================================================
+    // Ownership handover
+    // =====================================================================
+
+    function testOwnershipTransferIsTwoStep() public {
+        duelMe.transferOwnership(alice);
+
+        assertEq(duelMe.owner(), address(this), "ownership must not move on the first step");
+        assertEq(duelMe.pendingOwner(), alice);
+
+        vm.prank(alice);
+        duelMe.acceptOwnership();
+
+        assertEq(duelMe.owner(), alice);
+        assertEq(duelMe.pendingOwner(), address(0));
+    }
+
+    function testOnlyPendingOwnerCanAccept() public {
+        duelMe.transferOwnership(alice);
+
+        vm.prank(bob);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, bob));
+        duelMe.acceptOwnership();
+    }
+
+    function testPendingHandoverCanBeReplaced() public {
+        duelMe.transferOwnership(alice);
+        duelMe.transferOwnership(bob);
+
+        assertEq(duelMe.pendingOwner(), bob);
+
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
+        duelMe.acceptOwnership();
     }
 }

@@ -21,7 +21,7 @@ export function PublicDuelsSection() {
   const timeAgo = useTimeAgo();
   const { authenticated } = usePrivy();
   const { walletAddress } = useActiveWallet();
-  const { duels, isLoading } = usePublicDuels();
+  const { duels, isLoading, isError } = usePublicDuels();
   const viewerAddress = authenticated ? walletAddress : undefined;
   const isViewerIdentityPending = authenticated && !walletAddress;
 
@@ -45,6 +45,11 @@ export function PublicDuelsSection() {
 
   return (
     <section id="public-duels" className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+      {isError && (
+        <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          {t('duel.partiallyLoaded')}
+        </p>
+      )}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">{t('publicDuels.title')}</h2>

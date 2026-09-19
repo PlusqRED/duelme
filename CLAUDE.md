@@ -104,10 +104,56 @@ error rather than reverting to the self-paid approve path. Relaying being *off* 
 address, no relayer key — is the case the self-paid path still covers.
 
 ### Smart Contract
-- Solidity 0.8.34, OpenZeppelin (SafeERC20, ReentrancyGuard, Pausable, Ownable, ERC2771Context)
-- All state-mutating functions: `nonReentrant` + `whenNotPaused`
-- USDT 6 decimals — `wagerAmount` stored raw (`5_000_000` = 5 USDT)
-- Pull-based payouts/refunds via `claimPayout(uint256)` / `claimPayouts(uint256[])`
+- Solidity 0.8.34, OpenZeppelin (SafeERC20, ReentrancyGuard, Pausable, Ownable2Step, ERC2771Context)
+- All state-mutating functions are `nonReentrant`. `whenNotPaused` is deliberately NOT universal:
+  `pause()` blocks entering a duel (create, join, decline) and declaring a new result
+  (`claimVictory`, `admitDefeat`); it never blocks withdrawing. Everything that only distributes the two wagers already held —
+  `confirmResult`, `disputeResult`, `refund`, `cancelDuel`, the mutual-cancellation flow and every
+  claim — stays open. An emergency brake that can hold a won payout indefinitely is a freeze on
+  user funds, and a pausable `confirmResult` beside an unpausable `refund` is worse than either:
+  the claim window runs out during the pause, the win becomes a refund, and the player who was
+  prevented from confirming is the one stamped `duelsAbandoned`.
+- **Known limit of that policy:** a `Funded` duel has no *unilateral* exit while paused. Both
+  unilateral exits from `Funded` — `claimVictory` and `admitDefeat` — are pausable, so the
+  unpausable `refund` is out of reach (it needs `WinnerClaimed`), and the
+  mutual-cancellation path needs both players. Two wagers stay escrowed until the pause lifts.
+  That is the price of a brake that can actually stop a claim; the alternative — unpausable
+  `claimVictory` — means a pause cannot stop an exploit in the claim path at all. Worth revisiting
+  only together with what `pause()` is for.
+- `setDuelCreationPaused(bool)` is the separate migration switch: creation stops, existing duels
+  keep playing and paying out, so moving to a successor address never strands money here.
+- USDT 6 decimals — `wagerAmount` stored raw as `uint96` (`5_000_000` = 5 USDT)
+- Pull-based payouts/refunds via `claimPayout` / `claimPayouts` / `refundAndClaimPayouts`, each with
+  a `*To(…, address to)` sibling. The destination matters because USDT can blacklist an address,
+  which would otherwise strand a payout in the contract forever.
+- Duel storage is packed into 5 slots (from 16): participant roles are bits (`winnerIsCreator`,
+  `claimedByCreator`, …) because every recorded address is either the creator or the opponent,
+  timestamps are `uint40`, and payouts are **derived** from the terminal state by `_payoutOf`,
+  never stored. External readers still get the flat shape through `DuelView` / `getDuel`.
+- **`DuelState.Nonexistent` holds the enum's zero value**, and `_createDuel` writes
+  `state = Created` explicitly (into a slot it already touches, so it is free). Duels live in a
+  mapping: an id nobody issued reads back as a zeroed struct, and while `Created` held zero such a
+  slot passed for a duel waiting for an opponent — `joinDuel` admitted anyone on it, pulled a zero
+  wager, and left `state == Funded` for the real duel that later took the id, which is written
+  assuming a virgin entry. One wager then backed a two-wager payout, out of other duels' escrow.
+  Never give `Created` the zero value again; `_requireWaitingDuel` is the single preamble for the
+  three entry points that accept `Created`.
+- The address-bound half of duels is deliberately **read-only in the app**: `createDuelFor` /
+  `createDuelForWithPermit` have no UI, while `usePublicDuels` and the duel page already gate on
+  `invitedOpponent`. The entry points shipped now because the contract is immutable; the "challenge
+  a specific player" control is the follow-up. Treat the gap as pending work, not a bug.
+- `inviteHash == bytes32(0)` marks an open duel — anyone may join. `declineDuel` is refused only
+  when the duel is open in *both* senses (no hash **and** no `invitedOpponent`): its invite is
+  public, so declining would be a free way to empty the lobby. A non-zero `invitedOpponent`
+  (set via `createDuelFor` / `createDuelForWithPermit`) restricts a duel to one address, which may
+  decline it with or without a secret. While the duel is still waiting `DuelView.invitedOpponent`
+  names that player and `opponent` is zero; once someone joins or declines the roles swap, so
+  `opponent` always means "the second player".
+  A client must gate its Join/Decline buttons on `invitedOpponent`, not on `inviteHash` alone —
+  `isPublicDuel()` only answers "no secret needed".
+- `admitDefeat` resolves the duel outright — no confirmation window, one relayed transaction less.
+- Batch reads: `getDuels(offset, limit)` and `getDuelsByIds(ids)`; the frontend reads through
+  `useDuelReads.ts` in pages of 200 instead of one call per duel.
 - Mutual cancellation: `MutualCancelRequested` / `MutuallyCancelled`
 - Duel messages on-chain as UTF-8 `string`, default max 32 code points / 128 bytes
 - Emergency withdraw: timelocked for USDT (default 30 days); non-USDT rescue is instant
@@ -124,6 +170,7 @@ address, no relayer key — is the case the self-paid path still covers.
 | `frontend/src/lib/constants.ts` | Chain configs, contract addresses, ZERO_ADDRESS, CHAIN_NAMES |
 | `frontend/src/components/providers/Providers.tsx` | Privy + wagmi + QueryClient providers |
 | `frontend/src/hooks/useDuel.ts` | Read single duel |
+| `frontend/src/hooks/useDuelReads.ts` | Paged `getDuels` / `getDuelsByIds` readers shared by every listing screen |
 | `frontend/src/hooks/useContractConfig.ts` | Reads owner-adjustable on-chain params (minWager, claimTimeout, maxMessageCodepoints, maxMessageBytes), syncs contractConfig store |
 | `frontend/src/lib/contractConfig.ts` | Module-level cache of on-chain params for non-hook helpers (fallbacks from constants.ts) |
 | `frontend/src/hooks/useDuelActions.ts` | Write actions (join, cancel, claim, refundAndClaim, etc.) |
@@ -189,14 +236,20 @@ address, no relayer key — is the case the self-paid path still covers.
 ## Duel States
 
 ```
-Created(0) → Funded(1) → WinnerClaimed(2) → Resolved(3)
-                                           → Refunded(4)
-                                           → Disputed(7)
-Funded(1) → MutualCancelRequested(8) → Funded(1)
-                                     → MutuallyCancelled(9)
-Created(0) → Cancelled(5)
-           → Declined(6)
+Nonexistent(0)  — an id nobody issued; never a duel
+Created(1) → Funded(2) → WinnerClaimed(3) → Resolved(4)      (confirmResult)
+                                          → Refunded(5)      (refund, after the claim timeout)
+                                          → Disputed(8)
+Funded(2) → Resolved(4)                                      (admitDefeat, no confirmation)
+Funded(2) → MutualCancelRequested(9) → Funded(2)
+                                     → MutuallyCancelled(10)
+Created(1) → Cancelled(6)
+           → Declined(7)
 ```
+
+The numbers are part of the contract's API — clients read `state` as a raw integer — and are
+pinned on both sides (`testDuelStateNumbering`, `contractMirrors.test.ts`). `Nonexistent` holds
+zero so a zeroed mapping slot cannot pass for a duel; see the pitfall below.
 
 ## Development Standards
 
@@ -287,7 +340,8 @@ OpenAPI config: `backend/src/.../config/OpenApiConfig.java`. Swagger UI at `/api
 ### Smart Contracts (Solidity / Foundry)
 
 **Security-first:**
-- Every state-mutating function: `nonReentrant` + `whenNotPaused`. No exceptions.
+- Every state-mutating function: `nonReentrant`. `whenNotPaused` only where a pause should bite —
+  see the pause policy under "Smart Contract" above; never on a path that hands a player money back.
 - `SafeERC20` for all token ops — never raw `.transfer()` / `.transferFrom()`.
 - CEI pattern: checks → effects → interactions.
 - `onlyOwner` for admin; verify authorization before state changes.
@@ -395,6 +449,46 @@ Runtime config source of truth: GitHub repository/environment secrets. Deploy wo
 - Manual deploys here: source `contracts/.env` first (`set -a && . ./.env && set +a`).
 - **Contract addresses and chain ids have exactly one source.** `contracts/broadcast/*/run-latest.json` is what is deployed; `constants.ts` mirrors it by hand; everything else reads `constants.ts`. Never inline an address or a chain id anywhere else — `getUsdtAddress` once kept its own copy "to avoid a circular import" (`constants.ts` imports nothing, so there was no cycle), and after a MockUSDT redeploy the permit path read `nonces()` off the previous token, so duels failed with a revert that named no address. `deployedAddresses.test.ts` pins `constants.ts` and `application.yml`'s faucet default to the broadcast artifact; `contractAddresses.test.ts` pins `getUsdtAddress`, `CHAIN_NAMES` and the forwarder map to `constants.ts`. Both run in the `frontend` CI job (`npm test`). What no test can reach is the dev deploy's `FAUCET_MOCK_USDT_ADDRESS` repository variable — it overrides the pinned `application.yml` default, so a green CI still hands testers the wrong MockUSDT if that variable is stale.
 - Use shared constants from `constants.ts` (`ZERO_ADDRESS`, `CHAIN_NAMES`) and `contracts.ts` (`ACTIVE_STATES`, `balanceOfAbi`, `transferAbi`, `getUsdtAddress`) — never redefine locally.
+- **Do not enable `via_ir`, and leave `optimizer_runs` at 200.** Measured on this contract:
+  `runs = 1000` changes runtime gas by under 0.1% while growing the deployed bytecode from 21.4 KB
+  to 23.8 KB — 97% of the 24 KB limit. `via_ir` does shrink it (19.2 KB) and shaves ~7% off
+  `getDuel`, but the IR pipeline caches `block.timestamp` across cheatcode calls inside a test
+  function, so a second `vm.warp(block.timestamp + …)` silently warps from the stale value and
+  time-based tests pass or fail for the wrong reason. Probe before reconsidering:
+  two warps in one test must add up.
+- **`abi.encodeCall` cannot name an overloaded function.** Only `createDuel` still has arity
+  variants (with and without a message); everything added since got its own name (`createDuelFor`,
+  `claimPayoutTo`, …) precisely so Solidity callers keep `abi.encodeCall`. Where an overload is
+  unavoidable, use `abi.encodeWithSignature("createDuel(uint256,bytes32)", …)`. viem resolves
+  overloads from the argument list, so the frontend is unaffected either way.
+- **`duelMeAbi` and `DuelState` in `contracts.ts` are hand-made mirrors of the contract**, and a
+  wrong entry does not fail to compile — it encodes a selector that does not exist, or reads
+  `Resolved` as `Refunded`. `frontend/src/lib/__tests__/contractMirrors.test.ts` pins both: the ABI
+  against `contracts/out/DuelMe.sol/DuelMe.json` (skipped when that build output is absent, so run
+  `forge build` before trusting a green frontend suite), and the enum numbering against the same
+  table as `testDuelStateNumbering` in `DuelMe.t.sol`.
+- **The invite hash formula is the contract's**: `DuelMe.hashInviteSecret` is public, so the tests
+  read it off the contract instead of mirroring it. `frontend/src/lib/invite.ts` still reproduces it
+  (`keccak256(abi.encode(address(this), chainid, secret))`) because it has to hash before the duel
+  exists; both sides are pinned to one golden vector — `testInviteHashGoldenVector` in
+  `DuelMeInvites.t.sol` and "matches the vector the contract produces" in `invite.test.ts`. A
+  divergence fails as `"Invalid invite"` on a duel nobody can join.
+- **A duel id past `duelCount` names nothing, and the contract must say so.** `Nonexistent` holds
+  the zero value of `DuelState` for this reason. While `Created` held it, an unissued slot read
+  back as a legitimate fully open duel
+  (`creator == 0`, `inviteHash == 0`, `invitedOpponent == 0`). Before `_requireWaitingDuel`,
+  `joinDuel` accepted one, pulled a zero wager and left `state == Funded` behind; `_createDuel`
+  writes a new duel into that slot without resetting `state`, so the next duel to take the id was
+  born funded with one wager backing a two-wager payout — and `admitDefeat` on a free `Funded`
+  duel minted reputation. Every entry point whose required state is `Created` goes through
+  `_requireWaitingDuel`; the invariant handler draws ids past `duelCount` so the suite can reach
+  it (`invariant_nothingExistsPastDuelCount`).
+- **Payouts are derived, not stored.** Reintroducing a stored payout field brings back the one way
+  a duel's state and its payout can disagree; `_payoutOf` is the single source, including for the
+  amount in `DuelResolved`. The invariant suite (`test/DuelMeInvariant.t.sol`) asserts the contract
+  never owes more USDT than it holds — and `testHandlerDrivesAFullLifecycle` is what stops that
+  going green over duels that never got past `Created`, since every handler action swallows its own
+  revert. Add an action to the handler and add it to that test.
 - `PRIVY_APP_ID` env required for backend (no default in `application.yml`).
 - Frontend npm pinned to `^11.12.1` via `frontend/package.json` `engines` + `frontend/.npmrc` `engine-strict=true`. CI / Dockerfile install via `npm install -g npm@11.12.1`. Mismatch caused `EUSAGE` / `EBADENGINE` in `npm ci`.
 - `overrides.eslint-plugin-react-hooks: 7.0.1` is a temporary pin — `7.1.x` adds `react-hooks/set-state-in-effect`, which flags existing patterns in `dashboard/page.tsx`, `duel/[id]/page.tsx`, `Header.tsx`, `useCreateDuelFlow.ts`, `useJoinDuelFlow.ts`. Lift only after refactoring those files.

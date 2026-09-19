@@ -1,71 +1,25 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useReadContract, useReadContracts } from 'wagmi';
-import { duelMeAbi } from '@/lib/contracts';
-import { DUELME_ADDRESSES, ZERO_ADDRESS, DEFAULT_CHAIN_ID } from '@/lib/constants';
+import { DEFAULT_CHAIN_ID } from '@/lib/constants';
+import { useDuelRange } from './useDuelReads';
 
 interface PlatformStats {
   duelsPlayed: number;
   totalVolumeRaw: bigint;
   isLoading: boolean;
+  /** True when a page of the history failed to load, so these totals understate reality. */
+  isError: boolean;
 }
 
 export function usePlatformStats(chainId = DEFAULT_CHAIN_ID): PlatformStats {
-  const contractAddress = DUELME_ADDRESSES[chainId];
-  const enabled = !!contractAddress && contractAddress !== ZERO_ADDRESS;
-
-  const { data: duelCount, isLoading: isCountLoading } = useReadContract({
-    address: contractAddress,
-    abi: duelMeAbi,
-    functionName: 'duelCount',
-    chainId,
-    query: {
-      enabled,
-      refetchInterval: 15_000,
-      staleTime: 0,
-    },
-  });
-
-  const count = duelCount ? Number(duelCount) : 0;
-
-  const duelContracts = useMemo(() => {
-    if (!enabled || !count) return [];
-
-    return Array.from({ length: count }, (_, index) => ({
-      address: contractAddress,
-      abi: duelMeAbi,
-      functionName: 'getDuel' as const,
-      args: [BigInt(index)] as const,
-      chainId,
-    }));
-  }, [count, contractAddress, enabled, chainId]);
-
-  const { data: duelResults, isLoading: isDuelsLoading } = useReadContracts({
-    contracts: duelContracts,
-    query: {
-      enabled: duelContracts.length > 0,
-      refetchInterval: 15_000,
-      staleTime: 0,
-    },
-  });
+  const { duels: duelRecords, isLoading, isError } = useDuelRange({ chainId });
 
   const stats = useMemo(() => {
     let duelsPlayed = 0;
     let totalVolumeRaw = 0n;
 
-    if (!duelResults) {
-      return { duelsPlayed, totalVolumeRaw };
-    }
-
-    for (const result of duelResults) {
-      if (result.status !== 'success' || !result.result) continue;
-
-      const duel = result.result as {
-        wagerAmount: bigint;
-        fundedAt: bigint;
-      };
-
+    for (const duel of duelRecords) {
       if (duel.fundedAt === 0n) continue;
 
       duelsPlayed += 1;
@@ -73,10 +27,11 @@ export function usePlatformStats(chainId = DEFAULT_CHAIN_ID): PlatformStats {
     }
 
     return { duelsPlayed, totalVolumeRaw };
-  }, [duelResults]);
+  }, [duelRecords]);
 
   return {
     ...stats,
-    isLoading: isCountLoading || isDuelsLoading,
+    isLoading,
+    isError,
   };
 }

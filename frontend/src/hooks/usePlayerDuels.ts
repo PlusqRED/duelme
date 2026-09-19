@@ -1,35 +1,34 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useReadContract, useReadContracts } from 'wagmi';
 import { formatUnits } from 'viem';
-import { duelMeAbi, DuelState, ACTIVE_STATES } from '@/lib/contracts';
-import { isDuelClaimTimedOut } from '@/lib/duel';
-import { DUELME_ADDRESSES, USDT_DECIMALS, ZERO_ADDRESS, CHAIN_NAMES } from '@/lib/constants';
+import { DuelState, ACTIVE_STATES } from '@/lib/contracts';
+import { isRefundableDuel } from '@/lib/duel';
+import { useDuelRange, type DuelRecord } from './useDuelReads';
+import { USDT_DECIMALS, CHAIN_NAMES } from '@/lib/constants';
 
-export interface PlayerDuel {
-  id: number;
-  creator: `0x${string}`;
-  opponent: `0x${string}`;
-  inviteHash: `0x${string}`;
-  message: string;
+export interface PlayerDuel extends DuelRecord {
+  /** The wager as a display number; `wagerAmountRaw` keeps the exact on-chain value. */
   wager: number;
   wagerAmountRaw: bigint;
-  state: DuelState;
-  claimedWinner: `0x${string}`;
-  claimedBy: `0x${string}`;
-  cancelRequestedBy: `0x${string}`;
-  createdAt: bigint;
-  fundedAt: bigint;
-  cancelRequestedAt: bigint;
-  claimTimestamp: bigint;
-  finalizedAt: bigint;
-  creatorPayout: bigint;
-  opponentPayout: bigint;
-  creatorClaimed: boolean;
-  opponentClaimed: boolean;
   chainId: number;
   chainName: string;
+}
+
+/**
+ * The one conversion from a duel as the contract returns it to a duel as the screens render it.
+ * Two hooks used to build this literal field by field: every field added to the contract's
+ * `DuelView` then had to be threaded through both, and `invitedOpponent` was missed in exactly
+ * that way.
+ */
+export function toPlayerDuel(duel: DuelRecord, chainId: number): PlayerDuel {
+  return {
+    ...duel,
+    wager: parseFloat(formatUnits(duel.wagerAmount, USDT_DECIMALS)),
+    wagerAmountRaw: duel.wagerAmount,
+    chainId,
+    chainName: CHAIN_NAMES[chainId] ?? `Chain ${chainId}`,
+  };
 }
 
 export interface PlayerStats {
@@ -45,40 +44,9 @@ export function usePlayerDuels(
   address: `0x${string}` | undefined,
   chainId: number
 ) {
-  const contractAddress = DUELME_ADDRESSES[chainId];
-  const enabled =
-    !!address &&
-    !!contractAddress &&
-    contractAddress !== ZERO_ADDRESS;
+  const { duels: duelRecords, isLoading, isError, refetch } = useDuelRange({ chainId, enabled: !!address });
 
-  // 1. Read total duel count (poll every 10s)
-  const { data: duelCount, isLoading: isCountLoading, refetch: refetchCount } = useReadContract({
-    address: contractAddress,
-    abi: duelMeAbi,
-    functionName: 'duelCount',
-    chainId,
-    query: { enabled, refetchInterval: 10_000, staleTime: 0 },
-  });
-
-  // 2. Build multicall to read all duels
-  const count = duelCount ? Number(duelCount) : 0;
-  const duelContracts = useMemo(() => {
-    if (!count || !enabled) return [];
-    return Array.from({ length: count }, (_, i) => ({
-      address: contractAddress,
-      abi: duelMeAbi,
-      functionName: 'getDuel' as const,
-      args: [BigInt(i)] as const,
-      chainId,
-    }));
-  }, [count, contractAddress, chainId, enabled]);
-
-  const { data: duelResults, isLoading: isDuelsLoading, refetch: refetchDuels } = useReadContracts({
-    contracts: duelContracts,
-    query: { enabled: duelContracts.length > 0, refetchInterval: 10_000, staleTime: 0 },
-  });
-
-  // 3. Parse and filter duels for this player
+  // Filter the history down to this player's duels.
   const result = useMemo<PlayerStats>(() => {
     const activeDuels: PlayerDuel[] = [];
     const historyDuels: PlayerDuel[] = [];
@@ -87,37 +55,13 @@ export function usePlayerDuels(
     let totalWagered = 0;
     let totalWithdrawn = 0n;
 
-    if (!duelResults || !address) {
+    if (!address) {
       return { wins, losses, totalWagered, totalWithdrawn, activeDuels, historyDuels };
     }
 
     const addr = address.toLowerCase();
 
-    for (let i = 0; i < duelResults.length; i++) {
-      const res = duelResults[i];
-      if (res.status !== 'success' || !res.result) continue;
-
-        const d = res.result as {
-          creator: `0x${string}`;
-          opponent: `0x${string}`;
-          wagerAmount: bigint;
-          inviteHash: `0x${string}`;
-          message: string;
-          claimedWinner: `0x${string}`;
-          claimedBy: `0x${string}`;
-        cancelRequestedBy: `0x${string}`;
-        createdAt: bigint;
-        fundedAt: bigint;
-        cancelRequestedAt: bigint;
-        claimTimestamp: bigint;
-        finalizedAt: bigint;
-        creatorPayout: bigint;
-        opponentPayout: bigint;
-        creatorClaimed: boolean;
-        opponentClaimed: boolean;
-        state: number;
-      };
-
+    for (const d of duelRecords) {
       const isCreator = d.creator.toLowerCase() === addr;
       const isOpponent = d.opponent.toLowerCase() === addr;
       if (!isCreator && !isOpponent) continue;
@@ -133,37 +77,13 @@ export function usePlayerDuels(
         totalWithdrawn += d.opponentPayout;
       }
 
-        const duel: PlayerDuel = {
-          id: i,
-          creator: d.creator,
-          opponent: d.opponent,
-          inviteHash: d.inviteHash,
-          message: d.message,
-          wager,
-          wagerAmountRaw: d.wagerAmount,
-          state,
-        claimedWinner: d.claimedWinner,
-        claimedBy: d.claimedBy,
-        cancelRequestedBy: d.cancelRequestedBy,
-        createdAt: d.createdAt,
-        fundedAt: d.fundedAt,
-        cancelRequestedAt: d.cancelRequestedAt,
-        claimTimestamp: d.claimTimestamp,
-        finalizedAt: d.finalizedAt,
-        creatorPayout: d.creatorPayout,
-        opponentPayout: d.opponentPayout,
-        creatorClaimed: d.creatorClaimed,
-        opponentClaimed: d.opponentClaimed,
-        chainId,
-        chainName: CHAIN_NAMES[chainId] ?? `Chain ${chainId}`,
-      };
+      const duel = toPlayerDuel(d, chainId);
 
-      if (ACTIVE_STATES.has(state)) {
-        if (state === DuelState.WinnerClaimed && isDuelClaimTimedOut(d.claimTimestamp)) {
-          historyDuels.push(duel);
-        } else {
-          activeDuels.push(duel);
-        }
+      // A claim that timed out is history even though its state is still active: the refund is
+      // what is left to do. `isRefundableDuel` is that rule, and `claimTimeout` is adjustable
+      // on-chain, so it is not a constant anyone should re-spell.
+      if (ACTIVE_STATES.has(state) && !isRefundableDuel(d)) {
+        activeDuels.push(duel);
       } else {
         historyDuels.push(duel);
       }
@@ -191,13 +111,12 @@ export function usePlayerDuels(
     historyDuels.reverse();
 
     return { wins, losses, totalWagered, totalWithdrawn, activeDuels, historyDuels };
-  }, [duelResults, address, chainId]);
+  }, [duelRecords, address, chainId]);
 
   return {
     ...result,
-    isLoading: isCountLoading || isDuelsLoading,
-    refetch: async () => {
-      await Promise.all([refetchCount(), refetchDuels()]);
-    },
+    isLoading,
+    refetch,
+    isError,
   };
 }
