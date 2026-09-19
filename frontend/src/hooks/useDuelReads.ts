@@ -132,7 +132,7 @@ export function useDuelsByIds(duelIds: readonly number[], { chainId }: { chainId
     [idsKey]
   );
 
-  const { data, isLoading } = useReadContract({
+  const { data, isLoading, isError } = useReadContract({
     address: contractAddress,
     abi: duelMeAbi,
     functionName: 'getDuelsByIds',
@@ -147,5 +147,7 @@ export function useDuelsByIds(duelIds: readonly number[], { chainId }: { chainId
     [data, idsKey]
   );
 
-  return { duels, isLoading };
+  // One call for the whole set, so a failure is the whole set missing — the same "a short list
+  // rendered as a complete one" that `useDuelRange` reports, and the callers surface it the same way.
+  return { duels, isLoading, isError };
 }

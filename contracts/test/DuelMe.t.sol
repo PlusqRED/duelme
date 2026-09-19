@@ -1161,6 +1161,57 @@ contract DuelMeTest is Test {
         assertEq(uint256(duelMe.getDuel(duelId).state), uint256(DuelMe.DuelState.Refunded));
     }
 
+    /// @dev The pause policy leaves a `Funded` duel no unilateral exit — `claimVictory` and
+    ///      `admitDefeat` are both pausable — so the mutual-cancellation flow is the only way two
+    ///      players walk away from a duel the pause froze. All four of its entry points are
+    ///      deliberately not pausable; this is what says so.
+    function testMutualCancellationFlowWorksWhilePaused() public {
+        uint256 duelId = _createAndFundDuel();
+        duelMe.pause();
+
+        // Requested, withdrawn by the requester, requested again, declined by the other player:
+        // each exit back to Funded has to stay reachable, or a pause strands both wagers.
+        vm.prank(alice);
+        duelMe.requestMutualCancellation(duelId);
+        vm.prank(alice);
+        duelMe.withdrawMutualCancellationRequest(duelId);
+        assertEq(uint256(duelMe.getDuel(duelId).state), uint256(DuelMe.DuelState.Funded));
+
+        vm.prank(alice);
+        duelMe.requestMutualCancellation(duelId);
+        vm.prank(bob);
+        duelMe.declineMutualCancellation(duelId);
+        assertEq(uint256(duelMe.getDuel(duelId).state), uint256(DuelMe.DuelState.Funded));
+
+        vm.prank(bob);
+        duelMe.requestMutualCancellation(duelId);
+        vm.prank(alice);
+        duelMe.acceptMutualCancellation(duelId);
+
+        assertEq(uint256(duelMe.getDuel(duelId).state), uint256(DuelMe.DuelState.MutuallyCancelled));
+        _assertPayouts(duelId, WAGER, WAGER, false, false);
+
+        // And the wagers actually come back out while the pause is still on.
+        _claimPayout(alice, duelId);
+        _claimPayout(bob, duelId);
+        _assertPayouts(duelId, WAGER, WAGER, true, true);
+    }
+
+    /// @dev The batch and `*To` claim paths are unpausable for the same reason the single one is.
+    function testBatchAndRedirectedClaimsWorkWhilePaused() public {
+        address vault = makeAddr("vault");
+        uint256 duelId = _createFundClaimAndResolve();
+        duelMe.pause();
+
+        uint256[] memory duelIds = new uint256[](1);
+        duelIds[0] = duelId;
+
+        vm.prank(alice);
+        duelMe.claimPayoutsTo(duelIds, vault);
+
+        assertEq(usdt.balanceOf(vault), WAGER * 2, "winnings reach the address the winner named");
+    }
+
     function testCancelDuelWorksWhilePaused() public {
         vm.prank(alice);
         uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);

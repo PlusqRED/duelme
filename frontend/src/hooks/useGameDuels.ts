@@ -27,7 +27,7 @@ export function useGameDuels(gameSlug: string | undefined, chainId: number) {
     [metasForChain]
   );
 
-  const { duels: duelRecords, isLoading: isDuelsLoading } = useDuelsByIds(duelIds, { chainId });
+  const { duels: duelRecords, isLoading: isDuelsLoading, isError } = useDuelsByIds(duelIds, { chainId });
 
   const result = useMemo<GameDuelsData>(() => {
     const activeDuels: PlayerDuel[] = [];
@@ -45,6 +45,13 @@ export function useGameDuels(gameSlug: string | undefined, chainId: number) {
       const meta = metaByDuelId.get(d.id);
       if (!meta) continue;
       const state = d.state as DuelState;
+
+      // The backend keeps duel metadata per (duelId, chainId) and knows nothing about which
+      // contract issued the id, so a redeploy leaves it pointing at ids the live contract has
+      // never issued. `getDuelsByIds` answers for those with a zeroed `DuelView` — the one read
+      // in the app that can return `Nonexistent`, since the paged readers clamp to `duelCount`.
+      // Rendered, it is a duel with no creator, no wager and a "not found" badge.
+      if (state === DuelState.Nonexistent) continue;
 
       if (d.fundedAt > 0n) {
         totalVolume += d.wagerAmount * 2n;
@@ -72,5 +79,6 @@ export function useGameDuels(gameSlug: string | undefined, chainId: number) {
   return {
     ...result,
     isLoading: isMetaLoading || isDuelsLoading,
+    isError,
   };
 }

@@ -33,8 +33,6 @@ contract DuelMeMetaTxTest is MetaTxSigner {
     uint256 internal bobKey;
     address public relayer = makeAddr("relayer");
 
-
-
     function setUp() public {
         (owner, ownerKey) = makeAddrAndKey("owner");
         (alice, aliceKey) = makeAddrAndKey("alice");

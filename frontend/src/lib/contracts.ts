@@ -2123,7 +2123,7 @@ export const erc20Abi = [
  * Mirrors `DuelState` in DuelMe.sol, values included — the contract returns the raw number.
  * `Nonexistent` holds zero there so an id nobody issued cannot read back as a duel waiting for
  * an opponent; a duel this app ever renders is never in it. The numbering is pinned on both
- * sides: `testDuelStateNumbering` in DuelMe.t.sol and the matching case in contracts.test.ts.
+ * sides: `testDuelStateNumbering` in DuelMe.t.sol and the matching case in contractMirrors.test.ts.
  */
 export enum DuelState {
   Nonexistent = 0,

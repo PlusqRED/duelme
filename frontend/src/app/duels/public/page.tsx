@@ -129,11 +129,11 @@ export default function PublicDuelsPage() {
     <div className="min-h-[calc(100vh-3.5rem)] bg-white">
       <section className="border-b border-slate-200 bg-slate-50 bg-dots">
         <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
-      {isError && (
-        <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          {t('duel.partiallyLoaded')}
-        </p>
-      )}
+          {isError && (
+            <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              {t('duel.partiallyLoaded')}
+            </p>
+          )}
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">

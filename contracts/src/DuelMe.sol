@@ -319,7 +319,6 @@ contract DuelMe is ERC2771Context, Ownable2Step, Pausable, ReentrancyGuard {
 
         address creator = _msgSender();
         require(invitedOpponent != creator, "Cannot invite yourself");
-        _pullWager(creator, amount);
 
         duelId = duelCount;
         duelCount++;
@@ -341,6 +340,11 @@ contract DuelMe is ERC2771Context, Ownable2Step, Pausable, ReentrancyGuard {
         }
         // All other fields default to zero/false. `state` is not among them — the mapping's zero
         // value is `Nonexistent`, which is why it is written explicitly above.
+
+        // Checks → effects → interactions: the duel is fully written before the token is touched.
+        // `nonReentrant` already covers the re-entry this orders against, but the token is the one
+        // external call here and the contract is immutable once deployed.
+        _pullWager(creator, amount);
 
         emit DuelCreated(duelId, creator, invitedOpponent, amount, inviteHash, message);
     }
@@ -382,11 +386,13 @@ contract DuelMe is ERC2771Context, Ownable2Step, Pausable, ReentrancyGuard {
         _requireAdmitted(duel, opponent, inviteSecret);
 
         uint96 wager = duel.wagerAmount;
-        _pullWager(opponent, wager);
 
         duel.opponent = opponent;
         duel.fundedAt = _now();
         duel.state = DuelState.Funded;
+
+        // Checks → effects → interactions, as in `_createDuel`.
+        _pullWager(opponent, wager);
 
         emit DuelJoined(duelId, opponent, wager);
     }
