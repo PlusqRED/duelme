@@ -1,20 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.34;
 
-import "forge-std/Test.sol";
-import "../src/DuelMe.sol";
-import "@openzeppelin/contracts/metatx/ERC2771Forwarder.sol";
-import "./helpers/PlainUsdt.sol";
-import "../script/ForwarderConfig.sol";
+import "./helpers/DuelMeFixture.sol";
 
 /// @notice Drives DuelMe through random but legal-looking sequences. Every action is wrapped in
 ///         try/catch on purpose: the fuzzer is meant to explore orderings, and a call that the
 ///         state machine refuses is a normal outcome, not a finding.
 contract DuelMeHandler is Test {
-    /// @dev The secret every handler action presents. Named rather than repeated: each action
-    ///      swallows its own revert, so one mistyped literal would not fail the run — it would
+    /// @dev The secret every handler action presents — the same one the suites use, so a duel
+    ///      the fuzzer creates is one they could have created. Named rather than repeated: each
+    ///      action swallows its own revert, so a mistyped literal would not fail the run, it would
     ///      quietly stop the fuzzer reaching `Funded` through the invite path.
-    bytes32 internal constant INVITE_SECRET = bytes32(uint256(1));
+    bytes32 internal constant INVITE_SECRET = DuelMeTestConstants.DEFAULT_INVITE_SECRET;
 
     DuelMe public duelMe;
     address[] public actors;
@@ -222,27 +219,29 @@ contract DuelMeHandler is Test {
 
 /// @notice The property that matters when the contract holds other people's money: whatever the
 ///         sequence of duels, DuelMe never owes more USDT than it is holding.
-contract DuelMeInvariantTest is Test {
-    DuelMe public duelMe;
-    PlainUsdt public usdt;
+contract DuelMeInvariantTest is DuelMeFixture {
     DuelMeHandler public handler;
 
-    uint96 public constant MIN_WAGER = 300_000;
+    address public charlie = makeAddr("charlie");
+    address public dave = makeAddr("dave");
+
+    /// @dev Topped up on every actor, on top of whatever the fixture already gave them. A run is
+    ///      thousands of calls long, and an actor who runs out of USDT stops exercising the
+    ///      contract without failing anything — so the floor matters here and the exact figure
+    ///      does not.
+    uint256 internal constant ACTOR_TOP_UP = 10 * STARTING_BALANCE;
 
     function setUp() public {
-        usdt = new PlainUsdt();
-        duelMe = new DuelMe(address(usdt), MIN_WAGER, address(new ERC2771Forwarder(ForwarderConfig.NAME)));
+        _deployFixture();
 
         address[] memory actors = new address[](4);
-        actors[0] = makeAddr("alice");
-        actors[1] = makeAddr("bob");
-        actors[2] = makeAddr("charlie");
-        actors[3] = makeAddr("dave");
+        actors[0] = alice;
+        actors[1] = bob;
+        actors[2] = charlie;
+        actors[3] = dave;
 
         for (uint256 i = 0; i < actors.length; i++) {
-            usdt.mint(actors[i], 10_000_000_000);
-            vm.prank(actors[i]);
-            usdt.approve(address(duelMe), type(uint256).max);
+            _fund(actors[i], ACTOR_TOP_UP);
         }
 
         handler = new DuelMeHandler(duelMe, actors);

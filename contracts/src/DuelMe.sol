@@ -1004,9 +1004,15 @@ contract DuelMe is ERC2771Context, Ownable2Step, Pausable, ReentrancyGuard {
         return duel.claimedByCreator ? duel.creator : duel.opponent;
     }
 
+    /// @dev Whether `cancelRequestedBy` names somebody, in the two states where it can. Named for
+    ///      the same reason as `_hasDeclaredResult`: `_duelView` asks the same question and would
+    ///      otherwise spell the pair of states out a second time.
+    function _hasCancelRequest(DuelState state) internal pure returns (bool) {
+        return state == DuelState.MutualCancelRequested || state == DuelState.MutuallyCancelled;
+    }
+
     function _cancelRequestedBy(Duel storage duel) internal view returns (address) {
-        DuelState state = duel.state;
-        if (state != DuelState.MutualCancelRequested && state != DuelState.MutuallyCancelled) {
+        if (!_hasCancelRequest(duel.state)) {
             return address(0);
         }
         return duel.cancelRequestedByCreator ? duel.creator : duel.opponent;
@@ -1219,7 +1225,7 @@ contract DuelMe is ERC2771Context, Ownable2Step, Pausable, ReentrancyGuard {
         // `_payoutOf` each re-read `state`, `creator`, `opponent` and `wagerAmount`, which is
         // right for a one-off call and wasteful 200 times over inside `getDuels` — and it is the
         // size of a page that this call's cost decides. The rules themselves are still the shared
-        // ones (`_hasDeclaredResult`, `_payoutFrom`); only the loads moved.
+        // ones (`_hasDeclaredResult`, `_hasCancelRequest`, `_payoutFrom`); only the loads moved.
         DuelState state = duel.state;
         address creator = duel.creator;
         address opponent = duel.opponent;
@@ -1242,9 +1248,7 @@ contract DuelMe is ERC2771Context, Ownable2Step, Pausable, ReentrancyGuard {
         result.claimedWinner = hasDeclaredResult ? (winnerIsCreator ? creator : opponent) : address(0);
         result.claimedBy = hasDeclaredResult ? (duel.claimedByCreator ? creator : opponent) : address(0);
         result.cancelRequestedBy =
-            (state == DuelState.MutualCancelRequested || state == DuelState.MutuallyCancelled)
-                ? (duel.cancelRequestedByCreator ? creator : opponent)
-                : address(0);
+            _hasCancelRequest(state) ? (duel.cancelRequestedByCreator ? creator : opponent) : address(0);
         result.createdAt = duel.createdAt;
         result.fundedAt = duel.fundedAt;
         result.cancelRequestedAt = duel.cancelRequestedAt;

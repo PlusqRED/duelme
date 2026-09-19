@@ -284,6 +284,8 @@ contract DuelMeInvitesTest is DuelMeFixture {
     ///      is joinable by nobody, and the only symptom is "Invalid invite". Both sides assert
     ///      this one vector: the contract here, the TypeScript in `invite.test.ts`. It was
     ///      produced by this contract, not by re-deriving the formula in either test.
+    ///      Every input is spelled out here rather than taken from `DuelMeTestConstants`: a
+    ///      golden vector that moves when a shared constant moves is not pinning anything.
     address internal constant GOLDEN_DUELME = 0x990aD70C168B184a84d6d9491303fa344154e317;
     uint256 internal constant GOLDEN_CHAIN_ID = 421614;
     bytes32 internal constant GOLDEN_SECRET = bytes32(uint256(1));

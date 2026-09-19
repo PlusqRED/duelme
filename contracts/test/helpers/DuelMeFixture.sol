@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 import "@openzeppelin/contracts/metatx/ERC2771Forwarder.sol";
 import "../../script/ForwarderConfig.sol";
 import "../../src/DuelMe.sol";
+import "./DuelMeTestConstants.sol";
 import "./PlainUsdt.sol";
 
 /// @notice The scaffolding every DuelMe suite needs: a token, a forwarder, a contract, and two
@@ -25,17 +26,15 @@ abstract contract DuelMeFixture is Test {
     address public alice = makeAddr("alice");
     address public bob = makeAddr("bob");
 
-    uint256 public constant WAGER = 10_000_000; // 10 USDT
-    uint96 public constant MIN_WAGER = 300_000; // 0.3 USDT
-    uint256 public constant STARTING_BALANCE = 1_000_000_000; // 1000 USDT
+    uint256 public constant WAGER = DuelMeTestConstants.WAGER;
+    uint96 public constant MIN_WAGER = DuelMeTestConstants.MIN_WAGER;
+    uint256 public constant STARTING_BALANCE = DuelMeTestConstants.STARTING_BALANCE;
 
-    bytes32 public constant DEFAULT_INVITE_SECRET = bytes32(uint256(1));
+    bytes32 public constant DEFAULT_INVITE_SECRET = DuelMeTestConstants.DEFAULT_INVITE_SECRET;
 
-    /// @dev Set by `_deployFixture` from the contract itself, so the formula lives in exactly one
-    ///      place. Non-zero placeholder on purpose: a suite that never deploys the fixture fails
-    ///      as "Invalid invite" instead of silently creating duels anyone can join, which would
-    ///      make every invite assertion in it pass for the wrong reason.
-    bytes32 public DEFAULT_INVITE_HASH = keccak256("DuelMeFixture: _deployFixture() not called in setUp");
+    /// @dev Assigned by `_deployFixture` from the contract itself; see `UNSET_INVITE_HASH` for why
+    ///      the placeholder is what it is.
+    bytes32 public DEFAULT_INVITE_HASH = DuelMeTestConstants.UNSET_INVITE_HASH;
 
     /// @dev The wager token. Overridden by suites that need one that behaves differently —
     ///      `FeeOnTransferERC20` in `DuelMeTokenSafety` — which is why it returns the base type.
@@ -54,9 +53,15 @@ abstract contract DuelMeFixture is Test {
         _fund(bob);
     }
 
-    /// @dev Gives a player a starting balance and an open-ended approval.
+    /// @dev Gives a player the default starting balance and an open-ended approval.
     function _fund(address player) internal {
-        usdt.mint(player, STARTING_BALANCE);
+        _fund(player, STARTING_BALANCE);
+    }
+
+    /// @dev For suites that need a different balance — the invariant run wants enough to keep
+    ///      fuzzing past the point the default would run out.
+    function _fund(address player, uint256 balance) internal {
+        usdt.mint(player, balance);
         vm.prank(player);
         usdt.approve(address(duelMe), type(uint256).max);
     }
