@@ -2,8 +2,8 @@
 
 import { useMemo } from 'react';
 import { formatUnits } from 'viem';
-import { DuelState, ACTIVE_STATES } from '@/lib/contracts';
-import { isRefundableDuel } from '@/lib/duel';
+import { DuelState } from '@/lib/contracts';
+import { isActiveDuel } from '@/lib/duel';
 import { useDuelRange, type DuelRecord } from './useDuelReads';
 import { USDT_DECIMALS, CHAIN_NAMES } from '@/lib/constants';
 
@@ -66,8 +66,8 @@ export function usePlayerDuels(
       const isOpponent = d.opponent.toLowerCase() === addr;
       if (!isCreator && !isOpponent) continue;
 
-      const wager = parseFloat(formatUnits(d.wagerAmount, USDT_DECIMALS));
       const state = d.state as DuelState;
+      const duel = toPlayerDuel(d, chainId);
 
       if (isCreator && d.creatorClaimed) {
         totalWithdrawn += d.creatorPayout;
@@ -77,12 +77,7 @@ export function usePlayerDuels(
         totalWithdrawn += d.opponentPayout;
       }
 
-      const duel = toPlayerDuel(d, chainId);
-
-      // A claim that timed out is history even though its state is still active: the refund is
-      // what is left to do. `isRefundableDuel` is that rule, and `claimTimeout` is adjustable
-      // on-chain, so it is not a constant anyone should re-spell.
-      if (ACTIVE_STATES.has(state) && !isRefundableDuel(d)) {
+      if (isActiveDuel(d)) {
         activeDuels.push(duel);
       } else {
         historyDuels.push(duel);
@@ -90,7 +85,7 @@ export function usePlayerDuels(
 
       // Compute wins/losses from resolved duels
       if (state === DuelState.Resolved) {
-        totalWagered += wager;
+        totalWagered += duel.wager;
         if (d.claimedWinner.toLowerCase() === addr) {
           wins++;
         } else {
@@ -102,7 +97,7 @@ export function usePlayerDuels(
         || state === DuelState.WinnerClaimed
         || state === DuelState.MutualCancelRequested
       ) {
-        totalWagered += wager;
+        totalWagered += duel.wager;
       }
     }
 

@@ -96,6 +96,26 @@ export function matchesInviteHash(
   return hashInviteSecret(inviteSecret, contractAddress, chainId).toLowerCase() === inviteHash.toLowerCase();
 }
 
+/**
+ * May this caller present themselves on this duel at all?
+ *
+ * The contract asks this once, in `_requireAdmitted`: a duel with no hash lets anyone in, and
+ * otherwise the caller has to hold the secret. Join and decline both go through it there, so they
+ * go through one predicate here too — a client that spells the rule out per call site drifts into
+ * offering a button the contract will refuse.
+ *
+ * It answers only the secret half. A duel can be secret-less and still addressed to one player,
+ * so callers that care about `invitedOpponent` still have to check it.
+ */
+export function canPresentInvite(
+  inviteSecret: `0x${string}` | null | undefined,
+  inviteHash: string,
+  contractAddress: `0x${string}`,
+  chainId: number
+): boolean {
+  return isPublicDuel(inviteHash) || matchesInviteHash(inviteSecret, inviteHash, contractAddress, chainId);
+}
+
 /** Build a shareable link for any duel type. Public duels get a clean URL. */
 export function buildDuelLink(duelId: number, inviteHash: `0x${string}`, inviteSecret?: `0x${string}` | null): string {
   if (isPublicDuel(inviteHash)) {

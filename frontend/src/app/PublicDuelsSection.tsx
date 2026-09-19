@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button';
+import { PartialDataNotice } from '@/components/duel/PartialDataNotice';
 import { PublicDuelCard } from '@/components/duel/PublicDuelCard';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { usePublicDuels } from '@/hooks/usePublicDuels';
@@ -45,11 +46,7 @@ export function PublicDuelsSection() {
 
   return (
     <section id="public-duels" className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-      {isError && (
-        <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          {t('duel.partiallyLoaded')}
-        </p>
-      )}
+      <PartialDataNotice when={isError} />
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">{t('publicDuels.title')}</h2>

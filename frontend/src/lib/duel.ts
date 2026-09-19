@@ -1,4 +1,4 @@
-import { DuelState, type Duel } from '@/lib/contracts';
+import { DuelState, ACTIVE_STATES, type Duel } from '@/lib/contracts';
 import { getContractConfig } from '@/lib/contractConfig';
 import type { TranslationKey } from '@/i18n/translations';
 
@@ -111,6 +111,18 @@ export function isRefundableDuel(
   duel: { state: DuelState; claimTimestamp: bigint }
 ): boolean {
   return duel.state === DuelState.WinnerClaimed && isDuelClaimTimedOut(duel.claimTimestamp);
+}
+
+/**
+ * Is this duel still something the players have to act on?
+ *
+ * A claim that timed out is history even though its state is still active: the refund is what is
+ * left to do. `claimTimeout` is adjustable on-chain, so that carve-out is not a constant anyone
+ * should re-spell — and the screens that split Active from History have to agree about the same
+ * duel, which they cannot do while each one carries its own copy of the rule.
+ */
+export function isActiveDuel(duel: { state: DuelState; claimTimestamp: bigint }): boolean {
+  return ACTIVE_STATES.has(duel.state) && !isRefundableDuel(duel);
 }
 
 export function getDuelStateLabelKey(state: DuelState, timedOut?: boolean): TranslationKey {

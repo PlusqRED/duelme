@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { DuelCard } from '@/components/duel/DuelCard';
+import { PartialDataNotice } from '@/components/duel/PartialDataNotice';
 import { useGame } from '@/hooks/useGame';
 import { useGameDuels } from '@/hooks/useGameDuels';
 import { useNicknames } from '@/hooks/useNicknames';
@@ -100,11 +101,7 @@ export default function GameDetailPage({
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
-      {isDuelsError && (
-        <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          {t('duel.partiallyLoaded')}
-        </p>
-      )}
+      <PartialDataNotice when={isDuelsError} />
       <Link
         href="/games"
         className="mb-6 inline-flex items-center gap-1.5 text-sm text-slate-500 transition-colors hover:text-slate-900"

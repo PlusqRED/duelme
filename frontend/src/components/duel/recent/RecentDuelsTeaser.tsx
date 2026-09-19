@@ -8,6 +8,7 @@ import { usePublicDuelMetas } from '@/hooks/usePublicDuelMetas';
 import { useRecentDuels } from '@/hooks/useRecentDuels';
 import { useTranslation } from '@/i18n/useTranslation';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
+import { PartialDataNotice } from '../PartialDataNotice';
 import { RecentDuelsGrid } from './RecentDuelsGrid';
 
 const LANDING_TEASER_LIMIT = 6;
@@ -32,11 +33,7 @@ export function RecentDuelsTeaser() {
 
   return (
     <div className="w-full">
-      {isError && (
-        <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          {t('duel.partiallyLoaded')}
-        </p>
-      )}
+      <PartialDataNotice when={isError} />
       <RecentDuelsGrid
         duels={visibleDuels}
         isLoading={isLoading}

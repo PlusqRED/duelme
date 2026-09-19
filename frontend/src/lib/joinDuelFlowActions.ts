@@ -9,7 +9,7 @@ import {
 } from '@/lib/joinDuelFlow';
 import { getGuidedFlowErrorMessage } from '@/lib/guidedFlowRuntime';
 import { resolveNeedsApproval } from '@/lib/guidedFlowSteps';
-import { isPublicDuel, matchesInviteHash, OPEN_DUEL_INVITE_SECRET } from '@/lib/invite';
+import { canPresentInvite, OPEN_DUEL_INVITE_SECRET } from '@/lib/invite';
 
 interface JoinDuelFlowActionsOptions {
   appToast: ReturnType<typeof useAppToast>;
@@ -80,9 +80,7 @@ export function joinDuelFlowActions({
       return;
     }
 
-    // A duel with no invite hash lets anyone in; otherwise the caller has to hold the secret.
-    // `matchesInviteHash` already answers false for a missing one.
-    if (!isPublicDuel(duelInviteHash) && !matchesInviteHash(inviteSecret, duelInviteHash, contractAddress, chainId)) {
+    if (!canPresentInvite(inviteSecret, duelInviteHash, contractAddress, chainId)) {
       appToast.error('duel.privateInviteMissing');
       return;
     }

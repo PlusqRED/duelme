@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PartialDataNotice } from '@/components/duel/PartialDataNotice';
 import { RecentDuelsFilters } from '@/components/duel/recent/RecentDuelsFilters';
 import { RecentDuelsGrid } from '@/components/duel/recent/RecentDuelsGrid';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
@@ -138,11 +139,7 @@ export default function RecentDuelsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
-      {isError && (
-        <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          {t('duel.partiallyLoaded')}
-        </p>
-      )}
+      <PartialDataNotice when={isError} />
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
           {t('recent.title')}

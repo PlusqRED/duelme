@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo } from 'react';
-import { DuelState, ACTIVE_STATES } from '@/lib/contracts';
-import { isRefundableDuel } from '@/lib/duel';
+import { DuelState } from '@/lib/contracts';
+import { isActiveDuel } from '@/lib/duel';
 import { useDuelsByGame } from './useDuelsByGame';
 import { useDuelsByIds } from './useDuelReads';
 import { toPlayerDuel, type PlayerDuel } from './usePlayerDuels';
@@ -60,10 +60,7 @@ export function useGameDuels(gameSlug: string | undefined, chainId: number) {
 
       const duel = toPlayerDuel(d, meta.chainId);
 
-      // A claim that timed out is history even though its state is still active: the refund is
-      // what is left to do. `isRefundableDuel` is that rule, and `claimTimeout` is adjustable
-      // on-chain, so it is not a constant anyone should re-spell.
-      if (ACTIVE_STATES.has(state) && !isRefundableDuel(d)) {
+      if (isActiveDuel(d)) {
         activeDuels.push(duel);
       } else {
         historyDuels.push(duel);

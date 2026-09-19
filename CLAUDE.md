@@ -64,7 +64,10 @@ guided flows drop the approve step entirely when `fundsViaPermit` is set. `creat
 
 ### Data Fetching
 - wagmi `useReadContract` / `useReadContracts` (multicall) for on-chain reads
-- React Query with `refetchInterval: 10_000, staleTime: 0` for live data
+- React Query with `refetchInterval: 10_000, staleTime: 0` for live data. The paged duel
+  readers in `useDuelReads.ts` are the exception: they set `staleTime` to the poll interval,
+  because they read the contract's whole history and `staleTime: 0` made every screen that
+  mounted one download all of it again. The refetch cadence is the same either way.
 - Always `refetch()` + `reset()` after successful write transactions
 - Header / wallet balances use `frontend/src/lib/balanceRefresh.ts` event bus + 30s poll fallback
 
