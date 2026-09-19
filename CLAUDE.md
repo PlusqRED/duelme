@@ -375,15 +375,22 @@ OpenAPI config: `backend/src/.../config/OpenApiConfig.java`. Swagger UI at `/api
 - Every public surface (contract fn, REST endpoint, exported hook) must have tests.
 - **AAA pattern:** Arrange → Act → Assert. One behavior per test. Name `test{Action}{ExpectedResult}`.
 
-**Contracts (Foundry):** `test/helpers/` holds the shared scaffolding — `MetaTxSigner` for signing
-forward requests, `PlainUsdt` for suites that only need a balance (`src/MockUSDT.sol` is the
-testnet deployment, with mainnet USD₮0's permit quirks). Known follow-up: seven suites still
-repeat the same fixture — `PlainUsdt` + `DuelMe` + a throwaway forwarder, alice and bob funded and
-approved, `DEFAULT_INVITE_HASH` read back from the contract — and `_createAndFundDuel`,
-`_createFundAndClaim` and `_assertPayouts` are defined more than once. An abstract
-`helpers/DuelMeFixture.sol` holding those, with a hook for the suites that swap the token
-(`DuelMeTokenSafety`) or add one (`DuelMeEmergency`), collapses roughly 150 duplicated lines; the
-per-suite test counts in `contracts/README.md` are what to check it against.
+**Contracts (Foundry):** `test/helpers/` holds the shared scaffolding:
+- `DuelMeFixture` — the starting position for every suite that duels: `PlainUsdt` + a forwarder
+  named from `ForwarderConfig.NAME` + `DuelMe`, alice and bob funded and approved,
+  `DEFAULT_INVITE_HASH` read back off the contract, plus `_createAndFundDuel`,
+  `_createFundAndClaim` and `_assertPayouts`. Call `_deployFixture()` from `setUp`. Extra players
+  get `_fund(player)`; a suite needing a different token overrides `_deployToken()`, as
+  `DuelMeTokenSafety` does for fee-on-transfer.
+- `MetaTxSigner` — EIP-712 signing for the ERC-2771 and EIP-2612 suites, which build on it
+  instead of `DuelMeFixture` because they need signer keys rather than plain addresses.
+- `PlainUsdt` — the wager token for suites that only need a balance. `src/MockUSDT.sol` is the
+  testnet deployment and carries mainnet USD₮0's permit quirks; use it only when testing permits.
+
+Do not re-declare `WAGER`, `MIN_WAGER`, `DEFAULT_INVITE_SECRET` or a forwarder name in a suite —
+they live in the fixture, and a suite that redefines one is testing a different world than its
+neighbours. The per-suite test counts in `contracts/README.md` are what to check a refactor
+against.
 
 **Frontend (Vitest):** test `lib/` pure logic. Test complex hooks via `renderHook`. Test observable behavior, not implementation. Mock at boundaries.
 

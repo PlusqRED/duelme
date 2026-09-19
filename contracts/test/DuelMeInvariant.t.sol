@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 import "../src/DuelMe.sol";
 import "@openzeppelin/contracts/metatx/ERC2771Forwarder.sol";
 import "./helpers/PlainUsdt.sol";
+import "../script/ForwarderConfig.sol";
 
 /// @notice Drives DuelMe through random but legal-looking sequences. Every action is wrapped in
 ///         try/catch on purpose: the fuzzer is meant to explore orderings, and a call that the
@@ -230,7 +231,7 @@ contract DuelMeInvariantTest is Test {
 
     function setUp() public {
         usdt = new PlainUsdt();
-        duelMe = new DuelMe(address(usdt), MIN_WAGER, address(new ERC2771Forwarder("DuelMe Forwarder")));
+        duelMe = new DuelMe(address(usdt), MIN_WAGER, address(new ERC2771Forwarder(ForwarderConfig.NAME)));
 
         address[] memory actors = new address[](4);
         actors[0] = makeAddr("alice");

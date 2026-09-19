@@ -1,33 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.34;
 
-import "forge-std/Test.sol";
-import "../src/DuelMe.sol";
-import "@openzeppelin/contracts/metatx/ERC2771Forwarder.sol";
-import "./helpers/PlainUsdt.sol";
+import "./helpers/DuelMeFixture.sol";
 
 /// @notice The read side: batch duel reads that replaced "fetch every duel on every refresh",
 ///         and the player record the reputation UI is built on.
-contract DuelMeViewsTest is Test {
-    DuelMe public duelMe;
-    PlainUsdt public usdt;
-
-    address public alice = makeAddr("alice");
-    address public bob = makeAddr("bob");
-
-    uint256 public constant WAGER = 10_000_000;
-    uint96 public constant MIN_WAGER = 300_000;
-
+contract DuelMeViewsTest is DuelMeFixture {
     function setUp() public {
-        usdt = new PlainUsdt();
-        duelMe = new DuelMe(address(usdt), MIN_WAGER, address(new ERC2771Forwarder("DuelMe Forwarder")));
-
-        usdt.mint(alice, 1_000_000_000);
-        usdt.mint(bob, 1_000_000_000);
-        vm.prank(alice);
-        usdt.approve(address(duelMe), type(uint256).max);
-        vm.prank(bob);
-        usdt.approve(address(duelMe), type(uint256).max);
+        _deployFixture();
     }
 
     function _openDuels(uint256 count) internal {

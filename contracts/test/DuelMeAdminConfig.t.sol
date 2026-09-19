@@ -1,41 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.34;
 
-import "forge-std/Test.sol";
-import "../src/DuelMe.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/metatx/ERC2771Forwarder.sol";
-import "./helpers/PlainUsdt.sol";
+import "./helpers/DuelMeFixture.sol";
 
-contract DuelMeAdminConfigTest is Test {
-    DuelMe public duelMe;
-    PlainUsdt public usdt;
-
-    address public alice = makeAddr("alice");
-    address public bob = makeAddr("bob");
-
-    uint96 public constant MIN_WAGER = 300_000; // 0.3 USDT
-    uint256 public constant WAGER = 10_000_000; // 10 USDT
-    bytes32 public constant DEFAULT_INVITE_SECRET = bytes32(uint256(1));
-
-    /// @dev Set in setUp from the contract itself, so the formula lives in exactly one place.
-    ///      Non-zero placeholder on purpose: a suite that forgets the assignment fails as
-    ///      "Invalid invite" instead of silently creating open duels.
-    bytes32 public DEFAULT_INVITE_HASH = keccak256("test/DuelMeAdminConfig.t.sol: DEFAULT_INVITE_HASH not set in setUp");
-
-
+contract DuelMeAdminConfigTest is DuelMeFixture {
     function setUp() public {
-        usdt = new PlainUsdt();
-        duelMe = new DuelMe(address(usdt), MIN_WAGER, address(new ERC2771Forwarder("DuelMe Forwarder")));
-        DEFAULT_INVITE_HASH = duelMe.hashInviteSecret(DEFAULT_INVITE_SECRET);
-
-        usdt.mint(alice, 1_000_000_000);
-        usdt.mint(bob, 1_000_000_000);
-
-        vm.prank(alice);
-        usdt.approve(address(duelMe), type(uint256).max);
-        vm.prank(bob);
-        usdt.approve(address(duelMe), type(uint256).max);
+        _deployFixture();
     }
 
     // =====================================================================

@@ -1,42 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.34;
 
-import "forge-std/Test.sol";
-import "../src/DuelMe.sol";
-import "@openzeppelin/contracts/metatx/ERC2771Forwarder.sol";
-import "./helpers/PlainUsdt.sol";
+import "./helpers/DuelMeFixture.sol";
 
 /// @notice How a duel decides who is allowed to take it: an open lobby, a secret link, or one
 ///         named address. Covers the rules that keep an open duel from being griefed and a
 ///         private invite from being replayed somewhere else.
-contract DuelMeInvitesTest is Test {
-    DuelMe public duelMe;
-    PlainUsdt public usdt;
-
-    address public alice = makeAddr("alice");
-    address public bob = makeAddr("bob");
+contract DuelMeInvitesTest is DuelMeFixture {
     address public mallory = makeAddr("mallory");
 
-    uint256 public constant WAGER = 10_000_000;
-    uint96 public constant MIN_WAGER = 300_000;
-    bytes32 public constant SECRET = bytes32(uint256(1));
-    /// @dev Set in setUp from the contract itself, so the formula lives in exactly one place.
-    ///      Non-zero placeholder on purpose: a suite that forgets the assignment fails as
-    ///      "Invalid invite" instead of silently creating open duels.
-    bytes32 public INVITE_HASH = keccak256("test/DuelMeInvites.t.sol: INVITE_HASH not set in setUp");
-
-
     function setUp() public {
-        usdt = new PlainUsdt();
-        duelMe = new DuelMe(address(usdt), MIN_WAGER, address(new ERC2771Forwarder("DuelMe Forwarder")));
-        INVITE_HASH = duelMe.hashInviteSecret(SECRET);
-
-        address[3] memory funded = [alice, bob, mallory];
-        for (uint256 i = 0; i < funded.length; i++) {
-            usdt.mint(funded[i], 1_000_000_000);
-            vm.prank(funded[i]);
-            usdt.approve(address(duelMe), type(uint256).max);
-        }
+        _deployFixture();
+        _fund(mallory);
     }
 
     // ── Open duels ───────────────────────────────────────────────────────
@@ -66,10 +41,10 @@ contract DuelMeInvitesTest is Test {
 
     function testSecretDuelCanStillBeDeclined() public {
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuel(WAGER, INVITE_HASH);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
 
         vm.prank(bob);
-        duelMe.declineDuel(duelId, SECRET);
+        duelMe.declineDuel(duelId, DEFAULT_INVITE_SECRET);
 
         DuelMe.DuelView memory d = duelMe.getDuel(duelId);
         assertEq(uint256(d.state), uint256(DuelMe.DuelState.Declined));
@@ -79,53 +54,53 @@ contract DuelMeInvitesTest is Test {
     // ── Invites bound to this contract ───────────────────────────────────
 
     function testInviteFromAnotherDeploymentDoesNotOpenThisDuel() public {
-        DuelMe other = new DuelMe(address(usdt), MIN_WAGER, address(new ERC2771Forwarder("DuelMe Forwarder")));
-        bytes32 foreignHash = other.hashInviteSecret(SECRET);
+        DuelMe other = new DuelMe(address(usdt), MIN_WAGER, address(new ERC2771Forwarder(ForwarderConfig.NAME)));
+        bytes32 foreignHash = other.hashInviteSecret(DEFAULT_INVITE_SECRET);
 
         vm.prank(alice);
         uint256 duelId = duelMe.createDuel(WAGER, foreignHash);
 
         vm.prank(bob);
         vm.expectRevert("Invalid invite");
-        duelMe.joinDuel(duelId, SECRET);
+        duelMe.joinDuel(duelId, DEFAULT_INVITE_SECRET);
     }
 
     function testInviteFromAnotherChainDoesNotOpenThisDuel() public {
-        bytes32 foreignHash = keccak256(abi.encode(address(duelMe), block.chainid + 1, SECRET));
+        bytes32 foreignHash = keccak256(abi.encode(address(duelMe), block.chainid + 1, DEFAULT_INVITE_SECRET));
 
         vm.prank(alice);
         uint256 duelId = duelMe.createDuel(WAGER, foreignHash);
 
         vm.prank(bob);
         vm.expectRevert("Invalid invite");
-        duelMe.joinDuel(duelId, SECRET);
+        duelMe.joinDuel(duelId, DEFAULT_INVITE_SECRET);
     }
 
     // ── Duels addressed to one player ────────────────────────────────────
 
     function testInvitedOpponentIsTheOnlyOneWhoCanJoin() public {
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuelFor(WAGER, INVITE_HASH, bob, "");
+        uint256 duelId = duelMe.createDuelFor(WAGER, DEFAULT_INVITE_HASH, bob, "");
 
         vm.prank(mallory);
         vm.expectRevert("Not the invited opponent");
-        duelMe.joinDuel(duelId, SECRET);
+        duelMe.joinDuel(duelId, DEFAULT_INVITE_SECRET);
 
         vm.prank(bob);
-        duelMe.joinDuel(duelId, SECRET);
+        duelMe.joinDuel(duelId, DEFAULT_INVITE_SECRET);
         assertEq(duelMe.getDuel(duelId).opponent, bob);
     }
 
     function testInvitedOpponentIsTheOnlyOneWhoCanDecline() public {
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuelFor(WAGER, INVITE_HASH, bob, "");
+        uint256 duelId = duelMe.createDuelFor(WAGER, DEFAULT_INVITE_HASH, bob, "");
 
         vm.prank(mallory);
         vm.expectRevert("Not the invited opponent");
-        duelMe.declineDuel(duelId, SECRET);
+        duelMe.declineDuel(duelId, DEFAULT_INVITE_SECRET);
 
         vm.prank(bob);
-        duelMe.declineDuel(duelId, SECRET);
+        duelMe.declineDuel(duelId, DEFAULT_INVITE_SECRET);
         assertEq(uint256(duelMe.getDuel(duelId).state), uint256(DuelMe.DuelState.Declined));
     }
 
@@ -164,21 +139,21 @@ contract DuelMeInvitesTest is Test {
     function testCannotInviteYourself() public {
         vm.prank(alice);
         vm.expectRevert("Cannot invite yourself");
-        duelMe.createDuelFor(WAGER, INVITE_HASH, alice, "");
+        duelMe.createDuelFor(WAGER, DEFAULT_INVITE_HASH, alice, "");
     }
 
     /// @dev While a duel is open the invitee lives in the view's own field: `opponent` stays
     ///      zero so existing readers keep reading it as "nobody has joined yet".
     function testViewSeparatesInviteeFromJoinedOpponent() public {
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuelFor(WAGER, INVITE_HASH, bob, "");
+        uint256 duelId = duelMe.createDuelFor(WAGER, DEFAULT_INVITE_HASH, bob, "");
 
         DuelMe.DuelView memory open = duelMe.getDuel(duelId);
         assertEq(open.opponent, address(0), "nobody has joined yet");
         assertEq(open.invitedOpponent, bob);
 
         vm.prank(bob);
-        duelMe.joinDuel(duelId, SECRET);
+        duelMe.joinDuel(duelId, DEFAULT_INVITE_SECRET);
 
         DuelMe.DuelView memory funded = duelMe.getDuel(duelId);
         assertEq(funded.opponent, bob);
@@ -199,7 +174,7 @@ contract DuelMeInvitesTest is Test {
     ///      even though the invitee's address is what the opponent slot was holding.
     function testCancelledInviteDuelReportsNoOpponent() public {
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuelFor(WAGER, INVITE_HASH, bob, "");
+        uint256 duelId = duelMe.createDuelFor(WAGER, DEFAULT_INVITE_HASH, bob, "");
 
         vm.prank(alice);
         duelMe.cancelDuel(duelId);
@@ -212,10 +187,10 @@ contract DuelMeInvitesTest is Test {
 
     function testDeclinedInviteDuelRecordsTheDecliner() public {
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuelFor(WAGER, INVITE_HASH, bob, "");
+        uint256 duelId = duelMe.createDuelFor(WAGER, DEFAULT_INVITE_HASH, bob, "");
 
         vm.prank(bob);
-        duelMe.declineDuel(duelId, SECRET);
+        duelMe.declineDuel(duelId, DEFAULT_INVITE_SECRET);
 
         DuelMe.DuelView memory d = duelMe.getDuel(duelId);
         assertEq(d.opponent, bob, "the decliner is recorded");
