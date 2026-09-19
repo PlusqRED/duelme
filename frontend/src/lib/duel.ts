@@ -1,8 +1,36 @@
+import { formatUnits } from 'viem';
 import { DuelState, ACTIVE_STATES, type Duel } from '@/lib/contracts';
 import { getContractConfig } from '@/lib/contractConfig';
+import { CHAIN_NAMES, USDT_DECIMALS } from '@/lib/constants';
 import type { TranslationKey } from '@/i18n/translations';
 
 export { ZERO_ADDRESS } from '@/lib/constants';
+
+/** A duel as the contract's `DuelView` returns it, plus the id it was read at. */
+export type DuelRecord = Duel & { id: number };
+
+/** A duel as the screens render it: the contract's fields, plus what display needs. */
+export interface PlayerDuel extends DuelRecord {
+  /** The wager as a display number. `wagerAmount` keeps the exact on-chain value. */
+  wager: number;
+  chainId: number;
+  chainName: string;
+}
+
+/**
+ * The one conversion from a duel as the contract returns it to a duel as the screens render it.
+ * Two hooks used to build this literal field by field: every field added to the contract's
+ * `DuelView` then had to be threaded through both, and `invitedOpponent` was missed in exactly
+ * that way.
+ */
+export function toPlayerDuel(duel: DuelRecord, chainId: number): PlayerDuel {
+  return {
+    ...duel,
+    wager: parseFloat(formatUnits(duel.wagerAmount, USDT_DECIMALS)),
+    chainId,
+    chainName: CHAIN_NAMES[chainId] ?? `Chain ${chainId}`,
+  };
+}
 
 type ClaimableDuel = Pick<
   Duel,

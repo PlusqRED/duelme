@@ -1,35 +1,9 @@
 'use client';
 
 import { useMemo } from 'react';
-import { formatUnits } from 'viem';
 import { DuelState } from '@/lib/contracts';
-import { isActiveDuel } from '@/lib/duel';
-import { useDuelRange, type DuelRecord } from './useDuelReads';
-import { USDT_DECIMALS, CHAIN_NAMES } from '@/lib/constants';
-
-export interface PlayerDuel extends DuelRecord {
-  /** The wager as a display number; `wagerAmountRaw` keeps the exact on-chain value. */
-  wager: number;
-  wagerAmountRaw: bigint;
-  chainId: number;
-  chainName: string;
-}
-
-/**
- * The one conversion from a duel as the contract returns it to a duel as the screens render it.
- * Two hooks used to build this literal field by field: every field added to the contract's
- * `DuelView` then had to be threaded through both, and `invitedOpponent` was missed in exactly
- * that way.
- */
-export function toPlayerDuel(duel: DuelRecord, chainId: number): PlayerDuel {
-  return {
-    ...duel,
-    wager: parseFloat(formatUnits(duel.wagerAmount, USDT_DECIMALS)),
-    wagerAmountRaw: duel.wagerAmount,
-    chainId,
-    chainName: CHAIN_NAMES[chainId] ?? `Chain ${chainId}`,
-  };
-}
+import { isActiveDuel, toPlayerDuel, type PlayerDuel } from '@/lib/duel';
+import { useDuelRange } from './useDuelReads';
 
 export interface PlayerStats {
   wins: number;

@@ -153,7 +153,8 @@ address, no relayer key — is the case the self-paid path still covers.
   names that player and `opponent` is zero; once someone joins or declines the roles swap, so
   `opponent` always means "the second player".
   A client must gate its Join/Decline buttons on `invitedOpponent`, not on `inviteHash` alone —
-  `isPublicDuel()` only answers "no secret needed".
+  `isPublicDuel` (in `frontend/src/lib/invite.ts`, not on the contract) only answers "no secret
+  needed"; `canPresentInvite` beside it mirrors the contract's `_requireAdmitted`.
 - `admitDefeat` resolves the duel outright — no confirmation window, one relayed transaction less.
 - Batch reads: `getDuels(offset, limit)` and `getDuelsByIds(ids)`; the frontend reads through
   `useDuelReads.ts` in pages of 200 instead of one call per duel.

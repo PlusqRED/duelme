@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useReadContract, useReadContracts } from 'wagmi';
-import { duelMeAbi, type Duel } from '@/lib/contracts';
+import { duelMeAbi, DuelState, type Duel } from '@/lib/contracts';
 import { DUELME_ADDRESSES, ZERO_ADDRESS } from '@/lib/constants';
+import type { DuelRecord } from '@/lib/duel';
 
 /**
  * How many duels one `getDuels` call carries.
@@ -35,8 +36,83 @@ const DUEL_PAGE_SIZE = 200;
  */
 const DUEL_POLL_INTERVAL = 10_000;
 
-/** A duel as the contract's `DuelView` returns it, plus the id it was read at. */
-export type DuelRecord = Duel & { id: number };
+/** A `getDuels(offset, limit)` page. */
+type DuelPageContract = {
+  address: `0x${string}`;
+  abi: typeof duelMeAbi;
+  functionName: 'getDuels';
+  args: readonly [bigint, bigint];
+  chainId: number;
+};
+
+/** A `getDuelsByIds(ids)` page. */
+type DuelPageIdsContract = {
+  address: `0x${string}`;
+  abi: typeof duelMeAbi;
+  functionName: 'getDuelsByIds';
+  args: readonly [readonly bigint[]];
+  chainId: number;
+};
+
+/** The query config both paged reads share. */
+const duelPageQuery = { refetchInterval: DUEL_POLL_INTERVAL, staleTime: DUEL_POLL_INTERVAL } as const;
+
+/** A `useReadContracts` entry as far as the stitch below cares. */
+type DuelPageRequest = { args: readonly unknown[] };
+
+/** One page's answer as far as the stitch below cares. */
+type DuelPageResult = { status: 'success' | 'failure'; result?: unknown };
+
+/**
+ * Turns page answers into numbered duel records, and says whether any page is missing.
+ *
+ * The two readers differ only in how they build their page list and how a duel in an answer gets
+ * its id. Everything after that was written out twice, so a change to how a failure is reported —
+ * or to what counts as a duel at all — was two edits with one of them easy to miss.
+ *
+ * `idAt` must be stable across renders; both callers wrap it in `useCallback`.
+ */
+function useStitchedDuels<TRequest extends DuelPageRequest>(
+  pageResults: readonly DuelPageResult[] | undefined,
+  pageContracts: readonly TRequest[],
+  idAt: (request: TRequest, index: number) => number | undefined
+) {
+  const duels = useMemo<DuelRecord[]>(() => {
+    if (!pageResults) return [];
+
+    const records: DuelRecord[] = [];
+
+    pageResults.forEach((page, pageIndex) => {
+      // Ids come from the request this page answered, not from the inputs as they stand now: the
+      // two can disagree for a render, and pairing by position against the current inputs would
+      // label a duel with someone else's id.
+      const request = pageContracts[pageIndex];
+      if (!request || page.status !== 'success' || !page.result) return;
+
+      (page.result as readonly Duel[]).forEach((duel, index) => {
+        const id = idAt(request, index);
+        if (id === undefined) return;
+
+        // An id nobody issued reads back as a zeroed struct, which is what `Nonexistent` says.
+        // Dropped here rather than by each caller, so a `DuelRecord` means "a duel that exists"
+        // everywhere downstream: `getDuelsByIds` is handed backend metadata, which survives a
+        // redeploy and can name ids this contract never issued.
+        if (duel.state === DuelState.Nonexistent) return;
+
+        records.push({ ...duel, id });
+      });
+    });
+
+    return records;
+  }, [pageResults, pageContracts, idAt]);
+
+  // A page that came back `failure` — a gas cap or a response-size limit on one 200-duel call —
+  // is that page's duels missing from an otherwise normal-looking list. Callers surface it rather
+  // than rendering a short list as a complete one.
+  const hasFailedPage = (pageResults ?? []).some((page) => page.status !== 'success');
+
+  return { duels, hasFailedPage };
+}
 
 interface DuelRangeOptions {
   chainId: number;
@@ -69,15 +145,15 @@ export function useDuelRange({ chainId, enabled = true }: DuelRangeOptions) {
   // history through the memos downstream — every time anyone anywhere created a duel.
   const pageCount = Math.ceil(count / DUEL_PAGE_SIZE);
 
-  const pageContracts = useMemo(() => {
+  const pageContracts = useMemo<DuelPageContract[]>(() => {
     if (!isEnabled || !pageCount) return [];
 
-    const pages = [];
+    const pages: DuelPageContract[] = [];
     for (let page = 0; page < pageCount; page++) {
       pages.push({
         address: contractAddress as `0x${string}`,
         abi: duelMeAbi,
-        functionName: 'getDuels' as const,
+        functionName: 'getDuels',
         args: [BigInt(page * DUEL_PAGE_SIZE), BigInt(DUEL_PAGE_SIZE)] as const,
         chainId,
       });
@@ -86,38 +162,22 @@ export function useDuelRange({ chainId, enabled = true }: DuelRangeOptions) {
     return pages;
   }, [isEnabled, pageCount, contractAddress, chainId]);
 
-  const { data: pageResults, isLoading: isDuelsLoading, isError: isPagesError, refetch: refetchPages } = useReadContracts({
-    contracts: pageContracts,
-    query: { enabled: pageContracts.length > 0, refetchInterval: DUEL_POLL_INTERVAL, staleTime: DUEL_POLL_INTERVAL },
-  });
-
-  const duels = useMemo<DuelRecord[]>(() => {
-    if (!pageResults) return [];
-
-    const records: DuelRecord[] = [];
-
-    pageResults.forEach((page, pageIndex) => {
-      // The id comes from the offset this page was *requested* at, not from a recomputed window.
-      // `count` moves as duels are created, so deriving it again here would renumber every record
-      // whenever the results in hand are one poll behind the count. That also means the two
-      // arrays can disagree for a render, so the request is looked up rather than assumed.
-      const request = pageContracts[pageIndex];
-      if (!request || page.status !== 'success' || !page.result) return;
-
-      const offset = Number(request.args[0]);
-
-      (page.result as readonly Duel[]).forEach((duel, index) => {
-        records.push({ ...duel, id: offset + index });
-      });
+  const { data: pageResults, isLoading: isDuelsLoading, isError: isPagesError, refetch: refetchPages } =
+    useReadContracts({
+      contracts: pageContracts,
+      query: { enabled: pageContracts.length > 0, ...duelPageQuery },
     });
 
-    return records;
-  }, [pageResults, pageContracts]);
+  const idAt = useCallback(
+    (request: DuelPageContract, index: number) => Number(request.args[0]) + index,
+    []
+  );
 
-  // A page that came back `failure` — a gas cap or a response-size limit on one 200-duel call —
-  // is 200 duels missing from an otherwise normal-looking list. Callers surface it rather than
-  // rendering a short history as a complete one.
-  const hasFailedPage = (pageResults ?? []).some((page) => page.status !== 'success');
+  const { duels, hasFailedPage } = useStitchedDuels(pageResults, pageContracts, idAt);
+
+  const refetch = useCallback(async () => {
+    await Promise.all([refetchCount(), refetchPages()]);
+  }, [refetchCount, refetchPages]);
 
   return {
     duels,
@@ -126,9 +186,7 @@ export function useDuelRange({ chainId, enabled = true }: DuelRangeOptions) {
     // an RPC hiccup renders an empty history as a complete one on every listing screen.
     isError: isCountError || isPagesError || hasFailedPage,
     isLoading: isCountLoading || isDuelsLoading,
-    refetch: async () => {
-      await Promise.all([refetchCount(), refetchPages()]);
-    },
+    refetch,
   };
 }
 
@@ -141,19 +199,19 @@ export function useDuelsByIds(duelIds: readonly number[], { chainId }: { chainId
   // the args, so this only has to be stable enough for the memo below.
   const idsKey = duelIds.join(',');
 
-  const pageContracts = useMemo(() => {
+  const pageContracts = useMemo<DuelPageIdsContract[]>(() => {
     if (!isEnabled) return [];
 
     // Chunked rather than asked for in one call. `getDuelsByIds` loops over whatever it is given,
     // so an unchunked read grows without bound with a game's popularity until one `eth_call`
     // exceeds the provider's gas or response cap — and then the whole set is missing rather than
     // one page of it. This is the same window `getDuels` is read in, for the same reason.
-    const pages = [];
+    const pages: DuelPageIdsContract[] = [];
     for (let offset = 0; offset < duelIds.length; offset += DUEL_PAGE_SIZE) {
       pages.push({
         address: contractAddress as `0x${string}`,
         abi: duelMeAbi,
-        functionName: 'getDuelsByIds' as const,
+        functionName: 'getDuelsByIds',
         args: [duelIds.slice(offset, offset + DUEL_PAGE_SIZE).map((id) => BigInt(id))] as const,
         chainId,
       });
@@ -165,37 +223,15 @@ export function useDuelsByIds(duelIds: readonly number[], { chainId }: { chainId
 
   const { data: pageResults, isLoading, isError: isPagesError } = useReadContracts({
     contracts: pageContracts,
-    query: { enabled: pageContracts.length > 0, refetchInterval: DUEL_POLL_INTERVAL, staleTime: DUEL_POLL_INTERVAL },
+    query: { enabled: pageContracts.length > 0, ...duelPageQuery },
   });
 
-  const duels = useMemo<DuelRecord[]>(() => {
-    if (!pageResults) return [];
+  const idAt = useCallback((request: DuelPageIdsContract, index: number) => {
+    const id = request.args[0][index];
+    return id === undefined ? undefined : Number(id);
+  }, []);
 
-    const records: DuelRecord[] = [];
-
-    pageResults.forEach((page, pageIndex) => {
-      // Ids come from the request this page answered, not from `duelIds` as it stands now: the
-      // two can disagree for a render, and pairing by position against the current array would
-      // label a duel with someone else's id.
-      const request = pageContracts[pageIndex];
-      if (!request || page.status !== 'success' || !page.result) return;
-
-      const requestedIds = request.args[0];
-
-      (page.result as readonly Duel[]).forEach((duel, index) => {
-        const id = requestedIds[index];
-        if (id === undefined) return;
-        records.push({ ...duel, id: Number(id) });
-      });
-    });
-
-    return records;
-  }, [pageResults, pageContracts]);
-
-  // A page that came back `failure` is that page's duels missing from an otherwise normal-looking
-  // list — the same "a short list rendered as a complete one" `useDuelRange` reports, and the
-  // callers surface it the same way.
-  const hasFailedPage = (pageResults ?? []).some((page) => page.status !== 'success');
+  const { duels, hasFailedPage } = useStitchedDuels(pageResults, pageContracts, idAt);
 
   return { duels, isLoading, isError: isPagesError || hasFailedPage };
 }

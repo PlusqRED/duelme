@@ -40,8 +40,9 @@ import {
 } from '@/lib/actionFlowConfigs';
 
 const STATUS_CONFIG: Record<DuelState, { icon: React.ElementType; gradient: string }> = {
-  // A duel this app renders is never `Nonexistent` — screens list ids below `duelCount`, and a
-  // direct link to an id nobody issued takes the not-found branch. Present for exhaustiveness.
+  // The paged readers drop `Nonexistent` records and a direct link to an id nobody issued takes
+  // the not-found branch, so no screen renders one. The entry is here because the record is
+  // exhaustive over the enum.
   [DuelState.Nonexistent]: { icon: XCircle, gradient: 'from-slate-400 to-slate-500' },
   [DuelState.Created]: { icon: Hourglass, gradient: 'from-blue-600 to-indigo-600' },
   [DuelState.Funded]: { icon: Swords, gradient: 'from-indigo-600 to-violet-600' },
@@ -260,7 +261,11 @@ export default function DuelPage({
   const canManageParticipantDuel = authenticated && isParticipant;
   const isClaimAuthor = walletAddress === duel.claimedBy.toLowerCase();
   const isCancelRequester = walletAddress === duel.cancelRequestedBy.toLowerCase();
+  // Holding the secret. `canPresentDuelInvite` is the question the contract asks in
+  // `_requireAdmitted` — an open duel needs no secret — and is what gates the controls; this one
+  // is only about whether this viewer has the secret itself.
   const hasInviteAccess = matchesInviteHash(inviteSecret, duel.inviteHash, duelMeAddress, DEFAULT_CHAIN_ID);
+  const canPresentDuelInvite = canPresentInvite(inviteSecret, duel.inviteHash, duelMeAddress, DEFAULT_CHAIN_ID);
   const isDuelPublic = isPublicDuel(duel.inviteHash);
   // A duel can be addressed to one player with or without a secret. Holding the invite is not
   // enough then — only that address can join or decline, and everyone else gets an on-chain
@@ -272,9 +277,7 @@ export default function DuelPage({
   // A duel addressed to one player is declinable by that player, secret or not.
   const isDeclinableDuel = !isDuelPublic || isAddressBoundDuel;
   const hasResolvedViewerAddress = !authenticated || !!walletAddress;
-  const canRespondToWaitingDuel =
-    isWaitingOpponent &&
-    (isDuelPublic || hasInviteAccess);
+  const canRespondToWaitingDuel = isWaitingOpponent && canPresentDuelInvite;
   const canJoinWaitingDuel =
     canRespondToWaitingDuel &&
     authenticated &&

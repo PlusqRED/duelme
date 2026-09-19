@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { PlayerDuel } from '@/hooks/usePlayerDuels';
+import type { PlayerDuel } from '@/lib/duel';
 import type { ActionFlowSummaryContext } from '@/lib/actionFlow';
 import { getClaimableAmountForAddress, isRefundableDuel } from '@/lib/duel';
 import { formatUSDT } from '@/lib/utils';
@@ -52,7 +52,7 @@ export function useDashboardClaims({
   );
   const totalRefundable = useMemo(
     () => refundableDuels.reduce(
-      (sum, duel) => sum + duel.wagerAmountRaw,
+      (sum, duel) => sum + duel.wagerAmount,
       0n
     ),
     [refundableDuels]
@@ -96,7 +96,7 @@ export function useDashboardClaims({
   function handleRefundAndClaimSingle(duelId: number) {
     const duel = historyDuels.find((d) => d.id === duelId);
     if (!duel) return;
-    setClaimSummary({ duelId, claimableDisplay: `${formatUSDT(duel.wagerAmountRaw)} USDT` });
+    setClaimSummary({ duelId, claimableDisplay: `${formatUSDT(duel.wagerAmount)} USDT` });
     actionFlow.openFlow(
       refundAndClaimConfig(() => actionFlow.duelActions.refundAndClaimPayouts([BigInt(duelId)]))
     );
