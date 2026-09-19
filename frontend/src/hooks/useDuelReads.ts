@@ -53,6 +53,7 @@ export function useDuelRange({ chainId, enabled = true }: DuelRangeOptions) {
   const {
     data: duelCount,
     isLoading: isCountLoading,
+    isError: isCountError,
     refetch: refetchCount,
   } = useReadContract({
     address: contractAddress,
@@ -120,7 +121,10 @@ export function useDuelRange({ chainId, enabled = true }: DuelRangeOptions) {
 
   return {
     duels,
-    isError: isPagesError || hasFailedPage,
+    // A failed count is the quietest way this hook can lie: `count` falls back to 0, no page is
+    // ever requested, and the two signals below both read "finished, nothing here". Without it
+    // an RPC hiccup renders an empty history as a complete one on every listing screen.
+    isError: isCountError || isPagesError || hasFailedPage,
     isLoading: isCountLoading || isDuelsLoading,
     refetch: async () => {
       await Promise.all([refetchCount(), refetchPages()]);

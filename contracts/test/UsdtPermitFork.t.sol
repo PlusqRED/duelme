@@ -33,8 +33,6 @@ contract UsdtPermitForkTest is MetaTxSigner {
     uint256 internal bobKey;
     address internal relayer = makeAddr("relayer");
 
-
-
     function setUp() public {
         string memory rpcUrl = vm.envOr("ARBITRUM_RPC_URL", string(""));
         if (bytes(rpcUrl).length == 0) {

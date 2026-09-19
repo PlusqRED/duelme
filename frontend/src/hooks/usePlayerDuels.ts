@@ -66,7 +66,7 @@ export function usePlayerDuels(
       const isOpponent = d.opponent.toLowerCase() === addr;
       if (!isCreator && !isOpponent) continue;
 
-      const state = d.state as DuelState;
+      const state = d.state;
       const duel = toPlayerDuel(d, chainId);
 
       if (isCreator && d.creatorClaimed) {

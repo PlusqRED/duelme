@@ -33,7 +33,7 @@ export function useRecentDuels() {
       // waiting and duels cancelled before anyone did.
       if (d.opponent === ZERO_ADDRESS) continue;
 
-      const state = d.state as DuelState;
+      const state = d.state;
       const lastEventAt = getRelevantDuelTimestamp(d);
 
       recent.push({

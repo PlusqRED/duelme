@@ -111,7 +111,7 @@ export default function DuelPage({
   useEffect(() => {
     if (!duel || walletAddress !== duel.creator.toLowerCase() || inviteSecret) return;
 
-    const storedSecret = readStoredInviteSecret(DEFAULT_CHAIN_ID, duelId);
+    const storedSecret = readStoredInviteSecret(DEFAULT_CHAIN_ID, duelMeAddress, duelId);
     if (!storedSecret) return;
 
     setInviteSecret(storedSecret);
@@ -119,12 +119,12 @@ export default function DuelPage({
     if (window.location.hash.slice(1) !== storedSecret) {
       window.history.replaceState(null, '', `${window.location.pathname}#${storedSecret}`);
     }
-  }, [duel, walletAddress, inviteSecret, duelId]);
+  }, [duel, walletAddress, inviteSecret, duelId, duelMeAddress]);
 
   useEffect(() => {
     if (!duel || !inviteSecret || walletAddress !== duel.creator.toLowerCase()) return;
-    storeInviteSecret(DEFAULT_CHAIN_ID, duelId, inviteSecret);
-  }, [duel, inviteSecret, walletAddress, duelId]);
+    storeInviteSecret(DEFAULT_CHAIN_ID, duelMeAddress, duelId, inviteSecret);
+  }, [duel, inviteSecret, walletAddress, duelId, duelMeAddress]);
 
   const joinFlow = useJoinDuelFlow({
     duelId,

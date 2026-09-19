@@ -7,6 +7,8 @@ import {
   hashInviteSecret,
   generateInviteSecret,
   isInviteSecret,
+  readStoredInviteSecret,
+  storeInviteSecret,
 } from '../invite';
 
 const CONTRACT = '0x990aD70C168B184a84d6d9491303fa344154e317' as `0x${string}`;
@@ -127,5 +129,40 @@ describe('isInviteSecret', () => {
 
   it('rejects short hex strings', () => {
     expect(isInviteSecret('0xabcd')).toBe(false);
+  });
+});
+
+describe('stored invite secrets', () => {
+  // `hashInviteSecret` binds a secret to one contract, so the place it is kept has to be bound
+  // to the same one: duel ids restart at zero on every redeploy.
+  const OTHER_CONTRACT = '0xBd2266AB4b62E34FD5282608abeEEd425F6D7F22' as `0x${string}`;
+  const SECRET = `0x${'a'.repeat(64)}` as `0x${string}`;
+
+  beforeAll(() => {
+    const store = new Map<string, string>();
+    // @ts-expect-error -- mocking window for test
+    globalThis.window = {};
+    // @ts-expect-error -- mocking localStorage for test
+    globalThis.localStorage = {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => void store.set(key, value),
+    };
+  });
+
+  afterAll(() => {
+    // @ts-expect-error -- cleanup
+    delete globalThis.window;
+    // @ts-expect-error -- cleanup
+    delete globalThis.localStorage;
+  });
+
+  it('reads back what it stored for the same duel on the same contract', () => {
+    storeInviteSecret(CHAIN_ID, CONTRACT, 3, SECRET);
+    expect(readStoredInviteSecret(CHAIN_ID, CONTRACT, 3)).toBe(SECRET);
+  });
+
+  it('does not hand a previous deployment\'s secret to the duel that reuses its id', () => {
+    storeInviteSecret(CHAIN_ID, CONTRACT, 3, SECRET);
+    expect(readStoredInviteSecret(CHAIN_ID, OTHER_CONTRACT, 3)).toBeNull();
   });
 });

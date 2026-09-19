@@ -44,7 +44,7 @@ export function useGameDuels(gameSlug: string | undefined, chainId: number) {
       // metadata, and a positional pair would then attach the wrong game to the wrong duel.
       const meta = metaByDuelId.get(d.id);
       if (!meta) continue;
-      const state = d.state as DuelState;
+      const state = d.state;
 
       // The backend keeps duel metadata per (duelId, chainId) and knows nothing about which
       // contract issued the id, so a redeploy leaves it pointing at ids the live contract has

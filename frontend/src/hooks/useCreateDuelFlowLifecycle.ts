@@ -118,7 +118,7 @@ export function useCreateDuelFlowLifecycle({
     const nextRoute = duelId ? buildDuelPath(duelId, flow.draft.inviteSecret) : '/dashboard';
 
     if (duelId && flow.draft.inviteSecret) {
-      storeInviteSecret(flow.draft.chainId, Number(duelId), flow.draft.inviteSecret);
+      storeInviteSecret(flow.draft.chainId, flow.draft.contractAddress, Number(duelId), flow.draft.inviteSecret);
     }
 
     if (duelId && flow.draft.gameName && identityToken) {

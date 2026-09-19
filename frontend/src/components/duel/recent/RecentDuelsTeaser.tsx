@@ -8,7 +8,7 @@ import { usePublicDuelMetas } from '@/hooks/usePublicDuelMetas';
 import { useRecentDuels } from '@/hooks/useRecentDuels';
 import { useTranslation } from '@/i18n/useTranslation';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
-import { PartialDataNotice } from '../PartialDataNotice';
+import { PartialDataNotice } from '@/components/duel/PartialDataNotice';
 import { RecentDuelsGrid } from './RecentDuelsGrid';
 
 const LANDING_TEASER_LIMIT = 6;

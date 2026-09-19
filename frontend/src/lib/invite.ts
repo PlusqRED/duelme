@@ -34,18 +34,37 @@ export function buildInviteLink(duelId: number, inviteSecret: `0x${string}`): st
   return `${window.location.origin}/duel/${duelId}#${inviteSecret}`;
 }
 
-function getInviteStorageKey(chainId: number, duelId: number): string {
-  return `${INVITE_STORAGE_PREFIX}:${chainId}:${duelId}`;
+/**
+ * Keyed by the contract the duel lives in, not by the chain alone. Duel ids restart at zero on
+ * every redeploy, and `hashInviteSecret` binds a secret to one contract — so a secret stored
+ * against `chainId:3` under a previous deployment would be loaded for the new duel 3, put in the
+ * URL fragment, and handed out by `buildDuelLink` as an invite the contract rejects.
+ */
+function getInviteStorageKey(
+  chainId: number,
+  contractAddress: `0x${string}`,
+  duelId: number
+): string {
+  return `${INVITE_STORAGE_PREFIX}:${chainId}:${contractAddress.toLowerCase()}:${duelId}`;
 }
 
-export function storeInviteSecret(chainId: number, duelId: number, inviteSecret: `0x${string}`): void {
+export function storeInviteSecret(
+  chainId: number,
+  contractAddress: `0x${string}`,
+  duelId: number,
+  inviteSecret: `0x${string}`
+): void {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(getInviteStorageKey(chainId, duelId), inviteSecret);
+  localStorage.setItem(getInviteStorageKey(chainId, contractAddress, duelId), inviteSecret);
 }
 
-export function readStoredInviteSecret(chainId: number, duelId: number): `0x${string}` | null {
+export function readStoredInviteSecret(
+  chainId: number,
+  contractAddress: `0x${string}`,
+  duelId: number
+): `0x${string}` | null {
   if (typeof window === 'undefined') return null;
-  const stored = localStorage.getItem(getInviteStorageKey(chainId, duelId));
+  const stored = localStorage.getItem(getInviteStorageKey(chainId, contractAddress, duelId));
   return isInviteSecret(stored) ? stored : null;
 }
 
