@@ -372,6 +372,16 @@ OpenAPI config: `backend/src/.../config/OpenApiConfig.java`. Swagger UI at `/api
 - Every public surface (contract fn, REST endpoint, exported hook) must have tests.
 - **AAA pattern:** Arrange → Act → Assert. One behavior per test. Name `test{Action}{ExpectedResult}`.
 
+**Contracts (Foundry):** `test/helpers/` holds the shared scaffolding — `MetaTxSigner` for signing
+forward requests, `PlainUsdt` for suites that only need a balance (`src/MockUSDT.sol` is the
+testnet deployment, with mainnet USD₮0's permit quirks). Known follow-up: seven suites still
+repeat the same fixture — `PlainUsdt` + `DuelMe` + a throwaway forwarder, alice and bob funded and
+approved, `DEFAULT_INVITE_HASH` read back from the contract — and `_createAndFundDuel`,
+`_createFundAndClaim` and `_assertPayouts` are defined more than once. An abstract
+`helpers/DuelMeFixture.sol` holding those, with a hook for the suites that swap the token
+(`DuelMeTokenSafety`) or add one (`DuelMeEmergency`), collapses roughly 150 duplicated lines; the
+per-suite test counts in `contracts/README.md` are what to check it against.
+
 **Frontend (Vitest):** test `lib/` pure logic. Test complex hooks via `renderHook`. Test observable behavior, not implementation. Mock at boundaries.
 
 **Backend (JUnit 5 + Spring Boot Test):** `@SpringBootTest` + `@AutoConfigureMockMvc` + embedded MongoDB. Controller via `MockMvc` (status / shape / auth). Service for logic / auth / edges. `WalletAuthenticationToken` for auth simulation. `@BeforeEach` cleanup for isolation.
