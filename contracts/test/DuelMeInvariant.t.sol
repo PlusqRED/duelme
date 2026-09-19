@@ -10,6 +10,11 @@ import "./helpers/PlainUsdt.sol";
 ///         try/catch on purpose: the fuzzer is meant to explore orderings, and a call that the
 ///         state machine refuses is a normal outcome, not a finding.
 contract DuelMeHandler is Test {
+    /// @dev The secret every handler action presents. Named rather than repeated: each action
+    ///      swallows its own revert, so one mistyped literal would not fail the run — it would
+    ///      quietly stop the fuzzer reaching `Funded` through the invite path.
+    bytes32 internal constant INVITE_SECRET = bytes32(uint256(1));
+
     DuelMe public duelMe;
     address[] public actors;
 
@@ -74,7 +79,7 @@ contract DuelMeHandler is Test {
 
     function createDuel(uint256 actorSeed, uint256 amountSeed, bool open) external {
         uint256 amount = bound(amountSeed, duelMe.minWager(), 50_000_000);
-        bytes32 inviteHash = open ? bytes32(0) : duelMe.hashInviteSecret(bytes32(uint256(1)));
+        bytes32 inviteHash = open ? bytes32(0) : duelMe.hashInviteSecret(INVITE_SECRET);
         vm.prank(_actor(actorSeed));
         try duelMe.createDuel(amount, inviteHash) { duelsCreated++; } catch {}
     }
@@ -83,7 +88,7 @@ contract DuelMeHandler is Test {
     ///      on the creator, which the contract refuses — that is one of the orderings worth taking.
     function createInvitedDuel(uint256 actorSeed, uint256 inviteeSeed, uint256 amountSeed, bool open) external {
         uint256 amount = bound(amountSeed, duelMe.minWager(), 50_000_000);
-        bytes32 inviteHash = open ? bytes32(0) : duelMe.hashInviteSecret(bytes32(uint256(1)));
+        bytes32 inviteHash = open ? bytes32(0) : duelMe.hashInviteSecret(INVITE_SECRET);
         vm.prank(_actor(actorSeed));
         try duelMe.createDuelFor(amount, inviteHash, _actor(inviteeSeed), "") { duelsCreated++; } catch {}
     }
@@ -97,7 +102,7 @@ contract DuelMeHandler is Test {
         }
 
         vm.prank(joiner);
-        try duelMe.joinDuel(id, bytes32(uint256(1))) { duelsJoined++; } catch {}
+        try duelMe.joinDuel(id, INVITE_SECRET) { duelsJoined++; } catch {}
     }
 
     function claimVictory(uint256 actorSeed, uint256 duelSeed) external {
@@ -127,7 +132,7 @@ contract DuelMeHandler is Test {
     function declineDuel(uint256 actorSeed, uint256 duelSeed) external {
         uint256 id = _duelId(duelSeed);
         vm.prank(_actor(actorSeed));
-        try duelMe.declineDuel(id, bytes32(uint256(1))) {} catch {}
+        try duelMe.declineDuel(id, INVITE_SECRET) {} catch {}
     }
 
     function cancelDuel(uint256 actorSeed, uint256 duelSeed) external {

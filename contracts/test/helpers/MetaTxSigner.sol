@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/metatx/ERC2771Forwarder.sol";
 import "@openzeppelin/contracts/interfaces/IERC5267.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import "../../script/ForwarderConfig.sol";
 
 /// @dev EIP-712 signing helpers shared by the ERC-2771 and EIP-2612 suites. Domains are
 ///      always read back from the deployed contract rather than rebuilt from constants, so a
@@ -142,10 +143,11 @@ abstract contract MetaTxSigner is Test {
         return MessageHashUtils.toTypedDataHash(_erc5267DomainSeparator(address(forwarder)), structHash);
     }
 
-    /// @dev EIP-712 domain name of the deployed forwarder. Mirrors FORWARDER_NAME in
-    ///      script/ForwarderConfig.sol. Each suite deploys its own forwarder and reads
-    ///      the domain back via ERC-5267, so the value here is a label, not a dependency.
-    string internal constant FORWARDER_NAME = "DuelMe Forwarder";
+    /// @dev EIP-712 domain name of the deployed forwarder, taken from the constant the deploy
+    ///      scripts read. Each suite deploys its own forwarder and reads the domain back via
+    ///      ERC-5267, so this is the name the suites deploy *with* — spelling it out again here
+    ///      would let the tests keep passing against a name production no longer uses.
+    string internal constant FORWARDER_NAME = ForwarderConfig.NAME;
 
     uint256 internal constant WAGER = 10_000_000; // 10 USDT
     uint96 internal constant MIN_WAGER = 300_000; // 0.3 USDT

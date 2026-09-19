@@ -48,11 +48,11 @@ forge test --match-test testCreateDuel
 forge test --match-test "testRefund*"
 ```
 
-### Current test coverage — 284 tests (plus 5 fork tests)
+### Current test coverage — 285 tests (plus 5 fork tests)
 
 | Suite | Focus | Count |
 |---|---|---|
-| `test/DuelMe.t.sol` | Core lifecycle, invite security, reputation, pause behaviour, UTF-8 messages, state numbering | 112 |
+| `test/DuelMe.t.sol` | Core lifecycle, invite security, reputation, pause behaviour, UTF-8 messages, state numbering | 113 |
 | `test/DuelMeEmergency.t.sol` | Timelocked emergency withdrawal, token and ETH rescue | 40 |
 | `test/DuelMeMetaTx.t.sol` | ERC-2771 relaying: sender resolution, what is and is not relayable | 29 |
 | `test/DuelMeAdminConfig.t.sol` | Owner-adjustable params, creation pause, two-step ownership | 27 |

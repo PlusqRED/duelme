@@ -230,7 +230,7 @@ contract DuelMe is ERC2771Context, Ownable2Step, Pausable, ReentrancyGuard {
     /// @param inviteHash Hash of the secret invite token required to accept or decline this duel.
     ///        Pass bytes32(0) for an open duel that anyone may join without a secret.
     /// @return duelId The unique identifier for the created duel
-    function createDuel(uint256 amount, bytes32 inviteHash) external whenNotPaused nonReentrant returns (uint256) {
+    function createDuel(uint256 amount, bytes32 inviteHash) external nonReentrant returns (uint256) {
         return _createDuel(amount, inviteHash, address(0), "");
     }
 
@@ -239,7 +239,7 @@ contract DuelMe is ERC2771Context, Ownable2Step, Pausable, ReentrancyGuard {
     /// @param inviteHash Hash of the secret invite token, or bytes32(0) for an open duel
     /// @param message Optional short duel message shown in the UI
     /// @return duelId The unique identifier for the created duel
-    function createDuel(uint256 amount, bytes32 inviteHash, string calldata message) external whenNotPaused nonReentrant returns (uint256) {
+    function createDuel(uint256 amount, bytes32 inviteHash, string calldata message) external nonReentrant returns (uint256) {
         return _createDuel(amount, inviteHash, address(0), message);
     }
 
@@ -252,7 +252,6 @@ contract DuelMe is ERC2771Context, Ownable2Step, Pausable, ReentrancyGuard {
     /// @return duelId The unique identifier for the created duel
     function createDuelFor(uint256 amount, bytes32 inviteHash, address invitedOpponent, string calldata message)
         external
-        whenNotPaused
         nonReentrant
         returns (uint256)
     {
@@ -277,7 +276,7 @@ contract DuelMe is ERC2771Context, Ownable2Step, Pausable, ReentrancyGuard {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external whenNotPaused nonReentrant returns (uint256) {
+    ) external nonReentrant returns (uint256) {
         _permit(_msgSender(), amount, permitDeadline, v, r, s);
         return _createDuel(amount, inviteHash, address(0), message);
     }
@@ -301,13 +300,20 @@ contract DuelMe is ERC2771Context, Ownable2Step, Pausable, ReentrancyGuard {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external whenNotPaused nonReentrant returns (uint256) {
+    ) external nonReentrant returns (uint256) {
         _permit(_msgSender(), amount, permitDeadline, v, r, s);
         return _createDuel(amount, inviteHash, invitedOpponent, message);
     }
 
+    /// @dev `whenNotPaused` sits here, not on the five entry points that reach it, so that the
+    ///      sixth cannot forget it. Both gates on entering a duel then read in one place, in one
+    ///      order, and a forgotten modifier on an immutable contract fails silently — a duel
+    ///      created during an emergency pause, with nothing to show for it afterwards. For the
+    ///      permit variants this means the permit is consumed before the pause is checked; the
+    ///      call reverts either way, so nothing is left behind.
     function _createDuel(uint256 amount, bytes32 inviteHash, address invitedOpponent, string memory message)
         internal
+        whenNotPaused
         returns (uint256 duelId)
     {
         require(!duelCreationPaused, "Duel creation paused");
@@ -352,7 +358,7 @@ contract DuelMe is ERC2771Context, Ownable2Step, Pausable, ReentrancyGuard {
     /// @notice Join an existing duel by depositing the matching wager
     /// @param duelId The ID of the duel to join
     /// @param inviteSecret The secret invite token shared by the creator. Ignored for open duels.
-    function joinDuel(uint256 duelId, bytes32 inviteSecret) external whenNotPaused nonReentrant {
+    function joinDuel(uint256 duelId, bytes32 inviteSecret) external nonReentrant {
         _joinDuel(duelId, inviteSecret);
     }
 
@@ -371,14 +377,15 @@ contract DuelMe is ERC2771Context, Ownable2Step, Pausable, ReentrancyGuard {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external whenNotPaused nonReentrant {
+    ) external nonReentrant {
         // The permit is signed for exactly this duel's wager. A wrong duelId permits the
         // wrong amount, but _joinDuel then reverts and rolls the allowance back with it.
         _permit(_msgSender(), duels[duelId].wagerAmount, permitDeadline, v, r, s);
         _joinDuel(duelId, inviteSecret);
     }
 
-    function _joinDuel(uint256 duelId, bytes32 inviteSecret) internal {
+    /// @dev `whenNotPaused` lives here rather than on the wrappers, as in `_createDuel`.
+    function _joinDuel(uint256 duelId, bytes32 inviteSecret) internal whenNotPaused {
         Duel storage duel = _requireWaitingDuel(duelId);
         address opponent = _msgSender();
         require(opponent != duel.creator, "Cannot join own duel");
@@ -1038,11 +1045,20 @@ contract DuelMe is ERC2771Context, Ownable2Step, Pausable, ReentrancyGuard {
     ///      the winner takes both, a refund returns one each, and a duel that never got funded
     ///      gives the creator theirs back.
     function _payoutOf(Duel storage duel, bool creatorSide) internal view returns (uint256) {
-        DuelState state = duel.state;
-        uint256 wager = duel.wagerAmount;
+        return _payoutFrom(duel.state, duel.wagerAmount, duel.winnerIsCreator, creatorSide);
+    }
 
+    /// @dev The rule itself, over fields the caller already has. `_duelView` reads all three once
+    ///      and asks for both sides; everyone else goes through `_payoutOf` above. Splitting it
+    ///      this way keeps one payout rule — a second copy is the way a duel's state and its
+    ///      payout learn to disagree.
+    function _payoutFrom(DuelState state, uint256 wager, bool winnerIsCreator, bool creatorSide)
+        internal
+        pure
+        returns (uint256)
+    {
         if (state == DuelState.Resolved) {
-            return duel.winnerIsCreator == creatorSide ? wager * 2 : 0;
+            return winnerIsCreator == creatorSide ? wager * 2 : 0;
         }
         if (state == DuelState.Refunded || state == DuelState.Disputed || state == DuelState.MutuallyCancelled) {
             return wager;
@@ -1199,30 +1215,43 @@ contract DuelMe is ERC2771Context, Ownable2Step, Pausable, ReentrancyGuard {
     function _duelView(uint256 duelId) internal view returns (DuelView memory result) {
         Duel storage duel = duels[duelId];
 
+        // Every field is read from storage exactly once here. The three `_…By` helpers and
+        // `_payoutOf` each re-read `state`, `creator`, `opponent` and `wagerAmount`, which is
+        // right for a one-off call and wasteful 200 times over inside `getDuels` — and it is the
+        // size of a page that this call's cost decides. The rules themselves are still the shared
+        // ones (`_hasDeclaredResult`, `_payoutFrom`); only the loads moved.
         DuelState state = duel.state;
+        address creator = duel.creator;
         address opponent = duel.opponent;
+        uint96 wagerAmount = duel.wagerAmount;
+        bool winnerIsCreator = duel.winnerIsCreator;
+        bool hasDeclaredResult = _hasDeclaredResult(state);
+
         // Until someone joins or declines, the opponent slot holds the invited address rather
         // than a second player — including for a duel the creator cancelled while it was still
         // waiting. External readers have always been able to treat a non-zero `opponent` as
         // "this duel has two players", so the invitee is reported in its own field.
         bool hasSecondPlayer = state != DuelState.Created && state != DuelState.Cancelled;
 
-        result.creator = duel.creator;
+        result.creator = creator;
         result.opponent = hasSecondPlayer ? opponent : address(0);
         result.invitedOpponent = hasSecondPlayer ? address(0) : opponent;
-        result.wagerAmount = duel.wagerAmount;
+        result.wagerAmount = wagerAmount;
         result.inviteHash = duel.inviteHash;
         result.message = duel.message;
-        result.claimedWinner = _claimedWinner(duel);
-        result.claimedBy = _claimedBy(duel);
-        result.cancelRequestedBy = _cancelRequestedBy(duel);
+        result.claimedWinner = hasDeclaredResult ? (winnerIsCreator ? creator : opponent) : address(0);
+        result.claimedBy = hasDeclaredResult ? (duel.claimedByCreator ? creator : opponent) : address(0);
+        result.cancelRequestedBy =
+            (state == DuelState.MutualCancelRequested || state == DuelState.MutuallyCancelled)
+                ? (duel.cancelRequestedByCreator ? creator : opponent)
+                : address(0);
         result.createdAt = duel.createdAt;
         result.fundedAt = duel.fundedAt;
         result.cancelRequestedAt = duel.cancelRequestedAt;
         result.claimTimestamp = duel.claimTimestamp;
         result.finalizedAt = duel.finalizedAt;
-        result.creatorPayout = _payoutOf(duel, true);
-        result.opponentPayout = _payoutOf(duel, false);
+        result.creatorPayout = _payoutFrom(state, wagerAmount, winnerIsCreator, true);
+        result.opponentPayout = _payoutFrom(state, wagerAmount, winnerIsCreator, false);
         result.creatorClaimed = duel.creatorClaimed;
         result.opponentClaimed = duel.opponentClaimed;
         result.state = state;

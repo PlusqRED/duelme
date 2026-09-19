@@ -1108,6 +1108,34 @@ contract DuelMeTest is Test {
         duelMe.admitDefeat(duelId);
     }
 
+    /// @dev Every way into a duel is gated, not just the ones someone remembered to gate.
+    ///      `pause()` blocks entering a duel, and that promise is only as good as its least
+    ///      covered entry point: the modifier now sits on `_createDuel` / `_joinDuel`, which
+    ///      every wrapper reaches, and this is what says so. The permit variants are covered
+    ///      the same way in `DuelMePermit.t.sol`, where a signature is available.
+    function testEveryDuelEntryPointIsPausable() public {
+        vm.prank(alice);
+        uint256 openDuelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
+
+        duelMe.pause();
+
+        vm.prank(alice);
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
+
+        vm.prank(alice);
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH, "gg");
+
+        vm.prank(alice);
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        duelMe.createDuelFor(WAGER, DEFAULT_INVITE_HASH, bob, "");
+
+        vm.prank(bob);
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        duelMe.joinDuel(openDuelId, DEFAULT_INVITE_SECRET);
+    }
+
     /// @dev A pause must not decide a contested duel. If confirming were pausable, the claim
     ///      window would run out during the pause, `refund` (which is not pausable) would turn
     ///      the win into a draw, and the player who was prevented from confirming would be the
