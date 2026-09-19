@@ -10,9 +10,12 @@ import { duelMeAbi, DuelState } from '@/lib/contracts';
  * `Refunded`, and surfaces as an unexplained revert or a wrong badge.
  *
  * The ABI half needs `forge build` to have run: `contracts/out/` is build output and is not
- * committed, so the check skips rather than failing where the artifact is absent. The enum half
- * needs nothing — it is pinned against the same table as `testDuelStateNumbering` in
- * DuelMe.t.sol, so a renumber on either side fails on the other.
+ * committed, so the check skips rather than failing for a developer who has not built the
+ * contracts yet. In CI it must not skip — a skipped mirror check is a green suite that compared
+ * nothing — so the test below asserts the artifact is there whenever `CI` is set, and the
+ * `frontend` workflow job builds the contracts before running this. The enum half needs nothing:
+ * it is pinned against the same table as `testDuelStateNumbering` in DuelMe.t.sol, so a renumber
+ * on either side fails on the other.
  */
 const ARTIFACT = join(__dirname, '../../../..', 'contracts/out/DuelMe.sol/DuelMe.json');
 
@@ -45,8 +48,8 @@ describe('duelMeAbi mirrors the compiled contract', () => {
     expect(normalise(duelMeAbi)).toEqual(normalise(artifact.abi));
   });
 
-  it('is present even when the artifact is not, so the skip above is visible', () => {
-    expect(duelMeAbi.length).toBeGreaterThan(0);
+  it.runIf(process.env.CI)('is not skipped in CI, where a green suite must mean it compared', () => {
+    expect(hasArtifact, `run \`forge build\` in contracts/ — ${ARTIFACT} is missing`).toBe(true);
   });
 });
 
