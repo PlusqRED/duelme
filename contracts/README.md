@@ -180,6 +180,11 @@ Deploys ERC2771Forwarder + MockUSDT + DuelMe and mints 1000 test USDT to the dep
 After deploy:
 
 1. keep `broadcast/Deploy.s.sol/421614/run-latest.json` as the tracked artifact,
-2. update `frontend/src/lib/constants.ts` — `DUELME_ADDRESSES`, `FORWARDER_ADDRESSES`, **and** `SUPPORTED_CHAINS.arbitrumSepolia.usdt`, since MockUSDT is redeployed too,
-2a. update the `FAUCET_MOCK_USDT_ADDRESS` repository variable and the default in `backend/src/main/resources/application.yml`, or the faucet keeps handing out the previous token,
+2. update `SUPPORTED_CHAINS.arbitrumSepolia` in `frontend/src/lib/constants.ts` — `duelMe`,
+   `forwarder` **and** `usdt`, since MockUSDT is redeployed too. `DUELME_ADDRESSES` and
+   `FORWARDER_ADDRESSES` are derived from that table; editing them directly does nothing,
+2a. update `faucet.mock-usdt-address` in `backend/src/main/resources/application.yml`, or the
+   faucet keeps handing out the previous token. That value is deliberately a bare literal with no
+   environment override, and `deployedAddresses.test.ts` pins it to the broadcast artifact —
+   keep the quotes, or YAML reads the address as a hex number and the backend refuses to start,
 3. sync the root `README.md` contract block with `python3 ../scripts/sync_readme_contract_addresses.py` (or use the configured git hook).
