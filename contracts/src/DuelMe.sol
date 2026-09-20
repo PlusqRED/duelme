@@ -161,6 +161,12 @@ contract DuelMe is ERC2771Context, Ownable2Step, Pausable, ReentrancyGuard {
 
     /// @dev Five counters in one slot (4+4+4+4+12 = 28 bytes), so a resolution updates a player's
     ///      whole record within one storage word — the cold slot is paid for once per player.
+    /// @dev `duelsWon`, `duelsLost` and `volume` ship ahead of a reader, the same way
+    ///      `createDuelFor` ships ahead of its UI: the contract is immutable and the screens are
+    ///      not, so a counter left out now could never be added. Today only `duelsHonored` and
+    ///      `duelsAbandoned` are read (by the reputation score). All five share one slot, so the
+    ///      three unread ones cost a few hundred gas per resolution, not a storage slot. Treat
+    ///      them as pending work, not dead state.
     struct PlayerStats {
         uint32 duelsHonored;   // resolved normally (both confirmed) or claimed and then timed out
         uint32 duelsAbandoned; // this player was the non-responder in a refund
@@ -950,11 +956,16 @@ contract DuelMe is ERC2771Context, Ownable2Step, Pausable, ReentrancyGuard {
     ///      the requested amount while holding less would quietly under-collateralise every
     ///      duel and leave the last claimants unable to withdraw. Refusing the duel is the
     ///      honest failure mode.
+    /// @dev No balance-delta check here. Whether the wager token takes a cut of a transfer is one
+    ///      question about one `immutable` address, so it is asked once at deploy
+    ///      (`script/TokenFeeProbe.sol`) rather than twice per create and twice per join for the
+    ///      life of the contract — and the relayer is what pays for those. The check was also
+    ///      one-directional: payouts leave through a bare `safeTransfer`, so a fee switched on
+    ///      later would have reverted intake while still silently short-paying every outstanding
+    ///      claim. The response to that is `pause()`, which stops duels being entered while every
+    ///      payout and refund stays open.
     function _pullWager(address payer, uint256 amount) internal {
-        IERC20 token = usdt;
-        uint256 balanceBefore = token.balanceOf(address(this));
-        token.safeTransferFrom(payer, address(this), amount);
-        require(token.balanceOf(address(this)) - balanceBefore == amount, "Token fee on transfer");
+        usdt.safeTransferFrom(payer, address(this), amount);
     }
 
     /// @notice Hash an invite secret the way this contract expects it in `createDuel`.

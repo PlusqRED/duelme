@@ -68,10 +68,12 @@ pull-based — terminal duel flows expose claimable balances, never push transfe
 
 ### Data Fetching
 - wagmi `useReadContract` / `useReadContracts` (multicall) for on-chain reads
-- React Query with `refetchInterval: 10_000, staleTime: 0` for live data. The paged duel
-  readers in `useDuelReads.ts` are the exception: they set `staleTime` to the poll interval,
-  because they read the contract's whole history and `staleTime: 0` made every screen that
-  mounted one download all of it again. The refetch cadence is the same either way.
+- React Query with `refetchInterval: 10_000, staleTime: 0` for live data. The paged duel readers
+  in `useDuelReads.ts` are the exception on both counts: one shared `DUEL_POLL_INTERVAL` of 15s,
+  used as `staleTime` too. They read the contract's whole history, so they are the largest
+  recurring cost the app has — and `staleTime: 0` made every screen that mounted one download all
+  of it again. Player-initiated changes do not wait for the interval; every duel write calls
+  `refetch()` on success.
 - Always `refetch()` + `reset()` after successful write transactions
 - Header / wallet balances use `frontend/src/lib/balanceRefresh.ts` event bus + 30s poll fallback
 
@@ -165,6 +167,11 @@ address, no relayer key — is the case the self-paid path still covers.
   **never give `Created` the zero value again**, and route every entry point whose required state
   is `Created` through `_requireWaitingDuel`. The invariant handler draws ids past `duelCount` so
   the suite reaches this (`invariant_nothingExistsPastDuelCount`).
+- `PlayerStats.duelsWon` / `duelsLost` / `volume` are written but not yet read — only
+  `duelsHonored` and `duelsAbandoned` reach the UI, through the reputation score. Same reasoning
+  as `createDuelFor` below: the contract is immutable, the screens are not, and all five counters
+  share one storage slot so the unread three cost a few hundred gas per resolution rather than a
+  slot. Pending work, not dead state.
 - The address-bound half of duels is deliberately **read-only in the app**: `createDuelFor` /
   `createDuelForWithPermit` have no UI, while `usePublicDuels` and the duel page already gate on
   `invitedOpponent`. The entry points shipped now because the contract is immutable; the "challenge
@@ -179,6 +186,14 @@ address, no relayer key — is the case the self-paid path still covers.
   A client must gate its Join/Decline buttons on `invitedOpponent`, not on `inviteHash` alone —
   `isPublicDuel` (in `frontend/src/lib/invite.ts`, not on the contract) only answers "no secret
   needed"; `canPresentInvite` beside it mirrors the contract's `_requireAdmitted`.
+- **The wager token is vetted once, at deploy, not on every wager.** `script/TokenFeeProbe.sol`
+  moves a probe amount from the deployer to itself and requires the balance back whole; both
+  deploy scripts run it. `usdt` is `immutable`, so this is one question about one address — the
+  old per-wager balance-delta check asked it twice per create and twice per join, on the path the
+  relayer pays for, and only in one direction: payouts leave through a bare `safeTransfer`, so a
+  fee switched on later would have reverted intake while still short-paying every outstanding
+  claim. That case is now `pause()`'s job, and `testFeeSwitchedOnAfterDeployUnderCollateralisesTheDuel`
+  pins what happens without it. Never add a token whose transfer can take a cut.
 - `admitDefeat` resolves the duel outright — no confirmation window, one relayed transaction less.
 - Batch reads: `getDuels(offset, limit)` and `getDuelsByIds(ids)`; the frontend reads through
   `useDuelReads.ts` in pages of 200 instead of one call per duel.
@@ -199,6 +214,7 @@ address, no relayer key — is the case the self-paid path still covers.
 |------|---------|
 | `contracts/src/DuelMe.sol` | Core duel contract |
 | `contracts/script/ForwarderConfig.sol` | Forwarder EIP-712 domain name shared by both deploy scripts |
+| `contracts/script/TokenFeeProbe.sol` | Deploy-time check that the wager token delivers transfers in full |
 | `contracts/test/helpers/DuelMeFixture.sol` | Shared `setUp` for the duel suites (token + forwarder + contract + funded alice/bob) |
 | `contracts/test/helpers/DuelMeTestConstants.sol` | The one home for `WAGER`, `MIN_WAGER`, `DEFAULT_INVITE_SECRET`, `STARTING_BALANCE` |
 | `frontend/src/lib/wagmi.ts` | wagmi config (Privy adapter); `resolveRpcUrl` validates the RPC env and picks the fallback chain (Alchemy/QuickNode → Tenderly) |

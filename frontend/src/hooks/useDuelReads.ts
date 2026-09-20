@@ -25,16 +25,21 @@ const DUEL_PAGE_SIZE = 200;
  * How often the listing screens re-read the chain.
  *
  * One value on purpose. These hooks resolve to the same wagmi queries, so the data is shared —
- * but each observer keeps its own timer, and a 10s and a 15s observer on the same screen make
- * the shared query fetch on the union of both (10 fetches a minute where 6 were intended).
+ * but each observer keeps its own timer, and a 10s and a 15s observer on the same screen make the
+ * shared query fetch on the union of both (10 fetches a minute where 6 were intended).
  *
- * The readers below set `staleTime` to this value rather than the project's usual zero. These are
- * the heaviest reads in the app — every page of the contract's history — and marking them stale on
- * arrival means each screen that mounts a reader downloads the lot again. Clicking through four
- * listing screens inside one poll window paid for four full reads of identical data. What keeps
- * the data live is the `refetchInterval`, which is unchanged.
+ * 15s, not the 10s some screens used. These are the heaviest reads in the app — every page of the
+ * contract's history, a full `DuelView` per duel including its message — so the interval is the
+ * largest recurring cost the app has, per open tab, growing with the contract's lifetime. It buys
+ * nothing for the player's own actions: every duel write calls `refetch()` on success, so this
+ * only decides how quickly *other* people's duels appear.
+ *
+ * The readers below also set `staleTime` to this value rather than the project's usual zero.
+ * Marking these stale on arrival means each screen that mounts a reader downloads the lot again;
+ * clicking through four listing screens inside one poll window paid for four full reads of
+ * identical data.
  */
-const DUEL_POLL_INTERVAL = 10_000;
+const DUEL_POLL_INTERVAL = 15_000;
 
 /** A `getDuels(offset, limit)` page. */
 type DuelPageContract = {

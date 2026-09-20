@@ -48,7 +48,7 @@ forge test --match-test testCreateDuel
 forge test --match-test "testRefund*"
 ```
 
-### Current test coverage — 285 tests (plus 5 fork tests)
+### Current test coverage — 289 tests (plus 5 fork tests)
 
 | Suite | Focus | Count |
 |---|---|---|
@@ -60,7 +60,7 @@ forge test --match-test "testRefund*"
 | `test/DuelMeInvites.t.sol` | Open duels, address-bound duels, ids that name no duel, invite binding and its golden vector | 19 |
 | `test/DuelMePayouts.t.sol` | Claim payouts, claiming to another address, batch claims | 17 |
 | `test/DuelMeViews.t.sol` | Batch reads, player record, derived payouts | 11 |
-| `test/DuelMeTokenSafety.t.sol` | Refusing a token that takes a transfer fee | 3 |
+| `test/DuelMeTokenSafety.t.sol` | The deploy-time fee-on-transfer probe, and what the contract does without it | 7 |
 | `test/DuelMeInvariant.t.sol` | Solvency under random sequences, nothing written past `duelCount`, plus the handler's own lifecycle smoke test | 4 |
 | `test/UsdtPermitFork.t.sol` | Real USD₮0 on Arbitrum One — skipped without `ARBITRUM_RPC_URL` | 5 |
 
@@ -69,9 +69,9 @@ and approved, and the common duel helpers), `MetaTxSigner` for the suites that n
 and `DuelMeTestConstants` for the values both bases start from. A suite calls `_deployFixture()`
 from `setUp` rather than building its own world.
 
-The invariant run is set to `runs = 64, depth = 128` in `foundry.toml` — 8192 calls, deliberately
-below Foundry's 256×500 default, to keep CI inside its time budget. Raise both before trusting it
-to find something rare.
+The invariant run is set to `runs = 256, depth = 256` in `foundry.toml` — 65,536 calls, about 25
+seconds. It was an eighth of that until the mainnet deploy; the contract is immutable and holds
+other people's money, so the search budget is worth the CI minute.
 
 ## Duel lifecycle
 
@@ -134,8 +134,11 @@ Five counters per wallet in a single storage slot: `duelsHonored`, `duelsAbandon
   board plays out and pays out
 - **Two-step ownership** (`Ownable2Step`), with `_checkOwner` and `acceptOwnership` pinned to
   `msg.sender` so no owner action can be relayed through the forwarder
-- **SafeERC20** for all transfers, and every incoming wager is checked against the balance delta —
-  a token that takes a transfer fee is refused rather than silently under-collateralising duels
+- **SafeERC20** for all transfers. Whether the wager token takes a cut of a transfer is asked
+  once, at deploy, by `script/TokenFeeProbe.sol` — the token is `immutable`, so it is one question
+  about one address rather than two `balanceOf` calls on every wager for the life of the contract.
+  A fee switched on *after* deploy is not refused on-chain; the response to that is `pause()`,
+  which stops duels being entered while every payout and refund stays open
 - **Claim-based payouts**, derived from the terminal state rather than stored, so state and payout
   cannot disagree
 - **A duel id only names a duel once `createDuel` has issued it.** `Nonexistent`, not `Created`,

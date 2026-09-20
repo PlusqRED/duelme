@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/metatx/ERC2771Forwarder.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import "../src/DuelMe.sol";
 import "./ForwarderConfig.sol";
+import "./TokenFeeProbe.sol";
 
 /// @notice Deploys ERC2771Forwarder + DuelMe against an already-deployed ERC20 (mainnet USDT).
 ///         Does NOT deploy MockUSDT, mint, or call any faucet.
@@ -24,6 +25,10 @@ import "./ForwarderConfig.sol";
 contract DeployMainnet is Script {
     uint256 private constant ARBITRUM_ONE_CHAIN_ID = 42161;
     uint96 private constant MIN_WAGER = 300_000; // 0.3 USDT (6 decimals)
+    
+    /// @dev 1 USDT. Big enough that the smallest basis-point fee cannot round down to zero at
+    ///      6 decimals, small enough to ask any deployer to hold it. It never leaves the deployer.
+    uint256 private constant FEE_PROBE_AMOUNT = 1_000_000;
 
     function run() external {
         uint256 expectedChainId = vm.envOr("EXPECTED_CHAIN_ID", ARBITRUM_ONE_CHAIN_ID);
@@ -54,6 +59,13 @@ contract DeployMainnet is Script {
         console.log("Chain id:", block.chainid);
 
         vm.startBroadcast(deployerPrivateKey);
+
+        // DuelMe pays out exactly twice the wager it recorded, so a token that takes a cut of a
+        // transfer would leave duels under-collateralised. The token is immutable, so the question
+        // is asked once, here, instead of on every wager for the life of the contract. Needs the
+        // deployer to hold at least `FEE_PROBE_AMOUNT`; it is returned by the same transaction.
+        TokenFeeProbe.requireNoTransferFee(IERC20(usdtAddress), deployer, FEE_PROBE_AMOUNT);
+
         ERC2771Forwarder forwarder = new ERC2771Forwarder(ForwarderConfig.NAME);
         DuelMe duelMe = new DuelMe(usdtAddress, MIN_WAGER, address(forwarder));
         vm.stopBroadcast();
