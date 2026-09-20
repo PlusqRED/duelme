@@ -1,5 +1,111 @@
 import { USDT_ADDRESSES } from '@/lib/constants';
 
+/**
+ * The `DuelView` tuple, written once.
+ *
+ * `getDuel`, `getDuels` and `getDuelsByIds` all return this struct, and each used to carry its own
+ * copy of the field list — three places to paste a new field into, in exact positional order, with
+ * nothing to catch the one that was missed. `forwardRequestTuple` below shares a definition for
+ * the same reason. `contractMirrors.test.ts` compares the result against the compiled artifact.
+ */
+const duelViewComponents = [
+  {
+    name: 'creator',
+    type: 'address',
+    internalType: 'address'
+  },
+  {
+    name: 'opponent',
+    type: 'address',
+    internalType: 'address'
+  },
+  {
+    name: 'wagerAmount',
+    type: 'uint256',
+    internalType: 'uint256'
+  },
+  {
+    name: 'inviteHash',
+    type: 'bytes32',
+    internalType: 'bytes32'
+  },
+  {
+    name: 'message',
+    type: 'string',
+    internalType: 'string'
+  },
+  {
+    name: 'claimedWinner',
+    type: 'address',
+    internalType: 'address'
+  },
+  {
+    name: 'claimedBy',
+    type: 'address',
+    internalType: 'address'
+  },
+  {
+    name: 'cancelRequestedBy',
+    type: 'address',
+    internalType: 'address'
+  },
+  {
+    name: 'createdAt',
+    type: 'uint256',
+    internalType: 'uint256'
+  },
+  {
+    name: 'fundedAt',
+    type: 'uint256',
+    internalType: 'uint256'
+  },
+  {
+    name: 'cancelRequestedAt',
+    type: 'uint256',
+    internalType: 'uint256'
+  },
+  {
+    name: 'claimTimestamp',
+    type: 'uint256',
+    internalType: 'uint256'
+  },
+  {
+    name: 'finalizedAt',
+    type: 'uint256',
+    internalType: 'uint256'
+  },
+  {
+    name: 'creatorPayout',
+    type: 'uint256',
+    internalType: 'uint256'
+  },
+  {
+    name: 'opponentPayout',
+    type: 'uint256',
+    internalType: 'uint256'
+  },
+  {
+    name: 'creatorClaimed',
+    type: 'bool',
+    internalType: 'bool'
+  },
+  {
+    name: 'opponentClaimed',
+    type: 'bool',
+    internalType: 'bool'
+  },
+  {
+    name: 'state',
+    type: 'uint8',
+    internalType: 'enum DuelMe.DuelState'
+  },
+  {
+    name: 'invitedOpponent',
+    type: 'address',
+    internalType: 'address'
+  }
+] as const;
+
 export const duelMeAbi = [
   {
     type: 'constructor',
@@ -102,6 +208,13 @@ export const duelMeAbi = [
   },
   {
     type: 'function',
+    name: 'acceptOwnership',
+    inputs: [],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
     name: 'admitDefeat',
     inputs: [
       {
@@ -154,12 +267,48 @@ export const duelMeAbi = [
   },
   {
     type: 'function',
+    name: 'claimPayoutTo',
+    inputs: [
+      {
+        name: 'duelId',
+        type: 'uint256',
+        internalType: 'uint256'
+      },
+      {
+        name: 'to',
+        type: 'address',
+        internalType: 'address'
+      }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
     name: 'claimPayouts',
     inputs: [
       {
         name: 'duelIds',
         type: 'uint256[]',
         internalType: 'uint256[]'
+      }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'claimPayoutsTo',
+    inputs: [
+      {
+        name: 'duelIds',
+        type: 'uint256[]',
+        internalType: 'uint256[]'
+      },
+      {
+        name: 'to',
+        type: 'address',
+        internalType: 'address'
       }
     ],
     outputs: [],
@@ -244,6 +393,94 @@ export const duelMeAbi = [
       },
       {
         name: 'inviteHash',
+        type: 'bytes32',
+        internalType: 'bytes32'
+      }
+    ],
+    outputs: [
+      {
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256'
+      }
+    ],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'createDuelFor',
+    inputs: [
+      {
+        name: 'amount',
+        type: 'uint256',
+        internalType: 'uint256'
+      },
+      {
+        name: 'inviteHash',
+        type: 'bytes32',
+        internalType: 'bytes32'
+      },
+      {
+        name: 'invitedOpponent',
+        type: 'address',
+        internalType: 'address'
+      },
+      {
+        name: 'message',
+        type: 'string',
+        internalType: 'string'
+      }
+    ],
+    outputs: [
+      {
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256'
+      }
+    ],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'createDuelForWithPermit',
+    inputs: [
+      {
+        name: 'amount',
+        type: 'uint256',
+        internalType: 'uint256'
+      },
+      {
+        name: 'inviteHash',
+        type: 'bytes32',
+        internalType: 'bytes32'
+      },
+      {
+        name: 'invitedOpponent',
+        type: 'address',
+        internalType: 'address'
+      },
+      {
+        name: 'message',
+        type: 'string',
+        internalType: 'string'
+      },
+      {
+        name: 'permitDeadline',
+        type: 'uint256',
+        internalType: 'uint256'
+      },
+      {
+        name: 'v',
+        type: 'uint8',
+        internalType: 'uint8'
+      },
+      {
+        name: 'r',
+        type: 'bytes32',
+        internalType: 'bytes32'
+      },
+      {
+        name: 's',
         type: 'bytes32',
         internalType: 'bytes32'
       }
@@ -357,8 +594,21 @@ export const duelMeAbi = [
     outputs: [
       {
         name: '',
-        type: 'uint256',
-        internalType: 'uint256'
+        type: 'uint248',
+        internalType: 'uint248'
+      }
+    ],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    name: 'duelCreationPaused',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'bool',
+        internalType: 'bool'
       }
     ],
     stateMutability: 'view'
@@ -450,99 +700,53 @@ export const duelMeAbi = [
       {
         name: '',
         type: 'tuple',
-        internalType: 'struct DuelMe.Duel',
-        components: [
-          {
-            name: 'creator',
-            type: 'address',
-            internalType: 'address'
-          },
-          {
-            name: 'opponent',
-            type: 'address',
-            internalType: 'address'
-          },
-          {
-            name: 'wagerAmount',
-            type: 'uint256',
-            internalType: 'uint256'
-          },
-          {
-            name: 'inviteHash',
-            type: 'bytes32',
-            internalType: 'bytes32'
-          },
-          {
-            name: 'message',
-            type: 'string',
-            internalType: 'string'
-          },
-          {
-            name: 'claimedWinner',
-            type: 'address',
-            internalType: 'address'
-          },
-          {
-            name: 'claimedBy',
-            type: 'address',
-            internalType: 'address'
-          },
-          {
-            name: 'cancelRequestedBy',
-            type: 'address',
-            internalType: 'address'
-          },
-          {
-            name: 'createdAt',
-            type: 'uint256',
-            internalType: 'uint256'
-          },
-          {
-            name: 'fundedAt',
-            type: 'uint256',
-            internalType: 'uint256'
-          },
-          {
-            name: 'cancelRequestedAt',
-            type: 'uint256',
-            internalType: 'uint256'
-          },
-          {
-            name: 'claimTimestamp',
-            type: 'uint256',
-            internalType: 'uint256'
-          },
-          {
-            name: 'finalizedAt',
-            type: 'uint256',
-            internalType: 'uint256'
-          },
-          {
-            name: 'creatorPayout',
-            type: 'uint256',
-            internalType: 'uint256'
-          },
-          {
-            name: 'opponentPayout',
-            type: 'uint256',
-            internalType: 'uint256'
-          },
-          {
-            name: 'creatorClaimed',
-            type: 'bool',
-            internalType: 'bool'
-          },
-          {
-            name: 'opponentClaimed',
-            type: 'bool',
-            internalType: 'bool'
-          },
-          {
-            name: 'state',
-            type: 'uint8',
-            internalType: 'enum DuelMe.DuelState'
-          }
-        ]
+        internalType: 'struct DuelMe.DuelView',
+        components: duelViewComponents
+      }
+    ],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    name: 'getDuels',
+    inputs: [
+      {
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256'
+      },
+      {
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256'
+      }
+    ],
+    outputs: [
+      {
+        name: 'page',
+        type: 'tuple[]',
+        internalType: 'struct DuelMe.DuelView[]',
+        components: duelViewComponents
+      }
+    ],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    name: 'getDuelsByIds',
+    inputs: [
+      {
+        name: 'duelIds',
+        type: 'uint256[]',
+        internalType: 'uint256[]'
+      }
+    ],
+    outputs: [
+      {
+        name: 'result',
+        type: 'tuple[]',
+        internalType: 'struct DuelMe.DuelView[]',
+        components: duelViewComponents
       }
     ],
     stateMutability: 'view'
@@ -559,14 +763,55 @@ export const duelMeAbi = [
     ],
     outputs: [
       {
-        name: 'honored',
-        type: 'uint32',
-        internalType: 'uint32'
-      },
+        name: '',
+        type: 'tuple',
+        internalType: 'struct DuelMe.PlayerStats',
+        components: [
+          {
+            name: 'duelsHonored',
+            type: 'uint32',
+            internalType: 'uint32'
+          },
+          {
+            name: 'duelsAbandoned',
+            type: 'uint32',
+            internalType: 'uint32'
+          },
+          {
+            name: 'duelsWon',
+            type: 'uint32',
+            internalType: 'uint32'
+          },
+          {
+            name: 'duelsLost',
+            type: 'uint32',
+            internalType: 'uint32'
+          },
+          {
+            name: 'volume',
+            type: 'uint96',
+            internalType: 'uint96'
+          }
+        ]
+      }
+    ],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    name: 'hashInviteSecret',
+    inputs: [
       {
-        name: 'abandoned',
-        type: 'uint32',
-        internalType: 'uint32'
+        name: 'inviteSecret',
+        type: 'bytes32',
+        internalType: 'bytes32'
+      }
+    ],
+    outputs: [
+      {
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32'
       }
     ],
     stateMutability: 'view'
@@ -720,24 +965,13 @@ export const duelMeAbi = [
   },
   {
     type: 'function',
-    name: 'playerStats',
-    inputs: [
+    name: 'pendingOwner',
+    inputs: [],
+    outputs: [
       {
         name: '',
         type: 'address',
         internalType: 'address'
-      }
-    ],
-    outputs: [
-      {
-        name: 'duelsHonored',
-        type: 'uint32',
-        internalType: 'uint32'
-      },
-      {
-        name: 'duelsAbandoned',
-        type: 'uint32',
-        internalType: 'uint32'
       }
     ],
     stateMutability: 'view'
@@ -763,6 +997,24 @@ export const duelMeAbi = [
         name: 'duelIds',
         type: 'uint256[]',
         internalType: 'uint256[]'
+      }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'refundAndClaimPayoutsTo',
+    inputs: [
+      {
+        name: 'duelIds',
+        type: 'uint256[]',
+        internalType: 'uint256[]'
+      },
+      {
+        name: 'to',
+        type: 'address',
+        internalType: 'address'
       }
     ],
     outputs: [],
@@ -861,6 +1113,19 @@ export const duelMeAbi = [
         name: 'newClaimTimeout',
         type: 'uint64',
         internalType: 'uint64'
+      }
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable'
+  },
+  {
+    type: 'function',
+    name: 'setDuelCreationPaused',
+    inputs: [
+      {
+        name: 'paused',
+        type: 'bool',
+        internalType: 'bool'
       }
     ],
     outputs: [],
@@ -1026,10 +1291,41 @@ export const duelMeAbi = [
         internalType: 'address'
       },
       {
+        name: 'invitedOpponent',
+        type: 'address',
+        indexed: true,
+        internalType: 'address'
+      },
+      {
         name: 'wagerAmount',
         type: 'uint256',
         indexed: false,
         internalType: 'uint256'
+      },
+      {
+        name: 'inviteHash',
+        type: 'bytes32',
+        indexed: false,
+        internalType: 'bytes32'
+      },
+      {
+        name: 'message',
+        type: 'string',
+        indexed: false,
+        internalType: 'string'
+      }
+    ],
+    anonymous: false
+  },
+  {
+    type: 'event',
+    name: 'DuelCreationPausedUpdated',
+    inputs: [
+      {
+        name: 'paused',
+        type: 'bool',
+        indexed: false,
+        internalType: 'bool'
       }
     ],
     anonymous: false
@@ -1087,6 +1383,12 @@ export const duelMeAbi = [
         type: 'address',
         indexed: true,
         internalType: 'address'
+      },
+      {
+        name: 'wagerAmount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256'
       }
     ],
     anonymous: false
@@ -1185,6 +1487,12 @@ export const duelMeAbi = [
       },
       {
         name: 'player',
+        type: 'address',
+        indexed: true,
+        internalType: 'address'
+      },
+      {
+        name: 'to',
         type: 'address',
         indexed: true,
         internalType: 'address'
@@ -1389,6 +1697,25 @@ export const duelMeAbi = [
         type: 'uint256',
         indexed: false,
         internalType: 'uint256'
+      }
+    ],
+    anonymous: false
+  },
+  {
+    type: 'event',
+    name: 'OwnershipTransferStarted',
+    inputs: [
+      {
+        name: 'previousOwner',
+        type: 'address',
+        indexed: true,
+        internalType: 'address'
+      },
+      {
+        name: 'newOwner',
+        type: 'address',
+        indexed: true,
+        internalType: 'address'
       }
     ],
     anonymous: false
@@ -1610,17 +1937,24 @@ export const erc20Abi = [
 ] as const;
 
 // Duel state enum matching the smart contract
+/**
+ * Mirrors `DuelState` in DuelMe.sol, values included — the contract returns the raw number.
+ * `Nonexistent` holds zero there so an id nobody issued cannot read back as a duel waiting for
+ * an opponent; a duel this app ever renders is never in it. The numbering is pinned on both
+ * sides: `testDuelStateNumbering` in DuelMe.t.sol and the matching case in contractMirrors.test.ts.
+ */
 export enum DuelState {
-  Created = 0,
-  Funded = 1,
-  WinnerClaimed = 2,
-  Resolved = 3,
-  Refunded = 4,
-  Cancelled = 5,
-  Declined = 6,
-  Disputed = 7,
-  MutualCancelRequested = 8,
-  MutuallyCancelled = 9,
+  Nonexistent = 0,
+  Created = 1,
+  Funded = 2,
+  WinnerClaimed = 3,
+  Resolved = 4,
+  Refunded = 5,
+  Cancelled = 6,
+  Declined = 7,
+  Disputed = 8,
+  MutualCancelRequested = 9,
+  MutuallyCancelled = 10,
 }
 
 export const ACTIVE_STATES = new Set<DuelState>([
@@ -1630,9 +1964,16 @@ export const ACTIVE_STATES = new Set<DuelState>([
   DuelState.MutualCancelRequested,
 ]);
 
+/** The contract's `DuelView` — what `getDuel`, `getDuels` and `getDuelsByIds` all return. */
 export interface Duel {
   creator: `0x${string}`;
+  /**
+   * The player who actually joined (or declined). Stays ZERO_ADDRESS while the duel is waiting,
+   * even when it was addressed to someone — that address is `invitedOpponent`.
+   */
   opponent: `0x${string}`;
+  /** Non-zero only when the duel is bound to one address; that address alone may join or decline. */
+  invitedOpponent: `0x${string}`;
   wagerAmount: bigint;
   inviteHash: `0x${string}`;
   message: string;

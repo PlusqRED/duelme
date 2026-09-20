@@ -33,7 +33,6 @@ contract UsdtPermitForkTest is MetaTxSigner {
     uint256 internal bobKey;
     address internal relayer = makeAddr("relayer");
 
-
     function setUp() public {
         string memory rpcUrl = vm.envOr("ARBITRUM_RPC_URL", string(""));
         if (bytes(rpcUrl).length == 0) {
@@ -49,6 +48,7 @@ contract UsdtPermitForkTest is MetaTxSigner {
         usdt = IERC20(ARBITRUM_USDT);
         forwarder = new ERC2771Forwarder(FORWARDER_NAME);
         duelMe = new DuelMe(ARBITRUM_USDT, MIN_WAGER, address(forwarder));
+        DEFAULT_INVITE_HASH = duelMe.hashInviteSecret(DEFAULT_INVITE_SECRET);
 
         // Forge's canonical test addresses are real addresses with real mainnet state, and
         // makeAddr("alice") happens to carry a live EIP-7702 delegation on Arbitrum One.
@@ -86,7 +86,7 @@ contract UsdtPermitForkTest is MetaTxSigner {
         _relayAs(forwarder, relayer, aliceKey, address(duelMe), _createWithPermitData(aliceKey, WAGER));
         _relayAs(forwarder, relayer, bobKey, address(duelMe), _joinWithPermitData(bobKey, 0, WAGER));
 
-        DuelMe.Duel memory duel = duelMe.getDuel(0);
+        DuelMe.DuelView memory duel = duelMe.getDuel(0);
         assertEq(duel.creator, alice);
         assertEq(duel.opponent, bob);
         assertEq(uint8(duel.state), uint8(DuelMe.DuelState.Funded));
@@ -102,7 +102,7 @@ contract UsdtPermitForkTest is MetaTxSigner {
         _relayAs(forwarder, relayer, bobKey, address(duelMe), abi.encodeCall(DuelMe.confirmResult, (0)));
 
         uint256 balanceBefore = usdt.balanceOf(alice);
-        _relayAs(forwarder, relayer, aliceKey, address(duelMe), abi.encodeCall(DuelMe.claimPayout, (0)));
+        _relayAs(forwarder, relayer, aliceKey, address(duelMe), abi.encodeCall(DuelMe.claimPayout, (uint256(0))));
 
         assertEq(usdt.balanceOf(alice), balanceBefore + WAGER * 2);
     }
@@ -115,7 +115,7 @@ contract UsdtPermitForkTest is MetaTxSigner {
         IERC20Permit(ARBITRUM_USDT).permit(alice, address(duelMe), WAGER, deadline, v, r, s);
 
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuelWithPermit(WAGER, INVITE_HASH, "", deadline, v, r, s);
+        uint256 duelId = duelMe.createDuelWithPermit(WAGER, DEFAULT_INVITE_HASH, "", deadline, v, r, s);
 
         assertEq(duelMe.getDuel(duelId).creator, alice);
     }
@@ -136,12 +136,12 @@ contract UsdtPermitForkTest is MetaTxSigner {
 
         vm.prank(alice);
         vm.expectRevert("Permit failed");
-        duelMe.createDuelWithPermit(WAGER, INVITE_HASH, "", deadline, v, r, s);
+        duelMe.createDuelWithPermit(WAGER, DEFAULT_INVITE_HASH, "", deadline, v, r, s);
 
         vm.prank(alice);
         usdt.approve(address(duelMe), WAGER);
         vm.prank(alice);
-        uint256 duelId = duelMe.createDuel(WAGER, INVITE_HASH);
+        uint256 duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
 
         assertEq(duelMe.getDuel(duelId).creator, alice);
     }
@@ -151,7 +151,7 @@ contract UsdtPermitForkTest is MetaTxSigner {
     function _createWithPermitData(uint256 signerKey, uint256 amount) internal view returns (bytes memory) {
         uint256 deadline = block.timestamp + 1 hours;
         (uint8 v, bytes32 r, bytes32 s) = _signPermit(ARBITRUM_USDT, signerKey, address(duelMe), amount, deadline);
-        return abi.encodeCall(DuelMe.createDuelWithPermit, (amount, INVITE_HASH, "", deadline, v, r, s));
+        return abi.encodeCall(DuelMe.createDuelWithPermit, (amount, DEFAULT_INVITE_HASH, "", deadline, v, r, s));
     }
 
     function _joinWithPermitData(uint256 signerKey, uint256 duelId, uint256 amount)
@@ -161,7 +161,7 @@ contract UsdtPermitForkTest is MetaTxSigner {
     {
         uint256 deadline = block.timestamp + 1 hours;
         (uint8 v, bytes32 r, bytes32 s) = _signPermit(ARBITRUM_USDT, signerKey, address(duelMe), amount, deadline);
-        return abi.encodeCall(DuelMe.joinDuelWithPermit, (duelId, INVITE_SECRET, deadline, v, r, s));
+        return abi.encodeCall(DuelMe.joinDuelWithPermit, (duelId, DEFAULT_INVITE_SECRET, deadline, v, r, s));
     }
 
 }

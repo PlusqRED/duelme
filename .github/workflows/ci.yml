@@ -192,7 +192,21 @@ jobs:
         working-directory: frontend
 
     steps:
+      # Submodules: contractMirrors.test.ts compares the hand-written duelMeAbi against
+      # contracts/out/DuelMe.sol/DuelMe.json, which needs forge-std to build.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1.9.1
+
+      # Built here, not taken from the `contracts` job, so the two stay parallel. Without this
+      # the ABI mirror check skips and the suite goes green having compared nothing — a
+      # hand-written entry that drifts from the contract encodes a selector that does not exist.
+      - name: Build contracts for the ABI mirror check
+        working-directory: contracts
+        run: forge build --silent
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6

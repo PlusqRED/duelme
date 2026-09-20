@@ -11,8 +11,17 @@ spring:
 privy:
   app-id: ${PRIVY_APP_ID}
 
-# Dev-only MockUSDT + ETH faucet. Prod must keep `enabled=false` (the default).
 duelme:
+  # The DuelMe deployment live on each chain. Hand-mirrored from
+  # contracts/broadcast/*/run-latest.json, the same copy frontend constants.ts
+  # keeps; deployedAddresses.test.ts pins both to the artifact, so a redeploy
+  # that misses one fails the frontend suite. Quoted for the same reason as
+  # mock-usdt-address below.
+  contracts:
+    duel-me:
+      "421614": "0x588A54Fa8c00c8aC003e41BD8ee26FBC8994105f"
+      "42161": "0xBd2266AB4b62E34FD5282608abeEEd425F6D7F22"
+  # Dev-only MockUSDT + ETH faucet. Prod must keep `enabled=false` (the default).
   faucet:
     enabled: ${FAUCET_ENABLED:false}
     private-key: ${FAUCET_PRIVATE_KEY:}
@@ -24,7 +33,7 @@ duelme:
     # Quoted: YAML reads a bare 0x… as a hex integer, and Spring would then bind the decimal
     # form, failing FaucetService's address check at startup and taking the whole backend
     # down with it — not just the faucet.
-    mock-usdt-address: "0x9E317e8A4B943E31452902D0106F836369f8bb6F"
+    mock-usdt-address: "0x44d213D601C19ec98Bf61A1bCa3935D6da07F05D"
     eth-amount-eth: ${FAUCET_ETH_AMOUNT_ETH:0.001}
     usdt-amount-raw: ${FAUCET_USDT_AMOUNT_RAW:100000000}
   social:

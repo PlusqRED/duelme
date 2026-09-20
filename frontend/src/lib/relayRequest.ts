@@ -52,6 +52,15 @@ export type RelayErrorCode =
  * emergency timelock, token rescue — is refused outright, so a leaked relayer key cannot be
  * spent driving admin calls.
  *
+ * Some entries have no call site in the app yet — the `*To` payout siblings and the
+ * `createDuelFor*` pair. That is deliberate: the contract is immutable and the screens are not,
+ * so those functions shipped ahead of their UI, and an allowlist that waited for the UI would
+ * make the first release of each screen fail at the relayer for no reason anyone could see.
+ * What bounds the risk is not this list's length: `/api/relay` takes no session, but it forwards
+ * only requests carrying a valid EIP-712 signature, and meters a per-address daily gas budget
+ * under a relayer-wide ceiling. An entry here lets a caller spend their own budget on their own
+ * signed call — it grants nothing the already-listed `createDuel` and `claimPayout` do not.
+ *
  * This list is NOT what keeps admin calls off the forwarder: ERC2771Forwarder.execute is
  * permissionless, so anyone holding a signed request can submit it and pay for it
  * themselves. DuelMe._checkOwner is pinned to msg.sender for that.
@@ -61,10 +70,14 @@ export const RELAYABLE_DUEL_FUNCTIONS: ReadonlySet<string> = new Set([
   'admitDefeat',
   'cancelDuel',
   'claimPayout',
+  'claimPayoutTo',
   'claimPayouts',
+  'claimPayoutsTo',
   'claimVictory',
   'confirmResult',
   'createDuel',
+  'createDuelFor',
+  'createDuelForWithPermit',
   'createDuelWithPermit',
   'declineDuel',
   'declineMutualCancellation',
@@ -73,6 +86,7 @@ export const RELAYABLE_DUEL_FUNCTIONS: ReadonlySet<string> = new Set([
   'joinDuelWithPermit',
   'refund',
   'refundAndClaimPayouts',
+  'refundAndClaimPayoutsTo',
   'requestMutualCancellation',
   'withdrawMutualCancellationRequest',
 ]);

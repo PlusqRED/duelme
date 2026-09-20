@@ -13,7 +13,8 @@ const VIEWER = '0x2222222222222222222222222222222222222222' as const;
 const CONTRACT = '0x3333333333333333333333333333333333333333' as const;
 const TOKEN = '0x4444444444444444444444444444444444444444' as const;
 const INVITE_SECRET = `0x${'5'.repeat(64)}` as const;
-const INVITE_HASH = hashInviteSecret(INVITE_SECRET);
+const CHAIN_ID = 421614;
+const INVITE_HASH = hashInviteSecret(INVITE_SECRET, CONTRACT, CHAIN_ID);
 
 function t(key: TranslationKey, params?: TranslationParams) {
   let value = String(translations.en[key]);
@@ -46,7 +47,7 @@ function setup(overrides: Partial<JoinDuelFlowActionsOptions> = {}) {
 
   const options: JoinDuelFlowActionsOptions = {
     appToast,
-    chainId: 421614,
+    chainId: CHAIN_ID,
     chainName: 'Arbitrum Sepolia',
     connectedChainId: 421614,
     contractAddress: CONTRACT,

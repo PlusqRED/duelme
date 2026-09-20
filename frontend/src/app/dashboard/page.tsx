@@ -6,6 +6,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { DuelCard } from '@/components/duel/DuelCard';
+import { PartialDataNotice } from '@/components/duel/PartialDataNotice';
 import { useActionFlow } from '@/hooks/useActionFlow';
 import { useTranslation } from '@/i18n/useTranslation';
 import { ReputationBadge } from '@/components/duel/ReputationBadge';
@@ -35,7 +36,9 @@ export default function DashboardPage() {
   const [activePage, setActivePage] = useState(1);
   const [historyPage, setHistoryPage] = useState(1);
 
-  const { wins, losses, totalWagered, totalWithdrawn, activeDuels, historyDuels, isLoading, refetch } =
+  // `isError` means a page of the history failed to load: duels — including ones with an
+  // unclaimed payout — are missing from these lists and from the claim totals below.
+  const { wins, losses, totalWagered, totalWithdrawn, activeDuels, historyDuels, isLoading, isError, refetch } =
     usePlayerDuels(walletAddress, DASHBOARD_CHAIN.id);
   const actionFlow = useActionFlow({ duelId: 0, refetchDuel: refetch });
   const {
@@ -92,6 +95,7 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+      <PartialDataNotice when={isError} />
       <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
         {t('dashboard.title')}
       </h1>

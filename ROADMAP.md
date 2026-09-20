@@ -1,7 +1,23 @@
 # DuelMe Platform Roadmap
 
 **Date:** 2026-03-30
-**Status:** Approved
+**Status:** Approved — this document is the plan as it was approved, kept as written. What has
+actually shipped since is below.
+
+## Shipped since (as of 2026-09-20)
+
+| Phase | State |
+|---|---|
+| 1 — Game catalog + duel metadata | **Done.** `games` and `duelMeta` collections, `/games` and `/games/[slug]`, duels tagged by game |
+| 2 — Leaderboard + search | **Partly.** Search shipped across the dashboard, the open lobby and the recent feed. No event indexer and no leaderboard: listing screens read the contract directly, in pages |
+| 3 — Boss Fight | Not started. No `BossFight.sol` |
+| 4 — Design refresh | **Partly.** The landing, duel and dashboard screens were reworked; not tracked against the item list below |
+| 5 — Social + bridge + languages | **Partly.** Steam, Telegram and Instagram links shipped; EN/RU shipped. No bridge/swap widget |
+| 6 — NFT badges + mainnet | **Partly.** Deployed to Arbitrum One. No `DuelMeBadges.sol` |
+
+Three things arrived that this plan did not anticipate: gasless play (ERC-2771 relayer plus
+EIP-2612 permits, so a player needs no ETH), open and address-bound duels beside private invite
+links, and a TON/Telegram sibling app under `ton/`.
 
 ## Context
 
@@ -10,6 +26,8 @@ DuelMe is a P2P gaming duel platform where players wager USDT in 1v1 duels on Ar
 The goal: make the platform useful for two audiences simultaneously — casual gamers who want to find opponents and duel for money, and streamers who want interactive audience engagement through "Boss Fight" duels.
 
 ## Current State
+
+_As of 2026-03-30, when this plan was written. See "Shipped since" above for where things stand now._
 
 - Smart contract: full duel lifecycle, reputation (Wilson Score), pull-based payouts, mutual cancellation
 - Frontend: landing, duel creation, duel detail, dashboard, profiles with game tags
@@ -50,9 +68,13 @@ New API endpoints:
 |--------|------|------|-------------|
 | GET | `/api/v1/games` | Public | List games, filter by category, search by name |
 | GET | `/api/v1/games/{slug}` | Public | Game details with stats |
-| POST | `/api/v1/duels/{duelId}/meta` | Auth | Attach game to a duel (called during duel creation) |
-| GET | `/api/v1/duels/{duelId}/meta` | Public | Get duel metadata |
-| GET | `/api/v1/duels/meta?gameSlug=cs2` | Public | List duels by game |
+| POST | `/api/v1/duels/{duelId}/meta?chainId=&contractAddress=` | Auth | Attach game to a duel (called during duel creation) |
+| GET | `/api/v1/duels/{duelId}/meta?chainId=&contractAddress=` | Public | Get duel metadata |
+| GET | `/api/v1/duels/meta?gameSlug=cs2&chainId=&contractAddress=` | Public | List duels by game |
+| GET | `/api/v1/duels/meta/batch?chainId=&contractAddress=&duelIds=` | Public | Batch duel metadata (max 200 ids) |
+
+Every duel-metadata route takes `contractAddress` as well as `chainId`: duel ids restart at zero
+on a redeploy, so the pair alone names a different duel under a different deployment.
 
 Games are auto-created when a user types a new game name during duel creation. The `duelCount` and `totalVolume` fields are 0 until the indexer (Phase 2) is built — this is acceptable for Phase 1 since catalog is primarily for discovery and navigation.
 

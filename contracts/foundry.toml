@@ -9,3 +9,16 @@ optimizer_runs = 200
 remappings = [
     "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/"
 ]
+
+# The solvency suite in test/DuelMeInvariant.t.sol. Every handler action swallows its own
+# revert, so anything that escapes to the runner is a real failure.
+#
+# 256 x 256 is 65,536 calls. Foundry's own default is 256 x 500; this trades some depth for run
+# time while keeping the run count, because the property here is reached by many short duels
+# rather than by one long sequence. It was 64 x 128 (8,192 calls) and was raised before the
+# mainnet deploy — the contract is immutable and holds other people's money, so the search budget
+# is worth the CI minute.
+[invariant]
+runs = 256
+depth = 256
+fail_on_revert = true

@@ -162,8 +162,15 @@ describe('parseRelayPayload', () => {
       'rescueToken',
       'rescueETH',
       'requestEmergencyWithdraw',
+      'cancelEmergencyWithdraw',
       'executeEmergencyWithdraw',
+      'setEmergencyDelay',
+      'setMaxMessageCodepoints',
+      'setMaxMessageBytes',
+      'setDuelCreationPaused',
       'transferOwnership',
+      'acceptOwnership',
+      'renounceOwnership',
     ]) {
       expect(RELAYABLE_DUEL_FUNCTIONS.has(name), name).toBe(false);
     }

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button';
+import { PartialDataNotice } from '@/components/duel/PartialDataNotice';
 import { PublicDuelCard } from '@/components/duel/PublicDuelCard';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { usePublicDuels } from '@/hooks/usePublicDuels';
@@ -21,7 +22,7 @@ export function PublicDuelsSection() {
   const timeAgo = useTimeAgo();
   const { authenticated } = usePrivy();
   const { walletAddress } = useActiveWallet();
-  const { duels, isLoading } = usePublicDuels();
+  const { duels, isLoading, isError } = usePublicDuels();
   const viewerAddress = authenticated ? walletAddress : undefined;
   const isViewerIdentityPending = authenticated && !walletAddress;
 
@@ -45,6 +46,7 @@ export function PublicDuelsSection() {
 
   return (
     <section id="public-duels" className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+      <PartialDataNotice when={isError} />
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">{t('publicDuels.title')}</h2>

@@ -9,7 +9,7 @@ import type { RecentDuel } from '@/hooks/useRecentDuels';
 import { useTimeAgo } from '@/hooks/useTimeAgo';
 import { useTranslation } from '@/i18n/useTranslation';
 import { DuelState } from '@/lib/contracts';
-import { isDuelClaimTimedOut, truncateUnicode } from '@/lib/duel';
+import { getDuelStateLabelKey, isDuelClaimTimedOut, truncateUnicode } from '@/lib/duel';
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
 import { DUEL_STATE_CONFIG, TIMED_OUT_CONFIG } from '@/lib/duelStateColors';
 import { cn, formatDateTime } from '@/lib/utils';
@@ -139,7 +139,7 @@ export function RecentDuelCard({
             stateConfig.colorClass,
           )}
         >
-          {t(stateConfig.key)}
+          {t(getDuelStateLabelKey(duel.state, isTimedOut))}
         </span>
         <span
           className="text-xs text-slate-500"

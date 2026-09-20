@@ -7,6 +7,7 @@ import java.time.Instant;
 public record DuelMetaResponse(
     long duelId,
     int chainId,
+    String contractAddress,
     String gameSlug,
     String gameName,
     GameCategory category,

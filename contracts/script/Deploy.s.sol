@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/metatx/ERC2771Forwarder.sol";
 import "../src/MockUSDT.sol";
 import "../src/DuelMe.sol";
 import "./ForwarderConfig.sol";
+import "./TokenFeeProbe.sol";
 
 /// @notice Deploys ERC2771Forwarder + MockUSDT + DuelMe to testnet
 /// Usage: forge script script/Deploy.s.sol --rpc-url $ARBITRUM_SEPOLIA_RPC_URL --broadcast --verify
@@ -37,6 +38,12 @@ contract DeployAll is Script {
         // 4. Mint 1000 USDT to deployer for testing
         mockUsdt.faucet();
         console.log("Minted 1000 USDT to deployer");
+
+        // 5. Same guard the mainnet script runs against the real token. MockUSDT takes no fee, so
+        //    this always passes here — the point is that the probe itself is exercised on a real
+        //    chain on every testnet deploy, rather than first being tried against mainnet USDT.
+        TokenFeeProbe.requireNoTransferFee(IERC20(address(mockUsdt)), vm.addr(deployerPrivateKey), 1_000_000);
+        console.log("Token fee probe passed");
 
         vm.stopBroadcast();
 
