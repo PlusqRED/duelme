@@ -10,12 +10,19 @@ import { AVAILABLE_CHAIN_KEYS } from '@/lib/constants';
 // of this single URL determines whether Privy ever shows "HTTP request failed".
 //
 // Resolution order (most reliable first):
-//   1. NEXT_PUBLIC_ARBITRUM_RPC_URL — authenticated provider (Alchemy/QuickNode),
-//      set per environment via GitHub secrets. Has rate limits high enough for
-//      production and is the only option that survives traffic bursts.
+//   1. NEXT_PUBLIC_ARBITRUM_RPC_URL — an authenticated provider, set per environment
+//      via GitHub secrets. Unset by default: the one we had went dead (see below).
 //   2. Tenderly Gateway public — ~95% success on burst eth_calls, no
-//      eth_fillTransaction, open CORS. Decent stopgap when the env var is unset
-//      (e.g. local dev).
+//      eth_fillTransaction, open CORS. What both environments run on today.
+//
+// A dead provider is indistinguishable from a healthy one here, and that is the
+// expensive part: resolveRpcUrl validates the URL's *shape*, nothing calls it, and
+// Privy has no fallback to fall back to. On 2026-09-20 the configured provider had
+// been disabled upstream and answered every call with 403 "App is inactive"; the
+// wallet showed "HTTP request failed" on withdrawal and nothing pointed at the RPC.
+// If you set this var, check the endpoint answers eth_chainId first, and add its host
+// to connect-src in ops/caddy/*.Caddyfile — a host missing there is blocked by the
+// browser and looks exactly the same from the UI.
 //
 // Provider selection notes (measured May 2026):
 //  - drpc.org: ~15% success on bursts of eth_call. Its "Temporary internal
@@ -28,10 +35,9 @@ import { AVAILABLE_CHAIN_KEYS } from '@/lib/constants';
 const TENDERLY_ARBITRUM = 'https://gateway.tenderly.co/public/arbitrum';
 const TENDERLY_ARBITRUM_SEPOLIA = 'https://gateway.tenderly.co/public/arbitrum-sepolia';
 
-// IMPORTANT: lock these URLs down via the Alchemy/QuickNode dashboard's
-// "Allowed Origins" feature. NEXT_PUBLIC_* vars are inlined into the JS bundle,
-// so the URL (and its key) is extractable — origin allowlist is what stops
-// abuse.
+// IMPORTANT: lock an authenticated URL down via its provider's "Allowed Origins"
+// feature. NEXT_PUBLIC_* vars are inlined into the JS bundle, so the URL (and its
+// key) is extractable — an origin allowlist is what stops abuse.
 //
 // Defensive guard: a non-absolute URL (e.g. someone pasted just the API key
 // into the secret) would be resolved by the browser's fetch() relative to the
