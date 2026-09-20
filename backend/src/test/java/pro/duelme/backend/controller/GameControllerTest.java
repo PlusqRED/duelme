@@ -15,6 +15,8 @@ import pro.duelme.backend.repository.DuelMetaRepository;
 import pro.duelme.backend.repository.GameRepository;
 import pro.duelme.backend.security.WalletAuthenticationToken;
 
+import static pro.duelme.backend.support.TestContracts.CHAIN_ID;
+import static pro.duelme.backend.support.TestContracts.CONTRACT;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -106,8 +108,8 @@ class GameControllerTest {
     @Test
     void duelCountComputedFromDuelMeta() throws Exception {
         gameRepository.save(new Game(null, "cs2", "Counter-Strike 2", null, GameCategory.FPS, null, null));
-        duelMetaRepository.save(new DuelMeta(null, 1, 421614, "cs2", "0xaaa", null));
-        duelMetaRepository.save(new DuelMeta(null, 2, 421614, "cs2", "0xbbb", null));
+        duelMetaRepository.save(new DuelMeta(null, CONTRACT, 1, CHAIN_ID, "cs2", "0xaaa", null));
+        duelMetaRepository.save(new DuelMeta(null, CONTRACT, 2, CHAIN_ID, "cs2", "0xbbb", null));
 
         mockMvc.perform(get("/api/v1/games/cs2"))
             .andExpect(status().isOk())
@@ -118,9 +120,9 @@ class GameControllerTest {
     void listGamesSortedByPopularity() throws Exception {
         gameRepository.save(new Game(null, "cs2", "Counter-Strike 2", null, GameCategory.FPS, null, null));
         gameRepository.save(new Game(null, "valorant", "Valorant", null, GameCategory.FPS, null, null));
-        duelMetaRepository.save(new DuelMeta(null, 1, 421614, "valorant", "0xaaa", null));
-        duelMetaRepository.save(new DuelMeta(null, 2, 421614, "valorant", "0xbbb", null));
-        duelMetaRepository.save(new DuelMeta(null, 3, 421614, "cs2", "0xccc", null));
+        duelMetaRepository.save(new DuelMeta(null, CONTRACT, 1, CHAIN_ID, "valorant", "0xaaa", null));
+        duelMetaRepository.save(new DuelMeta(null, CONTRACT, 2, CHAIN_ID, "valorant", "0xbbb", null));
+        duelMetaRepository.save(new DuelMeta(null, CONTRACT, 3, CHAIN_ID, "cs2", "0xccc", null));
 
         mockMvc.perform(get("/api/v1/games"))
             .andExpect(status().isOk())

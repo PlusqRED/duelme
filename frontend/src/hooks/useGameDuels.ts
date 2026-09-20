@@ -14,16 +14,13 @@ interface GameDuelsData {
 }
 
 export function useGameDuels(gameSlug: string | undefined, chainId: number) {
-  const { duels: metas, isLoading: isMetaLoading } = useDuelsByGame(gameSlug);
+  // Already narrowed to this chain and this deployment by the query, so every id here belongs
+  // to the contract we are about to read. Filtering after the fetch is what made a game page
+  // empty whenever the backend's row cap was spent on another chain's rows.
+  const { duels: metas, isLoading: isMetaLoading } = useDuelsByGame(gameSlug, chainId);
 
-  // The backend indexes duel metadata across chains; only the ones on this chain live in the
-  // contract we are about to read.
-  const duelIds = useMemo(
-    () => metas.filter((meta) => meta.chainId === chainId).map((meta) => meta.duelId),
-    [metas, chainId]
-  );
-  // Membership, not lookup: the only thing the loop needs from a duel's metadata is `chainId`,
-  // and every id in this set was filtered on it above.
+  const duelIds = useMemo(() => metas.map((meta) => meta.duelId), [metas]);
+  // Membership, not lookup: the loop only needs to know whether a record is one of these.
   const gameDuelIds = useMemo(() => new Set(duelIds), [duelIds]);
 
   const { duels: duelRecords, isLoading: isDuelsLoading, isError } = useDuelsByIds(duelIds, { chainId });

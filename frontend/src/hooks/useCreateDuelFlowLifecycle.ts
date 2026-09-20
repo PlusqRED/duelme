@@ -126,6 +126,7 @@ export function useCreateDuelFlowLifecycle({
         identityToken,
         Number(duelId),
         flow.draft.chainId,
+        flow.draft.contractAddress,
         flow.draft.gameName
       ).catch(() => {
         appToast.info('toast.gameAttachFailed');

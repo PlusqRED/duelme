@@ -29,6 +29,8 @@ function deployedContracts(script: string, chainId: number): Record<string, stri
   return deployed;
 }
 
+const APPLICATION_YML = readFileSync(join(REPO, 'backend/src/main/resources/application.yml'), 'utf8');
+
 const sepolia = deployedContracts('Deploy.s.sol', SUPPORTED_CHAINS.arbitrumSepolia.id);
 const mainnet = deployedContracts('DeployMainnet.s.sol', SUPPORTED_CHAINS.arbitrum.id);
 
@@ -65,16 +67,38 @@ describe('constants.ts mirrors the deployed contracts', () => {
   });
 });
 
+describe('the backend mirrors the same DuelMe deployments', () => {
+  it('names the live DuelMe on each chain, quoted, for the duelMeta backfill', () => {
+    // DuelMetaBackfillRunner stamps legacy rows with the deployment live on their
+    // chain. Sourced from a stale copy it would stamp them with the wrong contract
+    // and hide every one of them, so this copy is pinned like the faucet's below.
+    const block = APPLICATION_YML.match(/^\s*duel-me:\n((?:\s+"\d+":.*\n)+)/m);
+
+    expect(block, 'duelme.contracts.duel-me must be present in application.yml').not.toBeNull();
+
+    const configured = new Map(
+      [...block![1].matchAll(/^\s*"(\d+)":\s*"(0x[0-9a-fA-F]{40})"\s*$/gm)].map(
+        ([, chainId, address]) => [Number(chainId), address.toLowerCase()]
+      )
+    );
+
+    // Same count, so a chain added to constants.ts but not to application.yml fails
+    // here rather than silently going unbackfilled.
+    expect(configured.size).toBe(Object.keys(DUELME_ADDRESSES).length);
+    for (const [chainId, duelMe] of Object.entries(DUELME_ADDRESSES)) {
+      expect(configured.get(Number(chainId)), `duel-me entry for chain ${chainId}`).toBe(
+        duelMe.toLowerCase()
+      );
+    }
+  });
+});
+
 describe('the backend faucet mirrors the same token', () => {
   it('names the MockUSDT the frontend and DuelMe use, with no env escape hatch', () => {
-    const applicationYml = readFileSync(
-      join(REPO, 'backend/src/main/resources/application.yml'),
-      'utf8'
-    );
     // The quotes are load-bearing: YAML reads a bare 0x… as a hex integer, Spring binds the
     // decimal form, and FaucetService rejects it at startup — taking the whole backend down.
     // So the pattern requires them rather than tolerating either shape.
-    const match = applicationYml.match(/^\s*mock-usdt-address:\s*"(0x[0-9a-fA-F]{40})"\s*$/m);
+    const match = APPLICATION_YML.match(/^\s*mock-usdt-address:\s*"(0x[0-9a-fA-F]{40})"\s*$/m);
 
     expect(
       match,

@@ -255,7 +255,7 @@ address, no relayer key — is the case the self-paid path still covers.
 | `frontend/src/lib/testnetGas.ts` | Testnet vs mainnet gas/fee buffers; min-gas constants per duel action |
 | `frontend/src/i18n/translations.ts` | Merges the per-area section files into one EN/RU key map — **add keys in `frontend/src/i18n/translations/<section>.ts`**, not here |
 | `scripts/sync_readme_contract_addresses.py` | Sync README contract block from `run-latest.json` |
-| `frontend/src/lib/__tests__/deployedAddresses.test.ts` | Fails the build when `constants.ts` or the backend faucet default drifts from the broadcast artifact |
+| `frontend/src/lib/__tests__/deployedAddresses.test.ts` | Fails the build when `constants.ts` or a backend `application.yml` address (faucet token, `duelme.contracts.duel-me`) drifts from the broadcast artifact |
 | `frontend/src/lib/__tests__/contractAddresses.test.ts` | Fails the build when an in-app address map stops agreeing with `constants.ts` |
 | `backend/src/.../controller/ProfileController.java` | Profile CRUD endpoints |
 | `backend/src/.../security/PrivyJwksService.java` | Privy JWT verification via JWKS |
@@ -264,6 +264,7 @@ address, no relayer key — is the case the self-paid path still covers.
 | `backend/src/.../model/Profile.java` | MongoDB profile document (record) |
 | `frontend/src/lib/profile.ts` | Profile types and validation constants |
 | `frontend/src/lib/profileApi.ts` | Backend profile API client |
+| `frontend/src/lib/gameApi.ts` | Backend game-catalog and duel-metadata API client; every duel-metadata call carries the contract address |
 | `frontend/src/hooks/useMyProfile.ts` | Current user's profile (read/write) |
 | `frontend/src/hooks/useProfile.ts` | Read any player's profile by wallet |
 | `frontend/src/hooks/useNicknames.ts` | Batch nickname resolution for duel feeds |
@@ -280,6 +281,12 @@ address, no relayer key — is the case the self-paid path still covers.
 | `backend/src/.../service/TelegramOidcService.java` | Telegram OIDC auth URL + token exchange (PKCE S256) |
 | `backend/src/.../service/SteamOpenIdService.java` | Steam OpenID 2.0 login + `check_authentication` |
 | `backend/src/.../service/SocialLinkStateService.java` | Server-side OAuth state store (wallet + PKCE verifier, TTL-indexed in Mongo) |
+| `backend/src/.../model/DuelMeta.java` | Duel → game metadata document. Keyed `{contractAddress, duelId, chainId}` — see the duel-id bullet under Common Pitfalls |
+| `backend/src/.../service/DuelMetaService.java` | Owns the creator check and normalises both addresses; every lookup is scoped to one deployment |
+| `backend/src/.../config/MongoConfig.java` | **Creates every index explicitly.** Spring Boot does not auto-create `@Indexed` / `@CompoundIndex` — see Common Pitfalls |
+| `backend/src/.../config/DuelMetaBackfillRunner.java` | Stamps pre-`contractAddress` rows with their chain's live deployment, then drops the old `duelId_chainId` index. Runs before `MongoConfig` creates the new one |
+| `backend/src/.../config/ContractProperties.java` | `duelme.contracts.duel-me` — the live DuelMe per chain, the backend's mirror of `constants.ts` |
+| `backend/src/.../validation/EvmAddress.java` | The one address regex, shared by the `@Pattern` annotations and the runtime checks |
 | `backend/Dockerfile` | Backend container (multi-stage, GraalVM native) |
 | `frontend/Dockerfile` | Frontend container (multi-stage, Node 22) |
 | `.github/workflows/ci.yml` | CI pipeline: test + deploy (dev & prod) |
@@ -497,7 +504,9 @@ Runtime config source of truth: GitHub repository/environment secrets. Deploy wo
 - `TELEGRAM_RETURN_URL` — absolute Telegram callback URL; must match @BotFather-registered URL
 - `TELEGRAM_ISSUER` — defaults to `https://oauth.telegram.org`
 - Chains: Arbitrum One (42161) prod, Arbitrum Sepolia (421614) dev. Build-time `NEXT_PUBLIC_DEFAULT_CHAIN_KEY` (`arbitrum` / `arbitrumSepolia`) selects.
-- Contract addresses: `DUELME_ADDRESSES` map in `constants.ts`.
+- Contract addresses: `DUELME_ADDRESSES` map in `constants.ts`, mirrored for the backend by
+  `duelme.contracts.duel-me` in `application.yml` (not an env var, same reasoning as the faucet
+  token above). A redeploy edits both in the commit that edits the broadcast artifact.
 
 ## Common Pitfalls
 
@@ -522,7 +531,7 @@ Runtime config source of truth: GitHub repository/environment secrets. Deploy wo
 - **The relayer's budget ledger is in-memory**, so it resets on redeploy and is not shared across replicas. Accurate for the current single-container-per-env deployment; more than one replica needs a shared store.
 - README contract addresses auto-generated from `run-latest.json` by `scripts/sync_readme_contract_addresses.py` / pre-commit hook — don't edit that block manually.
 - Manual deploys here: source `contracts/.env` first (`set -a && . ./.env && set +a`).
-- **Contract addresses and chain ids have exactly one source.** `contracts/broadcast/*/run-latest.json` is what is deployed; `constants.ts` mirrors it by hand; everything else reads `constants.ts`. Never inline an address or a chain id anywhere else — `getUsdtAddress` once kept its own copy "to avoid a circular import" (`constants.ts` imports nothing, so there was no cycle), and after a MockUSDT redeploy the permit path read `nonces()` off the previous token, so duels failed with a revert that named no address. `deployedAddresses.test.ts` pins `constants.ts` and `application.yml`'s faucet token to the broadcast artifact; `contractAddresses.test.ts` pins `getUsdtAddress`, `CHAIN_NAMES` and the forwarder map to `constants.ts`. Both run in the `frontend` CI job (`npm test`).
+- **Contract addresses and chain ids have exactly one source.** `contracts/broadcast/*/run-latest.json` is what is deployed; `constants.ts` mirrors it by hand; everything else reads `constants.ts`. Never inline an address or a chain id anywhere else — `getUsdtAddress` once kept its own copy "to avoid a circular import" (`constants.ts` imports nothing, so there was no cycle), and after a MockUSDT redeploy the permit path read `nonces()` off the previous token, so duels failed with a revert that named no address. `deployedAddresses.test.ts` pins `constants.ts` and both of `application.yml`'s address copies (the faucet token and `duelme.contracts.duel-me`) to the broadcast artifact; `contractAddresses.test.ts` pins `getUsdtAddress`, `CHAIN_NAMES` and the forwarder map to `constants.ts`. Both run in the `frontend` CI job (`npm test`).
 - Use shared constants from `constants.ts` (`ZERO_ADDRESS`, `CHAIN_NAMES`) and `contracts.ts` (`ACTIVE_STATES`, `balanceOfAbi`, `transferAbi`, `getUsdtAddress`) — never redefine locally.
 - **Do not enable `via_ir`, and leave `optimizer_runs` at 200.** Measured on this contract:
   `runs = 1000` changes runtime gas by under 0.1% while growing the deployed bytecode from 21.4 KB
@@ -558,6 +567,26 @@ Runtime config source of truth: GitHub repository/environment secrets. Deploy wo
   USDT than it holds, but every handler action swallows its own revert — so without that lifecycle
   test the whole run can go green over duels that never got past `Created`. Payouts stay derived
   (see "Smart Contract"); a stored payout field would give the invariant something new to catch.
+- **A Spring Data index annotation does nothing unless `MongoConfig` creates it.** Spring Boot 3+
+  stopped auto-creating indexes declared with `@Indexed` / `@CompoundIndex`, and
+  `spring.data.mongodb.auto-index-creation` is deliberately unset — so `unique = true` on a
+  document is documentation, not a constraint. Nothing fails loudly: the `DuplicateKeyException`
+  branch that was meant to catch the collision simply becomes unreachable, two concurrent writes
+  leave two rows, and the *next* read of that key dies with
+  `IncorrectResultSizeDataAccessException` — a permanent 500 on one entity, long after the write.
+  Every index gets an explicit `ApplicationRunner` in
+  `backend/src/.../config/MongoConfig.java`; `createIndex` is idempotent, so it runs on every boot.
+  Name the index the same in both places — a second spelling of one key is not a second index,
+  it is an `IndexOptionsConflict` thrown out of a runner, which takes the boot down with it.
+  `MongoIndexTest` proves this for `duelMeta` and `games` by inserting an actual duplicate; the
+  `Profile` and `FaucetClaim` constraints are created by the same mechanism and are **not** yet
+  covered, so do not read a green suite as "every unique index is enforced".
+- **A duel id identifies a duel only together with the contract it came from.** Ids are handed out
+  by `duelCount`, which restarts at zero on every redeploy, so after a same-chain redeploy duel 3
+  is a different duel than yesterday's duel 3. Anything keyed on `{duelId, chainId}` silently
+  matches the wrong duel — it has already bitten stored invite secrets (`lib/invite.ts`) and duel
+  metadata (`DuelMeta`), and in both cases the symptom was a wrong answer, never an error. Key on
+  the contract address too, and take it from `DUELME_ADDRESSES[chainId]`.
 - `PRIVY_APP_ID` env required for backend (no default in `application.yml`).
 - Frontend npm pinned to `^11.12.1` via `frontend/package.json` `engines` + `frontend/.npmrc` `engine-strict=true`. CI and `frontend/Dockerfile` both pin it with `corepack enable npm && corepack prepare npm@11.12.1 --activate` — `corepack enable` alone does **not** shim npm (npm ships with Node), so npm has to be named explicitly or the `packageManager` field is ignored. A mismatch caused `EUSAGE` / `EBADENGINE` in `npm ci`.
 - `overrides.eslint-plugin-react-hooks: 7.0.1` is a temporary pin — `7.1.x` adds `react-hooks/set-state-in-effect`, which flags existing patterns in `dashboard/page.tsx`, `duel/[id]/page.tsx`, `Header.tsx`, `useCreateDuelFlow.ts`, `useJoinDuelFlow.ts`. Lift only after refactoring those files.

@@ -7,17 +7,7 @@ import {
   startTelegramLink,
   unlinkSocial,
 } from '../profileApi';
-
-function mockFetch(response: Partial<Response>) {
-  const fn = vi.fn().mockResolvedValue({
-    ok: response.ok ?? true,
-    status: response.status ?? 200,
-    json: async () => response.json?.call(response) ?? {},
-    ...response,
-  } as Response);
-  vi.stubGlobal('fetch', fn);
-  return fn;
-}
+import { mockFetch } from './helpers/mockFetch';
 
 beforeEach(() => {
   vi.unstubAllGlobals();

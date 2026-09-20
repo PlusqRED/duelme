@@ -11,8 +11,17 @@ spring:
 privy:
   app-id: ${PRIVY_APP_ID}
 
-# Dev-only MockUSDT + ETH faucet. Prod must keep `enabled=false` (the default).
 duelme:
+  # The DuelMe deployment live on each chain. Hand-mirrored from
+  # contracts/broadcast/*/run-latest.json, the same copy frontend constants.ts
+  # keeps; deployedAddresses.test.ts pins both to the artifact, so a redeploy
+  # that misses one fails the frontend suite. Quoted for the same reason as
+  # mock-usdt-address below.
+  contracts:
+    duel-me:
+      "421614": "0x990aD70C168B184a84d6d9491303fa344154e317"
+      "42161": "0xBd2266AB4b62E34FD5282608abeEEd425F6D7F22"
+  # Dev-only MockUSDT + ETH faucet. Prod must keep `enabled=false` (the default).
   faucet:
     enabled: ${FAUCET_ENABLED:false}
     private-key: ${FAUCET_PRIVATE_KEY:}

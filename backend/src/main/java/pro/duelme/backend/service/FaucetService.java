@@ -22,13 +22,13 @@ import pro.duelme.backend.exception.FaucetDisabledException;
 import pro.duelme.backend.exception.FaucetExecutionException;
 import pro.duelme.backend.model.FaucetClaim;
 import pro.duelme.backend.repository.FaucetClaimRepository;
+import pro.duelme.backend.validation.EvmAddress;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 /**
  * Dev-only testnet faucet. Sends a small ETH drop to cover gas and mints
@@ -44,7 +44,6 @@ import java.util.regex.Pattern;
 public class FaucetService {
 
     private static final Logger log = LoggerFactory.getLogger(FaucetService.class);
-    private static final Pattern ADDRESS_PATTERN = Pattern.compile("^0x[0-9a-fA-F]{40}$");
     private static final BigInteger ETH_GAS_LIMIT = BigInteger.valueOf(100_000L);
     private static final BigInteger MINT_GAS_LIMIT = BigInteger.valueOf(200_000L);
 
@@ -78,7 +77,7 @@ public class FaucetService {
             throw new IllegalStateException(
                 "duelme.faucet.enabled=true but duelme.faucet.rpc-url is not set");
         }
-        if (props.mockUsdtAddress() == null || !ADDRESS_PATTERN.matcher(props.mockUsdtAddress()).matches()) {
+        if (!EvmAddress.isValid(props.mockUsdtAddress())) {
             throw new IllegalStateException(
                 "duelme.faucet.mock-usdt-address is missing or malformed");
         }
@@ -112,7 +111,7 @@ public class FaucetService {
         if (!props.enabled()) {
             throw new FaucetDisabledException();
         }
-        if (walletAddress == null || !ADDRESS_PATTERN.matcher(walletAddress).matches()) {
+        if (!EvmAddress.isValid(walletAddress)) {
             throw new FaucetExecutionException("Invalid wallet address", null);
         }
         String normalized = walletAddress.toLowerCase();

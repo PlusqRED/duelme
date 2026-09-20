@@ -68,9 +68,13 @@ New API endpoints:
 |--------|------|------|-------------|
 | GET | `/api/v1/games` | Public | List games, filter by category, search by name |
 | GET | `/api/v1/games/{slug}` | Public | Game details with stats |
-| POST | `/api/v1/duels/{duelId}/meta` | Auth | Attach game to a duel (called during duel creation) |
-| GET | `/api/v1/duels/{duelId}/meta` | Public | Get duel metadata |
-| GET | `/api/v1/duels/meta?gameSlug=cs2` | Public | List duels by game |
+| POST | `/api/v1/duels/{duelId}/meta?chainId=&contractAddress=` | Auth | Attach game to a duel (called during duel creation) |
+| GET | `/api/v1/duels/{duelId}/meta?chainId=&contractAddress=` | Public | Get duel metadata |
+| GET | `/api/v1/duels/meta?gameSlug=cs2&chainId=&contractAddress=` | Public | List duels by game |
+| GET | `/api/v1/duels/meta/batch?chainId=&contractAddress=&duelIds=` | Public | Batch duel metadata (max 200 ids) |
+
+Every duel-metadata route takes `contractAddress` as well as `chainId`: duel ids restart at zero
+on a redeploy, so the pair alone names a different duel under a different deployment.
 
 Games are auto-created when a user types a new game name during duel creation. The `duelCount` and `totalVolume` fields are 0 until the indexer (Phase 2) is built — this is acceptable for Phase 1 since catalog is primarily for discovery and navigation.
 

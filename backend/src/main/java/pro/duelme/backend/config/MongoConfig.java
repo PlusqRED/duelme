@@ -3,11 +3,14 @@ package pro.duelme.backend.config;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.config.EnableMongoAuditing;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
+import pro.duelme.backend.model.DuelMeta;
 import pro.duelme.backend.model.FaucetClaim;
+import pro.duelme.backend.model.Game;
 import pro.duelme.backend.model.Profile;
 import pro.duelme.backend.model.SocialOAuthState;
 
@@ -62,5 +65,43 @@ public class MongoConfig {
             .createIndex(new Index()
                 .on("expiresAt", Sort.Direction.ASC)
                 .expire(Duration.ZERO));
+    }
+
+    /**
+     * The same reason as above, one collection over: {@code DuelMeta}'s
+     * {@code @CompoundIndex(unique = true)} is decoration until something
+     * creates it. Without this the {@code DuplicateKeyException} branch in
+     * {@code DuelMetaService#attachGame} is unreachable, two concurrent writes
+     * for one duel leave two rows behind, and every later read of that duel
+     * fails with {@code IncorrectResultSizeDataAccessException} — a permanent
+     * 500 on that duel's page.
+     *
+     * <p>Named to match the annotation, for the reason {@link DuelMeta#UNIQUE_INDEX}
+     * gives. Ordered after {@link DuelMetaBackfillRunner#ORDER} — see there for why.
+     */
+    @Order(DuelMetaBackfillRunner.ORDER + 1)
+    @Bean
+    public ApplicationRunner ensureDuelMetaIndexes(MongoTemplate template) {
+        return args -> template.indexOps(DuelMeta.class)
+            .createIndex(new Index()
+                .on("contractAddress", Sort.Direction.ASC)
+                .on("duelId", Sort.Direction.ASC)
+                .on("chainId", Sort.Direction.ASC)
+                .unique()
+                .named(DuelMeta.UNIQUE_INDEX));
+    }
+
+    /**
+     * {@code Game.slug} carries {@code @Indexed(unique = true)} and had the same
+     * defect. {@code GameService#createGame} catches
+     * {@code DuplicateKeyException} to make "get or create" idempotent, so
+     * without the index two callers naming the same game concurrently each get
+     * their own row. Named from the same constant as the annotation, for the
+     * reason {@link Game#UNIQUE_INDEX} gives.
+     */
+    @Bean
+    public ApplicationRunner ensureGameIndexes(MongoTemplate template) {
+        return args -> template.indexOps(Game.class)
+            .createIndex(new Index().on("slug", Sort.Direction.ASC).unique().named(Game.UNIQUE_INDEX));
     }
 }
