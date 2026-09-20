@@ -196,16 +196,33 @@ After deploy:
    environment override, and `deployedAddresses.test.ts` pins it to the broadcast artifact —
    keep the quotes, or YAML reads the address as a hex number and the backend refuses to start,
 3. sync the root `README.md` contract block with `python3 ../scripts/sync_readme_contract_addresses.py` (or use the configured git hook).
-4. confirm **all three** contracts came back verified — `--verify` reports per contract and a
-   single failure is easy to miss in the deploy log:
+4. run `../scripts/post_testnet_deploy.sh`, which does the two things nothing else checks:
 
    ```bash
-   API=https://api.etherscan.io/v2/api
-   for a in <forwarder> <usdt> <duelMe>; do
-     curl -s "$API?chainid=421614&module=contract&action=getsourcecode&address=$a&apikey=$ARBISCAN_API_KEY" \
-       | python3 -c "import json,sys; print(json.load(sys.stdin)['result'][0].get('ContractName') or 'NOT VERIFIED')"
-   done
+   set -a && . ./.env && set +a
+   ../scripts/post_testnet_deploy.sh --dry-run   # look first
+   ../scripts/post_testnet_deploy.sh
    ```
 
-   Anything still unverified is fixed in place with `forge verify-contract` — see
-   `script/Deploy.s.sol` for the constructor-args incantation.
+   It reads every address and DuelMe's constructor args out of the broadcast artifact, so it
+   cannot drift from what was deployed. Then it:
+
+   - **confirms all three contracts verified**, and re-verifies any that did not with
+     `--retries 20 --delay 15`. `--verify` reports per contract and one failure is easy to miss
+     in the deploy log — that is how DuelMe was left unverified on 2026-09-20. Arbiscan
+     auto-matches bytecode it has seen before, so an unchanged MockUSDT and forwarder come back
+     instantly and a changed DuelMe is the one that waits in the queue.
+   - **clears the dev state a redeploy invalidates** — `faucet_claims`, `duelMeta` and
+     `social_oauth_states`. `faucet_claims` is the one that matters: the claim is keyed by
+     wallet address with no token address, so without this every past claimant gets
+     `FaucetAlreadyClaimedException` and can never draw the new MockUSDT. `duelMeta` rows stay
+     correctly orphaned — that is what `contractAddress` is in the key for — but
+     `GameService` counts duels per slug without filtering on it, so stale rows inflate every
+     game's `duelCount`. `profiles` and `games` are kept; `--all` clears them too.
+
+   The script refuses to run against anything but the dev stack, and uses `deleteMany` rather
+   than dropping, so the collections keep their indexes and the backend needs no restart.
+
+Steps 2, 2a and 3 are enforced by `deployedAddresses.test.ts`, which pins `constants.ts` and
+`application.yml` to the broadcast artifact — CI fails if any of them drift. Step 4 is not
+enforceable from CI, since it needs the Arbiscan key and the dev database.
