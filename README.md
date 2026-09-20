@@ -16,7 +16,8 @@ _Auto-generated from `contracts/broadcast/DeployMainnet.s.sol/42161/run-latest.j
 
 | Network | Contract | Address |
 |---|---|---|
-| Arbitrum One | `DuelMe` | `0xbd2266ab4b62e34fd5282608abeeed425f6d7f22` |
+| Arbitrum One | `ERC2771Forwarder` | `0x830d99b25a2c9103501de19de7a7ee4525c619ab` |
+| Arbitrum One | `DuelMe` | `0x32b3c9af55c7c784bdf9128a1f681a66a37bd261` |
 | Arbitrum Sepolia | `ERC2771Forwarder` | `0xbd9c168fd94be86771b7a3fcafe3e21526b0efaa` |
 | Arbitrum Sepolia | `MockUSDT` | `0x44d213d601c19ec98bf61a1bca3935d6da07f05d` |
 | Arbitrum Sepolia | `DuelMe` | `0x588a54fa8c00c8ac003e41bd8ee26fbc8994105f` |

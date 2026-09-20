@@ -33,8 +33,15 @@ describe('chain-keyed constants', () => {
   it('derives an entry per chain, and a forwarder only where one is configured', () => {
     expect(Object.keys(DUELME_ADDRESSES)).toHaveLength(chains.length);
     expect(Object.keys(CHAIN_NAMES)).toHaveLength(chains.length);
-    expect(Object.keys(FORWARDER_ADDRESSES)).toEqual(
-      chains.filter((chain) => chain.forwarder).map((chain) => String(chain.id))
+    // Sorted on both sides: these keys are integer-like, so Object.keys returns them in
+    // ascending numeric order whatever order they were inserted in, while the chain list
+    // keeps its own. The claim is which chains have an entry, never in what order — and
+    // the difference only became visible once a second chain configured a forwarder.
+    expect(Object.keys(FORWARDER_ADDRESSES).sort()).toEqual(
+      chains
+        .filter((chain) => chain.forwarder)
+        .map((chain) => String(chain.id))
+        .sort()
     );
   });
 

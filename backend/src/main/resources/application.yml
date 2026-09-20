@@ -20,7 +20,7 @@ duelme:
   contracts:
     duel-me:
       "421614": "0x588A54Fa8c00c8aC003e41BD8ee26FBC8994105f"
-      "42161": "0xBd2266AB4b62E34FD5282608abeEEd425F6D7F22"
+      "42161": "0x32b3c9aF55c7C784bdf9128a1f681A66A37Bd261"
   # Dev-only MockUSDT + ETH faucet. Prod must keep `enabled=false` (the default).
   faucet:
     enabled: ${FAUCET_ENABLED:false}
