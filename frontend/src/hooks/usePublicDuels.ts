@@ -1,11 +1,11 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useReadContract, useReadContracts } from 'wagmi';
 import { formatUnits } from 'viem';
-import { duelMeAbi, DuelState } from '@/lib/contracts';
-import { DUELME_ADDRESSES, USDT_DECIMALS, ZERO_ADDRESS, DEFAULT_CHAIN_ID } from '@/lib/constants';
+import { DuelState } from '@/lib/contracts';
+import { USDT_DECIMALS, DEFAULT_CHAIN_ID, ZERO_ADDRESS } from '@/lib/constants';
 import { isPublicDuel } from '@/lib/invite';
+import { useDuelRange } from './useDuelReads';
 
 export interface PublicDuel {
   id: number;
@@ -18,58 +18,20 @@ export interface PublicDuel {
 }
 
 export function usePublicDuels() {
-  const contractAddress = DUELME_ADDRESSES[DEFAULT_CHAIN_ID];
-  const enabled = !!contractAddress && contractAddress !== ZERO_ADDRESS;
-
-  const { data: duelCount, isLoading: isCountLoading } = useReadContract({
-    address: contractAddress,
-    abi: duelMeAbi,
-    functionName: 'duelCount',
-    chainId: DEFAULT_CHAIN_ID,
-    query: { enabled, refetchInterval: 10_000, staleTime: 0 },
-  });
-
-  const count = duelCount ? Number(duelCount) : 0;
-
-  const duelContracts = useMemo(() => {
-    if (!count || !enabled) return [];
-    return Array.from({ length: count }, (_, i) => ({
-      address: contractAddress,
-      abi: duelMeAbi,
-      functionName: 'getDuel' as const,
-      args: [BigInt(i)] as const,
-      chainId: DEFAULT_CHAIN_ID,
-    }));
-  }, [count, contractAddress, enabled]);
-
-  const { data: duelResults, isLoading: isDuelsLoading } = useReadContracts({
-    contracts: duelContracts,
-    query: { enabled: duelContracts.length > 0, refetchInterval: 10_000, staleTime: 0 },
-  });
+  const { duels: duelRecords, isLoading, isError } = useDuelRange({ chainId: DEFAULT_CHAIN_ID });
 
   const duels = useMemo<PublicDuel[]>(() => {
-    if (!duelResults) return [];
-
     const open: PublicDuel[] = [];
 
-    for (let i = 0; i < duelResults.length; i++) {
-      const res = duelResults[i];
-      if (res.status !== 'success' || !res.result) continue;
-
-      const d = res.result as {
-        creator: `0x${string}`;
-        wagerAmount: bigint;
-        inviteHash: `0x${string}`;
-        message: string;
-        createdAt: bigint;
-        state: number;
-      };
-
+    for (const d of duelRecords) {
       if (d.state !== DuelState.Created) continue;
       if (!isPublicDuel(d.inviteHash)) continue;
+      // A duel can carry no invite hash and still be addressed to one player. Listing it in the
+      // open lobby would offer everyone else a Join button that reverts "Not the invited opponent".
+      if (d.invitedOpponent !== ZERO_ADDRESS) continue;
 
       open.push({
-        id: i,
+        id: d.id,
         creator: d.creator,
         wager: parseFloat(formatUnits(d.wagerAmount, USDT_DECIMALS)),
         message: d.message,
@@ -80,10 +42,11 @@ export function usePublicDuels() {
     }
 
     return open.reverse();
-  }, [duelResults]);
+  }, [duelRecords]);
 
   return {
     duels,
-    isLoading: isCountLoading || isDuelsLoading,
+    isLoading,
+    isError,
   };
 }

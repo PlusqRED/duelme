@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Menu, X, Swords, LogOut, User, Wallet, Globe, Send, Copy, Check, ChevronDown, KeyRound, Fuel, Instagram, Gamepad2, FlaskConical, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,26 +13,20 @@ import { useMyProfile } from '@/hooks/useMyProfile';
 import { useIsNonProductionHost } from '@/hooks/useIsNonProductionHost';
 import { usePrivy, useExportWallet, useIdentityToken } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
-import { getExternalWalletName } from '@/lib/walletDisplay';
-import { useReadContract, useBalance } from 'wagmi';
+import { useReadContracts, useBalance } from 'wagmi';
 import { formatUnits, parseUnits, encodeFunctionData } from 'viem';
-import { TESTNET_CHAIN_IDS, USDT_DECIMALS, DEFAULT_CHAIN_ID, CHAIN_NAMES, AVAILABLE_CHAIN_IDS } from '@/lib/constants';
+import { AVAILABLE_CHAIN_KEYS, DEFAULT_CHAIN_ID, SUPPORTED_CHAINS, TESTNET_CHAIN_IDS, USDT_DECIMALS } from '@/lib/constants';
 import { balanceOfAbi, getUsdtAddress, transferAbi } from '@/lib/contracts';
 import { emitBalanceRefreshBurst, subscribeToBalanceRefresh } from '@/lib/balanceRefresh';
 import { FaucetClaimError, claimFaucet } from '@/lib/faucetApi';
-import { useSponsoredFees } from '@/hooks/useSponsoredFees';
+import { useRelayerStatus } from '@/hooks/useRelayerStatus';
 
-// Restricted to chains available in this build so prod (duelme.pro) renders
-// Arbitrum One only — no testnet switcher, no Sepolia balance fetch, no
-// "Testnet" badge. Dev keeps both since AVAILABLE_CHAIN_IDS is broader there.
-const CHAIN_META: Record<number, { name: string; testnet?: boolean }> = Object.fromEntries(
-  AVAILABLE_CHAIN_IDS.map((id) => [
-    id,
-    TESTNET_CHAIN_IDS.has(id) ? { name: CHAIN_NAMES[id], testnet: true } : { name: CHAIN_NAMES[id] },
-  ])
-);
+// The chains this build can reach, as whole entries — name, testnet flag and USDT address
+// all travel together, so nothing here needs a per-chain-id lookup. Prod (duelme.pro) lists
+// Arbitrum One only: no testnet switcher, no Sepolia balance fetch, no "Testnet" badge.
+const AVAILABLE_CHAINS = AVAILABLE_CHAIN_KEYS.map((key) => SUPPORTED_CHAINS[key]);
 
-const CAN_SWITCH_CHAIN = AVAILABLE_CHAIN_IDS.length > 1;
+const CAN_SWITCH_CHAIN = AVAILABLE_CHAINS.length > 1;
 
 export function Header() {
   const { t, language, setLanguage } = useTranslation();
@@ -64,42 +58,35 @@ export function Header() {
 
   const { profile: myProfile } = useMyProfile();
   const displayName = myProfile?.nickname ?? walletShort ?? '';
-  const { embeddedSponsored, externalSponsored, feesResolved } = useSponsoredFees(selectedChain);
-  const duelFeesHandled = embeddedSponsored || externalSponsored;
+  const { isRelayEnabled, isRelayResolved } = useRelayerStatus(selectedChain);
 
-  // Read balances on each chain this build supports. The hook calls are static
-  // (wagmi rule) but each query.enabled gates the actual RPC call, so prod
-  // never hits Sepolia and dev sees both balances.
-  const { data: arbSepoliaRaw, refetch: refetchArbSepolia } = useReadContract({
-    address: getUsdtAddress(421614),
-    abi: balanceOfAbi,
-    functionName: 'balanceOf',
-    args: walletAddress ? [walletAddress] : undefined,
-    chainId: 421614,
+  // One balance read per available chain, batched by wagmi. Prod lists Arbitrum One
+  // only, so it never builds — let alone sends — a Sepolia call.
+  const balanceContracts = useMemo(
+    () => (walletAddress
+      ? AVAILABLE_CHAINS.map((chain) => ({
+        address: chain.usdt,
+        abi: balanceOfAbi,
+        functionName: 'balanceOf' as const,
+        args: [walletAddress] as const,
+        chainId: chain.id,
+      }))
+      : []),
+    [walletAddress]
+  );
+
+  const { data: usdtBalanceResults, refetch: refetchUsdtBalances } = useReadContracts({
+    contracts: balanceContracts,
     query: {
-      enabled: !!walletAddress && AVAILABLE_CHAIN_IDS.includes(421614),
+      enabled: balanceContracts.length > 0,
       refetchInterval: 30_000,
       staleTime: 0,
     },
   });
 
-  const { data: arbRaw, refetch: refetchArb } = useReadContract({
-    address: getUsdtAddress(42161),
-    abi: balanceOfAbi,
-    functionName: 'balanceOf',
-    args: walletAddress ? [walletAddress] : undefined,
-    chainId: 42161,
-    query: {
-      enabled: !!walletAddress && AVAILABLE_CHAIN_IDS.includes(42161),
-      refetchInterval: 30_000,
-      staleTime: 0,
-    },
-  });
-
-  // Wallets without a sponsored path pay their own native ETH gas; wait for
-  // the capability probe so a sponsored wallet never fires a wasted
-  // eth_getBalance.
-  const paysOwnGas = feesResolved && !duelFeesHandled;
+  // Only wallets paying their own gas need an ETH balance. Waiting for the relayer probe
+  // keeps a relayed wallet from firing a pointless eth_getBalance on every render.
+  const paysOwnGas = isRelayResolved && !isRelayEnabled;
   const { data: ethBalanceData, refetch: refetchEthBalance } = useBalance({
     address: walletAddress,
     chainId: selectedChain,
@@ -114,24 +101,32 @@ export function Header() {
   const formattedEth = ethBalance < 0.0001 && ethBalance > 0 ? '<0.0001' : ethBalance.toFixed(4);
   // Require a settled balance read so the warning never flashes while loading.
   const lowGas = paysOwnGas && ethBalanceData !== undefined && ethBalance < 0.0005;
-  const externalWalletName = getExternalWalletName(activeWallet?.walletClientType);
 
-  const balances: Record<number, number> = {
-    421614: arbSepoliaRaw !== undefined ? parseFloat(formatUnits(arbSepoliaRaw, USDT_DECIMALS)) : 0,
-    42161: arbRaw !== undefined ? parseFloat(formatUnits(arbRaw, USDT_DECIMALS)) : 0,
-  };
+  // Indexed by position: USDT_BALANCE_CHAIN_IDS is module-level, so entry i is always
+  // chain i even while a fetch is in flight or the wallet is still resolving.
+  // Positional, matching balanceContracts. Memoized because Header re-renders on every
+  // keystroke in the send inputs, and this would otherwise rebuild the list each time.
+  const balanceAmounts = useMemo(
+    () =>
+      AVAILABLE_CHAINS.map((_, index) => {
+        const result = usdtBalanceResults?.[index];
+        return result?.status === 'success'
+          ? parseFloat(formatUnits(result.result as bigint, USDT_DECIMALS))
+          : 0;
+      }),
+    [usdtBalanceResults]
+  );
 
-  const balance = balances[selectedChain] ?? 0;
+  const balance = balanceAmounts[AVAILABLE_CHAINS.findIndex((c) => c.id === selectedChain)] ?? 0;
   const formattedUsdt = balance.toFixed(2);
-  const totalUsdt = Object.values(balances).reduce((a, b) => a + b, 0).toFixed(2);
-  const chainMeta = CHAIN_META[selectedChain];
+  const totalUsdt = balanceAmounts.reduce((a, b) => a + b, 0).toFixed(2);
+  const chainMeta = AVAILABLE_CHAINS.find((chain) => chain.id === selectedChain);
   const usdtAddress = getUsdtAddress(selectedChain);
 
   const refetchBalances = useCallback(() => {
-    void refetchArbSepolia();
-    void refetchArb();
+    void refetchUsdtBalances();
     void refetchEthBalance();
-  }, [refetchArbSepolia, refetchArb, refetchEthBalance]);
+  }, [refetchUsdtBalances, refetchEthBalance]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -283,12 +278,12 @@ export function Header() {
       {CAN_SWITCH_CHAIN && (
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-0.5">
-            {Object.entries(CHAIN_META).map(([id, meta]) => {
-              const chainId = Number(id);
+            {AVAILABLE_CHAINS.map((meta) => {
+              const chainId = meta.id;
               const isActive = selectedChain === chainId;
               return (
                 <button
-                  key={id}
+                  key={chainId}
                   onClick={() => setSelectedChain(chainId)}
                   className={`flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
                     isActive
@@ -298,7 +293,7 @@ export function Header() {
                       : 'text-slate-500 hover:text-slate-700'
                   }`}
                 >
-                  {meta.name}
+                  {meta.shortName}
                 </button>
               );
             })}
@@ -324,12 +319,12 @@ export function Header() {
               : 'bg-emerald-50'
           }`}>
             <Globe className={`h-3 w-3 ${chainMeta?.testnet ? 'text-amber-600' : 'text-emerald-600'}`} />
-            <span className={`text-xs font-medium ${chainMeta?.testnet ? 'text-amber-700' : 'text-emerald-700'}`}>{chainMeta?.name}</span>
+            <span className={`text-xs font-medium ${chainMeta?.testnet ? 'text-amber-700' : 'text-emerald-700'}`}>{chainMeta?.shortName}</span>
           </div>
         </div>
         <span className="text-lg font-bold text-slate-900">{formattedUsdt} <span className="text-sm font-normal text-slate-400">USDT</span></span>
 
-        {duelFeesHandled ? (
+        {isRelayEnabled ? (
           <div className="mt-1.5 flex items-center justify-between">
             <div className="flex items-center gap-1">
               <Check className="h-3 w-3 text-emerald-600" />
@@ -348,9 +343,7 @@ export function Header() {
         )}
         {lowGas && (
           <p className="mt-1 text-[10px] text-red-500">
-            {externalWalletName
-              ? t('wallet.lowGasWarning', { wallet: externalWalletName })
-              : t('wallet.lowGasWarningGeneric')}
+            {t('wallet.lowGasWarning')}
           </p>
         )}
 
@@ -360,7 +353,8 @@ export function Header() {
         </div>
       </div>
 
-      {/* Testnet faucet — non-prod hosts + testnet chain only. One claim per wallet. */}
+      {/* Testnet faucet — non-prod hosts + testnet chain only. One claim per wallet per
+          token: a MockUSDT redeploy re-opens it. */}
       {canClaimFaucet && (
         <button
           type="button"

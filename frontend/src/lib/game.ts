@@ -13,6 +13,8 @@ export interface Game {
 export interface DuelMeta {
   duelId: number;
   chainId: number;
+  /** The DuelMe deployment this duel lives in — part of its identity, since ids restart at zero on a redeploy. */
+  contractAddress: string;
   gameSlug: string;
   gameName: string;
   category: GameCategory | null;

@@ -1,4 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect } from 'vitest';
+import { MIN_WAGER } from '@/lib/constants';
+import { resetContractConfig, setContractConfig } from '@/lib/contractConfig';
 import {
   isGameStepValid,
   isReviewStepValid,
@@ -21,12 +23,12 @@ describe('isWagerStepValid', () => {
     expect(isWagerStepValid({ amount: '' })).toBe(false);
   });
 
-  it('rejects amount below MIN_WAGER (3 USDT)', () => {
-    expect(isWagerStepValid({ amount: '2' })).toBe(false);
+  it('rejects amount below MIN_WAGER', () => {
+    expect(isWagerStepValid({ amount: String(MIN_WAGER / 2) })).toBe(false);
   });
 
   it('accepts amount equal to MIN_WAGER', () => {
-    expect(isWagerStepValid({ amount: '3' })).toBe(true);
+    expect(isWagerStepValid({ amount: String(MIN_WAGER) })).toBe(true);
   });
 
   it('accepts amount above MIN_WAGER', () => {
@@ -35,6 +37,43 @@ describe('isWagerStepValid', () => {
 
   it('rejects non-numeric input', () => {
     expect(isWagerStepValid({ amount: 'abc' })).toBe(false);
+  });
+});
+
+describe('isWagerStepValid with on-chain config', () => {
+  afterEach(() => {
+    resetContractConfig();
+  });
+
+  it('follows a raised on-chain minWager', () => {
+    setContractConfig({ minWager: 5 });
+    expect(isWagerStepValid({ amount: '3' })).toBe(false);
+    expect(isWagerStepValid({ amount: '5' })).toBe(true);
+  });
+
+  it('follows a lowered on-chain minWager', () => {
+    setContractConfig({ minWager: 0.1 });
+    expect(isWagerStepValid({ amount: '0.1' })).toBe(true);
+  });
+});
+
+describe('isTypeMessageStepValid with on-chain config', () => {
+  afterEach(() => {
+    resetContractConfig();
+  });
+
+  it('follows a raised on-chain message limit', () => {
+    setContractConfig({ maxMessageCharacters: 64 });
+    expect(isTypeMessageStepValid({ message: 'x'.repeat(64) })).toBe(true);
+    expect(isTypeMessageStepValid({ message: 'x'.repeat(65) })).toBe(false);
+  });
+
+  it('still enforces the UTF-8 byte limit when only codepoints are raised', () => {
+    setContractConfig({ maxMessageCharacters: 64 });
+    // 40 four-byte emoji = 40 code points (<= 64) but 160 bytes (> 128)
+    expect(isTypeMessageStepValid({ message: '\u{1F600}'.repeat(40) })).toBe(false);
+    setContractConfig({ maxMessageBytes: 256 });
+    expect(isTypeMessageStepValid({ message: '\u{1F600}'.repeat(40) })).toBe(true);
   });
 });
 

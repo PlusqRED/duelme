@@ -3,10 +3,8 @@
 import { Globe, Lock } from 'lucide-react';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/translations';
-import {
-  MAX_DUEL_MESSAGE_CHARACTERS,
-  countDuelMessageCharacters,
-} from '@/lib/duelMessage';
+import { useContractConfig } from '@/hooks/useContractConfig';
+import { countDuelMessageCharacters } from '@/lib/duelMessage';
 
 export const MESSAGE_PLACEHOLDER_KEYS: readonly TranslationKey[] = [
   'create.messagePlaceholder.01',
@@ -43,6 +41,7 @@ export function TypeMessageStep({
   placeholderKey,
 }: TypeMessageStepProps) {
   const { t } = useTranslation();
+  const { maxMessageCharacters } = useContractConfig();
   const messageLength = countDuelMessageCharacters(message);
 
   return (
@@ -88,7 +87,7 @@ export function TypeMessageStep({
           >
             {t('create.messageCounter', {
               count: messageLength,
-              max: MAX_DUEL_MESSAGE_CHARACTERS,
+              max: maxMessageCharacters,
             })}
           </span>
         </div>
@@ -100,9 +99,9 @@ export function TypeMessageStep({
           onChange={(event) => onMessageChange(event.target.value)}
           className="min-h-[96px] w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 transition-colors outline-none placeholder:text-slate-400 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
         />
-        <p className="text-xs text-slate-500">{t('create.messageHint')}</p>
+        <p className="text-xs text-slate-500">{t('create.messageHint', { max: maxMessageCharacters })}</p>
         {!isMessageValid && (
-          <p className="text-xs text-red-500">{t('create.messageTooLong')}</p>
+          <p className="text-xs text-red-500">{t('create.messageTooLong', { max: maxMessageCharacters })}</p>
         )}
       </div>
     </div>

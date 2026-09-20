@@ -16,9 +16,11 @@ _Auto-generated from `contracts/broadcast/DeployMainnet.s.sol/42161/run-latest.j
 
 | Network | Contract | Address |
 |---|---|---|
-| Arbitrum One | `DuelMe` | `0xbd2266ab4b62e34fd5282608abeeed425f6d7f22` |
-| Arbitrum Sepolia | `MockUSDT` | `0xbf345834d808a058e1278b50f3844ad86686f401` |
-| Arbitrum Sepolia | `DuelMe` | `0xc09bf9e3c458224675717c40fa2acf28343e2a1c` |
+| Arbitrum One | `ERC2771Forwarder` | `0x830d99b25a2c9103501de19de7a7ee4525c619ab` |
+| Arbitrum One | `DuelMe` | `0x32b3c9af55c7c784bdf9128a1f681a66a37bd261` |
+| Arbitrum Sepolia | `ERC2771Forwarder` | `0xbd9c168fd94be86771b7a3fcafe3e21526b0efaa` |
+| Arbitrum Sepolia | `MockUSDT` | `0x44d213d601c19ec98bf61a1bca3935d6da07f05d` |
+| Arbitrum Sepolia | `DuelMe` | `0x588a54fa8c00c8ac003e41bd8ee26fbc8994105f` |
 
 > Dev note: run `git config core.hooksPath .githooks` once in your clone to auto-refresh this block on every commit.
 
@@ -31,16 +33,26 @@ P2P gaming duel platform — players wager USDT in 1v1 duels via smart contracts
 ## How it works
 
 ```
-Creator deposits USDT → shares private invite link → Opponent matches wager → Play off-chain
-                                                                                     │
-                                                                    Player submits result
-                                                                             │
-                                                          ┌──────────────────┼──────────────────┐
-                                                          ▼                  ▼                  ▼
-                                                    Confirmed           Disputed          No response (1h)
-                                                    Winner claims 2×    50/50 refund      50/50 refund
-                                                    Both +honored       No rep change     Ghost +abandoned
+Creator stakes USDT ──► Opponent matches it ──► They play, off-chain ──► Someone reports
+                                                                              │
+                                                                     the duel settles
 ```
+
+A duel is opened one of three ways: a private invite link, an address it is addressed to, or open
+to whoever joins first. How it ends:
+
+| Ending | Who can trigger it | Result | Reputation |
+|---|---|---|---|
+| Win confirmed | Loser confirms the claim | Winner takes 2× | Both +honored |
+| Concession | Loser concedes — settles at once | Winner takes 2× | Both +honored |
+| Dispute | The other player rejects the claim | 50/50 back | unchanged |
+| No response | Anyone, after the claim window (1h) | 50/50 back | Claimer +honored, silent one +abandoned |
+| Mutual cancel | Both players agree | Each takes their own stake back | unchanged |
+| Cancel / decline | Creator, or the invitee, before it is funded | Creator's stake back | unchanged |
+
+Nothing is ever pushed: every ending makes a balance *claimable* and the player withdraws it, so a
+token that blocks an address cannot strand the other player's money. The claim window is an
+on-chain parameter, not a constant.
 
 ## Tech stack
 
@@ -50,6 +62,7 @@ Creator deposits USDT → shares private invite link → Opponent matches wager 
 | Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS 4 |
 | Backend | Java 25, Spring Boot 4, MongoDB, GraalVM Native Image |
 | Auth | Privy (embedded + external wallets), wagmi, viem |
+| Gasless | ERC-2771 meta-transactions + EIP-2612 permit — players need no ETH |
 | Infra | Docker, GHCR, Caddy, GitHub Actions |
 
 ## Project structure
@@ -58,14 +71,15 @@ Creator deposits USDT → shares private invite link → Opponent matches wager 
 |---|---|---|
 | [`contracts/`](contracts/) | Solidity smart contracts — duels, escrow, reputation | [README](contracts/README.md) |
 | [`frontend/`](frontend/) | Next.js web app — profiles, duels, dashboard | [README](frontend/README.md) |
-| [`backend/`](backend/) | Java 25 + Spring Boot 4 API — profiles, auth | [README](backend/README.md) |
-| `ops/` | Docker Compose, Caddy configs | — |
+| [`backend/`](backend/) | Java 25 + Spring Boot 4 API — profiles, games, duel metadata | [README](backend/README.md) |
+| [`ops/`](ops/) | Docker Compose stacks and Caddy configs | [INFRASTRUCTURE](ops/INFRASTRUCTURE.md) |
+| [`ton/`](ton/) | TON mini-app spike, separate from the EVM app | [README](ton/README.md) |
 
 ## Quick start
 
 ```bash
 # Contracts
-cd contracts && forge install && forge test -v
+cd contracts && forge install && forge test
 
 # Frontend
 cd frontend && npm install && npm run dev    # localhost:3000
@@ -89,6 +103,9 @@ cd backend && docker compose up -d && ./gradlew bootRun --args='--spring.profile
 | `main` | duelme.pro | `:latest` |
 
 Push to branch → tests → Docker build → GHCR → SSH deploy → health check.
+
+`main` additionally needs the GraalVM native image to build: a change can pass the JVM tests and
+still break production, so `build-prod` will not run without a green `backend-native`.
 
 ## License
 

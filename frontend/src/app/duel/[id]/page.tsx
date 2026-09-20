@@ -9,10 +9,11 @@ import { useAppToast } from '@/hooks/useAppToast';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/translations';
 import { DuelState } from '@/lib/contracts';
-import { getClaimableAmountForAddress, isDuelClaimTimedOut, isDuelFullySettled } from '@/lib/duel';
+import { getClaimableAmountForAddress, getDuelStateLabelKey, isDuelClaimTimedOut, isDuelFullySettled } from '@/lib/duel';
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
-import { hashInviteSecret, readInviteSecretFromHash, readStoredInviteSecret, storeInviteSecret, isPublicDuel, PUBLIC_INVITE_SECRET } from '@/lib/invite';
-import { DEFAULT_CHAIN, DEFAULT_CHAIN_ID, ZERO_ADDRESS, CLAIM_TIMEOUT } from '@/lib/constants';
+import { canPresentInvite, matchesInviteHash, readInviteSecretFromHash, readStoredInviteSecret, storeInviteSecret, isPublicDuel, OPEN_DUEL_INVITE_SECRET } from '@/lib/invite';
+import { DEFAULT_CHAIN, DEFAULT_CHAIN_ID, DUELME_ADDRESSES, ZERO_ADDRESS } from '@/lib/constants';
+import { useContractConfig } from '@/hooks/useContractConfig';
 import { useDuel } from '@/hooks/useDuel';
 import { useDuelActions } from '@/hooks/useDuelActions';
 import { formatDateTime, formatUSDT } from '@/lib/utils';
@@ -38,20 +39,21 @@ import {
   claimPayoutConfig, refundConfig,
 } from '@/lib/actionFlowConfigs';
 
-const STATUS_CONFIG: Record<
-  DuelState,
-  { icon: React.ElementType; gradient: string; label: string }
-> = {
-  [DuelState.Created]: { icon: Hourglass, gradient: 'from-blue-600 to-indigo-600', label: 'duel.waiting' },
-  [DuelState.Funded]: { icon: Swords, gradient: 'from-indigo-600 to-violet-600', label: 'duel.inProgress' },
-  [DuelState.WinnerClaimed]: { icon: Clock, gradient: 'from-amber-500 to-orange-500', label: 'duel.waitingConfirm' },
-  [DuelState.Resolved]: { icon: Trophy, gradient: 'from-emerald-500 to-green-600', label: 'duel.resolved' },
-  [DuelState.Refunded]: { icon: RotateCcw, gradient: 'from-slate-500 to-slate-600', label: 'duel.refunded' },
-  [DuelState.Cancelled]: { icon: XCircle, gradient: 'from-slate-400 to-slate-500', label: 'duel.cancelled' },
-  [DuelState.Declined]: { icon: XCircle, gradient: 'from-rose-500 to-red-500', label: 'duel.declined' },
-  [DuelState.Disputed]: { icon: RotateCcw, gradient: 'from-orange-500 to-amber-500', label: 'duel.disputed' },
-  [DuelState.MutualCancelRequested]: { icon: Handshake, gradient: 'from-violet-600 to-fuchsia-600', label: 'duel.cancellationPending' },
-  [DuelState.MutuallyCancelled]: { icon: Handshake, gradient: 'from-sky-500 to-cyan-600', label: 'duel.mutuallyCancelled' },
+const STATUS_CONFIG: Record<DuelState, { icon: React.ElementType; gradient: string }> = {
+  // The paged readers drop `Nonexistent` records and a direct link to an id nobody issued takes
+  // the not-found branch, so no screen renders one. The entry is here because the record is
+  // exhaustive over the enum.
+  [DuelState.Nonexistent]: { icon: XCircle, gradient: 'from-slate-400 to-slate-500' },
+  [DuelState.Created]: { icon: Hourglass, gradient: 'from-blue-600 to-indigo-600' },
+  [DuelState.Funded]: { icon: Swords, gradient: 'from-indigo-600 to-violet-600' },
+  [DuelState.WinnerClaimed]: { icon: Clock, gradient: 'from-amber-500 to-orange-500' },
+  [DuelState.Resolved]: { icon: Trophy, gradient: 'from-emerald-500 to-green-600' },
+  [DuelState.Refunded]: { icon: RotateCcw, gradient: 'from-slate-500 to-slate-600' },
+  [DuelState.Cancelled]: { icon: XCircle, gradient: 'from-slate-400 to-slate-500' },
+  [DuelState.Declined]: { icon: XCircle, gradient: 'from-rose-500 to-red-500' },
+  [DuelState.Disputed]: { icon: RotateCcw, gradient: 'from-orange-500 to-amber-500' },
+  [DuelState.MutualCancelRequested]: { icon: Handshake, gradient: 'from-violet-600 to-fuchsia-600' },
+  [DuelState.MutuallyCancelled]: { icon: Handshake, gradient: 'from-sky-500 to-cyan-600' },
 };
 
 type PendingAction =
@@ -70,12 +72,14 @@ export default function DuelPage({
 }) {
   const { id } = use(params);
   const { t, language } = useTranslation();
+  const { claimTimeout } = useContractConfig();
   const appToast = useAppToast();
   const duelId = parseInt(id, 10);
 
   const { authenticated, login } = usePrivy();
   const { walletAddress } = useActiveWallet();
   const [inviteSecret, setInviteSecret] = useState<`0x${string}` | null>(null);
+  const duelMeAddress = DUELME_ADDRESSES[DEFAULT_CHAIN_ID] ?? ZERO_ADDRESS;
 
   const { switchChainAsync } = useSwitchChain();
   const { chainId: connectedChainId } = useAccount();
@@ -98,14 +102,6 @@ export default function DuelPage({
 
   const chainConfig = DEFAULT_CHAIN;
 
-  // Auto-inject invite secret for public duels
-  useEffect(() => {
-    if (!duel) return;
-    if (isPublicDuel(duel.inviteHash)) {
-      setInviteSecret((current) => current === PUBLIC_INVITE_SECRET ? current : PUBLIC_INVITE_SECRET);
-    }
-  }, [duel]);
-
   useEffect(() => {
     const secretFromHash = readInviteSecretFromHash();
     if (secretFromHash) {
@@ -116,7 +112,7 @@ export default function DuelPage({
   useEffect(() => {
     if (!duel || walletAddress !== duel.creator.toLowerCase() || inviteSecret) return;
 
-    const storedSecret = readStoredInviteSecret(DEFAULT_CHAIN_ID, duelId);
+    const storedSecret = readStoredInviteSecret(DEFAULT_CHAIN_ID, duelMeAddress, duelId);
     if (!storedSecret) return;
 
     setInviteSecret(storedSecret);
@@ -124,12 +120,12 @@ export default function DuelPage({
     if (window.location.hash.slice(1) !== storedSecret) {
       window.history.replaceState(null, '', `${window.location.pathname}#${storedSecret}`);
     }
-  }, [duel, walletAddress, inviteSecret, duelId]);
+  }, [duel, walletAddress, inviteSecret, duelId, duelMeAddress]);
 
   useEffect(() => {
     if (!duel || !inviteSecret || walletAddress !== duel.creator.toLowerCase()) return;
-    storeInviteSecret(DEFAULT_CHAIN_ID, duelId, inviteSecret);
-  }, [duel, inviteSecret, walletAddress, duelId]);
+    storeInviteSecret(DEFAULT_CHAIN_ID, duelMeAddress, duelId, inviteSecret);
+  }, [duel, inviteSecret, walletAddress, duelId, duelMeAddress]);
 
   const joinFlow = useJoinDuelFlow({
     duelId,
@@ -181,7 +177,7 @@ export default function DuelPage({
 
   async function handleDecline() {
     if (!duel) return;
-    if (!inviteSecret || hashInviteSecret(inviteSecret).toLowerCase() !== duel.inviteHash.toLowerCase()) {
+    if (!canPresentInvite(inviteSecret, duel.inviteHash, duelMeAddress, DEFAULT_CHAIN_ID)) {
       appToast.error('duel.privateInviteMissing');
       return;
     }
@@ -189,7 +185,7 @@ export default function DuelPage({
     if (!(await ensureChain())) return;
     setPendingAction('declining');
     appToast.info('toast.decliningDuel');
-    declineDuel(BigInt(duelId), inviteSecret);
+    declineDuel(BigInt(duelId), inviteSecret ?? OPEN_DUEL_INVITE_SECRET);
   }
 
   async function handleCancel() {
@@ -229,7 +225,7 @@ export default function DuelPage({
     );
   }
 
-  if (isError || !duel) {
+  if (isError || !duel || duel.state === DuelState.Nonexistent) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-12 text-center">
         <p className="text-slate-500">{t('duel.notFound')}</p>
@@ -255,7 +251,7 @@ export default function DuelPage({
   const isMutuallyCancelled = state === DuelState.MutuallyCancelled;
   const isClaimTimedOut = isWinnerClaimed && isDuelClaimTimedOut(duel.claimTimestamp);
   const effectiveCfg = isClaimTimedOut
-    ? { icon: TimerOff, gradient: 'from-red-500 to-rose-600', label: 'duel.responseTimedOut' }
+    ? { icon: TimerOff, gradient: 'from-red-500 to-rose-600' }
     : cfg;
   const StatusIcon = effectiveCfg.icon;
 
@@ -265,18 +261,29 @@ export default function DuelPage({
   const canManageParticipantDuel = authenticated && isParticipant;
   const isClaimAuthor = walletAddress === duel.claimedBy.toLowerCase();
   const isCancelRequester = walletAddress === duel.cancelRequestedBy.toLowerCase();
-  const hasInviteAccess = !!inviteSecret
-    && hashInviteSecret(inviteSecret).toLowerCase() === duel.inviteHash.toLowerCase();
+  // Holding the secret. `canPresentDuelInvite` is the question the contract asks in
+  // `_requireAdmitted` — an open duel needs no secret — and is what gates the controls; this one
+  // is only about whether this viewer has the secret itself.
+  const hasInviteAccess = matchesInviteHash(inviteSecret, duel.inviteHash, duelMeAddress, DEFAULT_CHAIN_ID);
+  const canPresentDuelInvite = canPresentInvite(inviteSecret, duel.inviteHash, duelMeAddress, DEFAULT_CHAIN_ID);
   const isDuelPublic = isPublicDuel(duel.inviteHash);
+  // A duel can be addressed to one player with or without a secret. Holding the invite is not
+  // enough then — only that address can join or decline, and everyone else gets an on-chain
+  // "Not the invited opponent" revert.
+  const isAddressBoundDuel = duel.invitedOpponent !== ZERO_ADDRESS;
+  const isInvitedOpponent = !!walletAddress && walletAddress === duel.invitedOpponent.toLowerCase();
+  // The contract refuses a decline only for a duel that is open in *both* senses — no secret and
+  // no invited opponent — since its invite is public and any passer-by could otherwise end it.
+  // A duel addressed to one player is declinable by that player, secret or not.
+  const isDeclinableDuel = !isDuelPublic || isAddressBoundDuel;
   const hasResolvedViewerAddress = !authenticated || !!walletAddress;
-  const canRespondToWaitingDuel =
-    isWaitingOpponent &&
-    (isDuelPublic || hasInviteAccess);
+  const canRespondToWaitingDuel = isWaitingOpponent && canPresentDuelInvite;
   const canJoinWaitingDuel =
     canRespondToWaitingDuel &&
     authenticated &&
     !!walletAddress &&
-    !isCreator;
+    !isCreator &&
+    (!isAddressBoundDuel || isInvitedOpponent);
   const canLoginToJoinWaitingDuel =
     canRespondToWaitingDuel &&
     !authenticated;
@@ -313,7 +320,7 @@ export default function DuelPage({
     duel.cancelRequestedAt > 0n ? { label: t('duel.timelineCancellationRequested'), timestamp: duel.cancelRequestedAt, dotColor: 'bg-violet-500' } : null,
     duel.claimTimestamp > 0n ? { label: t('duel.timelineResultSubmitted'), timestamp: duel.claimTimestamp, dotColor: 'bg-amber-500' } : null,
     isClaimTimedOut
-      ? { label: t('duel.timelineTimedOut'), timestamp: duel.claimTimestamp + BigInt(CLAIM_TIMEOUT), dotColor: 'bg-red-500' }
+      ? { label: t('duel.timelineTimedOut'), timestamp: duel.claimTimestamp + BigInt(claimTimeout), dotColor: 'bg-red-500' }
       : null,
     duel.finalizedAt > 0n
       ? {
@@ -409,7 +416,7 @@ export default function DuelPage({
             </div>
             <div className="flex items-center gap-2">
               <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur-sm">
-                {t(effectiveCfg.label as Parameters<typeof t>[0])}
+                {t(getDuelStateLabelKey(state, isClaimTimedOut))}
               </span>
               {isDuelPublic ? (
                 <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
@@ -548,7 +555,7 @@ export default function DuelPage({
                   <Swords className="mr-2 h-4 w-4" />
                   {t('action.join')} — {wagerDisplay} USDT
                 </Button>
-                {!isDuelPublic && hasInviteAccess && (
+                {isDeclinableDuel && (
                   <Button
                     size="lg"
                     variant="outline"

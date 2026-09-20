@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { PartialDataNotice } from '@/components/duel/PartialDataNotice';
 import { PublicDuelCard } from '@/components/duel/PublicDuelCard';
 import { PublicDuelsFiltersPanel } from '@/components/duel/PublicDuelsFiltersPanel';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
@@ -30,7 +31,7 @@ export default function PublicDuelsPage() {
   const timeAgo = useTimeAgo();
   const { authenticated } = usePrivy();
   const { walletAddress } = useActiveWallet();
-  const { duels, isLoading } = usePublicDuels();
+  const { duels, isLoading, isError } = usePublicDuels();
   const [searchQuery, setSearchQuery] = useState('');
   const [gameFilter, setGameFilter] = useState<string | null>(null);
   const [wagerRange, setWagerRange] = useState<WagerRange>('all');
@@ -129,6 +130,7 @@ export default function PublicDuelsPage() {
     <div className="min-h-[calc(100vh-3.5rem)] bg-white">
       <section className="border-b border-slate-200 bg-slate-50 bg-dots">
         <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+          <PartialDataNotice when={isError} />
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">

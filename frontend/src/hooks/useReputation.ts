@@ -2,10 +2,9 @@
 
 import { useReadContract } from 'wagmi';
 import { duelMeAbi } from '@/lib/contracts';
-import { DUELME_ADDRESSES } from '@/lib/constants';
+import { DUELME_ADDRESSES, ZERO_ADDRESS } from '@/lib/constants';
 import {
-  getReputationLevel,
-  wilsonScore,
+  getReputationSummaryFromStats,
   type ReputationLevel,
 } from '@/lib/reputation';
 
@@ -36,15 +35,14 @@ export function useReputation(
       enabled:
         !!address &&
         !!contractAddress &&
-        contractAddress !== '0x0000000000000000000000000000000000000000',
+        contractAddress !== ZERO_ADDRESS,
     },
   });
 
-  const honored = data ? Number((data as [number, number])[0]) : 0;
-  const abandoned = data ? Number((data as [number, number])[1]) : 0;
-  const total = honored + abandoned;
-  const score = wilsonScore(honored, abandoned);
-  const level = getReputationLevel(score, honored, abandoned);
+  const summary = getReputationSummaryFromStats(
+    data ? Number(data.duelsHonored) : 0,
+    data ? Number(data.duelsAbandoned) : 0
+  );
 
-  return { honored, abandoned, total, score, level, isLoading };
+  return { ...summary, isLoading };
 }

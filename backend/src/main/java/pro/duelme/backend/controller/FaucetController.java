@@ -25,13 +25,13 @@ public class FaucetController {
     }
 
     @Operation(
-        summary = "Send testnet ETH + MockUSDT to the caller (one per wallet)",
+        summary = "Send testnet ETH + MockUSDT to the caller (one per wallet per token)",
         security = @SecurityRequirement(name = "bearer")
     )
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Faucet executed, tx hashes returned"),
         @ApiResponse(responseCode = "401", description = "Missing or invalid authentication token"),
-        @ApiResponse(responseCode = "409", description = "Wallet already claimed"),
+        @ApiResponse(responseCode = "409", description = "Wallet already claimed the live MockUSDT"),
         @ApiResponse(responseCode = "502", description = "On-chain transaction failed"),
         @ApiResponse(responseCode = "503", description = "Faucet disabled in this environment")
     })

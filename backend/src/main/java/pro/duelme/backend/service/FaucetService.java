@@ -22,17 +22,20 @@ import pro.duelme.backend.exception.FaucetDisabledException;
 import pro.duelme.backend.exception.FaucetExecutionException;
 import pro.duelme.backend.model.FaucetClaim;
 import pro.duelme.backend.repository.FaucetClaimRepository;
+import pro.duelme.backend.validation.EvmAddress;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 /**
  * Dev-only testnet faucet. Sends a small ETH drop to cover gas and mints
- * MockUSDT in one atomic HTTP request. One claim per wallet, ever.
+ * MockUSDT in one atomic HTTP request. One claim per wallet per token: a testnet
+ * redeploy ships a fresh MockUSDT and re-opens the claim, which is deliberate — see
+ * {@link pro.duelme.backend.model.FaucetClaim}. It re-opens the ETH leg too, so the
+ * signer drains at testers x redeploys rather than testers once.
  *
  * <p>The bean is ALWAYS wired. On-off is gated by the runtime
  * {@code duelme.faucet.enabled} flag checked inside {@link #claim}. We do not
@@ -44,7 +47,6 @@ import java.util.regex.Pattern;
 public class FaucetService {
 
     private static final Logger log = LoggerFactory.getLogger(FaucetService.class);
-    private static final Pattern ADDRESS_PATTERN = Pattern.compile("^0x[0-9a-fA-F]{40}$");
     private static final BigInteger ETH_GAS_LIMIT = BigInteger.valueOf(100_000L);
     private static final BigInteger MINT_GAS_LIMIT = BigInteger.valueOf(200_000L);
 
@@ -78,7 +80,7 @@ public class FaucetService {
             throw new IllegalStateException(
                 "duelme.faucet.enabled=true but duelme.faucet.rpc-url is not set");
         }
-        if (props.mockUsdtAddress() == null || !ADDRESS_PATTERN.matcher(props.mockUsdtAddress()).matches()) {
+        if (!EvmAddress.isValid(props.mockUsdtAddress())) {
             throw new IllegalStateException(
                 "duelme.faucet.mock-usdt-address is missing or malformed");
         }
@@ -112,13 +114,18 @@ public class FaucetService {
         if (!props.enabled()) {
             throw new FaucetDisabledException();
         }
-        if (walletAddress == null || !ADDRESS_PATTERN.matcher(walletAddress).matches()) {
+        if (!EvmAddress.isValid(walletAddress)) {
             throw new FaucetExecutionException("Invalid wallet address", null);
         }
         String normalized = walletAddress.toLowerCase();
+        // The live MockUSDT is part of the key: a redeploy ships a new one, and a claim
+        // against the retired token must not stand in the way of claiming the new one.
+        // Validated in the constructor, which every enabled instance has already passed.
+        String token = props.mockUsdtAddress().toLowerCase();
 
         FaucetClaim lock;
-        Optional<FaucetClaim> existing = repository.findByWalletAddress(normalized);
+        Optional<FaucetClaim> existing =
+            repository.findByWalletAddressAndTokenAddress(normalized, token);
         if (existing.isPresent()) {
             lock = existing.get();
             if (lock.usdtTxHash() != null) {
@@ -129,11 +136,11 @@ public class FaucetService {
             // wallet when the previous USDT mint failed mid-flow.
         } else {
             // Insert-first lock. If the save races another claim in a future
-            // multi-node setup, the Mongo unique index on `walletAddress`
-            // (created in MongoConfig#ensureFaucetClaimIndexes) raises
-            // DuplicateKey here and we convert it to a 409.
+            // multi-node setup, the Mongo unique index on `walletAddress` +
+            // `tokenAddress` (created in MongoConfig#ensureFaucetClaimIndexes)
+            // raises DuplicateKey here and we convert it to a 409.
             try {
-                lock = repository.save(new FaucetClaim(null, normalized, null, null, null));
+                lock = repository.save(new FaucetClaim(null, normalized, token, null, null, null));
             } catch (DuplicateKeyException ex) {
                 throw new FaucetAlreadyClaimedException(normalized);
             }
@@ -164,7 +171,7 @@ public class FaucetService {
             );
 
             FaucetClaim finished = new FaucetClaim(
-                lock.id(), normalized, ethTxHash, usdtTxHash, lock.createdAt());
+                lock.id(), normalized, token, ethTxHash, usdtTxHash, lock.createdAt());
             return toResponse(repository.save(finished));
         } catch (Exception ex) {
             if (ethTxHash == null) {
@@ -180,7 +187,7 @@ public class FaucetService {
                 // the no-op write.
                 if (lock.ethTxHash() == null) {
                     repository.save(new FaucetClaim(
-                        lock.id(), normalized, ethTxHash, null, lock.createdAt()));
+                        lock.id(), normalized, token, ethTxHash, null, lock.createdAt()));
                 }
                 log.error("Faucet USDT mint failed after ETH tx {} for {} (lock {} kept)",
                     ethTxHash, normalized, lock.id(), ex);

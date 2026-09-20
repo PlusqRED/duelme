@@ -1,4 +1,4 @@
-import type { PlayerDuel } from '@/hooks/usePlayerDuels';
+import type { PlayerDuel } from '@/lib/duel';
 import type { RecentDuel } from '@/hooks/useRecentDuels';
 import type { Language, TranslationKey, TranslationParams } from '@/i18n/translations';
 import { DuelState } from '@/lib/contracts';
@@ -17,6 +17,10 @@ import { getReputationLabelKey, type ReputationLevel } from '@/lib/reputation';
 type Translate = (key: TranslationKey, params?: TranslationParams) => string;
 
 const CANONICAL_STATE_TERMS: Record<DuelState, string[]> = {
+  // The paged readers drop `Nonexistent` records and a direct link to an id nobody issued takes
+  // the not-found branch, so no screen renders one. The entry is here because the record is
+  // exhaustive over the enum.
+  [DuelState.Nonexistent]: [],
   [DuelState.Created]: ['waiting for opponent', 'created'],
   [DuelState.Funded]: ['in progress', 'funded', 'live'],
   [DuelState.WinnerClaimed]: ['waiting for confirmation', 'result submitted'],

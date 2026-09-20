@@ -3,13 +3,15 @@
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import type { PlayerDuel } from '@/hooks/usePlayerDuels';
+import type { PlayerDuel } from '@/lib/duel';
 import { useTranslation } from '@/i18n/useTranslation';
+import { ZERO_ADDRESS } from '@/lib/constants';
 import { DuelState } from '@/lib/contracts';
 import {
   getClaimableAmountForAddress,
   getCounterpartyAddress,
   getDuelOutcomeSummary,
+  getDuelStateLabelKey,
   getRelevantDuelTimestamp,
   hasClaimedPayoutForAddress,
   isDuelClaimTimedOut,
@@ -72,7 +74,7 @@ export function DuelCard({
   const showOutcomeBadge = TERMINAL_STATES.has(duel.state) || isClaimTimedOut;
   const hasMessage = hasVisibleDuelMessage(duel.message);
   const counterparty = getCounterpartyAddress(duel, viewerAddress);
-  const opponentAddress = counterparty && counterparty !== '0x0000000000000000000000000000000000000000'
+  const opponentAddress = counterparty && counterparty !== ZERO_ADDRESS
     ? counterparty
     : duel.opponent;
 
@@ -95,7 +97,7 @@ export function DuelCard({
               <span
                 className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${effectiveStateConfig.colorClass}`}
               >
-                {t(showOutcomeBadge ? outcome.detailKey : effectiveStateConfig.key)}
+                {t(showOutcomeBadge ? outcome.detailKey : getDuelStateLabelKey(duel.state, isClaimTimedOut))}
               </span>
             </div>
 
@@ -107,7 +109,7 @@ export function DuelCard({
 
             <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
               <span className="text-slate-400">{t('dashboard.opponentLabel')}</span>
-              {opponentAddress === '0x0000000000000000000000000000000000000000' ? (
+              {opponentAddress === ZERO_ADDRESS ? (
                 <span className="text-slate-400">{t('dashboard.waitingOpponent')}</span>
               ) : (
                 <>
@@ -191,7 +193,7 @@ export function DuelCard({
                 {t('dashboard.refundAvailable')}
               </div>
               <div className="mt-1 text-lg font-bold text-red-900">
-                {formatUSDT(duel.wagerAmountRaw)} USDT
+                {formatUSDT(duel.wagerAmount)} USDT
               </div>
             </div>
           )}

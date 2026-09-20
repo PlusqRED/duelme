@@ -3,9 +3,11 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchDuelMetaBatch } from '@/lib/gameApi';
+import { DUELME_ADDRESSES } from '@/lib/constants';
 import type { DuelMeta } from '@/lib/game';
 
 export function usePublicDuelMetas(duelIds: number[], chainId: number) {
+  const contractAddress = DUELME_ADDRESSES[chainId];
   const sortedIds = useMemo(
     () => [...duelIds].sort((a, b) => a - b),
     [duelIds],
@@ -13,8 +15,8 @@ export function usePublicDuelMetas(duelIds: number[], chainId: number) {
 
   const { data } = useQuery<DuelMeta[]>({
     queryKey: ['duelMeta', 'batch', chainId, sortedIds],
-    queryFn: () => fetchDuelMetaBatch(chainId, sortedIds),
-    enabled: sortedIds.length > 0,
+    queryFn: () => fetchDuelMetaBatch(chainId, contractAddress, sortedIds),
+    enabled: sortedIds.length > 0 && !!contractAddress,
     staleTime: 30_000,
   });
 

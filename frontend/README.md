@@ -30,6 +30,10 @@ Next.js web app for the DuelMe P2P gaming duel platform. The frontend handles se
 |---|---|
 | `/` | Landing page — live hero stats, how it works, trust, reputation, searchable latest duels, CTA |
 | `/dashboard` | User dashboard — active/history tabs, full-text duel search, claim-all, pagination, outcome badges |
+| `/duels/public` | Open lobby — duels anyone may join, with filters |
+| `/duels/recent` | Latest duels across the platform, filterable by state |
+| `/games` | Game catalog |
+| `/games/[slug]` | One game — its duels, volume and activity |
 | `/duel/create` | Create a new duel — amount input, presets, chain selector, secure invite generation, optional Unicode message |
 | `/duel/[id]` | Duel detail — spectator-safe timeline plus participant actions (join/decline/claim/confirm/dispute/refund/cancel/mutual-cancel/claim payout) |
 | `/profile` | My Profile — inline field editing, games, reputation badge |
@@ -39,66 +43,18 @@ Next.js web app for the DuelMe P2P gaming duel platform. The frontend handles se
 
 ```
 src/
-├── app/                    # Next.js app router
-│   ├── layout.tsx          # Root layout — providers, header, footer
-│   ├── page.tsx            # Landing page
-│   ├── dashboard/          # Dashboard page
-│   ├── duel/
-│   │   ├── create/         # Create duel page
-│   │   └── [id]/           # Duel detail page
-│   └── profile/
-│       ├── page.tsx         # My Profile (auth-gated, inline editing)
-│       └── [walletAddress]/ # Public profile (read-only)
-│
-├── components/
-│   ├── duel/               # Duel-specific components
-│   │   ├── CreateDuelForm  # Wager input, presets, approve→create flow
-│   │   ├── DuelCard        # Duel list card
-│   │   ├── DuelStatus      # State badge + info display
-│   │   ├── ClaimButtons    # claimVictory / admitDefeat actions
-│   │   ├── ConfirmResult   # confirmResult + refund (after timeout)
-│   │   ├── CopyableAddress # Copyable wallet address with optional nickname + profile link
-│   │   ├── ReputationBadge # Wilson score display
-│   │   ├── ShareLink       # Copy-to-clipboard duel link
-│   │   └── RecentDuels     # Recent duels list
-│   ├── layout/             # Header, Footer
-│   ├── wallet/             # WalletSection (connect/disconnect)
-│   ├── providers/          # Privy + wagmi + QueryClient providers
-│   ├── seo/                # JSON-LD structured data
-│   └── ui/                 # Reusable UI primitives (button, card, dialog, etc.)
-│
-├── hooks/
-│   ├── useAppToast.ts         # Localized top-center toast wrapper
-│   ├── useDuel.ts             # Read single duel from contract
-│   ├── useDuelActions.ts      # Write actions (create, join, decline, claim, confirm, refund, cancel, mutual-cancel)
-│   ├── usePlayerDuels.ts      # Dashboard duel aggregation, stats, and claim data
-│   ├── usePlatformStats.ts    # Landing-page Total Volume / Duels Played stats
-│   ├── useRecentDuels.ts      # Latest duels feed data
-│   ├── useMyProfile.ts        # Own profile (React Query + mutation)
-│   ├── useProfile.ts          # Public profile read
-│   ├── useNicknames.ts        # Batch nickname resolution for duel feeds
-│   ├── useReputation.ts       # Single-address PlayerStats read
-│   └── useReputationLevels.ts # Batch reputation reads for feed/search UI
-│
-├── lib/
-│   ├── balanceRefresh.ts   # Event bus for instant header/wallet balance refresh
-│   ├── contracts.ts        # ABI definitions + DuelState enum
-│   ├── constants.ts        # Chain addresses, MIN_WAGER, timeouts
-│   ├── duel.ts             # Duel formatting, timestamps, claim helpers
-│   ├── duelMessage.ts      # Frontend Unicode message validation
-│   ├── duelSearch.ts       # Search indexes based on visible duel-card/feed text
-│   ├── invite.ts           # Secure invite-secret generation and local storage helpers
-│   ├── profile.ts          # Profile types and validation constants
-│   ├── profileApi.ts       # Backend profile API client
-│   ├── reputation.ts       # Shared Wilson-score helpers
-│   ├── wagmi.ts            # wagmi client config
-│   └── utils.ts            # Utility functions
-│
-└── i18n/                   # Internationalization
-    ├── translations.ts     # EN + RU string tables
-    ├── useTranslation.ts   # Translation hook
-    └── LanguageContext.ts   # Language state provider
+├── app/          # Routes (App Router). One directory per route above, plus api/relay
+├── components/   # duel/ · layout/ · wallet/ · providers/ · seo/ · ui/ (shadcn primitives)
+├── hooks/        # use{Feature} — one concern each; contract reads, write flows, profiles
+├── lib/          # Pure logic and clients: contracts, invites, relayer, guided flows, search
+└── i18n/         # EN + RU string tables and the translation hook
+
+e2e/              # Playwright specs, beside src/
 ```
+
+Individual files are not listed here — a tree that names every module goes stale the week after
+it is written. The **Key Files** table in the repo's `CLAUDE.md` is the maintained map, and it is
+updated in the same commit as the code it describes.
 
 ## Setup
 
@@ -123,13 +79,17 @@ npm run start
 
 ## Validation
 
-There is currently no dedicated frontend test script. Validate frontend changes with:
-
 ```bash
-npx tsc --noEmit
-npm run lint
-npm run build
+npx tsc --noEmit     # types
+npm run lint         # eslint
+npm test             # vitest — lib/ logic, hooks, and the contract mirrors
+npm run build        # production build
 ```
+
+`npm test` includes the mirror checks that fail the build when the hand-written `duelMeAbi`,
+`DuelState`, or the addresses in `constants.ts` drift from the contract and its deploy artifact.
+The ABI check needs `forge build` to have run in `contracts/` — CI does that for you; locally it
+skips if you have not.
 
 For UI-facing changes, also verify the page in a real browser with Playwright screenshots at desktop and mobile widths. See `CLAUDE.md` for the full assistant workflow. Minimal example:
 
@@ -147,34 +107,44 @@ After reviewing screenshots, remove any temporary screenshot files and stop the 
 
 ### Contract addresses
 
-Arbitrum Sepolia is the currently active deployment target. The frontend reads deployed addresses from `src/lib/constants.ts`, which should be kept in sync with the tracked deploy artifact at `../contracts/broadcast/Deploy.s.sol/421614/run-latest.json`.
+Two chains: Arbitrum One (42161) in production, Arbitrum Sepolia (421614) on dev. The build picks
+one with `NEXT_PUBLIC_DEFAULT_CHAIN_KEY`.
 
-After deploying smart contracts, update the addresses in `src/lib/constants.ts`:
+Addresses live in `SUPPORTED_CHAINS` in `src/lib/constants.ts`, and everything else in the app —
+`DUELME_ADDRESSES`, `FORWARDER_ADDRESSES`, `getUsdtAddress`, `CHAIN_NAMES` — is derived from it.
+Never inline an address or a chain id anywhere else.
 
-```typescript
-export const DUELME_ADDRESSES: Record<number, `0x${string}`> = {
-  421614: '0x...', // Arbitrum Sepolia
-  42161: '0x...',  // Arbitrum One
-  137: '0x...',    // Polygon
-};
-```
+`constants.ts` mirrors the tracked deploy artifacts by hand, so after a deploy it has to be
+updated in the same commit. `src/lib/__tests__/deployedAddresses.test.ts` fails the build if it
+is not, and `contractAddresses.test.ts` fails if anything in the app stops agreeing with it.
 
 ### Environment variables
 
-Privy and other service keys are configured through environment variables. Check `.env.example` if available, or refer to the Privy docs for required keys.
+Every variable the app reads, and where each one is set, is listed in the **Environment** section
+of the repo's `CLAUDE.md`. The ones a local dev run needs are `NEXT_PUBLIC_PRIVY_APP_ID` and,
+optionally, an authenticated RPC URL.
 
 ## Key patterns
 
-### Approve → Create flow with private invites
+### Funding a duel: permit or approve
 
-The `CreateDuelForm` handles the two-step ERC20 flow:
+Which shape the guided flow runs depends on whether the gas relayer is available
+(`useRelayerStatus`), and the invite secret is generated the same way either way.
 
-1. Check existing allowance via `useReadContract`
-2. Generate a high-entropy invite secret client-side and hash it for on-chain storage
-3. If allowance is sufficient — call `createDuel` directly (with optional Unicode challenge message)
-4. If not — call `approve`, then auto-trigger `createDuel` on success via `useEffect`
+**Relayed (gasless).** The player signs an EIP-2612 permit and an EIP-712 ForwardRequest —
+no transaction, no ETH. `useDuelActions` calls `createDuelWithPermit` / `joinDuelWithPermit`
+through `/api/relay`, and the approve step is not shown at all. The permit domain is rebuilt
+from the token's `name()` + version `"1"` and checked against its `DOMAIN_SEPARATOR()` before
+anything is signed.
 
-The raw invite secret lives only in the shared URL fragment and local browser storage; the contract stores only its hash.
+**Self-paid.** The classic two-step ERC20 flow: check the allowance via `useReadContract`,
+`approve` if it is short, then `createDuel`. The player pays gas for both.
+
+There is no automatic fallback between them — a relayer refusal surfaces as an error rather
+than silently reverting to a transaction the player has to fund.
+
+The raw invite secret lives only in the shared URL fragment and local browser storage; the
+contract stores only its hash.
 
 ### Contract interaction hooks
 
@@ -184,7 +154,9 @@ All blockchain interactions go through dedicated hooks in `src/hooks/`:
 - **`useDuelActions()`** — exposes create/join/decline/result/refund/cancel/mutual-cancel/claim actions
 - **`usePlayerDuels()`** — reads and classifies dashboard duels, stats, and claimable amounts
 - **`usePlatformStats()`** — reads landing-page hero metrics from chain state
-- **`useReputation(address)`** — reads `getPlayerStats()` → `{ honored, abandoned }`
+- **`useReputation(address)`** — reads `getPlayerStats()` and derives the Wilson score from
+  `duelsHonored` / `duelsAbandoned`
+- **`useDuelReads`** — the paged `getDuels` / `getDuelsByIds` readers every listing screen shares
 
 ### Claim-based payouts
 

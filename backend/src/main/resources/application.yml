@@ -11,14 +11,29 @@ spring:
 privy:
   app-id: ${PRIVY_APP_ID}
 
-# Dev-only MockUSDT + ETH faucet. Prod must keep `enabled=false` (the default).
 duelme:
+  # The DuelMe deployment live on each chain. Hand-mirrored from
+  # contracts/broadcast/*/run-latest.json, the same copy frontend constants.ts
+  # keeps; deployedAddresses.test.ts pins both to the artifact, so a redeploy
+  # that misses one fails the frontend suite. Quoted for the same reason as
+  # mock-usdt-address below.
+  contracts:
+    duel-me:
+      "421614": "0x588A54Fa8c00c8aC003e41BD8ee26FBC8994105f"
+      "42161": "0x32b3c9aF55c7C784bdf9128a1f681A66A37Bd261"
+  # Dev-only MockUSDT + ETH faucet. Prod must keep `enabled=false` (the default).
   faucet:
     enabled: ${FAUCET_ENABLED:false}
     private-key: ${FAUCET_PRIVATE_KEY:}
     rpc-url: ${FAUCET_RPC_URL:https://sepolia-rollup.arbitrum.io/rpc}
     chain-id: ${FAUCET_CHAIN_ID:421614}
-    mock-usdt-address: ${FAUCET_MOCK_USDT_ADDRESS:0xbf345834d808a058e1278b50f3844aD86686f401}
+    # Not overridable by env on purpose: this must be the MockUSDT the live DuelMe was
+    # deployed against, which is the same redeploy that edits frontend constants.ts.
+    # deployedAddresses.test.ts pins it to the broadcast artifact.
+    # Quoted: YAML reads a bare 0x… as a hex integer, and Spring would then bind the decimal
+    # form, failing FaucetService's address check at startup and taking the whole backend
+    # down with it — not just the faucet.
+    mock-usdt-address: "0x44d213D601C19ec98Bf61A1bCa3935D6da07F05D"
     eth-amount-eth: ${FAUCET_ETH_AMOUNT_ETH:0.001}
     usdt-amount-raw: ${FAUCET_USDT_AMOUNT_RAW:100000000}
   social:

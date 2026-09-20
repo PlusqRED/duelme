@@ -1,26 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.34;
 
-import "forge-std/Test.sol";
-import "../src/DuelMe.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-
-contract MockEmergencyERC20 is ERC20 {
-    uint8 private immutable _tokenDecimals;
-
-    constructor(string memory name_, string memory symbol_, uint8 decimals_) ERC20(name_, symbol_) {
-        _tokenDecimals = decimals_;
-    }
-
-    function mint(address to, uint256 amount) external {
-        _mint(to, amount);
-    }
-
-    function decimals() public view override returns (uint8) {
-        return _tokenDecimals;
-    }
-}
+import "./helpers/DuelMeFixture.sol";
 
 /// @dev Helper that self-destructs to force ETH into a contract without receive/fallback
 contract SelfDestructSender {
@@ -36,36 +18,18 @@ contract ETHRejecter {
     }
 }
 
-contract DuelMeEmergencyTest is Test {
-    DuelMe public duelMe;
-    MockEmergencyERC20 public usdt;
-    MockEmergencyERC20 public otherToken;
+contract DuelMeEmergencyTest is DuelMeFixture {
+    /// @dev A token the contract was never meant to hold, for the instant-rescue path.
+    PlainUsdt public otherToken;
 
     address public owner;
-    address public alice = makeAddr("alice");
-    address public bob = makeAddr("bob");
     address public recipient = makeAddr("recipient");
-
-    uint256 public constant WAGER = 10_000_000; // 10 USDT
-    bytes32 public constant DEFAULT_INVITE_SECRET = bytes32(uint256(1));
-    bytes32 public constant DEFAULT_INVITE_HASH = keccak256(abi.encodePacked(DEFAULT_INVITE_SECRET));
 
     function setUp() public {
         owner = address(this); // test contract is the deployer/owner
 
-        usdt = new MockEmergencyERC20("Tether USD", "USDT", 6);
-        otherToken = new MockEmergencyERC20("Other Token", "OTH", 18);
-        duelMe = new DuelMe(address(usdt));
-
-        // Mint USDT to test accounts
-        usdt.mint(alice, 1_000_000_000);
-        usdt.mint(bob, 1_000_000_000);
-
-        // Approve DuelMe contract
-        vm.prank(alice);
-        usdt.approve(address(duelMe), type(uint256).max);
-        vm.prank(bob);
-        usdt.approve(address(duelMe), type(uint256).max);
+        _deployFixture();
+        otherToken = new PlainUsdt();
     }
 
     // =====================================================================
@@ -78,13 +42,6 @@ contract DuelMeEmergencyTest is Test {
     }
 
     /// @dev Create and fund a duel so the contract holds USDT
-    function _createAndFundDuel() internal returns (uint256 duelId) {
-        vm.prank(alice);
-        duelId = duelMe.createDuel(WAGER, DEFAULT_INVITE_HASH);
-        vm.prank(bob);
-        duelMe.joinDuel(duelId, DEFAULT_INVITE_SECRET);
-    }
-
     // =====================================================================
     // rescueToken
     // =====================================================================

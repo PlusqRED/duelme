@@ -6,7 +6,7 @@ Comprehensive hardening applied across CI/CD, Docker, reverse proxy, and runtime
 
 | Measure | Details |
 |---------|---------|
-| SHA-pinned Actions | All 10 GitHub Actions pinned to full commit SHAs, not mutable version tags |
+| SHA-pinned Actions | Every GitHub Action pinned to a full commit SHA, not a mutable version tag (14 distinct actions) |
 | Dependabot | Weekly automated PRs for Actions SHA updates (`.github/dependabot.yml`) |
 | Image traceability | Every image tagged with both `:dev`/`:latest` and `:tag-<git-sha>` for exact commit identification |
 
@@ -57,6 +57,7 @@ Comprehensive hardening applied across CI/CD, Docker, reverse proxy, and runtime
 | Measure | Details |
 |---------|---------|
 | Job timeouts | Contracts 15m, backend 15m, frontend 10m, builds 30m, deploys 10m |
+| Prod gated on native build | `build-prod` needs `backend-native`; a broken native image cannot reach production |
 | Parallel builds | Backend and frontend images built concurrently via matrix strategy |
 | Healthcheck verification | Post-deploy polling with 60s timeout across both backend and frontend endpoints |
 | Rollback on failure | Broken backend/frontend containers are stopped automatically if healthchecks fail |

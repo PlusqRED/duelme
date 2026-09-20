@@ -55,9 +55,8 @@ export function useReputationLevels(addresses: Array<string | undefined>, chainI
         return;
       }
 
-      const [honoredRaw, abandonedRaw] = statResult.result as readonly [number | bigint, number | bigint];
-      const honored = Number(honoredRaw);
-      const abandoned = Number(abandonedRaw);
+      const honored = Number(statResult.result.duelsHonored);
+      const abandoned = Number(statResult.result.duelsAbandoned);
       result[address] = getReputationSummaryFromStats(honored, abandoned);
     });
 

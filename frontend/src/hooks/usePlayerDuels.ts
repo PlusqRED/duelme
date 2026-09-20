@@ -1,36 +1,9 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useReadContract, useReadContracts } from 'wagmi';
-import { formatUnits } from 'viem';
-import { duelMeAbi, DuelState, ACTIVE_STATES } from '@/lib/contracts';
-import { isDuelClaimTimedOut } from '@/lib/duel';
-import { DUELME_ADDRESSES, USDT_DECIMALS, ZERO_ADDRESS, CHAIN_NAMES } from '@/lib/constants';
-
-export interface PlayerDuel {
-  id: number;
-  creator: `0x${string}`;
-  opponent: `0x${string}`;
-  inviteHash: `0x${string}`;
-  message: string;
-  wager: number;
-  wagerAmountRaw: bigint;
-  state: DuelState;
-  claimedWinner: `0x${string}`;
-  claimedBy: `0x${string}`;
-  cancelRequestedBy: `0x${string}`;
-  createdAt: bigint;
-  fundedAt: bigint;
-  cancelRequestedAt: bigint;
-  claimTimestamp: bigint;
-  finalizedAt: bigint;
-  creatorPayout: bigint;
-  opponentPayout: bigint;
-  creatorClaimed: boolean;
-  opponentClaimed: boolean;
-  chainId: number;
-  chainName: string;
-}
+import { DuelState } from '@/lib/contracts';
+import { isActiveDuel, toPlayerDuel, type PlayerDuel } from '@/lib/duel';
+import { useDuelRange } from './useDuelReads';
 
 export interface PlayerStats {
   wins: number;
@@ -45,40 +18,9 @@ export function usePlayerDuels(
   address: `0x${string}` | undefined,
   chainId: number
 ) {
-  const contractAddress = DUELME_ADDRESSES[chainId];
-  const enabled =
-    !!address &&
-    !!contractAddress &&
-    contractAddress !== ZERO_ADDRESS;
+  const { duels: duelRecords, isLoading, isError, refetch } = useDuelRange({ chainId, enabled: !!address });
 
-  // 1. Read total duel count (poll every 10s)
-  const { data: duelCount, isLoading: isCountLoading, refetch: refetchCount } = useReadContract({
-    address: contractAddress,
-    abi: duelMeAbi,
-    functionName: 'duelCount',
-    chainId,
-    query: { enabled, refetchInterval: 10_000, staleTime: 0 },
-  });
-
-  // 2. Build multicall to read all duels
-  const count = duelCount ? Number(duelCount) : 0;
-  const duelContracts = useMemo(() => {
-    if (!count || !enabled) return [];
-    return Array.from({ length: count }, (_, i) => ({
-      address: contractAddress,
-      abi: duelMeAbi,
-      functionName: 'getDuel' as const,
-      args: [BigInt(i)] as const,
-      chainId,
-    }));
-  }, [count, contractAddress, chainId, enabled]);
-
-  const { data: duelResults, isLoading: isDuelsLoading, refetch: refetchDuels } = useReadContracts({
-    contracts: duelContracts,
-    query: { enabled: duelContracts.length > 0, refetchInterval: 10_000, staleTime: 0 },
-  });
-
-  // 3. Parse and filter duels for this player
+  // Filter the history down to this player's duels.
   const result = useMemo<PlayerStats>(() => {
     const activeDuels: PlayerDuel[] = [];
     const historyDuels: PlayerDuel[] = [];
@@ -87,43 +29,19 @@ export function usePlayerDuels(
     let totalWagered = 0;
     let totalWithdrawn = 0n;
 
-    if (!duelResults || !address) {
+    if (!address) {
       return { wins, losses, totalWagered, totalWithdrawn, activeDuels, historyDuels };
     }
 
     const addr = address.toLowerCase();
 
-    for (let i = 0; i < duelResults.length; i++) {
-      const res = duelResults[i];
-      if (res.status !== 'success' || !res.result) continue;
-
-        const d = res.result as {
-          creator: `0x${string}`;
-          opponent: `0x${string}`;
-          wagerAmount: bigint;
-          inviteHash: `0x${string}`;
-          message: string;
-          claimedWinner: `0x${string}`;
-          claimedBy: `0x${string}`;
-        cancelRequestedBy: `0x${string}`;
-        createdAt: bigint;
-        fundedAt: bigint;
-        cancelRequestedAt: bigint;
-        claimTimestamp: bigint;
-        finalizedAt: bigint;
-        creatorPayout: bigint;
-        opponentPayout: bigint;
-        creatorClaimed: boolean;
-        opponentClaimed: boolean;
-        state: number;
-      };
-
+    for (const d of duelRecords) {
       const isCreator = d.creator.toLowerCase() === addr;
       const isOpponent = d.opponent.toLowerCase() === addr;
       if (!isCreator && !isOpponent) continue;
 
-      const wager = parseFloat(formatUnits(d.wagerAmount, USDT_DECIMALS));
-      const state = d.state as DuelState;
+      const state = d.state;
+      const duel = toPlayerDuel(d, chainId);
 
       if (isCreator && d.creatorClaimed) {
         totalWithdrawn += d.creatorPayout;
@@ -133,44 +51,15 @@ export function usePlayerDuels(
         totalWithdrawn += d.opponentPayout;
       }
 
-        const duel: PlayerDuel = {
-          id: i,
-          creator: d.creator,
-          opponent: d.opponent,
-          inviteHash: d.inviteHash,
-          message: d.message,
-          wager,
-          wagerAmountRaw: d.wagerAmount,
-          state,
-        claimedWinner: d.claimedWinner,
-        claimedBy: d.claimedBy,
-        cancelRequestedBy: d.cancelRequestedBy,
-        createdAt: d.createdAt,
-        fundedAt: d.fundedAt,
-        cancelRequestedAt: d.cancelRequestedAt,
-        claimTimestamp: d.claimTimestamp,
-        finalizedAt: d.finalizedAt,
-        creatorPayout: d.creatorPayout,
-        opponentPayout: d.opponentPayout,
-        creatorClaimed: d.creatorClaimed,
-        opponentClaimed: d.opponentClaimed,
-        chainId,
-        chainName: CHAIN_NAMES[chainId] ?? `Chain ${chainId}`,
-      };
-
-      if (ACTIVE_STATES.has(state)) {
-        if (state === DuelState.WinnerClaimed && isDuelClaimTimedOut(d.claimTimestamp)) {
-          historyDuels.push(duel);
-        } else {
-          activeDuels.push(duel);
-        }
+      if (isActiveDuel(d)) {
+        activeDuels.push(duel);
       } else {
         historyDuels.push(duel);
       }
 
       // Compute wins/losses from resolved duels
       if (state === DuelState.Resolved) {
-        totalWagered += wager;
+        totalWagered += duel.wager;
         if (d.claimedWinner.toLowerCase() === addr) {
           wins++;
         } else {
@@ -182,7 +71,7 @@ export function usePlayerDuels(
         || state === DuelState.WinnerClaimed
         || state === DuelState.MutualCancelRequested
       ) {
-        totalWagered += wager;
+        totalWagered += duel.wager;
       }
     }
 
@@ -191,13 +80,12 @@ export function usePlayerDuels(
     historyDuels.reverse();
 
     return { wins, losses, totalWagered, totalWithdrawn, activeDuels, historyDuels };
-  }, [duelResults, address, chainId]);
+  }, [duelRecords, address, chainId]);
 
   return {
     ...result,
-    isLoading: isCountLoading || isDuelsLoading,
-    refetch: async () => {
-      await Promise.all([refetchCount(), refetchDuels()]);
-    },
+    isLoading,
+    refetch,
+    isError,
   };
 }

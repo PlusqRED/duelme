@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { TranslationKey, TranslationParams } from '@/i18n/translations';
 import { translations } from '@/i18n/translations';
 import { getCreateDuelFlowErrorMessage } from '@/lib/createDuelFlowRuntime';
+import { RelayRequestError } from '@/lib/relayApi';
+import { PermitDomainMismatchError } from '@/lib/permitSignature';
 
 function t(key: TranslationKey, params?: TranslationParams) {
   let value = String(translations.en[key]);
@@ -62,5 +64,53 @@ describe('getCreateDuelFlowErrorMessage', () => {
         'Arbitrum Sepolia'
       )
     ).toBe('This step failed: nonce too low.');
+  });
+});
+
+describe('getCreateDuelFlowErrorMessage — relay failures', () => {
+  it('explains a spent daily allowance instead of showing an HTTP error', () => {
+    const error = new RelayRequestError('BUDGET_EXCEEDED', 'Daily gas allowance is used up.');
+
+    expect(getCreateDuelFlowErrorMessage(error, t, 'Arbitrum One')).toBe(
+      translations.en['create.flow.error.relayBudget']
+    );
+  });
+
+  it('collapses every "relaying is off" code into one message', () => {
+    for (const code of ['RELAYER_UNAVAILABLE', 'INVALID_SIGNATURE', 'NOT_RELAYABLE'] as const) {
+      expect(getCreateDuelFlowErrorMessage(new RelayRequestError(code, 'x'), t, 'Arbitrum One')).toBe(
+        translations.en['create.flow.error.relayUnavailable']
+      );
+    }
+  });
+
+  it('keeps the contract reason for a reverted action rather than hiding it', () => {
+    const error = new RelayRequestError(
+      'EXECUTION_REVERTED',
+      'The duel action would revert: Wager below minimum'
+    );
+
+    expect(getCreateDuelFlowErrorMessage(error, t, 'Arbitrum One')).toContain(
+      'wager below minimum'
+    );
+  });
+
+  it('recognises the token refusing the permit rather than dumping the revert string', () => {
+    const error = new RelayRequestError(
+      'EXECUTION_REVERTED',
+      'The duel action would revert: permit failed'
+    );
+
+    expect(getCreateDuelFlowErrorMessage(error, t, 'Arbitrum One')).toBe(
+      translations.en['create.flow.error.permitUnsupported']
+    );
+  });
+
+  it('tells a wallet that cannot sign a permit what to do instead', () => {
+    const error = new PermitDomainMismatchError('0xtoken');
+
+    expect(getCreateDuelFlowErrorMessage(error, t, 'Arbitrum One')).toBe(
+      translations.en['create.flow.error.permitUnsupported']
+    );
   });
 });

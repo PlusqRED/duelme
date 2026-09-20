@@ -9,12 +9,13 @@ import {
   getNextCreateDuelFlowStageFromReview,
 } from '@/lib/createDuelFlow';
 import { USDT_DECIMALS } from '@/lib/constants';
+import { getContractConfig } from '@/lib/contractConfig';
 import { getGuidedFlowErrorMessage } from '@/lib/guidedFlowRuntime';
+import { resolveNeedsApproval } from '@/lib/guidedFlowSteps';
 import {
   generateInviteSecret,
   hashInviteSecret,
-  PUBLIC_INVITE_HASH,
-  PUBLIC_INVITE_SECRET,
+  OPEN_DUEL_INVITE_HASH,
 } from '@/lib/invite';
 
 interface CreateDuelFlowActionsOptions {
@@ -27,6 +28,14 @@ interface CreateDuelFlowActionsOptions {
   connectedChainId?: number;
   contractAddress: `0x${string}`;
   createDuel: (amount: bigint, inviteHash: `0x${string}`, message?: string) => Promise<void> | void;
+  /**
+   * True when the wager is authorised by an EIP-2612 signature instead of an allowance —
+   * the relayed path. The approve step is then not just skipped in the UI: the allowance
+   * guard below must not bounce the flow back to it either, because there is no allowance
+   * to find and the permit is signed as part of the duel call itself.
+   */
+  fundsViaPermit: boolean;
+
   gameName: string;
   isPublic: boolean;
   isValidAmount: boolean;
@@ -54,6 +63,7 @@ export function createDuelFlowActions({
   connectedChainId,
   contractAddress,
   createDuel,
+  fundsViaPermit,
   gameName,
   isPublic,
   isValidAmount,
@@ -88,15 +98,15 @@ export function createDuelFlowActions({
       return;
     }
     if (!isValidAmount) {
-      appToast.error('create.min');
+      appToast.error('create.min', { min: getContractConfig().minWager });
       return;
     }
     if (!isValidMessage) {
-      appToast.error('create.messageTooLong');
+      appToast.error('create.messageTooLong', { max: getContractConfig().maxMessageCharacters });
       return;
     }
     const rawAmount = parseUnits(amount, USDT_DECIMALS);
-    const inviteSecret = isPublic ? PUBLIC_INVITE_SECRET : generateInviteSecret();
+    const inviteSecret = isPublic ? null : generateInviteSecret();
     reset();
     setRedirectTarget(null);
     setFlow({
@@ -106,8 +116,8 @@ export function createDuelFlowActions({
         chainName,
         usdtAddress: tokenAddress,
         contractAddress,
-        inviteHash: isPublic ? PUBLIC_INVITE_HASH : hashInviteSecret(inviteSecret),
-        inviteSecret: isPublic ? null : inviteSecret,
+        inviteHash: inviteSecret ? hashInviteSecret(inviteSecret, contractAddress, chainId) : OPEN_DUEL_INVITE_HASH,
+        inviteSecret,
         isPublic,
         gameName: gameName.trim(),
         message,
@@ -132,7 +142,7 @@ export function createDuelFlowActions({
       return;
     }
     try {
-      const latestAllowance = await readLatestAllowance();
+      const needsApproval = await resolveNeedsApproval({ fundsViaPermit, readLatestAllowance, rawAmount: flow.draft.rawAmount });
       setFlow((current) =>
         !current
           ? current
@@ -140,9 +150,7 @@ export function createDuelFlowActions({
               ...current,
               stage: getNextCreateDuelFlowStageFromReview({
                 needsNetworkSwitch: false,
-                needsApproval:
-                  latestAllowance === undefined ||
-                  latestAllowance < current.draft.rawAmount,
+                needsApproval,
               }),
               actionState: 'idle',
               errorMessage: null,
@@ -169,7 +177,7 @@ export function createDuelFlowActions({
     );
     try {
       await switchChainAsync({ chainId: flow.draft.chainId });
-      const latestAllowance = await readLatestAllowance();
+      const needsApproval = await resolveNeedsApproval({ fundsViaPermit, readLatestAllowance, rawAmount: flow.draft.rawAmount });
       setFlow((current) =>
         !current
           ? current
@@ -179,11 +187,7 @@ export function createDuelFlowActions({
                 ...current.completedSteps,
                 switchNetwork: true,
               },
-              stage: getCreateDuelFlowStageAfterNetwork({
-                needsApproval:
-                  latestAllowance === undefined ||
-                  latestAllowance < current.draft.rawAmount,
-              }),
+              stage: getCreateDuelFlowStageAfterNetwork({ needsApproval }),
               actionState: 'idle',
               errorMessage: null,
             }
@@ -212,14 +216,14 @@ export function createDuelFlowActions({
       moveToIdleStep('switch-network');
       return;
     }
-    let latestAllowance: bigint | undefined;
+    let needsApproval: boolean;
     try {
-      latestAllowance = await readLatestAllowance();
+      needsApproval = await resolveNeedsApproval({ fundsViaPermit, readLatestAllowance, rawAmount: flow.draft.rawAmount });
     } catch (allowanceError) {
       setFlowError(allowanceError);
       return;
     }
-    if (latestAllowance === undefined || latestAllowance < flow.draft.rawAmount) {
+    if (needsApproval) {
       moveToIdleStep('approve');
       return;
     }

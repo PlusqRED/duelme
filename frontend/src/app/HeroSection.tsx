@@ -17,7 +17,10 @@ const sectionLinks = [
 
 export function HeroSection() {
   const { t, language } = useTranslation();
-  const { duelsPlayed, totalVolumeRaw, isLoading } = usePlatformStats();
+  // `isError` means a page of the history failed to load, so both totals below are undercounts.
+  // A headline number nobody can qualify is better withheld than quietly wrong, so it reads `—`.
+  const { duelsPlayed, totalVolumeRaw, isLoading, isError } = usePlatformStats();
+  const isStatsUnavailable = isLoading || isError;
 
   const locale = language === 'ru' ? 'ru-RU' : 'en-US';
   const formattedVolume = useMemo(() => {
@@ -149,7 +152,7 @@ export function HeroSection() {
               <div className="grid gap-4 sm:grid-cols-3">
                 <div>
                   <div className="text-[1.7rem] font-bold tabular-nums text-slate-950">
-                    {isLoading ? '$—' : `$${formattedVolume}`}
+                    {isStatsUnavailable ? '$—' : `$${formattedVolume}`}
                   </div>
                   <div className="mt-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
                     {t('hero.totalVolume')}
@@ -157,7 +160,7 @@ export function HeroSection() {
                 </div>
                 <div>
                   <div className="text-[1.7rem] font-bold tabular-nums text-slate-950">
-                    {isLoading ? '—' : formattedDuelsPlayed}
+                    {isStatsUnavailable ? '—' : formattedDuelsPlayed}
                   </div>
                   <div className="mt-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
                     {t('hero.duelsPlayed')}

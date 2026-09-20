@@ -1,4 +1,4 @@
-import { MIN_WAGER } from '@/lib/constants';
+import { getContractConfig } from '@/lib/contractConfig';
 import { isDuelMessageValid } from '@/lib/duelMessage';
 
 export interface WizardState {
@@ -15,7 +15,7 @@ export function isGameStepValid(state: Pick<WizardState, 'gameSlug'>): boolean {
 
 export function isWagerStepValid(state: Pick<WizardState, 'amount'>): boolean {
   const numeric = parseFloat(state.amount);
-  return Number.isFinite(numeric) && numeric >= MIN_WAGER;
+  return Number.isFinite(numeric) && numeric >= getContractConfig().minWager;
 }
 
 export function isTypeMessageStepValid(state: Pick<WizardState, 'message'>): boolean {

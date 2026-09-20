@@ -7,7 +7,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 import pro.duelme.backend.dto.DuelMetaRequest;
 import pro.duelme.backend.dto.DuelMetaResponse;
 import pro.duelme.backend.service.DuelMetaService;
+import pro.duelme.backend.validation.EvmAddress;
 
 import java.util.List;
 
@@ -30,6 +34,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/duels")
 public class DuelMetaController {
+
+    private static final String CONTRACT_ADDRESS_DESCRIPTION =
+        "DuelMe deployment the duel lives in. Part of the duel's identity: ids restart at zero "
+            + "on a redeploy, so the same duelId on the same chain means a different duel under a "
+            + "different contract.";
+    private static final String CONTRACT_ADDRESS_MESSAGE = "must be a 0x-prefixed 20-byte address";
 
     private final DuelMetaService duelMetaService;
 
@@ -40,7 +50,7 @@ public class DuelMetaController {
     @Operation(summary = "Attach game to a duel", security = @SecurityRequirement(name = "bearer"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Game attached to duel"),
-            @ApiResponse(responseCode = "400", description = "Invalid request body"),
+            @ApiResponse(responseCode = "400", description = "Invalid request body or contract address"),
             @ApiResponse(responseCode = "401", description = "Missing or invalid authentication token"),
             @ApiResponse(responseCode = "403", description = "Caller is not a participant in this duel")
     })
@@ -48,45 +58,59 @@ public class DuelMetaController {
     public DuelMetaResponse attachGame(
             @PathVariable long duelId,
             @RequestParam int chainId,
+            @Parameter(description = CONTRACT_ADDRESS_DESCRIPTION)
+            @RequestParam @Pattern(regexp = EvmAddress.REGEX, message = CONTRACT_ADDRESS_MESSAGE)
+            String contractAddress,
             @Parameter(hidden = true) @AuthenticationPrincipal String walletAddress,
             @Valid @RequestBody DuelMetaRequest request) {
-        return duelMetaService.attachGame(duelId, chainId, walletAddress, request);
+        return duelMetaService.attachGame(duelId, chainId, contractAddress, walletAddress, request);
     }
 
     @Operation(summary = "Get duel metadata")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Duel metadata found"),
+            @ApiResponse(responseCode = "400", description = "Invalid contract address"),
             @ApiResponse(responseCode = "404", description = "No metadata for this duel")
     })
     @GetMapping("/{duelId}/meta")
     public ResponseEntity<DuelMetaResponse> getDuelMeta(
             @PathVariable long duelId,
-            @RequestParam int chainId) {
-        DuelMetaResponse meta = duelMetaService.getByDuel(duelId, chainId);
+            @RequestParam int chainId,
+            @Parameter(description = CONTRACT_ADDRESS_DESCRIPTION)
+            @RequestParam @Pattern(regexp = EvmAddress.REGEX, message = CONTRACT_ADDRESS_MESSAGE)
+            String contractAddress) {
+        DuelMetaResponse meta = duelMetaService.getByDuel(duelId, chainId, contractAddress);
         return meta != null ? ResponseEntity.ok(meta) : ResponseEntity.notFound().build();
     }
 
     @Operation(summary = "List duels by game")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Duel metadata list returned"),
-            @ApiResponse(responseCode = "400", description = "Missing or blank gameSlug parameter")
+            @ApiResponse(responseCode = "400", description = "Missing gameSlug, invalid contract address, or limit out of range")
     })
     @GetMapping("/meta")
     public List<DuelMetaResponse> listByGame(
             @RequestParam @NotBlank String gameSlug,
-            @RequestParam(defaultValue = "100") int limit) {
-        return duelMetaService.getByGameSlug(gameSlug, limit);
+            @RequestParam int chainId,
+            @Parameter(description = CONTRACT_ADDRESS_DESCRIPTION)
+            @RequestParam @Pattern(regexp = EvmAddress.REGEX, message = CONTRACT_ADDRESS_MESSAGE)
+            String contractAddress,
+            @RequestParam(defaultValue = "100") @Min(1) @Max(200) int limit) {
+        return duelMetaService.getByGameSlug(gameSlug, chainId, contractAddress, limit);
     }
 
     @Operation(summary = "Batch fetch duel metadata by duel IDs")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Duel metadata list returned"),
-            @ApiResponse(responseCode = "400", description = "Too many duel IDs (max 200)")
+            @ApiResponse(responseCode = "400", description = "Too many duel IDs (max 200) or invalid contract address")
     })
     @GetMapping("/meta/batch")
     public List<DuelMetaResponse> batchByDuelIds(
             @RequestParam int chainId,
+            @Parameter(description = CONTRACT_ADDRESS_DESCRIPTION)
+            @RequestParam @Pattern(regexp = EvmAddress.REGEX, message = CONTRACT_ADDRESS_MESSAGE)
+            String contractAddress,
             @RequestParam @Size(max = 200, message = "Cannot fetch more than 200 duel IDs at once") List<Long> duelIds) {
-        return duelMetaService.getByDuelIds(chainId, duelIds);
+        return duelMetaService.getByDuelIds(chainId, contractAddress, duelIds);
     }
 }

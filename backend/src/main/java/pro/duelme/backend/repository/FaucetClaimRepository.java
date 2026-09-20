@@ -6,5 +6,5 @@ import pro.duelme.backend.model.FaucetClaim;
 import java.util.Optional;
 
 public interface FaucetClaimRepository extends MongoRepository<FaucetClaim, String> {
-    Optional<FaucetClaim> findByWalletAddress(String walletAddress);
+    Optional<FaucetClaim> findByWalletAddressAndTokenAddress(String walletAddress, String tokenAddress);
 }

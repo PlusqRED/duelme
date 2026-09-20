@@ -15,6 +15,9 @@ import pro.duelme.backend.repository.GameRepository;
 
 import java.util.List;
 
+import static pro.duelme.backend.support.TestContracts.CHAIN_ID;
+import static pro.duelme.backend.support.TestContracts.CONTRACT;
+import static pro.duelme.backend.support.TestContracts.REDEPLOYED_CONTRACT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -203,9 +206,9 @@ class GameServiceTest {
     void listSortsByDuelCountDescending() {
         gameRepository.save(new Game(null, "cs2", "Counter-Strike 2", null, GameCategory.FPS, null, null));
         gameRepository.save(new Game(null, "valorant", "Valorant", null, GameCategory.FPS, null, null));
-        duelMetaRepository.save(new DuelMeta(null, 1, 421614, "valorant", "0xaaa", null));
-        duelMetaRepository.save(new DuelMeta(null, 2, 421614, "valorant", "0xbbb", null));
-        duelMetaRepository.save(new DuelMeta(null, 3, 421614, "cs2", "0xccc", null));
+        duelMetaRepository.save(new DuelMeta(null, CONTRACT, 1, CHAIN_ID, "valorant", "0xaaa", null));
+        duelMetaRepository.save(new DuelMeta(null, CONTRACT, 2, CHAIN_ID, "valorant", "0xbbb", null));
+        duelMetaRepository.save(new DuelMeta(null, CONTRACT, 3, CHAIN_ID, "cs2", "0xccc", null));
 
         List<GameResponse> results = gameService.list(null, null, 50);
 
@@ -239,11 +242,24 @@ class GameServiceTest {
     @Test
     void duelCountReflectsMetaEntries() {
         gameRepository.save(new Game(null, "cs2", "Counter-Strike 2", null, GameCategory.FPS, null, null));
-        duelMetaRepository.save(new DuelMeta(null, 1, 421614, "cs2", "0xaaa", null));
-        duelMetaRepository.save(new DuelMeta(null, 2, 421614, "cs2", "0xbbb", null));
+        duelMetaRepository.save(new DuelMeta(null, CONTRACT, 1, CHAIN_ID, "cs2", "0xaaa", null));
+        duelMetaRepository.save(new DuelMeta(null, CONTRACT, 2, CHAIN_ID, "cs2", "0xbbb", null));
 
         GameResponse response = gameService.getBySlug("cs2");
 
         assertThat(response.duelCount()).isEqualTo(2);
+    }
+
+    @Test
+    void duelCountSpansChainsAndDeployments() {
+        // Catalog popularity, not live inventory: a duel played on a previous
+        // deployment still happened, so it keeps counting. The duel *listing* is
+        // the one scoped to a deployment -- see DuelMetaService#getByGameSlug.
+        gameRepository.save(new Game(null, "cs2", "Counter-Strike 2", null, GameCategory.FPS, null, null));
+        duelMetaRepository.save(new DuelMeta(null, CONTRACT, 1, CHAIN_ID, "cs2", "0xaaa", null));
+        duelMetaRepository.save(new DuelMeta(null, REDEPLOYED_CONTRACT, 1, CHAIN_ID, "cs2", "0xbbb", null));
+        duelMetaRepository.save(new DuelMeta(null, CONTRACT, 1, 42161, "cs2", "0xccc", null));
+
+        assertThat(gameService.getBySlug("cs2").duelCount()).isEqualTo(3);
     }
 }

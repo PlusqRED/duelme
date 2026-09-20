@@ -89,6 +89,15 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:3002:3001"
+    environment:
+      # Hot wallet that pays gas for relayed duel actions. Dedicated key, funded with only
+      # what the daily budgets can spend — it signs nothing but ERC2771Forwarder.execute.
+      RELAYER_PRIVATE_KEY: ${RELAYER_PRIVATE_KEY:-}
+      # Server-side RPC. A NEXT_PUBLIC_ key locked to browser origins would be rejected
+      # here, since a server request sends no Origin header.
+      RELAYER_RPC_URL: ${RELAYER_RPC_URL:-}
+      RELAYER_DAILY_BUDGET_WEI: ${RELAYER_DAILY_BUDGET_WEI:-}
+      RELAYER_GLOBAL_DAILY_BUDGET_WEI: ${RELAYER_GLOBAL_DAILY_BUDGET_WEI:-}
     read_only: true
     tmpfs:
       - /tmp:noexec,nosuid,size=64m

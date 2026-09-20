@@ -1,6 +1,7 @@
 import type { TranslationKey, TranslationParams } from '@/i18n/translations';
-import { SPONSORSHIP_UNAVAILABLE_CODE } from '@/lib/sponsoredTransactionConfig';
-import { collectErrorDetails } from '@/lib/sponsoredTransactionErrors';
+import { collectErrorDetails } from '@/lib/errorDetails';
+import { RelayRequestError } from '@/lib/relayApi';
+import { PermitDomainMismatchError } from '@/lib/permitSignature';
 
 export function getGuidedFlowErrorMessage(
   error: unknown,
@@ -8,11 +9,12 @@ export function getGuidedFlowErrorMessage(
   chainName: string,
   fallbackKey: TranslationKey = 'create.flow.error.generic'
 ): string {
-  const details = collectErrorDetails(error);
-
-  if (hasErrorCode(error, SPONSORSHIP_UNAVAILABLE_CODE)) {
-    return t('create.flow.error.sponsorshipUnavailable');
+  const relayMessage = getRelayErrorMessage(error, t);
+  if (relayMessage) {
+    return relayMessage;
   }
+
+  const details = collectErrorDetails(error);
 
   const gasEstimateDetail = details.find((detail) =>
     [
@@ -54,31 +56,43 @@ export function getGuidedFlowErrorMessage(
   return t(fallbackKey, { chain: chainName });
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
-function hasErrorCode(error: unknown, code: string): boolean {
-  const stack: unknown[] = [error];
-  const seenObjects = new WeakSet<object>();
-
-  while (stack.length > 0) {
-    const current = stack.pop();
-
-    if (!isRecord(current) || seenObjects.has(current)) {
-      continue;
-    }
-
-    seenObjects.add(current);
-
-    if (current.code === code) {
-      return true;
-    }
-
-    stack.push(current.cause, current.error, current.data);
+/**
+ * Relaying has its own failure vocabulary, and the raw text is not something to show a
+ * player: "daily allowance spent" and "the relayer is out of budget" are different
+ * situations that both read as an HTTP error otherwise.
+ */
+function getRelayErrorMessage(
+  error: unknown,
+  t: (key: TranslationKey, params?: TranslationParams) => string
+): string | null {
+  if (error instanceof PermitDomainMismatchError) {
+    return t('create.flow.error.permitUnsupported');
   }
 
-  return false;
+  if (!(error instanceof RelayRequestError)) {
+    return null;
+  }
+
+  switch (error.code) {
+    case 'BUDGET_EXCEEDED':
+      return t('create.flow.error.relayBudget');
+    case 'RELAYER_UNAVAILABLE':
+    case 'INVALID_SIGNATURE':
+    case 'NOT_RELAYABLE':
+      return t('create.flow.error.relayUnavailable');
+    case 'EXECUTION_REVERTED':
+      // DuelMe's own "Permit failed" is the token refusing the EIP-2612 signature — USD₮0
+      // routes permit through ERC-1271 whenever the owner address has code, which an
+      // EIP-7702 delegation gives a plain EOA. Retrying never fixes it, so it gets the
+      // dedicated message instead of the raw revert string.
+      return /permit failed/i.test(error.message)
+        ? t('create.flow.error.permitUnsupported')
+        : null;
+    default:
+      // Everything else carries the contract's own reason — let the generic detail
+      // formatter surface it rather than replacing it with a vaguer message.
+      return null;
+  }
 }
 
 function isGenericErrorDetail(detail: string) {
