@@ -6,6 +6,7 @@ import pro.duelme.backend.dto.GameResponse;
 import pro.duelme.backend.exception.GameNotFoundException;
 import pro.duelme.backend.model.Game;
 import pro.duelme.backend.model.GameCategory;
+import pro.duelme.backend.config.ContractProperties;
 import pro.duelme.backend.repository.DuelMetaRepository;
 import pro.duelme.backend.repository.GameRepository;
 
@@ -15,22 +16,29 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class GameService {
 
     private final GameRepository repository;
     private final DuelMetaRepository duelMetaRepository;
+    private final ContractProperties contracts;
 
-    public GameService(GameRepository repository, DuelMetaRepository duelMetaRepository) {
+    public GameService(
+        GameRepository repository,
+        DuelMetaRepository duelMetaRepository,
+        ContractProperties contracts
+    ) {
         this.repository = repository;
         this.duelMetaRepository = duelMetaRepository;
+        this.contracts = contracts;
     }
 
     public GameResponse getBySlug(String slug) {
         Game game = repository.findBySlug(slug.toLowerCase())
             .orElseThrow(() -> new GameNotFoundException(slug));
-        return toResponse(game);
+        return withLiveDuelCount(game);
     }
 
     public List<GameResponse> list(GameCategory category, String search, int limit) {
@@ -45,8 +53,11 @@ public class GameService {
         } else {
             games = repository.findAll();
         }
+        // One aggregation for the whole catalog, not a count per game: the badge is
+        // wanted for every row before the sort can happen, and gameSlug carries no index.
+        Map<String, Long> counts = duelMetaRepository.countByGameSlugForDeployments(contracts.duelMe());
         return games.stream()
-            .map(this::toResponse)
+            .map(game -> toResponse(game, counts.getOrDefault(game.slug(), 0L)))
             .sorted(Comparator.comparingLong(GameResponse::duelCount).reversed())
             .limit(limit)
             .toList();
@@ -58,7 +69,7 @@ public class GameService {
         }
         String slug = toSlug(name);
         return repository.findBySlug(slug)
-            .map(this::toResponse)
+            .map(this::withLiveDuelCount)
             .orElseGet(() -> createGame(slug, name, iconUrl, category));
     }
 
@@ -70,10 +81,11 @@ public class GameService {
         );
         try {
             Game saved = repository.save(game);
-            return toResponse(saved);
+            // Brand new, so nothing can reference it yet — no need to go and count zero.
+            return toResponse(saved, 0);
         } catch (DuplicateKeyException e) {
             return repository.findBySlug(slug)
-                .map(this::toResponse)
+                .map(this::withLiveDuelCount)
                 .orElseThrow(() -> new GameNotFoundException(slug));
         }
     }
@@ -103,11 +115,18 @@ public class GameService {
         }
     }
 
-    private GameResponse toResponse(Game game) {
-        long count = duelMetaRepository.countByGameSlug(game.slug());
+    private GameResponse withLiveDuelCount(Game game) {
+        return toResponse(game, duelMetaRepository.countForDeployments(game.slug(), contracts.duelMe()));
+    }
+
+    /**
+     * The count is passed in rather than fetched here: the listing resolves every game's
+     * in one aggregation, and a method that quietly queried per game would undo that.
+     */
+    private GameResponse toResponse(Game game, long duelCount) {
         return new GameResponse(
             game.slug(), game.name(), game.iconUrl(), game.category(),
-            count, game.createdAt(), game.updatedAt()
+            duelCount, game.createdAt(), game.updatedAt()
         );
     }
 }

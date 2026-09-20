@@ -15,10 +15,13 @@ import java.util.Map;
  * deployedAddresses.test.ts} pins both copies to the artifact, so a redeploy
  * that forgets this file fails the frontend suite.
  *
- * <p>Only {@code DuelMetaBackfillRunner} reads it: every request-time lookup
- * takes the address from the caller instead, because the client knows which
- * deployment it is talking to and the backend must keep serving rows for a
- * deployment that is no longer current.
+ * <p>Read by {@code GameService}, which scopes a game's duel badge to the deployments
+ * named here — that is what makes the badge reset by itself on a redeploy instead of
+ * counting a retired contract's duels forever.
+ *
+ * <p>Every request-time lookup of a single duel takes the address from the caller
+ * instead, because the client knows which deployment it is talking to and the backend
+ * must keep serving rows for a deployment that is no longer current.
  */
 @ConfigurationProperties(prefix = "duelme.contracts")
 public record ContractProperties(Map<Integer, String> duelMe) {

@@ -8,6 +8,13 @@ privy:
   app-id: test-app-id
 
 duelme:
+  # The live deployment the tests treat as current, so TestContracts.CONTRACT counts and
+  # REDEPLOYED_CONTRACT does not — that pairing is what lets a test say "a redeploy resets
+  # the badge". Only 421614 is overridden; 42161 keeps the real address from application.yml
+  # and no test writes against it. Quoted, for the reason application.yml gives.
+  contracts:
+    duel-me:
+      "421614": "0xaaaa111111111111111111111111111111111111"
   social:
     app-base-url: http://localhost:3000
     steam:
