@@ -174,6 +174,7 @@ export function WalletSection() {
               )}
             </Button>
           </div>
+          <p className="text-xs text-slate-400">{t('wallet.sendGasNote')}</p>
         </div>
 
         {/* Export wallet */}

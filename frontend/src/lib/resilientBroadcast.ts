@@ -30,7 +30,7 @@ export interface ResilientBroadcastArgs {
 // Why: Privy embedded wallets implement eth_sendTransaction as sign + broadcast
 // internally, where the broadcast goes through a viem http() transport built
 // from chain.rpcUrls.privyWalletOverride.http[0] — one URL, no fallback. When
-// that single endpoint has any transient issue (Alchemy 429, brief 5xx, network
+// that single endpoint has any transient issue (provider 429, brief 5xx, network
 // blip, ad-blocker, viem's 10s timeout firing on a slow response), the user
 // sees "HTTP request failed" with no retry, even though Privy already signed
 // the transaction successfully on the API side.
@@ -38,7 +38,7 @@ export interface ResilientBroadcastArgs {
 // By signing separately via the wallet's eth_signTransaction (which Privy
 // handles in-API and never depends on the chain RPC) and then broadcasting via
 // publicClient.sendRawTransaction (whose underlying transport is our
-// fallback(Alchemy → Tenderly → drpc → arb1.arbitrum.io) with retryCount: 1
+// fallback(configured provider → Tenderly → drpc → arb1.arbitrum.io) with retryCount: 1
 // per URL), we get N transparent retries across distinct RPC providers instead
 // of one shot at one provider.
 //

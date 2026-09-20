@@ -5,8 +5,8 @@ const FALLBACK = 'https://fallback.example/rpc';
 
 describe('resolveRpcUrl', () => {
   it('returns the env URL when it is a valid absolute https URL', () => {
-    expect(resolveRpcUrl('https://arb-mainnet.g.alchemy.com/v2/key', FALLBACK)).toBe(
-      'https://arb-mainnet.g.alchemy.com/v2/key'
+    expect(resolveRpcUrl('https://rpc.example/v2/key', FALLBACK)).toBe(
+      'https://rpc.example/v2/key'
     );
   });
 
@@ -23,18 +23,18 @@ describe('resolveRpcUrl', () => {
   });
 
   it('falls back when the env var is just an API key — the prod regression', () => {
-    // Reproduces the May 2026 incident: secret value was the Alchemy key with
-    // no protocol/host. The browser's fetch() would resolve it relative to
-    // the current page and POST RPC payloads to our own domain.
+    // Reproduces the May 2026 incident: the secret held the provider's API key with
+    // no protocol/host. The browser's fetch() would resolve it relative to the
+    // current page and POST RPC payloads to our own domain.
     const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    expect(resolveRpcUrl('18JdY2ZafTS0Pv75Zv2-H', FALLBACK)).toBe(FALLBACK);
+    expect(resolveRpcUrl('Zv2HJdY2afTS0Pv75x', FALLBACK)).toBe(FALLBACK);
     expect(consoleWarnSpy).toHaveBeenCalled();
     consoleWarnSpy.mockRestore();
   });
 
   it('falls back when the env var is missing the protocol', () => {
     const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    expect(resolveRpcUrl('arb-mainnet.g.alchemy.com/v2/key', FALLBACK)).toBe(FALLBACK);
+    expect(resolveRpcUrl('rpc.example/v2/key', FALLBACK)).toBe(FALLBACK);
     consoleWarnSpy.mockRestore();
   });
 

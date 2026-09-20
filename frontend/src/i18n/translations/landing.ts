@@ -99,7 +99,7 @@ export const landingTranslations = defineSection({
     'onboarding.fact3': 'The easy start is there to simplify onboarding, not to trap funds inside DuelMe.',
     'onboarding.gasTitle': 'Just USDT — no ETH for gas',
     'onboarding.gasNote':
-      'Wallets you create here (email or Google sign-in) need only USDT — DuelMe covers the network fee for creating, joining, claiming and refunding duels. With an external wallet like MetaMask, keep a little ETH for gas (usually slightly cheaper), or use its "pay gas in another token" option.',
+      'Every wallet here needs only USDT — DuelMe covers the network fee for creating, joining, claiming and refunding duels, whether you signed in with email, Google, or connected MetaMask. ETH is only needed to move funds back out to another wallet.',
     'rep.eyebrow': 'Player trust',
     'rep.howTitle': 'The smart contract protects the money. Reputation helps you judge the person.',
     'rep.howDesc':
@@ -262,7 +262,7 @@ export const landingTranslations = defineSection({
     'onboarding.fact3': 'Простой старт нужен для удобства, а не для того, чтобы запирать деньги внутри DuelMe.',
     'onboarding.gasTitle': 'Только USDT — без ETH на газ',
     'onboarding.gasNote':
-      'Кошелькам, созданным здесь (вход через email или Google), нужен только USDT — сетевую комиссию за создание, вход, выплаты и возвраты по дуэлям DuelMe берёт на себя. Со сторонним кошельком вроде MetaMask держите немного ETH на газ (обычно чуть выгоднее) или используйте его опцию «оплата газа другим токеном».',
+      'Любому кошельку здесь нужен только USDT — сетевую комиссию за создание, вход, выплаты и возвраты по дуэлям DuelMe берёт на себя, независимо от того, вошли вы через email, Google или подключили MetaMask. ETH понадобится только чтобы вывести средства на другой кошелёк.',
     'rep.eyebrow': 'Доверие к игрокам',
     'rep.howTitle': 'Смарт-контракт защищает деньги. Репутация помогает понять человека.',
     'rep.howDesc':

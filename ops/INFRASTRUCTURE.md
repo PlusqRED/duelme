@@ -34,7 +34,7 @@ Comprehensive hardening applied across CI/CD, Docker, reverse proxy, and runtime
 | Header | Value |
 |--------|-------|
 | `Strict-Transport-Security` | `max-age=31536000; includeSubDomains; preload` |
-| `Content-Security-Policy` | Scoped `default-src`, `script-src`, `connect-src`, `frame-src` with explicit allowlist for Privy, Alchemy, Google Fonts |
+| `Content-Security-Policy` | Scoped `default-src`, `script-src`, `connect-src`, `frame-src` with explicit allowlist for Privy, the RPC hosts and Google Fonts |
 | `X-Content-Type-Options` | `nosniff` |
 | `X-Frame-Options` | `DENY` |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` |
