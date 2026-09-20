@@ -578,8 +578,8 @@ Runtime config source of truth: GitHub repository/environment secrets. Deploy wo
   `backend/src/.../config/MongoConfig.java`; `createIndex` is idempotent, so it runs on every boot.
   Name the index the same in both places — a second spelling of one key is not a second index,
   it is an `IndexOptionsConflict` thrown out of a runner, which takes the boot down with it.
-  `MongoIndexTest` proves this for `duelMeta` and `games` by inserting an actual duplicate; the
-  `Profile` and `FaucetClaim` constraints are created by the same mechanism and are **not** yet
+  `MongoIndexTest` proves this for `duelMeta`, `games` and `faucet_claims` by inserting an actual
+  duplicate; the `Profile` constraints are created by the same mechanism and are **not** yet
   covered, so do not read a green suite as "every unique index is enforced".
 - **A duel id identifies a duel only together with the contract it came from.** Ids are handed out
   by `duelCount`, which restarts at zero on every redeploy, so after a same-chain redeploy duel 3
@@ -587,6 +587,12 @@ Runtime config source of truth: GitHub repository/environment secrets. Deploy wo
   matches the wrong duel — it has already bitten stored invite secrets (`lib/invite.ts`) and duel
   metadata (`DuelMeta`), and in both cases the symptom was a wrong answer, never an error. Key on
   the contract address too, and take it from `DUELME_ADDRESSES[chainId]`.
+- **The same rule covers the MockUSDT a redeploy replaces.** `FaucetClaim` was keyed by wallet
+  alone, so after a redeploy every past claimant got `FaucetAlreadyClaimedException` against a
+  token they had drawn nothing from — the dev faucet went dead for the people already testing,
+  and silently, since the wallet got the ordinary "already claimed" answer. `tokenAddress` is now
+  part of that key. Anything keyed on a wallet plus a contract-issued thing needs the contract in
+  the key.
 - `PRIVY_APP_ID` env required for backend (no default in `application.yml`).
 - Frontend npm pinned to `^11.12.1` via `frontend/package.json` `engines` + `frontend/.npmrc` `engine-strict=true`. CI and `frontend/Dockerfile` both pin it with `corepack enable npm && corepack prepare npm@11.12.1 --activate` — `corepack enable` alone does **not** shim npm (npm ships with Node), so npm has to be named explicitly or the `packageManager` field is ignored. A mismatch caused `EUSAGE` / `EBADENGINE` in `npm ci`.
 - `overrides.eslint-plugin-react-hooks: 7.0.1` is a temporary pin — `7.1.x` adds `react-hooks/set-state-in-effect`, which flags existing patterns in `dashboard/page.tsx`, `duel/[id]/page.tsx`, `Header.tsx`, `useCreateDuelFlow.ts`, `useJoinDuelFlow.ts`. Lift only after refactoring those files.

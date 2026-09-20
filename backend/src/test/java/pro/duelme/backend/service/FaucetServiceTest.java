@@ -38,6 +38,12 @@ class FaucetServiceTest {
     private static final String WALLET_A = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     private static final String WALLET_A_MIXED = "0xAAAAaaaaAAAAaaaaAAAAaaaaAAAAaaaaAAAAaaaa";
 
+    /** Lowercased duelme.faucet.mock-usdt-address above — the form claims are keyed under. */
+    private static final String TOKEN = "0xbf345834d808a058e1278b50f3844ad86686f401";
+
+    /** Stands in for the MockUSDT a previous testnet deploy shipped. */
+    private static final String RETIRED_TOKEN = "0xcccccccccccccccccccccccccccccccccccccccc";
+
     @Autowired
     private FaucetService faucetService;
 
@@ -51,7 +57,7 @@ class FaucetServiceTest {
 
     @Test
     void rejectsRepeatClaimForSameWallet() {
-        repository.save(new FaucetClaim(null, WALLET_A, "0xeth", "0xusdt", Instant.now()));
+        repository.save(new FaucetClaim(null, WALLET_A, TOKEN, "0xeth", "0xusdt", Instant.now()));
 
         assertThatThrownBy(() -> faucetService.claim(WALLET_A))
             .isInstanceOf(FaucetAlreadyClaimedException.class);
@@ -59,7 +65,7 @@ class FaucetServiceTest {
 
     @Test
     void normalisesWalletAddressBeforeLookup() {
-        repository.save(new FaucetClaim(null, WALLET_A, "0xeth", "0xusdt", Instant.now()));
+        repository.save(new FaucetClaim(null, WALLET_A, TOKEN, "0xeth", "0xusdt", Instant.now()));
 
         assertThatThrownBy(() -> faucetService.claim(WALLET_A_MIXED))
             .isInstanceOf(FaucetAlreadyClaimedException.class);
@@ -73,18 +79,44 @@ class FaucetServiceTest {
         // ExecutionException because the test RPC endpoint is unreachable.
         // @CreatedDate stamps the insert, so read the actual value back
         // before calling the service and assert it survives the resume.
-        repository.save(new FaucetClaim(null, WALLET_A, "0xpriorEth", null, null));
-        Instant originalCreatedAt = repository.findByWalletAddress(WALLET_A).orElseThrow().createdAt();
+        repository.save(new FaucetClaim(null, WALLET_A, TOKEN, "0xpriorEth", null, null));
+        Instant originalCreatedAt = repository.findByWalletAddressAndTokenAddress(WALLET_A, TOKEN).orElseThrow().createdAt();
 
         assertThatThrownBy(() -> faucetService.claim(WALLET_A))
             .isInstanceOf(FaucetExecutionException.class);
 
         // ETH hash and createdAt must survive — a retry needs to skip the
         // ETH send (no double-drain) and keep the original audit timestamp.
-        var persisted = repository.findByWalletAddress(WALLET_A).orElseThrow();
+        var persisted = repository.findByWalletAddressAndTokenAddress(WALLET_A, TOKEN).orElseThrow();
         assertThat(persisted.ethTxHash()).isEqualTo("0xpriorEth");
         assertThat(persisted.usdtTxHash()).isNull();
         assertThat(persisted.createdAt()).isEqualTo(originalCreatedAt);
+    }
+
+    @Test
+    void letsAWalletClaimAgainMarkedAgainstTheTokenARedeployRetired() {
+        // The claim that would have blocked this before tokenAddress joined the key. It must
+        // not: that MockUSDT is gone, and the wallet has drawn nothing from the live one.
+        repository.save(new FaucetClaim(null, WALLET_A, RETIRED_TOKEN, "0xeth", "0xusdt", Instant.now()));
+
+        // Not AlreadyClaimed — the call carries through to the RPC layer, which fails only
+        // because the test endpoint is unreachable. Same tell as the resume test above.
+        assertThatThrownBy(() -> faucetService.claim(WALLET_A))
+            .isInstanceOf(FaucetExecutionException.class);
+
+        // Nothing went out before the RPC failed, so claim() released the lock it took for
+        // the live token. The retired row is untouched either way — it is not in the way.
+        assertThat(repository.findByWalletAddressAndTokenAddress(WALLET_A, RETIRED_TOKEN)).isPresent();
+        assertThat(repository.findByWalletAddressAndTokenAddress(WALLET_A, TOKEN)).isEmpty();
+    }
+
+    @Test
+    void stillRejectsARepeatClaimAgainstTheLiveToken() {
+        repository.save(new FaucetClaim(null, WALLET_A, RETIRED_TOKEN, "0xeth", "0xusdt", Instant.now()));
+        repository.save(new FaucetClaim(null, WALLET_A, TOKEN, "0xeth2", "0xusdt2", Instant.now()));
+
+        assertThatThrownBy(() -> faucetService.claim(WALLET_A))
+            .isInstanceOf(FaucetAlreadyClaimedException.class);
     }
 
     @Test

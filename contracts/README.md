@@ -212,13 +212,18 @@ After deploy:
      in the deploy log — that is how DuelMe was left unverified on 2026-09-20. Arbiscan
      auto-matches bytecode it has seen before, so an unchanged MockUSDT and forwarder come back
      instantly and a changed DuelMe is the one that waits in the queue.
-   - **clears the dev state a redeploy invalidates** — `faucet_claims`, `duelMeta` and
-     `social_oauth_states`. `faucet_claims` is the one that matters: the claim is keyed by
-     wallet address with no token address, so without this every past claimant gets
-     `FaucetAlreadyClaimedException` and can never draw the new MockUSDT. `duelMeta` rows stay
-     correctly orphaned — that is what `contractAddress` is in the key for — but
-     `GameService` counts duels per slug without filtering on it, so stale rows inflate every
-     game's `duelCount`. `profiles` and `games` are kept; `--all` clears them too.
+   - **clears the dev state a redeploy invalidates** — `duelMeta` and `social_oauth_states`.
+     `duelMeta` rows stay correctly orphaned, which is what `contractAddress` is in the key
+     for, but `GameService` counts duels per slug without filtering on it, so stale rows
+     inflate every game's `duelCount`. `profiles` and `games` are kept; `--all` clears them
+     too.
+
+   `faucet_claims` is not on that list. It used to have to be — the claim was keyed by wallet
+   alone, so after a MockUSDT redeploy every past claimant got `FaucetAlreadyClaimedException`
+   and could never draw the new token, which killed the dev faucet for exactly the people
+   already testing. `tokenAddress` is now part of that key, so a redeploy admits a fresh claim
+   by itself. If a wallet still cannot claim after one, that is a regression in the key, not
+   something to wipe.
 
    The script refuses to run against anything but the dev stack, and uses `deleteMany` rather
    than dropping, so the collections keep their indexes and the backend needs no restart.

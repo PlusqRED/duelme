@@ -31,9 +31,14 @@ address too — that is what most of the follow-up below is for.
    ```bash
    forge script script/Deploy.s.sol \
      --rpc-url $ARBITRUM_SEPOLIA_RPC_URL --broadcast --verify \
-     --etherscan-api-key $ARBISCAN_API_KEY
+     --retries 20 --delay 15
    ```
    (mainnet: `script/DeployMainnet.s.sol` with `$ARBITRUM_RPC_URL`.)
+   The verifier key comes from the `[etherscan]` block in `foundry.toml`, so it needs no flag.
+   **Keep the retries.** The default is 5 x 5s, Arbiscan's queue is routinely longer, and forge
+   then exits non-zero on a deploy that already succeeded — which is how the 2026-09-20 deploy
+   left DuelMe live but unverified. A non-zero exit here does **not** mean the deploy failed:
+   read the broadcast artifact before re-running anything.
 6. Read the new addresses out of
    `contracts/broadcast/<script>/<chainId>/run-latest.json` — the tracked artifact is the source
    of truth, not the console output.
@@ -45,9 +50,20 @@ address too — that is what most of the follow-up below is for.
    `backend/src/main/resources/application.yml`, or the faucet keeps handing testers the previous
    MockUSDT. It is a literal with no env override on purpose. **Keep the quotes** — a bare `0x…`
    parses as a hex integer and `FaucetService` then refuses to start.
+   A claim is keyed by wallet **and** token, so this redeploy re-opens the faucet for every
+   tester who already claimed — the ETH leg included. The signer therefore drains at roughly
+   testers x redeploys x `eth-amount-eth`, not testers once. Check its balance before a round of
+   testing: when it runs dry every claim returns 502 with nothing pointing at the balance.
 9. Sync the README contract block: `python3 scripts/sync_readme_contract_addresses.py` from the
    repo root (the pre-commit hook runs it too). Never hand-edit that block.
 10. Verify the mirrors: `cd frontend && npm test` — `deployedAddresses.test.ts` and
     `contractAddresses.test.ts` fail the build on exactly the drift this step introduces.
-11. Report the deployed addresses, the explorer links, and anything from steps 8–9 the user still
+11. Sepolia only: `scripts/post_testnet_deploy.sh` from the repo root, with the contracts env
+    loaded. It reads every address and DuelMe's constructor args back out of the broadcast
+    artifact, confirms **all three** contracts verified — re-verifying any that did not, since
+    `--verify` reports per contract and one failure is easy to miss — and clears the dev state a
+    redeploy invalidates (`duelMeta`, whose stale rows inflate every game's `duelCount`, and
+    `social_oauth_states`). `--dry-run` first if you want to see it before it acts. It refuses to
+    run against anything but the dev stack, and keeps `profiles`, `games` and `faucet_claims`.
+12. Report the deployed addresses, the explorer links, and anything from steps 8–9 the user still
     has to do outside the repo.

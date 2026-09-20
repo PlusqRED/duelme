@@ -353,7 +353,8 @@ export function Header() {
         </div>
       </div>
 
-      {/* Testnet faucet — non-prod hosts + testnet chain only. One claim per wallet. */}
+      {/* Testnet faucet — non-prod hosts + testnet chain only. One claim per wallet per
+          token: a MockUSDT redeploy re-opens it. */}
       {canClaimFaucet && (
         <button
           type="button"

@@ -32,7 +32,10 @@ import java.util.Optional;
 
 /**
  * Dev-only testnet faucet. Sends a small ETH drop to cover gas and mints
- * MockUSDT in one atomic HTTP request. One claim per wallet, ever.
+ * MockUSDT in one atomic HTTP request. One claim per wallet per token: a testnet
+ * redeploy ships a fresh MockUSDT and re-opens the claim, which is deliberate — see
+ * {@link pro.duelme.backend.model.FaucetClaim}. It re-opens the ETH leg too, so the
+ * signer drains at testers x redeploys rather than testers once.
  *
  * <p>The bean is ALWAYS wired. On-off is gated by the runtime
  * {@code duelme.faucet.enabled} flag checked inside {@link #claim}. We do not
@@ -115,9 +118,14 @@ public class FaucetService {
             throw new FaucetExecutionException("Invalid wallet address", null);
         }
         String normalized = walletAddress.toLowerCase();
+        // The live MockUSDT is part of the key: a redeploy ships a new one, and a claim
+        // against the retired token must not stand in the way of claiming the new one.
+        // Validated in the constructor, which every enabled instance has already passed.
+        String token = props.mockUsdtAddress().toLowerCase();
 
         FaucetClaim lock;
-        Optional<FaucetClaim> existing = repository.findByWalletAddress(normalized);
+        Optional<FaucetClaim> existing =
+            repository.findByWalletAddressAndTokenAddress(normalized, token);
         if (existing.isPresent()) {
             lock = existing.get();
             if (lock.usdtTxHash() != null) {
@@ -128,11 +136,11 @@ public class FaucetService {
             // wallet when the previous USDT mint failed mid-flow.
         } else {
             // Insert-first lock. If the save races another claim in a future
-            // multi-node setup, the Mongo unique index on `walletAddress`
-            // (created in MongoConfig#ensureFaucetClaimIndexes) raises
-            // DuplicateKey here and we convert it to a 409.
+            // multi-node setup, the Mongo unique index on `walletAddress` +
+            // `tokenAddress` (created in MongoConfig#ensureFaucetClaimIndexes)
+            // raises DuplicateKey here and we convert it to a 409.
             try {
-                lock = repository.save(new FaucetClaim(null, normalized, null, null, null));
+                lock = repository.save(new FaucetClaim(null, normalized, token, null, null, null));
             } catch (DuplicateKeyException ex) {
                 throw new FaucetAlreadyClaimedException(normalized);
             }
@@ -163,7 +171,7 @@ public class FaucetService {
             );
 
             FaucetClaim finished = new FaucetClaim(
-                lock.id(), normalized, ethTxHash, usdtTxHash, lock.createdAt());
+                lock.id(), normalized, token, ethTxHash, usdtTxHash, lock.createdAt());
             return toResponse(repository.save(finished));
         } catch (Exception ex) {
             if (ethTxHash == null) {
@@ -179,7 +187,7 @@ public class FaucetService {
                 // the no-op write.
                 if (lock.ethTxHash() == null) {
                     repository.save(new FaucetClaim(
-                        lock.id(), normalized, ethTxHash, null, lock.createdAt()));
+                        lock.id(), normalized, token, ethTxHash, null, lock.createdAt()));
                 }
                 log.error("Faucet USDT mint failed after ETH tx {} for {} (lock {} kept)",
                     ethTxHash, normalized, lock.id(), ex);

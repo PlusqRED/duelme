@@ -13,7 +13,8 @@
 #      2026-09-20 — long past forge's default retries, which exits non-zero on a deploy
 #      that already succeeded and leaves a live but unverified contract.
 #
-#   2. Testnet state that a redeploy invalidates. Not every collection: see reset_mongo().
+#   2. Testnet state that a redeploy invalidates. Not every collection, and deliberately not
+#      faucet_claims any more — see reset_mongo().
 #
 # Usage: scripts/post_testnet_deploy.sh [--dry-run] [--skip-verify] [--skip-mongo] [--all]
 set -euo pipefail
@@ -122,19 +123,22 @@ reset_mongo() {
 
   # What a redeploy actually invalidates:
   #
-  #   faucet_claims        must go. The claim is keyed by walletAddress alone, with no token
-  #                        address, so every past claimant hits FaucetAlreadyClaimedException
-  #                        and can never draw the new MockUSDT. This one silently breaks the
-  #                        dev faucet for existing testers.
   #   duelMeta             rows stay correctly orphaned — the key carries contractAddress for
   #                        exactly this reason — but GameService counts duels per slug without
   #                        filtering on it, so leaving them inflates every game's duelCount.
   #   social_oauth_states  short-lived handshake state; a redeploy is as good a moment as any.
   #
-  # Kept: profiles holds nicknames, social links and DuelRep, none of it contract-bound, and
-  # games is a catalog whose counts are derived from duelMeta and so correct themselves once
-  # duelMeta is empty. --all clears those two as well.
-  local collections=(faucet_claims duelMeta social_oauth_states)
+  # faucet_claims is deliberately NOT here any more. It used to be the one collection that had
+  # to go: the claim was keyed by wallet alone, so after a MockUSDT redeploy every past claimant
+  # hit FaucetAlreadyClaimedException and could never draw the new token. tokenAddress is now
+  # part of that key, so a redeploy admits a fresh claim on its own and the rows are worth
+  # keeping as the audit trail they are. Clearing them by hand would only hide a regression in
+  # that key — if a wallet cannot claim after a redeploy, fix the key, do not wipe the evidence.
+  #
+  # Kept for the same reason: profiles holds nicknames, social links and DuelRep, none of it
+  # contract-bound, and games is a catalog whose counts are derived from duelMeta and so correct
+  # themselves once duelMeta is empty. --all clears profiles and games as well.
+  local collections=(duelMeta social_oauth_states)
   [ "$WIPE_ALL" = 1 ] && collections+=(profiles games)
 
   local action='deleteMany'

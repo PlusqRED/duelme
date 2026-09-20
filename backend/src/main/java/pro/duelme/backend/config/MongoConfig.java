@@ -21,15 +21,27 @@ import java.time.Duration;
 public class MongoConfig {
 
     /**
-     * Spring Data MongoDB does not auto-create indexes declared via
-     * {@code @Indexed} in Spring Boot 3+, so the unique constraint on
-     * {@link FaucetClaim#walletAddress} would be unenforced without this.
-     * We create it explicitly at startup; {@code createIndex} is idempotent.
+     * Spring Data MongoDB does not auto-create indexes declared on the model in
+     * Spring Boot 3+, so the unique constraint that enforces "one claim per wallet
+     * per token" would be unenforced without this. We create it explicitly at
+     * startup; {@code createIndex} is idempotent.
+     *
+     * <p>Named from the same constant as the annotation, and ordered after
+     * {@link FaucetClaimIndexMigrationRunner}: the single-field predecessor has to be
+     * gone before this goes in, or it keeps rejecting the second claim that a MockUSDT
+     * redeploy is supposed to allow. Declared rather than left to the
+     * {@code LOWEST_PRECEDENCE} an unordered runner gets, so that adding an order here
+     * later cannot quietly invert it.
      */
+    @Order(FaucetClaimIndexMigrationRunner.ORDER + 1)
     @Bean
     public ApplicationRunner ensureFaucetClaimIndexes(MongoTemplate template) {
         return args -> template.indexOps(FaucetClaim.class)
-            .createIndex(new Index().on("walletAddress", Sort.Direction.ASC).unique());
+            .createIndex(new Index()
+                .on("walletAddress", Sort.Direction.ASC)
+                .on("tokenAddress", Sort.Direction.ASC)
+                .unique()
+                .named(FaucetClaim.UNIQUE_INDEX));
     }
 
     /**
