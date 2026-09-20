@@ -37,6 +37,6 @@ public record DuelMeta(
     /** Also the name {@code MongoConfig} creates it under — two spellings would mean two indexes. */
     public static final String UNIQUE_INDEX = "contractAddress_duelId_chainId";
 
-    /** The pre-{@code contractAddress} key, dropped by {@code DuelMetaBackfillRunner}. */
+    /** The pre-{@code contractAddress} key, dropped by {@code DuelMetaIndexMigrationRunner}. */
     public static final String LEGACY_UNIQUE_INDEX = "duelId_chainId";
 }

@@ -7,7 +7,7 @@ import pro.duelme.backend.model.DuelMeta;
 import java.util.List;
 import java.util.Optional;
 
-public interface DuelMetaRepository extends MongoRepository<DuelMeta, String> {
+public interface DuelMetaRepository extends MongoRepository<DuelMeta, String>, DuelMetaRepositoryCustom {
 
     Optional<DuelMeta> findByChainIdAndContractAddressAndDuelId(
         int chainId, String contractAddress, long duelId);
@@ -27,11 +27,10 @@ public interface DuelMetaRepository extends MongoRepository<DuelMeta, String> {
     List<DuelMeta> findByGameSlugAndChainIdAndContractAddressOrderByCreatedAtDesc(
         String gameSlug, int chainId, String contractAddress, Limit limit);
 
-    /**
-     * Deliberately not scoped to a deployment: this is the game catalog's
-     * popularity badge, and a duel played on a previous deployment still
-     * happened. The listing above is the one that must be scoped, because its
-     * ids get hydrated against one contract.
-     */
-    long countByGameSlug(String gameSlug);
+    // The catalog's popularity badge used to count every row for a slug, on the
+    // reasoning that a duel played on a previous deployment still happened. It reads
+    // as a bug from the outside: a redeploy leaves a fresh contract with no duels at
+    // all, and the badges keep counting the dead one's. The badge now means "duels on
+    // the deployment you are looking at", which also makes it reset by itself on every
+    // redeploy — see DuelMetaRepositoryCustom, which the interface above extends.
 }

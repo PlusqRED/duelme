@@ -251,15 +251,45 @@ class GameServiceTest {
     }
 
     @Test
-    void duelCountSpansChainsAndDeployments() {
-        // Catalog popularity, not live inventory: a duel played on a previous
-        // deployment still happened, so it keeps counting. The duel *listing* is
-        // the one scoped to a deployment -- see DuelMetaService#getByGameSlug.
+    void duelCountIgnoresEveryDeploymentButTheLiveOne() {
+        // The badge used to span deployments, on the reasoning that a duel played on a
+        // previous contract still happened. From the outside that reads as a bug: a fresh
+        // contract with no duels showed badges counting the retired one's.
         gameRepository.save(new Game(null, "cs2", "Counter-Strike 2", null, GameCategory.FPS, null, null));
         duelMetaRepository.save(new DuelMeta(null, CONTRACT, 1, CHAIN_ID, "cs2", "0xaaa", null));
         duelMetaRepository.save(new DuelMeta(null, REDEPLOYED_CONTRACT, 1, CHAIN_ID, "cs2", "0xbbb", null));
         duelMetaRepository.save(new DuelMeta(null, CONTRACT, 1, 42161, "cs2", "0xccc", null));
 
-        assertThat(gameService.getBySlug("cs2").duelCount()).isEqualTo(3);
+        // Only the first: the second is a retired contract, the third is the right contract
+        // on a chain where it is not what is deployed.
+        assertThat(gameService.getBySlug("cs2").duelCount()).isEqualTo(1);
+    }
+
+    @Test
+    void aRedeployLeavesTheGameStandingAndTheBadgeAtZero() {
+        // The point of scoping the count: the catalog is durable, the badge is not. Nothing
+        // is deleted for this to happen -- the rows simply stop matching a live deployment.
+        gameRepository.save(new Game(null, "cs2", "Counter-Strike 2", null, GameCategory.FPS, null, null));
+        duelMetaRepository.save(new DuelMeta(null, REDEPLOYED_CONTRACT, 1, CHAIN_ID, "cs2", "0xaaa", null));
+        duelMetaRepository.save(new DuelMeta(null, REDEPLOYED_CONTRACT, 2, CHAIN_ID, "cs2", "0xbbb", null));
+
+        List<GameResponse> listed = gameService.list(null, null, 50);
+
+        assertThat(listed).singleElement().satisfies(game -> {
+            assertThat(game.slug()).isEqualTo("cs2");
+            assertThat(game.duelCount()).isZero();
+        });
+        assertThat(gameRepository.findBySlug("cs2")).isPresent();
+        assertThat(duelMetaRepository.findAll()).hasSize(2);
+    }
+
+    @Test
+    void aRowWithNoDeploymentAtAllCountsForNothing() {
+        // What the retired backfill used to guess at. Unknown provenance means it belongs
+        // to no deployment, so it belongs in no badge.
+        gameRepository.save(new Game(null, "cs2", "Counter-Strike 2", null, GameCategory.FPS, null, null));
+        duelMetaRepository.save(new DuelMeta(null, null, 1, CHAIN_ID, "cs2", "0xaaa", null));
+
+        assertThat(gameService.getBySlug("cs2").duelCount()).isZero();
     }
 }

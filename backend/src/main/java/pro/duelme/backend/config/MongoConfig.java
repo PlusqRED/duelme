@@ -89,9 +89,9 @@ public class MongoConfig {
      * 500 on that duel's page.
      *
      * <p>Named to match the annotation, for the reason {@link DuelMeta#UNIQUE_INDEX}
-     * gives. Ordered after {@link DuelMetaBackfillRunner#ORDER} — see there for why.
+     * gives. Ordered after {@link DuelMetaIndexMigrationRunner#ORDER} — see there for why.
      */
-    @Order(DuelMetaBackfillRunner.ORDER + 1)
+    @Order(DuelMetaIndexMigrationRunner.ORDER + 1)
     @Bean
     public ApplicationRunner ensureDuelMetaIndexes(MongoTemplate template) {
         return args -> template.indexOps(DuelMeta.class)

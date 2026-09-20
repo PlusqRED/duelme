@@ -41,7 +41,14 @@ export const profileGamesTranslations = defineSection({
     'games.noGames': 'No games yet. Create a duel to add the first one!',
     'games.noMatches': 'No games found',
     'games.allCategories': 'All',
-    'games.duelsCount': 'duels',
+    // Keyed by Intl.PluralRules category, not hand-rolled: English selects between two
+    // forms and Russian four, and "1 duels" was the old single-string version showing
+    // through. `few` and `many` are carried here only because the translation type is
+    // derived from this object and Russian needs them — English never selects either.
+    'games.duelsCount.one': 'duel',
+    'games.duelsCount.few': 'duels',
+    'games.duelsCount.many': 'duels',
+    'games.duelsCount.other': 'duels',
     'game.notFound': 'Game not found',
     'game.totalVolume': 'Total Volume',
     'game.duelsPlayed': 'Duels Played',
@@ -104,7 +111,10 @@ export const profileGamesTranslations = defineSection({
     'games.noGames': 'Игр пока нет. Создайте дуэль, чтобы добавить первую!',
     'games.noMatches': 'Игры не найдены',
     'games.allCategories': 'Все',
-    'games.duelsCount': 'дуэлей',
+    'games.duelsCount.one': 'дуэль',
+    'games.duelsCount.few': 'дуэли',
+    'games.duelsCount.many': 'дуэлей',
+    'games.duelsCount.other': 'дуэли',
     'game.notFound': 'Игра не найдена',
     'game.totalVolume': 'Общий объём',
     'game.duelsPlayed': 'Сыграно дуэлей',

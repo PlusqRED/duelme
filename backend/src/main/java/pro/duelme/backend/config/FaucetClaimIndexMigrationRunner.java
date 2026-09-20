@@ -15,7 +15,7 @@ import pro.duelme.backend.model.FaucetClaim;
  *
  * <p>It deliberately does <strong>not</strong> stamp the rows that predate
  * {@code tokenAddress}, and that is the whole design decision here.
- * {@link DuelMetaBackfillRunner} can infer its missing field, because the deployment
+ * {@link DuelMetaIndexMigrationRunner} can infer its missing field, because the deployment
  * live on a row's chain is the one it was written under. The same inference here is a
  * guess: a redeploy edits {@code duelme.faucet.mock-usdt-address} and the backend
  * redeploys in the same release, so the first boot carrying this runner can easily be
