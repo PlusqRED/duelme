@@ -19,7 +19,7 @@ export function GameSearchResultRow({
   isSelected,
   onSelect,
 }: GameSearchResultRowProps) {
-  const { t } = useTranslation();
+  const { t, plural } = useTranslation();
   const highlights = buildHighlightSet(matchIndices);
   const characters = Array.from(game.name);
 
@@ -52,7 +52,7 @@ export function GameSearchResultRow({
           <span>{t(`category.${game.category}` as TranslationKey)}</span>
           <span>·</span>
           <span>
-            {game.duelCount} {t('games.duelsCount')}
+            {game.duelCount} {plural('games.duelsCount', game.duelCount)}
           </span>
         </div>
       </div>

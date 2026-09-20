@@ -11,7 +11,7 @@ interface GameCardProps {
 }
 
 export function GameCard({ game }: GameCardProps) {
-  const { t } = useTranslation();
+  const { t, plural } = useTranslation();
 
   return (
     <Link
@@ -30,7 +30,7 @@ export function GameCard({ game }: GameCardProps) {
         </div>
       </div>
       <div className="mt-auto flex items-center gap-4 text-xs text-slate-500">
-        <span>{game.duelCount} {t('games.duelsCount')}</span>
+        <span>{game.duelCount} {plural('games.duelsCount', game.duelCount)}</span>
       </div>
     </Link>
   );
