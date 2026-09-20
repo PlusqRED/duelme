@@ -17,9 +17,9 @@ _Auto-generated from `contracts/broadcast/DeployMainnet.s.sol/42161/run-latest.j
 | Network | Contract | Address |
 |---|---|---|
 | Arbitrum One | `DuelMe` | `0xbd2266ab4b62e34fd5282608abeeed425f6d7f22` |
-| Arbitrum Sepolia | `ERC2771Forwarder` | `0x6bd063648f3b09fd111789fd0194dc72ee44573e` |
-| Arbitrum Sepolia | `MockUSDT` | `0x9e317e8a4b943e31452902d0106f836369f8bb6f` |
-| Arbitrum Sepolia | `DuelMe` | `0x990ad70c168b184a84d6d9491303fa344154e317` |
+| Arbitrum Sepolia | `ERC2771Forwarder` | `0xbd9c168fd94be86771b7a3fcafe3e21526b0efaa` |
+| Arbitrum Sepolia | `MockUSDT` | `0x44d213d601c19ec98bf61a1bca3935d6da07f05d` |
+| Arbitrum Sepolia | `DuelMe` | `0x588a54fa8c00c8ac003e41bd8ee26fbc8994105f` |
 
 > Dev note: run `git config core.hooksPath .githooks` once in your clone to auto-refresh this block on every commit.
 
