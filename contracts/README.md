@@ -175,8 +175,13 @@ forge script script/Deploy.s.sol \
   --rpc-url $ARBITRUM_SEPOLIA_RPC_URL \
   --broadcast \
   --verify \
-  --etherscan-api-key $ARBISCAN_API_KEY
+  --retries 20 --delay 15
 ```
+
+`--retries 20 --delay 15` is not optional padding. Arbiscan parks a submission in a queue that
+regularly outlives forge's default of 5 tries, and forge then exits non-zero on a deploy that
+already went through — leaving a live but unverified contract. The key comes from the
+`[etherscan]` block in `foundry.toml`, so it no longer needs a flag.
 
 Deploys ERC2771Forwarder + MockUSDT + DuelMe and mints 1000 test USDT to the deployer.
 
@@ -191,3 +196,16 @@ After deploy:
    environment override, and `deployedAddresses.test.ts` pins it to the broadcast artifact —
    keep the quotes, or YAML reads the address as a hex number and the backend refuses to start,
 3. sync the root `README.md` contract block with `python3 ../scripts/sync_readme_contract_addresses.py` (or use the configured git hook).
+4. confirm **all three** contracts came back verified — `--verify` reports per contract and a
+   single failure is easy to miss in the deploy log:
+
+   ```bash
+   API=https://api.etherscan.io/v2/api
+   for a in <forwarder> <usdt> <duelMe>; do
+     curl -s "$API?chainid=421614&module=contract&action=getsourcecode&address=$a&apikey=$ARBISCAN_API_KEY" \
+       | python3 -c "import json,sys; print(json.load(sys.stdin)['result'][0].get('ContractName') or 'NOT VERIFIED')"
+   done
+   ```
+
+   Anything still unverified is fixed in place with `forge verify-contract` — see
+   `script/Deploy.s.sol` for the constructor-args incantation.

@@ -9,7 +9,20 @@ import "./ForwarderConfig.sol";
 import "./TokenFeeProbe.sol";
 
 /// @notice Deploys ERC2771Forwarder + MockUSDT + DuelMe to testnet
-/// Usage: forge script script/Deploy.s.sol --rpc-url $ARBITRUM_SEPOLIA_RPC_URL --broadcast --verify
+/// Usage: forge script script/Deploy.s.sol --rpc-url $ARBITRUM_SEPOLIA_RPC_URL --broadcast \
+///        --verify --retries 20 --delay 15
+///
+/// The retry flags matter: Arbiscan queues submissions for longer than forge's default 5 tries,
+/// and forge then gives up on a contract that is already deployed — it exits non-zero on a deploy
+/// that succeeded, leaving a live but unverified contract. That is exactly how DuelMe was left
+/// unverified by the 2026-09-20 testnet deploy while the other two went through. Re-verify in
+/// place with the addresses from broadcast/Deploy.s.sol/421614/run-latest.json:
+///
+///   forge verify-contract --chain-id 421614 \
+///     --compiler-version v0.8.34+commit.80d5c536 --num-of-optimizations 200 \
+///     --constructor-args $(cast abi-encode "constructor(address,uint96,address)" \
+///         <mockUsdt> 300000 <forwarder>) \
+///     --retries 20 --delay 15 <duelMe> src/DuelMe.sol:DuelMe
 contract DeployAll is Script {
     uint96 private constant MIN_WAGER = 300_000; // 0.3 USDT (6 decimals)
 

@@ -21,7 +21,9 @@ import "./TokenFeeProbe.sol";
 ///   forge script script/DeployMainnet.s.sol \
 ///     --rpc-url $ARBITRUM_RPC_URL \
 ///     --broadcast --verify \
-///     --etherscan-api-key $ARBISCAN_API_KEY
+///     --retries 20 --delay 15
+///   The key comes from the [etherscan] block in foundry.toml. Keep the retries — the default of
+///   5 is shorter than Arbiscan's queue, and a dropped verification is silent.
 contract DeployMainnet is Script {
     uint256 private constant ARBITRUM_ONE_CHAIN_ID = 42161;
     uint96 private constant MIN_WAGER = 300_000; // 0.3 USDT (6 decimals)

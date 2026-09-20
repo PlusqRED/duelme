@@ -22,3 +22,10 @@ remappings = [
 runs = 256
 depth = 256
 fail_on_revert = true
+
+# Resolves the verifier key from the environment, so `--verify` works off `.env` alone and a
+# forgotten `--etherscan-api-key` cannot turn a deploy into an unverified contract. One Arbiscan
+# key covers both chains; `chain` is spelled out because the V2 API routes on the id, not the name.
+[etherscan]
+arbitrum-sepolia = { key = "${ARBISCAN_API_KEY}", chain = 421614 }
+arbitrum = { key = "${ARBISCAN_API_KEY}", chain = 42161 }
