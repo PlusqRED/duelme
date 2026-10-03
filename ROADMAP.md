@@ -15,9 +15,10 @@ actually shipped since is below.
 | 5 — Social + bridge + languages | **Partly.** Steam, Telegram and Instagram links shipped; EN/RU shipped. No bridge/swap widget |
 | 6 — NFT badges + mainnet | **Partly.** Deployed to Arbitrum One. No `DuelMeBadges.sol` |
 
-Three things arrived that this plan did not anticipate: gasless play (ERC-2771 relayer plus
-EIP-2612 permits, so a player needs no ETH), open and address-bound duels beside private invite
-links, and a TON/Telegram sibling app under `ton/`.
+Two things arrived that this plan did not anticipate: gasless play (ERC-2771 relayer plus
+EIP-2612 permits, so a player needs no ETH), and open and address-bound duels beside private
+invite links. A TON/Telegram sibling app was also prototyped under `ton/` and removed in
+October 2026.
 
 ## Context
 

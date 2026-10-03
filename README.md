@@ -73,7 +73,6 @@ on-chain parameter, not a constant.
 | [`frontend/`](frontend/) | Next.js web app — profiles, duels, dashboard | [README](frontend/README.md) |
 | [`backend/`](backend/) | Java 25 + Spring Boot 4 API — profiles, games, duel metadata | [README](backend/README.md) |
 | [`ops/`](ops/) | Docker Compose stacks and Caddy configs | [INFRASTRUCTURE](ops/INFRASTRUCTURE.md) |
-| [`ton/`](ton/) | TON mini-app spike, separate from the EVM app | [README](ton/README.md) |
 
 ## Quick start
 
