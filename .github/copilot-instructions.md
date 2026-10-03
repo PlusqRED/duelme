@@ -23,7 +23,7 @@ never contradict CLAUDE.md; if it does, CLAUDE.md is right and this file is the 
 ## Monorepo shape
 
 - `contracts/` Foundry · `frontend/` Next.js App Router · `backend/` Java 25 + Spring Boot 4 ·
-  `ops/` Docker Compose + Caddy · `ton/` a separate TON mini-app.
+  `ops/` Docker Compose + Caddy.
 - `contracts/src/DuelMe.sol` is the escrow contract for 1v1 USDT duels: lifecycle, on-chain
   reputation counters, pull-based payouts, an owner pause, a separate duel-creation pause, and a
   timelocked emergency withdrawal. It trusts one immutable ERC-2771 forwarder, so duel actions can

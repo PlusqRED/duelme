@@ -9,7 +9,6 @@ contracts/   — Solidity smart contracts (Foundry)
 frontend/    — Next.js web app (App Router)
 backend/     — Java 25 + Spring Boot 4 API (Gradle)
 ops/         — Docker Compose, Caddy config
-ton/         — separate TON / Telegram mini-app; own stack, not covered by this file
 ```
 
 ## Commands
