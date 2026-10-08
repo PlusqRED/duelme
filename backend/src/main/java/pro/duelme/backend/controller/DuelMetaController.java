@@ -50,7 +50,8 @@ public class DuelMetaController {
     @Operation(summary = "Attach game to a duel", security = @SecurityRequirement(name = "bearer"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Game attached to duel"),
-            @ApiResponse(responseCode = "400", description = "Invalid request body or contract address"),
+            @ApiResponse(responseCode = "400",
+                description = "Invalid request body, or the contract is not the live DuelMe on chainId"),
             @ApiResponse(responseCode = "401", description = "Missing or invalid authentication token"),
             @ApiResponse(responseCode = "403", description = "Caller is not a participant in this duel")
     })
