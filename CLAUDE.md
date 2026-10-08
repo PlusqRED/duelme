@@ -283,7 +283,6 @@ address, no relayer key — is the case the self-paid path still covers.
 | `backend/src/.../model/DuelMeta.java` | Duel → game metadata document. Keyed `{contractAddress, duelId, chainId}` — see the duel-id bullet under Common Pitfalls |
 | `backend/src/.../service/DuelMetaService.java` | Owns the creator check and normalises both addresses; every lookup is scoped to one deployment |
 | `backend/src/.../config/MongoConfig.java` | **Creates every index explicitly.** Spring Boot does not auto-create `@Indexed` / `@CompoundIndex` — see Common Pitfalls |
-| `backend/src/.../config/DuelMetaBackfillRunner.java` | Stamps pre-`contractAddress` rows with their chain's live deployment, then drops the old `duelId_chainId` index. Runs before `MongoConfig` creates the new one |
 | `backend/src/.../config/ContractProperties.java` | `duelme.contracts.duel-me` — the live DuelMe per chain, the backend's mirror of `constants.ts` |
 | `backend/src/.../validation/EvmAddress.java` | The one address regex, shared by the `@Pattern` annotations and the runtime checks |
 | `backend/Dockerfile` | Backend container (multi-stage, GraalVM native) |
