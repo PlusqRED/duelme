@@ -7,7 +7,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,6 +25,7 @@ import pro.duelme.backend.service.GameService;
 import java.util.List;
 
 @Tag(name = "Games", description = "Game catalog")
+@Validated
 @RestController
 @RequestMapping("/api/v1/games")
 public class GameController {
@@ -42,7 +45,7 @@ public class GameController {
     public List<GameResponse> listGames(
             @RequestParam(required = false) GameCategory category,
             @RequestParam(required = false) String search,
-            @RequestParam(defaultValue = "100") int limit) {
+            @RequestParam(defaultValue = "100") @Min(0) int limit) {
         return gameService.list(category, search, limit);
     }
 
