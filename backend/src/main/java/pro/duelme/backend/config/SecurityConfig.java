@@ -1,5 +1,6 @@
 package pro.duelme.backend.config;
 
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -49,6 +50,11 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/profiles/me/social/steam/callback").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/profiles/me/social/telegram/callback").permitAll()
                 .requestMatchers("/api/v1/profiles/me/social/**").authenticated()
+                // Spring Security authorizes every dispatch type, so without this denyAll
+                // also catches the container's forward to /error and turns every 400/500
+                // into an empty 401. A direct request to /error is a REQUEST dispatch and
+                // still falls through to denyAll.
+                .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                 .anyRequest().denyAll()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
