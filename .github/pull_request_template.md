@@ -1,6 +1,7 @@
 ## Quality gates
 
-<!-- When each stage is required: CLAUDE.md, "Git Conventions".
+<!-- Fill in every row, n/a with the reason. The review stages are in CLAUDE.md, "Git Conventions";
+the browser check is "UI verification" there.
 Runs: how many times the stage ran on this PR. Outcome: what it found and what became of it,
 e.g. "high: 6 fixed, 2 rejected as intended; round 3 found nothing serious". -->
 
