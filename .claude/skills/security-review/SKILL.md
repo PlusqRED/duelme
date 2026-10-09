@@ -33,8 +33,12 @@ Read all Solidity files and check for:
 - [ ] Integer overflow/underflow (Solidity 0.8+ has built-in, but check `unchecked` blocks and
       every downcast into `uint96` / `uint64` / `uint40` / `uint16`).
 - [ ] Token handling: `SafeERC20` for all transfers? No raw `.transfer()`? `_pullWager` is a bare
-      `safeTransferFrom` by design: the token is vetted once, at deploy, so do both deploy scripts
-      still call `TokenFeeProbe.requireNoTransferFee`?
+      `safeTransferFrom` by design: the token is vetted once, at deploy (next item).
+- [ ] Deploy scripts: do both still run `TokenFeeProbe.requireNoTransferFee` on the wager token,
+      build the forwarder from `ForwarderConfig.NAME` (byte-identical to `FORWARDER_NAME` in
+      `frontend/src/lib/forwardRequest.ts`) and hand that forwarder to `DuelMe`, and deploy with a
+      `MIN_WAGER` that is at least `MIN_WAGER_FLOOR` and equal to `MIN_WAGER` in
+      `frontend/src/lib/constants.ts`?
 - [ ] USDT-specific: blocklist risk covered by pull payouts plus the `*To` destinations? Permit
       path still tolerant of a front-run `permit` (the `try/catch` + allowance check)?
 - [ ] State machine: can any transition be skipped, replayed, or reached from the wrong state?
