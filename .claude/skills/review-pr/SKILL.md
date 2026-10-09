@@ -15,9 +15,10 @@ CLAUDE.md disagree, CLAUDE.md wins and this file is the bug.
 
 1. Get the diff:
    - If PR number given: `gh pr diff $ARGUMENTS`
-   - If branch name given: `git fetch origin`, then `git diff origin/dev...origin/$ARGUMENTS` —
-     the pushed branch against `dev`, which feature PRs target; for a PR into another base, pass
-     its number instead
+   - If branch name given: `git fetch origin` (stop if it fails), then
+     `git diff origin/dev...origin/$ARGUMENTS` — the pushed branch against `dev`, which feature
+     PRs target. Push local commits first; for a branch never pushed, diff
+     `origin/dev...$ARGUMENTS`. For a PR into another base, pass its number instead.
    - Otherwise: `git diff HEAD` (staged **and** unstaged; plain `git diff` misses staged changes)
 
 2. For each changed file, check:
@@ -29,7 +30,9 @@ CLAUDE.md disagree, CLAUDE.md wins and this file is the bug.
   through `msg.sender`, never `_msgSender()`.
 - `whenNotPaused` only on entering a duel (`_createDuel`, `_joinDuel`, `declineDuel`) and
   declaring a result (`claimVictory`, `admitDefeat`), never on a path that returns a player's money.
-- `SafeERC20` everywhere; no raw `.transfer()` / `.transferFrom()`.
+- `SafeERC20` everywhere; no raw `.transfer()` / `.transferFrom()`. `_pullWager` is a bare
+  `safeTransferFrom` by design — the token is vetted once, at deploy, by `TokenFeeProbe` — so new
+  code must not rely on a fee-taking token being refused per wager.
 - Events emitted for every state change; payouts still derived by `_payoutOf`, never stored.
 - Tests cover the change, including every new revert condition.
 - Contract changed ⇒ `duelMeAbi` in `frontend/src/lib/contracts.ts` updated in the same PR.

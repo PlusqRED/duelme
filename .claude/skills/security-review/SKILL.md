@@ -41,12 +41,13 @@ Read all Solidity files and check for:
       `TokenFeeProbe.requireNoTransferFee`, does `contracts/script/TokenFeeProbe.sol` still
       require the balance back whole (`testProbe*` in `contracts/test/DuelMeTokenSafety.t.sol`),
       and is `usdt` still `immutable`? `_pullWager` is a bare `safeTransferFrom` with no
-      balance-delta check, and that is deliberate, not a finding; its first `@dev` still
-      describes the removed check — known, and left alone because the deployed source is frozen.
-      New code must not rely on a fee-taking token being refused per wager. A fee switched on
-      after deploy is a known residual risk, not a solved one: `pause()` stops new wagers coming
-      in, but duels already funded stay under-collateralised and the last claimant is short
-      (`testFeeSwitchedOnAfterDeployUnderCollateralisesTheDuel`).
+      balance-delta check, and that is deliberate, not a finding; new code must not rely on a
+      fee-taking token being refused per wager. Its first `@dev` still describes the removed
+      check: not a finding while the deployed source stays frozen, but fix it in any change that
+      redeploys `DuelMe.sol`. A fee switched on after deploy is a known residual risk, not a
+      solved one: every payout then arrives minus the fee, wagers taken after the switch leave
+      the escrow short (`testFeeSwitchedOnAfterDeployUnderCollateralisesTheDuel`), and `pause()`
+      only stops new wagers coming in.
 - [ ] USDT-specific: blocklist risk covered by pull payouts plus the `*To` destinations? Permit
       path still tolerant of a front-run `permit` (the `try/catch` + allowance check)?
 - [ ] State machine: can any transition be skipped, replayed, or reached from the wrong state?
