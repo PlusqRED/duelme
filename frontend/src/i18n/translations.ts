@@ -2,6 +2,7 @@ import { actionFlowClaimsTranslations } from './translations/actionFlowClaims';
 import { actionFlowResultsTranslations } from './translations/actionFlowResults';
 import { createDuelTranslations } from './translations/createDuel';
 import { dashboardWalletTranslations } from './translations/dashboardWallet';
+import { depositTranslations } from './translations/deposit';
 import { duelTranslations } from './translations/duel';
 import { joinDuelFlowTranslations } from './translations/joinDuelFlow';
 import { landingTranslations } from './translations/landing';
@@ -19,6 +20,7 @@ export const translations = {
     ...actionFlowClaimsTranslations.en,
     ...duelTranslations.en,
     ...dashboardWalletTranslations.en,
+    ...depositTranslations.en,
     ...profileGamesTranslations.en,
     ...socialLinksTranslations.en,
   },
@@ -31,6 +33,7 @@ export const translations = {
     ...actionFlowClaimsTranslations.ru,
     ...duelTranslations.ru,
     ...dashboardWalletTranslations.ru,
+    ...depositTranslations.ru,
     ...profileGamesTranslations.ru,
     ...socialLinksTranslations.ru,
   },

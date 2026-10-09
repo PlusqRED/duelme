@@ -8,7 +8,7 @@ interface UseDuelResult {
   duel: Duel | undefined;
   isLoading: boolean;
   isError: boolean;
-  refetch: () => void;
+  refetch: () => Promise<unknown>;
 }
 
 export function useDuel(duelId: bigint, chainId: number): UseDuelResult {

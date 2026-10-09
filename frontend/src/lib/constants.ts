@@ -57,9 +57,11 @@ export const AVAILABLE_CHAIN_KEYS: readonly ChainKey[] =
     ? (['arbitrum'] as const)
     : (['arbitrumSepolia', 'arbitrum'] as const);
 
-export const AVAILABLE_CHAIN_IDS: readonly number[] = AVAILABLE_CHAIN_KEYS.map(
-  (key) => SUPPORTED_CHAINS[key].id
-);
+// As whole entries — name, testnet flag and USDT address travel together, so callers need no
+// per-chain-id lookup.
+export const AVAILABLE_CHAINS = AVAILABLE_CHAIN_KEYS.map((key) => SUPPORTED_CHAINS[key]);
+
+export const AVAILABLE_CHAIN_IDS: readonly number[] = AVAILABLE_CHAINS.map((chain) => chain.id);
 
 // Fallback default for the on-chain minWager() (owner-adjustable). The live
 // value is fetched by useContractConfig; this constant only covers the moment

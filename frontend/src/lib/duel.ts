@@ -1,7 +1,8 @@
 import { formatUnits } from 'viem';
 import { DuelState, ACTIVE_STATES, type Duel } from '@/lib/contracts';
 import { getContractConfig } from '@/lib/contractConfig';
-import { CHAIN_NAMES, USDT_DECIMALS } from '@/lib/constants';
+import { CHAIN_NAMES, USDT_DECIMALS, ZERO_ADDRESS } from '@/lib/constants';
+import { canPresentInvite } from '@/lib/invite';
 import type { TranslationKey } from '@/i18n/translations';
 
 export { ZERO_ADDRESS } from '@/lib/constants';
@@ -151,6 +152,29 @@ export function isRefundableDuel(
  */
 export function isActiveDuel(duel: { state: DuelState; claimTimestamp: bigint }): boolean {
   return ACTIVE_STATES.has(duel.state) && !isRefundableDuel(duel);
+}
+
+/**
+ * Whether this viewer may join a waiting duel: it is still `Created`, the viewer is signed in with a
+ * wallet, holds an invite the contract would admit (`_requireAdmitted`), is not the creator, and —
+ * for a duel bound to one address — is that address. The duel page's Join button and the join flow
+ * both ask this one function, so a return from topping up re-runs exactly the same checks. The
+ * contract still decides; this only keeps the UI from offering what it would refuse.
+ */
+export function canJoinWaitingDuel(options: {
+  duel: Pick<Duel, 'state' | 'creator' | 'inviteHash' | 'invitedOpponent'> | undefined;
+  viewerAddress: string | undefined;
+  authenticated: boolean;
+  inviteSecret: `0x${string}` | null;
+  contractAddress: `0x${string}`;
+  chainId: number;
+}): boolean {
+  const { duel, authenticated, inviteSecret, contractAddress, chainId } = options;
+  const viewer = options.viewerAddress?.toLowerCase();
+  if (!duel || duel.state !== DuelState.Created || !authenticated || !viewer) return false;
+  if (!canPresentInvite(inviteSecret, duel.inviteHash, contractAddress, chainId)) return false;
+  if (viewer === duel.creator.toLowerCase()) return false;
+  return duel.invitedOpponent === ZERO_ADDRESS || viewer === duel.invitedOpponent.toLowerCase();
 }
 
 export function getDuelStateLabelKey(state: DuelState, timedOut?: boolean): TranslationKey {

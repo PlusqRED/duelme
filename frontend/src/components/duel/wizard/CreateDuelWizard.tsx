@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Swords } from 'lucide-react';
 import { CreateDuelFlowDialog } from '@/components/duel/CreateDuelFlowDialog';
 import { GameStep } from '@/components/duel/wizard/GameStep';
+import { RestoredDraftNotice } from '@/components/duel/wizard/RestoredDraftNotice';
 import { ReviewStep } from '@/components/duel/wizard/ReviewStep';
 import { StepIndicator, type WizardStep } from '@/components/duel/wizard/StepIndicator';
 import {
@@ -12,11 +13,15 @@ import {
 } from '@/components/duel/wizard/TypeMessageStep';
 import { WagerStep } from '@/components/duel/wizard/WagerStep';
 import { WizardNavBar } from '@/components/duel/wizard/WizardNavBar';
+import { useContractConfig } from '@/hooks/useContractConfig';
+import { useCreateDuelDraftStorage } from '@/hooks/useCreateDuelDraftStorage';
 import { useCreateDuelFlow } from '@/hooks/useCreateDuelFlow';
 import { useDefaultChain } from '@/hooks/useDefaultChain';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/translations';
-import type { Game, GameCategory } from '@/lib/game';
+import { SUPPORTED_CHAINS } from '@/lib/constants';
+import type { CreateDuelDraft, CreateDuelDraftGame } from '@/lib/createDuelDraft';
+import type { Game } from '@/lib/game';
 import {
   isGameStepValid,
   isReviewStepValid,
@@ -31,11 +36,6 @@ const STEP_LABEL_KEYS: TranslationKey[] = [
   'wizard.step.review',
 ];
 
-interface SelectedGame {
-  slug: string;
-  name: string;
-  category: GameCategory;
-}
 
 export function CreateDuelWizard() {
   const { t } = useTranslation();
@@ -44,7 +44,7 @@ export function CreateDuelWizard() {
 
   const [stepIndex, setStepIndex] = useState(0);
   const [maxStepReached, setMaxStepReached] = useState(0);
-  const [selectedGame, setSelectedGame] = useState<SelectedGame | null>(null);
+  const [selectedGame, setSelectedGame] = useState<CreateDuelDraftGame | null>(null);
   const [amount, setAmount] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [message, setMessage] = useState('');
@@ -56,6 +56,25 @@ export function CreateDuelWizard() {
         Math.floor(Math.random() * MESSAGE_PLACEHOLDER_KEYS.length)
       ]
   );
+
+  const chainId = SUPPORTED_CHAINS[chainKey].id;
+  const [isCreated, setIsCreated] = useState(false);
+  const { restoredDraft, saveDraft } = useCreateDuelDraftStorage(chainId, isCreated);
+  const [appliedDraft, setAppliedDraft] = useState<CreateDuelDraft | null>(null);
+  // Re-render on the live on-chain limits, so a restored draft is judged by today's minimum.
+  useContractConfig();
+
+  // Back from topping up (the tab may have been reloaded meanwhile): the form as it was, on the
+  // review step. Applied during render, once per restored draft, so no step flashes empty first.
+  if (restoredDraft && restoredDraft !== appliedDraft) {
+    setAppliedDraft(restoredDraft);
+    setSelectedGame(restoredDraft.game);
+    setAmount(restoredDraft.amount);
+    setMessage(restoredDraft.message);
+    setIsPublic(restoredDraft.isPublic);
+    setStepIndex(STEP_LABEL_KEYS.length - 1);
+    setMaxStepReached(STEP_LABEL_KEYS.length - 1);
+  }
 
   const wizardState = {
     gameSlug: selectedGame?.slug ?? '',
@@ -75,6 +94,10 @@ export function CreateDuelWizard() {
     [isValidGame, isValidWager, isValidMessage, isValidReview]
   );
 
+  const handleOpenDeposit = useCallback(() => {
+    saveDraft({ chainId, game: selectedGame, amount, message, isPublic });
+  }, [saveDraft, chainId, selectedGame, amount, message, isPublic]);
+
   const flow = useCreateDuelFlow({
     amount,
     message,
@@ -83,7 +106,13 @@ export function CreateDuelWizard() {
     selectedChain: chainKey,
     isValidAmount: isValidWager,
     isValidMessage,
+    onOpenDeposit: handleOpenDeposit,
   });
+
+  const flowStage = flow.flow?.stage;
+  if (flowStage === 'success' && !isCreated) {
+    setIsCreated(true);
+  }
 
   const steps: WizardStep[] = useMemo(
     () =>
@@ -184,6 +213,9 @@ export function CreateDuelWizard() {
               placeholderKey={messagePlaceholderKey}
             />
           )}
+          {stepIndex === 3 && appliedDraft && (
+            <RestoredDraftNotice isValidWager={isValidWager} isValidMessage={isValidMessage} />
+          )}
           {stepIndex === 3 && (
             <ReviewStep
               gameName={selectedGame?.name ?? ''}
@@ -235,6 +267,7 @@ export function CreateDuelWizard() {
         completedSwitchNetwork={flow.flow?.completedSteps.switchNetwork ?? false}
         completedApproval={flow.flow?.completedSteps.approve ?? false}
         errorMessage={flow.flow?.errorMessage}
+        review={flow.review}
         onOpenChange={flow.handleFlowOpenChange}
         onContinue={flow.handleContinueFlow}
         onSwitchNetwork={flow.handleSwitchNetwork}
