@@ -1,39 +1,41 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { usePrivy } from '@privy-io/react-auth';
+import { notifyManager } from '@tanstack/react-query';
 import { useAccount, useReadContract, useSwitchChain } from 'wagmi';
 import { useAppToast } from '@/hooks/useAppToast';
 import { useJoinDuelFlowLifecycle } from '@/hooks/useJoinDuelFlowLifecycle';
 import { useDuelActions } from '@/hooks/useDuelActions';
+import { type FlowReviewGate, useFlowFunding } from '@/hooks/useFlowFunding';
 import { useTranslation } from '@/i18n/useTranslation';
 import { joinDuelFlowActions } from '@/lib/joinDuelFlowActions';
 import type { JoinDuelFlowSession } from '@/lib/joinDuelFlow';
 import { DUELME_ADDRESSES, DEFAULT_CHAIN } from '@/lib/constants';
-import { erc20Abi } from '@/lib/contracts';
+import { erc20Abi, type Duel } from '@/lib/contracts';
+import { canJoinWaitingDuel } from '@/lib/duel';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 
 interface UseJoinDuelFlowArgs {
   duelId: number;
-  wagerAmount: bigint;
+  duel: Duel | undefined;
   inviteSecret: `0x${string}` | null;
-  creatorAddress: string;
-  duelInviteHash: string;
-  refetchDuel: () => void;
+  refetchDuel: () => Promise<unknown>;
 }
 
 export function useJoinDuelFlow({
   duelId,
-  wagerAmount,
+  duel,
   inviteSecret,
-  creatorAddress,
-  duelInviteHash,
   refetchDuel,
 }: UseJoinDuelFlowArgs) {
   const { t } = useTranslation();
   const appToast = useAppToast();
   const [flow, setFlow] = useState<JoinDuelFlowSession | null>(null);
   const [allowanceRefreshCount, setAllowanceRefreshCount] = useState(0);
+  const [isRecheckingDuel, setIsRecheckingDuel] = useState(false);
 
+  const { authenticated } = usePrivy();
   const { walletAddress } = useActiveWallet();
   const { switchChainAsync } = useSwitchChain();
   const { chainId: connectedChainId } = useAccount();
@@ -97,6 +99,36 @@ export function useJoinDuelFlow({
           currentAllowance === undefined ||
           currentAllowance < flow.draft.rawAmount)));
 
+  const canJoin = canJoinWaitingDuel({
+    duel,
+    viewerAddress: walletAddress,
+    authenticated,
+    inviteSecret,
+    contractAddress,
+    chainId: chainConfig.id,
+  });
+
+  // Back from topping up, the duel may have been joined, cancelled or declined meanwhile: read it
+  // again and keep Continue closed until the answer is in, then re-run the same checks as the page.
+  // The flag drops through React Query's own scheduler, i.e. after the new duel reached the page —
+  // never in a render that still shows the old one.
+  const recheckDuel = useCallback(() => {
+    setIsRecheckingDuel(true);
+    void refetchDuel().finally(() => notifyManager.schedule(() => setIsRecheckingDuel(false)));
+  }, [refetchDuel]);
+
+  const { funding, markOpened } = useFlowFunding({
+    chainId: flow?.draft.chainId ?? chainConfig.id,
+    requiredRaw: flow?.draft.rawAmount ?? null,
+    isReviewing: flow?.stage === 'review',
+    onShowReview: recheckDuel,
+  });
+  const review: FlowReviewGate = {
+    funding,
+    canContinue: funding.hasEnoughBalance && canJoin && !isRecheckingDuel,
+    blockedReason: !canJoin && !isRecheckingDuel ? 'deposit.joinUnavailable' : null,
+  };
+
   const actions = joinDuelFlowActions({
     appToast,
     chainId: chainConfig.id,
@@ -114,10 +146,10 @@ export function useJoinDuelFlow({
     t,
     tokenAddress: chainConfig.usdt,
     approveToken: joinActions.approveToken,
-    wagerAmount,
-    creatorAddress,
+    wagerAmount: duel?.wagerAmount ?? 0n,
+    creatorAddress: duel?.creator ?? '',
     viewerAddress: walletAddress,
-    duelInviteHash,
+    duelInviteHash: duel?.inviteHash ?? '',
   });
 
   useJoinDuelFlowLifecycle({
@@ -146,19 +178,31 @@ export function useJoinDuelFlow({
 
   return {
     canCloseFlow,
+    canJoin,
     closeFlow: actions.closeFlow,
     flow,
     handleApprove: () => actions.handleApprove(flow),
-    handleContinueFlow: () => actions.handleContinueFlow(flow),
+    handleContinueFlow: () => {
+      // The button is disabled too, but the gate is here: nothing past review without a fresh
+      // balance that covers the wager and a duel that still takes this player.
+      if (!review.canContinue) {
+        return;
+      }
+      void actions.handleContinueFlow(flow);
+    },
     handleJoinTransaction: () => actions.handleJoinTransaction(flow),
     handleFlowOpenChange: (open: boolean) => {
       if (!open) {
         actions.closeFlow();
       }
     },
-    handleOpenJoinFlow: actions.handleOpenJoinFlow,
+    handleOpenJoinFlow: () => {
+      markOpened();
+      actions.handleOpenJoinFlow();
+    },
     handleSwitchNetwork: () => actions.handleSwitchNetwork(flow),
     needsApproval,
     needsNetworkSwitch,
+    review,
   };
 }

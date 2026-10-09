@@ -12,7 +12,10 @@ import {
   getJoinDuelStepLabelKey,
 } from '@/components/duel/joinDuelFlowDialogContent';
 import { formatUSDT, truncateAddress } from '@/lib/utils';
+import { FlowFundingCheck } from '@/components/duel/FlowFundingCheck';
 import { GuidedTransactionDialog } from '@/components/duel/GuidedTransactionDialog';
+import { DepositPanel } from '@/components/wallet/DepositPanel';
+import type { FlowReviewGate } from '@/hooks/useFlowFunding';
 import type {
   GuidedTransactionAction,
   GuidedTransactionDetailItem,
@@ -31,6 +34,7 @@ interface JoinDuelFlowDialogProps {
   completedSwitchNetwork: boolean;
   completedApproval: boolean;
   errorMessage?: string | null;
+  review: FlowReviewGate;
   onOpenChange: (open: boolean) => void;
   onContinue: () => void;
   onSwitchNetwork: () => void;
@@ -50,6 +54,7 @@ export function JoinDuelFlowDialog({
   completedSwitchNetwork,
   completedApproval,
   errorMessage,
+  review,
   onOpenChange,
   onContinue,
   onSwitchNetwork,
@@ -159,6 +164,11 @@ export function JoinDuelFlowDialog({
     t,
   });
 
+  const isReview = stage === 'review';
+  const primaryAction = isReview && config.primaryAction
+    ? { ...config.primaryAction, disabled: !review.canContinue }
+    : config.primaryAction;
+
   return (
     <GuidedTransactionDialog
       open={open}
@@ -177,10 +187,21 @@ export function JoinDuelFlowDialog({
       technicalDetailsLabel={t('create.flow.technicalDetails')}
       technicalDetails={technicalDetails}
       errorMessage={errorMessage ?? undefined}
-      primaryAction={config.primaryAction}
+      primaryAction={primaryAction}
       secondaryAction={secondaryAction}
       success={stage === 'success'}
       footerContent={t('join.flow.footer')}
+      stepExtra={isReview ? (
+        <FlowFundingCheck review={review} chainName={draft.chainName} requiredRaw={draft.rawAmount} />
+      ) : undefined}
+      stepPanel={isReview && review.funding.view === 'deposit' ? (
+        <DepositPanel
+          chainId={draft.chainId}
+          requiredRaw={draft.rawAmount}
+          isJoining
+          onBack={review.funding.showReview}
+        />
+      ) : undefined}
     />
   );
 }
