@@ -282,5 +282,5 @@ export function GuidedTransactionDialog({
 
 /** A panel swapped in from mid-dialog on a phone starts above the fold; bring its top into view. */
 function scrollIntoViewOnMount(element: HTMLElement | null) {
-  element?.scrollIntoView({ block: 'nearest' });
+  element?.scrollIntoView({ block: 'start' });
 }
