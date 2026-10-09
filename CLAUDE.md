@@ -25,6 +25,9 @@ ops/         — Docker Compose, Caddy config
 - **Never** add `Co-Authored-By` or any Claude attribution to commits.
 - Don't amend existing commits unless explicitly asked.
 - Commit messages: imperative mood ("Add X" not "Added X"); first line ≤72 chars; body for non-obvious context.
+- Commit messages, PR titles and PR descriptions are in English.
+- **Every PR description opens with the Quality gates table** from `.github/pull_request_template.md`: how many times each review and check ran on the PR, and what it found. The merge decision is made from that table, so it stays true at the head commit, and a PR is marked ready for review only with every row filled in (n/a with the reason where a stage does not apply).
+- **Review loop before a PR is marked ready for review**, run on the pushed PR: `/simplify` once on code changes, then `/review-pr <n>`, then `/code-review high <n>` round after round until a round finds nothing serious — wrong behaviour, or a security, money or data risk. Use `max` instead of `high` when the diff touches `contracts/`, the relayer, permits, payouts or auth, and never pass `--comment`: untriaged findings do not belong on the PR. A `contracts/src/` change also gets `/security-review`. Commit before every auto-fix and re-read each applied edit against the spec — auto-fixes have rewritten explicit requirements before, and later rounds have caught bugs that earlier fixes introduced. Never leave the last change unreviewed: change nothing after the final round, or run another. If four `/code-review` rounds still find serious bugs, stop and rethink the design instead of running a fifth.
 
 ## Native Image Compatibility (CRITICAL)
 
@@ -289,6 +292,7 @@ address, no relayer key — is the case the self-paid path still covers.
 | `backend/Dockerfile` | Backend container (multi-stage, GraalVM native) |
 | `frontend/Dockerfile` | Frontend container (multi-stage, Node 22) |
 | `.github/workflows/ci.yml` | CI pipeline: test + deploy (dev & prod) |
+| `.github/pull_request_template.md` | PR description skeleton; its Quality gates table is required (see Git Conventions) |
 | `ops/docker-compose.{dev,prod}.yml` | Compose stacks |
 | `ops/caddy/{dev.duelme.pro,duelme.pro}.Caddyfile` | Caddy reverse proxy |
 
@@ -319,7 +323,7 @@ cost the first time.
 - **DRY:** single source of truth for every constant/type/helper/ABI. See `constants.ts` / `contracts.ts`.
 - **YAGNI:** build what the task requires. No abstractions for hypothetical futures. Three similar lines beats a premature abstraction.
 - **Fail fast:** validate at system boundaries (user input, API, contract calls). Inside, trust the types. Never silently swallow errors.
-- **Self-review before "done":** `npx tsc --noEmit` · `npm run lint` · relevant tests (`forge test`, `./gradlew test`, `npm run test`) · read the diff for debug code / missing error handling / inconsistent naming.
+- **Self-review before "done":** `npx tsc --noEmit` · `npm run lint` · relevant tests (`forge test`, `./gradlew test`, `npm run test`) · read the diff for debug code / missing error handling / inconsistent naming. Then the review loop under Git Conventions.
 
 ### Frontend (Next.js / React / TS / Tailwind)
 
