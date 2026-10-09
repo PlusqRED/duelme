@@ -15,8 +15,7 @@ CLAUDE.md disagree, CLAUDE.md wins and this file is the bug.
 
 1. Get the diff:
    - If PR number given: `gh pr diff $ARGUMENTS`
-   - If branch name given: `git fetch origin`, then `git diff origin/<base>...$ARGUMENTS`, where `<base>` is
-     `gh pr view $ARGUMENTS --json baseRefName -q .baseRefName` when the branch has a PR, else `dev`
+   - If branch name given: `git diff origin/dev...$ARGUMENTS` (`origin/main...` for a branch that merges into `main`)
    - Otherwise: `git diff HEAD` (staged **and** unstaged; plain `git diff` misses staged changes)
 
 2. For each changed file, check:

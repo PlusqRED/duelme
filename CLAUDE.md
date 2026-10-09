@@ -25,12 +25,12 @@ ops/         — Docker Compose, Caddy config
 - **Never** add `Co-Authored-By` or any Claude attribution to commits.
 - Don't amend existing commits unless explicitly asked.
 - Commit messages: in English, imperative mood ("Add X" not "Added X"); first line ≤72 chars; body for non-obvious context.
-- **PRs** are written in English and open as drafts. Their description opens with the **Quality gates** table from `.github/pull_request_template.md` — how many times each review and check ran on the PR, and what came of it. The merge decision is made from that table, so a PR is marked ready for review only when every row is filled in (n/a with the reason) and true at the head commit; whoever pushes a commit updates it. Exempt: Dependabot's PRs, whose description the bot rewrites, and `dev` → `main` releases, whose bundled PRs carry their own tables.
-- **Review loop before a PR is marked ready for review.** Both review commands read the pushed diff, so push every fix before the next round.
-  1. `/simplify` once on code changes, told to cover the branch's whole diff against the PR's base. Snapshot first — a commit if you may commit, otherwise a `git diff HEAD` patch plus copies of untracked files — and re-read every edit it applies against the spec: auto-fixes have rewritten explicit requirements before.
-  2. `/review-pr <n>` for this repo's conventions.
-  3. `/code-review high <n>` round after round until a round finds nothing serious — wrong behaviour, or a security, money or data risk. Use `max` when the diff touches `contracts/`, the relayer, permits, payouts or auth, and never pass `--comment`: untriaged findings do not belong on the PR. Every finding gets a verdict, fixed or rejected with the reason, and the tally goes in the table. Later rounds have caught bugs that earlier fixes introduced, so the last change is always reviewed: change nothing after the final round, or run another. If the fourth round still finds serious bugs, stop before fixing them and rethink the design; the reworked change starts the loop again.
-  4. A change under `contracts/src/` or `contracts/script/` also gets `/security-review`, given the changed paths.
+- **PRs** are written in English and open as drafts. Their description opens with the **Quality gates** table from `.github/pull_request_template.md` — how many times each review and check ran on the PR, and what came of it — and it is kept true at the head commit, because the merge decision is made from it. Dependabot's PRs (the bot rewrites their description) and `dev` → `main` releases are exempt.
+- **Review loop before a PR is marked ready for review.** Snapshot the work before every auto-fix and re-read what it changed against the spec: auto-fixes have rewritten explicit requirements before.
+  1. `/simplify` once on code changes, covering the branch's whole diff against the PR's base.
+  2. `/review-pr` once, for this repo's conventions.
+  3. `/code-review high` round after round until a round finds nothing serious — wrong behaviour, or a security, money or data risk. Use `max` when the diff touches `contracts/`, the relayer, permits, payouts or auth, and never `--comment`: findings are triaged before anything reaches the PR. Every finding gets a verdict, fixed or rejected with the reason. The last change is always reviewed, because later rounds have caught bugs that earlier fixes introduced. If a fourth round still finds serious bugs, stop before fixing them and rethink the design.
+  4. `/security-review` when `contracts/src/` changes, and `/security-review <file>` for each changed file under `contracts/script/`.
 
 ## Native Image Compatibility (CRITICAL)
 
