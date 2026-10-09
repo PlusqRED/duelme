@@ -4,21 +4,23 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Menu, X, Swords, LogOut, User, Wallet, Globe, Send, Copy, Check, ChevronDown, KeyRound, Fuel, Instagram, Gamepad2, FlaskConical, History } from 'lucide-react';
+import { Menu, X, Swords, LogOut, User, Wallet, Globe, Send, Copy, Check, ChevronDown, KeyRound, Fuel, Instagram, Gamepad2, History, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DepositDialog } from '@/components/wallet/DepositDialog';
+import { FaucetButton } from '@/components/wallet/FaucetButton';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAppToast } from '@/hooks/useAppToast';
 import { useMyProfile } from '@/hooks/useMyProfile';
-import { useIsNonProductionHost } from '@/hooks/useIsNonProductionHost';
-import { usePrivy, useExportWallet, useIdentityToken } from '@privy-io/react-auth';
+import { usePrivy, useExportWallet } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useReadContracts, useBalance } from 'wagmi';
 import { formatUnits, parseUnits, encodeFunctionData } from 'viem';
-import { AVAILABLE_CHAIN_KEYS, DEFAULT_CHAIN_ID, SUPPORTED_CHAINS, TESTNET_CHAIN_IDS, USDT_DECIMALS } from '@/lib/constants';
+import { AVAILABLE_CHAIN_IDS, AVAILABLE_CHAIN_KEYS, DEFAULT_CHAIN_ID, SUPPORTED_CHAINS, USDT_DECIMALS } from '@/lib/constants';
 import { balanceOfAbi, getUsdtAddress, transferAbi } from '@/lib/contracts';
 import { emitBalanceRefreshBurst, subscribeToBalanceRefresh } from '@/lib/balanceRefresh';
-import { FaucetClaimError, claimFaucet } from '@/lib/faucetApi';
+import { copyText } from '@/lib/clipboard';
+import { summarizeChainBalances } from '@/lib/deposit';
 import { useRelayerStatus } from '@/hooks/useRelayerStatus';
 
 // The chains this build can reach, as whole entries — name, testnet flag and USDT address
@@ -37,14 +39,10 @@ export function Header() {
   const [toAddress, setToAddress] = useState('');
   const [sendAmount, setSendAmount] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const [isClaimingFaucet, setIsClaimingFaucet] = useState(false);
   const [copied, setCopied] = useState(false);
   const [selectedChain, setSelectedChain] = useState<number>(DEFAULT_CHAIN_ID);
   const [balanceFlash, setBalanceFlash] = useState(false);
-
-  const isNonProdHost = useIsNonProductionHost();
-  const { identityToken } = useIdentityToken();
-  const canClaimFaucet = isNonProdHost && TESTNET_CHAIN_IDS.has(selectedChain);
+  const [depositChainId, setDepositChainId] = useState<number | null>(null);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const previousTotalUsdtRef = useRef<string | null>(null);
@@ -75,7 +73,7 @@ export function Header() {
     [walletAddress]
   );
 
-  const { data: usdtBalanceResults, refetch: refetchUsdtBalances } = useReadContracts({
+  const { data: usdtBalanceResults, isError: usdtBalancesFailed, refetch: refetchUsdtBalances } = useReadContracts({
     contracts: balanceContracts,
     query: {
       enabled: balanceContracts.length > 0,
@@ -102,24 +100,18 @@ export function Header() {
   // Require a settled balance read so the warning never flashes while loading.
   const lowGas = paysOwnGas && ethBalanceData !== undefined && ethBalance < 0.0005;
 
-  // Indexed by position: USDT_BALANCE_CHAIN_IDS is module-level, so entry i is always
-  // chain i even while a fetch is in flight or the wallet is still resolving.
-  // Positional, matching balanceContracts. Memoized because Header re-renders on every
+  // Positional, matching balanceContracts. A chain still loading or failed is never 0.00, and the
+  // total exists only once every chain answered. Memoized because Header re-renders on every
   // keystroke in the send inputs, and this would otherwise rebuild the list each time.
-  const balanceAmounts = useMemo(
-    () =>
-      AVAILABLE_CHAINS.map((_, index) => {
-        const result = usdtBalanceResults?.[index];
-        return result?.status === 'success'
-          ? parseFloat(formatUnits(result.result as bigint, USDT_DECIMALS))
-          : 0;
-      }),
-    [usdtBalanceResults]
+  const { balances: chainBalances, totalRaw } = useMemo(
+    () => summarizeChainBalances(AVAILABLE_CHAIN_IDS, usdtBalanceResults, usdtBalancesFailed),
+    [usdtBalanceResults, usdtBalancesFailed]
   );
-
-  const balance = balanceAmounts[AVAILABLE_CHAINS.findIndex((c) => c.id === selectedChain)] ?? 0;
+  const selectedBalance = chainBalances.find((entry) => entry.chainId === selectedChain);
+  const balance = selectedBalance?.kind === 'ready' ? parseFloat(formatUnits(selectedBalance.raw, USDT_DECIMALS)) : 0;
   const formattedUsdt = balance.toFixed(2);
-  const totalUsdt = balanceAmounts.reduce((a, b) => a + b, 0).toFixed(2);
+  const totalUsdt = totalRaw === null ? null : parseFloat(formatUnits(totalRaw, USDT_DECIMALS)).toFixed(2);
+  const totalLabel = totalUsdt ?? (chainBalances.some((entry) => entry.kind === 'error') ? '—' : '…');
   const chainMeta = AVAILABLE_CHAINS.find((chain) => chain.id === selectedChain);
   const usdtAddress = getUsdtAddress(selectedChain);
 
@@ -150,6 +142,7 @@ export function Header() {
       return;
     }
 
+    if (totalUsdt === null) return undefined;
     if (previousTotalUsdtRef.current && previousTotalUsdtRef.current !== totalUsdt) {
       setBalanceFlash(true);
       const timeout = window.setTimeout(() => setBalanceFlash(false), 1400);
@@ -162,38 +155,19 @@ export function Header() {
   }, [authenticated, totalUsdt]);
 
   async function handleCopy() {
-    if (!walletAddress) return;
-    await navigator.clipboard.writeText(walletAddress);
+    if (!displayAddr) return;
+    if (!(await copyText(displayAddr))) {
+      appToast.error('deposit.copyFailed');
+      return;
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
 
-  async function handleClaimFaucet() {
-    if (!canClaimFaucet) return;
-    if (!identityToken) {
-      appToast.error('toast.walletNotReady');
-      return;
-    }
-    setIsClaimingFaucet(true);
-    try {
-      await claimFaucet(identityToken);
-      appToast.success('toast.faucetClaimed');
-      emitBalanceRefreshBurst();
-    } catch (err) {
-      if (err instanceof FaucetClaimError) {
-        switch (err.code) {
-          case 'already-claimed': appToast.error('toast.faucetAlreadyClaimed'); break;
-          case 'disabled':        appToast.error('toast.faucetDisabled'); break;
-          case 'execution-failed':appToast.error('toast.faucetExecutionFailed'); break;
-          case 'unauthorized':    appToast.error('toast.walletNotReady'); break;
-          default:                appToast.error('toast.faucetFailed'); break;
-        }
-      } else {
-        appToast.error('toast.faucetFailed');
-      }
-    } finally {
-      setIsClaimingFaucet(false);
-    }
+  function openDeposit() {
+    setDepositChainId(selectedChain);
+    setWalletOpen(false);
+    setMobileMenuOpen(false);
   }
 
   async function handleSend() {
@@ -322,7 +296,22 @@ export function Header() {
             <span className={`text-xs font-medium ${chainMeta?.testnet ? 'text-amber-700' : 'text-emerald-700'}`}>{chainMeta?.shortName}</span>
           </div>
         </div>
-        <span className="text-lg font-bold text-slate-900">{formattedUsdt} <span className="text-sm font-normal text-slate-400">USDT</span></span>
+        <div className="flex items-center justify-between gap-2">
+          {selectedBalance?.kind === 'ready' ? (
+            <span className="text-lg font-bold text-slate-900">{formattedUsdt} <span className="text-sm font-normal text-slate-400">USDT</span></span>
+          ) : selectedBalance?.kind === 'error' ? (
+            <span className="flex flex-wrap items-center gap-x-2 text-xs font-medium text-red-600">
+              {t('deposit.balance.failed')}
+              <button type="button" onClick={refetchBalances} className="min-h-11 text-indigo-600 underline-offset-2 hover:underline">{t('deposit.balance.retry')}</button>
+            </span>
+          ) : (
+            <span className="text-xs text-slate-500">{t('deposit.balance.checking')}</span>
+          )}
+          <Button type="button" size="sm" onClick={openDeposit} className="h-11 shrink-0 bg-indigo-600 px-3 text-white hover:bg-indigo-700">
+            <Plus className="h-3.5 w-3.5" />
+            {t('deposit.topUp')}
+          </Button>
+        </div>
 
         {isRelayEnabled ? (
           <div className="mt-1.5 flex items-center justify-between">
@@ -349,32 +338,11 @@ export function Header() {
 
         <div className="mt-1.5 flex items-center gap-1.5 border-t border-slate-200 pt-1.5">
           <span className="text-[10px] text-slate-400">{t('wallet.totalChains')}</span>
-          <span className="text-[10px] font-semibold text-slate-500">{totalUsdt} USDT</span>
+          <span className="text-[10px] font-semibold text-slate-500">{totalUsdt === null ? totalLabel : `${totalUsdt} USDT`}</span>
         </div>
       </div>
 
-      {/* Testnet faucet — non-prod hosts + testnet chain only. One claim per wallet per
-          token: a MockUSDT redeploy re-opens it. */}
-      {canClaimFaucet && (
-        <button
-          type="button"
-          onClick={handleClaimFaucet}
-          disabled={isClaimingFaucet}
-          className="flex w-full items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 transition-colors hover:border-amber-300 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          <span className="flex items-center gap-1.5 text-left">
-            {isClaimingFaucet ? (
-              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-amber-600 border-t-transparent" />
-            ) : (
-              <FlaskConical className="h-3.5 w-3.5 shrink-0" />
-            )}
-            {t('wallet.claimFaucet')}
-          </span>
-          <span className="rounded-full bg-white/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-700">
-            {t('wallet.testnetBadge')}
-          </span>
-        </button>
-      )}
+      <FaucetButton chainId={selectedChain} />
 
       {/* Send form */}
       <div className="flex flex-col gap-2">
@@ -564,7 +532,7 @@ export function Header() {
                   }`}
                 >
                   <Wallet className="h-3.5 w-3.5 shrink-0 text-indigo-500" />
-                  <span className="text-xs font-bold text-slate-700">{totalUsdt}</span>
+                  <span className="text-xs font-bold text-slate-700">{totalLabel}</span>
                   <span className="hidden text-xs text-slate-400 lg:inline">USDT</span>
                   <ChevronDown className={`h-3 w-3 shrink-0 text-slate-400 transition-transform ${walletOpen ? 'rotate-180' : ''}`} />
                 </button>
@@ -701,6 +669,8 @@ export function Header() {
           )}
         </div>
       )}
+
+      <DepositDialog chainId={depositChainId} onClose={() => setDepositChainId(null)} />
     </header>
   );
 }

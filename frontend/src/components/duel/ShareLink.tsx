@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAppToast } from '@/hooks/useAppToast';
+import { copyText } from '@/lib/clipboard';
 import { buildDuelLink, isPublicDuel } from '@/lib/invite';
 import { Copy, Check } from 'lucide-react';
 
@@ -31,14 +32,13 @@ export function ShareLink({ duelId, inviteHash, inviteSecret }: ShareLinkProps) 
       return;
     }
 
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      appToast.success('action.copied');
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
+    if (!(await copyText(url))) {
       appToast.error('toast.copyFailed');
+      return;
     }
+    setCopied(true);
+    appToast.success('action.copied');
+    setTimeout(() => setCopied(false), 2000);
   }
 
   return (
