@@ -244,6 +244,7 @@ address, no relayer key — is the case the self-paid path still covers.
 | `frontend/src/hooks/useFlowFunding.ts` | Balance gate and review ↔ top-up switch on the create and join review steps |
 | `frontend/src/lib/createDuelDraft.ts` | Versioned `sessionStorage` draft of the create form, kept across a top-up (no invite secret) |
 | `frontend/src/lib/clipboard.ts` | `copyText` — the one clipboard write; confirm "Copied" only when it returns `true` |
+| `frontend/src/hooks/useCopyFeedback.ts` | Copy-button state on top of `copyText`: "Copied" only for a write that landed, a toast otherwise |
 | `frontend/src/lib/addressQr.ts` | QR of a bare string as an SVG path, rendered as plain React markup |
 | `frontend/src/hooks/useFaucetClaim.ts` | Testnet faucet claim shared by the wallet menu and the top-up panel |
 | `frontend/src/lib/buildTransactionParams.ts` | Builds explicit `gas`/`maxFeePerGas`/`maxPriorityFeePerGas`/`nonce` to bypass Privy auto-populate (see Common Pitfalls) |

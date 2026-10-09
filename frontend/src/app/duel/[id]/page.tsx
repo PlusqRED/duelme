@@ -270,8 +270,6 @@ export default function DuelPage({
   const isDeclinableDuel = !isDuelPublic || isAddressBoundDuel;
   const hasResolvedViewerAddress = !authenticated || !!walletAddress;
   const canRespondToWaitingDuel = isWaitingOpponent && canPresentDuelInvite;
-  // `canJoinWaitingDuel` in lib/duel.ts — the same checks the join flow re-runs after a top-up.
-  const canJoinWaitingDuel = joinFlow.canJoin;
   const canLoginToJoinWaitingDuel =
     canRespondToWaitingDuel &&
     !authenticated;
@@ -532,7 +530,7 @@ export default function DuelPage({
               </div>
             )}
 
-            {canJoinWaitingDuel && (
+            {joinFlow.canJoin && (
               <div className="flex flex-col gap-3">
                 <Button
                   size="lg"

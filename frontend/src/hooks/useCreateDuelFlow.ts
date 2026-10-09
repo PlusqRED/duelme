@@ -113,7 +113,7 @@ export function useCreateDuelFlow({
   });
   const review: FlowReviewGate = {
     funding,
-    canContinue: funding.hasEnoughBalance,
+    canContinue: funding.status.kind === 'enough',
     blockedReason: null,
   };
 

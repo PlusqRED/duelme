@@ -11,23 +11,20 @@ import { DepositDialog } from '@/components/wallet/DepositDialog';
 import { FaucetButton } from '@/components/wallet/FaucetButton';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAppToast } from '@/hooks/useAppToast';
+import { useCopyFeedback } from '@/hooks/useCopyFeedback';
 import { useMyProfile } from '@/hooks/useMyProfile';
 import { usePrivy, useExportWallet } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useReadContracts, useBalance } from 'wagmi';
 import { formatUnits, parseUnits, encodeFunctionData } from 'viem';
-import { AVAILABLE_CHAIN_IDS, AVAILABLE_CHAIN_KEYS, DEFAULT_CHAIN_ID, SUPPORTED_CHAINS, USDT_DECIMALS } from '@/lib/constants';
+import { AVAILABLE_CHAIN_IDS, AVAILABLE_CHAINS, DEFAULT_CHAIN_ID, USDT_DECIMALS } from '@/lib/constants';
 import { balanceOfAbi, getUsdtAddress, transferAbi } from '@/lib/contracts';
 import { emitBalanceRefreshBurst, subscribeToBalanceRefresh } from '@/lib/balanceRefresh';
-import { copyText } from '@/lib/clipboard';
 import { summarizeChainBalances } from '@/lib/deposit';
 import { useRelayerStatus } from '@/hooks/useRelayerStatus';
 
-// The chains this build can reach, as whole entries — name, testnet flag and USDT address
-// all travel together, so nothing here needs a per-chain-id lookup. Prod (duelme.pro) lists
-// Arbitrum One only: no testnet switcher, no Sepolia balance fetch, no "Testnet" badge.
-const AVAILABLE_CHAINS = AVAILABLE_CHAIN_KEYS.map((key) => SUPPORTED_CHAINS[key]);
-
+// Prod (duelme.pro) lists Arbitrum One only: no testnet switcher, no Sepolia balance fetch,
+// no "Testnet" badge.
 const CAN_SWITCH_CHAIN = AVAILABLE_CHAINS.length > 1;
 
 export function Header() {
@@ -39,7 +36,7 @@ export function Header() {
   const [toAddress, setToAddress] = useState('');
   const [sendAmount, setSendAmount] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyFeedback('deposit.copyFailed');
   const [selectedChain, setSelectedChain] = useState<number>(DEFAULT_CHAIN_ID);
   const [balanceFlash, setBalanceFlash] = useState(false);
   const [depositChainId, setDepositChainId] = useState<number | null>(null);
@@ -154,14 +151,8 @@ export function Header() {
     return undefined;
   }, [authenticated, totalUsdt]);
 
-  async function handleCopy() {
-    if (!displayAddr) return;
-    if (!(await copyText(displayAddr))) {
-      appToast.error('deposit.copyFailed');
-      return;
-    }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  function handleCopy() {
+    if (displayAddr) void copy(displayAddr);
   }
 
   function openDeposit() {

@@ -1,13 +1,10 @@
-import { GAME_CATEGORIES, type GameCategory } from '@/lib/game';
+import { GAME_CATEGORIES, type Game } from '@/lib/game';
 
 /** Versioned, so a later change of shape reads an old entry as nothing rather than as garbage. */
 export const CREATE_DUEL_DRAFT_KEY = 'duelme:create-duel-draft:v1';
 
-export interface CreateDuelDraftGame {
-  slug: string;
-  name: string;
-  category: GameCategory;
-}
+/** The game as the wizard holds it once picked. */
+export type CreateDuelDraftGame = Pick<Game, 'slug' | 'name' | 'category'>;
 
 /**
  * The create-duel form, as typed — what a player gets back after leaving to top up. Only form

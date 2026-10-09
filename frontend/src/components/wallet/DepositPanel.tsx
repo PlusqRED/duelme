@@ -10,17 +10,9 @@ import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useRelayerStatus } from '@/hooks/useRelayerStatus';
 import { useUsdtBalance } from '@/hooks/useUsdtBalance';
 import { useTranslation } from '@/i18n/useTranslation';
-import type { TranslationKey } from '@/i18n/translations';
-import { AVAILABLE_CHAIN_KEYS, SUPPORTED_CHAINS } from '@/lib/constants';
-import { getDepositCopyKeys, resolveBalanceStatus, resolveFunding } from '@/lib/deposit';
+import { AVAILABLE_CHAINS } from '@/lib/constants';
+import { type BalanceStatus, getDepositCopyKeys, resolveBalanceStatus, resolveFunding } from '@/lib/deposit';
 import { cn, formatUSDT } from '@/lib/utils';
-
-const AVAILABLE_CHAINS = AVAILABLE_CHAIN_KEYS.map((key) => SUPPORTED_CHAINS[key]);
-
-const WARNING_KEYS: ReadonlySet<TranslationKey> = new Set([
-  'deposit.testnet.warning',
-  'deposit.mainnet.otherNetwork',
-]);
 
 interface DepositPanelProps {
   /** The network to receive on — the duel's, never whichever network the wallet is connected to. */
@@ -31,9 +23,14 @@ interface DepositPanelProps {
   isJoining?: boolean;
   /** Return to the duel review; shown whenever the panel sits inside a duel flow. */
   onBack?: () => void;
+  /**
+   * The flow's own balance read, when the panel sits inside a duel flow: the panel and the review
+   * gate then show one answer from one poll. Without it the panel reads the balance itself.
+   */
+  flowBalance?: { balance: BalanceStatus; retry: () => void };
 }
 
-export function DepositPanel({ chainId, requiredRaw, isJoining = false, onBack }: DepositPanelProps) {
+export function DepositPanel({ chainId, requiredRaw, isJoining = false, onBack, flowBalance }: DepositPanelProps) {
   const { t } = useTranslation();
   const { ready, authenticated, login } = usePrivy();
   const { activeWallet, walletAddress } = useActiveWallet();
@@ -41,8 +38,10 @@ export function DepositPanel({ chainId, requiredRaw, isJoining = false, onBack }
   // Logged out, logging out or Privy still loading: no address at all, never a stale one.
   const address = ready && authenticated && walletAddress ? activeWallet?.address : undefined;
   const relay = useRelayerStatus(chainId);
-  const { read, refetch } = useUsdtBalance(chainId, walletAddress, !!chain && !!address);
-  const balance = resolveBalanceStatus(read, address && walletAddress ? { chainId, walletAddress } : null);
+  const ownRead = useUsdtBalance(chainId, walletAddress, !flowBalance && !!chain && !!address);
+  const balance = flowBalance?.balance
+    ?? resolveBalanceStatus(ownRead.read, address && walletAddress ? { chainId, walletAddress } : null);
+  const retryBalance = flowBalance?.retry ?? ownRead.refetch;
 
   const backButton = onBack && (
     <Button type="button" variant="outline" onClick={onBack} className="h-11 w-full sm:w-auto sm:self-start">
@@ -102,12 +101,12 @@ export function DepositPanel({ chainId, requiredRaw, isJoining = false, onBack }
       </div>
 
       <ul className="flex flex-col gap-1.5 text-sm text-slate-700">
-        {copy.instructions.map((key) => (
+        {copy.instructions.map(({ key, warning }) => (
           <li
             key={key}
-            className={cn('flex items-start gap-1.5', WARNING_KEYS.has(key) && 'font-medium text-amber-700')}
+            className={cn('flex items-start gap-1.5', warning && 'font-medium text-amber-700')}
           >
-            {WARNING_KEYS.has(key) && <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />}
+            {warning && <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />}
             <span>{t(key, { chain: chain.name })}</span>
           </li>
         ))}
@@ -119,7 +118,7 @@ export function DepositPanel({ chainId, requiredRaw, isJoining = false, onBack }
         <DepositBalance
           label={t('deposit.balance.label', { chain: chain.name })}
           balance={balance}
-          onRetry={refetch}
+          onRetry={retryBalance}
         />
         <p className="text-xs text-slate-500">{t('deposit.balance.autoUpdate')}</p>
         {requiredRaw !== undefined && (

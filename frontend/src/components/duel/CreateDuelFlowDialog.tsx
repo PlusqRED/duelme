@@ -12,9 +12,8 @@ import {
   getCreateDuelStepLabelKey,
 } from '@/components/duel/createDuelFlowDialogContent';
 import { formatUSDT } from '@/lib/utils';
-import { FlowFundingCheck } from '@/components/duel/FlowFundingCheck';
+import { getFlowReviewSlots } from '@/components/duel/flowReviewSlots';
 import { GuidedTransactionDialog } from '@/components/duel/GuidedTransactionDialog';
-import { DepositPanel } from '@/components/wallet/DepositPanel';
 import type { FlowReviewGate } from '@/hooks/useFlowFunding';
 import type {
   GuidedTransactionAction,
@@ -173,10 +172,12 @@ export function CreateDuelFlowDialog({
     t,
   });
 
-  const isReview = stage === 'review';
-  const primaryAction = isReview && config.primaryAction
-    ? { ...config.primaryAction, disabled: !review.canContinue }
-    : config.primaryAction;
+  const { primaryAction, stepExtra, stepPanel } = getFlowReviewSlots({
+    isReview: stage === 'review',
+    review,
+    draft,
+    primaryAction: config.primaryAction,
+  });
 
   return (
     <GuidedTransactionDialog
@@ -200,16 +201,8 @@ export function CreateDuelFlowDialog({
       secondaryAction={secondaryAction}
       success={stage === 'success'}
       footerContent={t('create.flow.footer')}
-      stepExtra={isReview ? (
-        <FlowFundingCheck review={review} chainName={draft.chainName} requiredRaw={draft.rawAmount} />
-      ) : undefined}
-      stepPanel={isReview && review.funding.view === 'deposit' ? (
-        <DepositPanel
-          chainId={draft.chainId}
-          requiredRaw={draft.rawAmount}
-          onBack={review.funding.showReview}
-        />
-      ) : undefined}
+      stepExtra={stepExtra}
+      stepPanel={stepPanel}
     />
   );
 }

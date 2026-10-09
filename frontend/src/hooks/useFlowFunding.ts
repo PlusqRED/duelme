@@ -6,16 +6,17 @@ import { useUsdtBalance } from '@/hooks/useUsdtBalance';
 import type { TranslationKey } from '@/i18n/translations';
 import {
   type BalanceStatus,
-  hasEnoughFreshBalance,
+  type FundingStatus,
   resolveBalanceStatus,
+  resolveFunding,
 } from '@/lib/deposit';
 
 export type FlowFundingView = 'review' | 'deposit';
 
 export interface FlowFunding {
   balance: BalanceStatus;
-  /** A fresh balance covers the wager. The flow's own Continue handler checks this again. */
-  hasEnoughBalance: boolean;
+  /** `enough` only when a fresh balance covers the wager. The flow's Continue handler checks it again. */
+  status: FundingStatus;
   view: FlowFundingView;
   retry: () => void;
   showDeposit: () => void;
@@ -63,7 +64,7 @@ export function useFlowFunding({
     walletAddress ? { chainId, walletAddress } : null,
     openedAt,
   );
-  const hasEnoughBalance = requiredRaw !== null && hasEnoughFreshBalance(balance, requiredRaw);
+  const status: FundingStatus = requiredRaw === null ? { kind: 'unknown' } : resolveFunding(balance, requiredRaw);
 
   const markOpened = useCallback(() => {
     setOpenedAt(Date.now());
@@ -82,7 +83,7 @@ export function useFlowFunding({
 
   const funding: FlowFunding = {
     balance,
-    hasEnoughBalance,
+    status,
     view: isReviewing ? view : 'review',
     retry: refetch,
     showDeposit,

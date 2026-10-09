@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   type BalanceRead,
   getDepositCopyKeys,
-  hasEnoughFreshBalance,
   resolveBalanceStatus,
   resolveFunding,
   summarizeChainBalances,
@@ -92,19 +91,17 @@ describe('resolveBalanceStatus', () => {
   });
 });
 
-describe('resolveFunding / hasEnoughFreshBalance', () => {
+describe('resolveFunding', () => {
   it('is enough when the fresh balance covers the wager exactly', () => {
     const balance = { kind: 'ready', raw: 5_000_000n } as const;
 
     expect(resolveFunding(balance, 5_000_000n)).toEqual({ kind: 'enough' });
-    expect(hasEnoughFreshBalance(balance, 5_000_000n)).toBe(true);
   });
 
   it('reports the shortfall when the balance is below the wager', () => {
     const balance = { kind: 'ready', raw: 1_500_000n } as const;
 
     expect(resolveFunding(balance, 5_000_000n)).toEqual({ kind: 'short', shortfallRaw: 3_500_000n });
-    expect(hasEnoughFreshBalance(balance, 5_000_000n)).toBe(false);
   });
 
   it.each([
@@ -113,19 +110,22 @@ describe('resolveFunding / hasEnoughFreshBalance', () => {
     { kind: 'no-wallet' } as const,
   ])('is unknown, never enough, while the balance is $kind', (balance) => {
     expect(resolveFunding(balance, 0n)).toEqual({ kind: 'unknown' });
-    expect(hasEnoughFreshBalance(balance, 0n)).toBe(false);
   });
 
   it('never lets a stale answer through, however large', () => {
     const stale = resolveBalanceStatus(read({ data: 10n ** 18n, dataUpdatedAt: 0 }), EXPECTED, OPENED_AT);
 
-    expect(hasEnoughFreshBalance(stale, 1n)).toBe(false);
+    expect(resolveFunding(stale, 1n)).toEqual({ kind: 'unknown' });
   });
 });
 
 describe('getDepositCopyKeys', () => {
-  const MAINNET_INSTRUCTIONS = ['deposit.mainnet.send', 'deposit.mainnet.exact', 'deposit.mainnet.otherNetwork'];
-  const TESTNET_INSTRUCTIONS = ['deposit.testnet.warning'];
+  const MAINNET_INSTRUCTIONS = [
+    { key: 'deposit.mainnet.send', warning: false },
+    { key: 'deposit.mainnet.exact', warning: false },
+    { key: 'deposit.mainnet.otherNetwork', warning: true },
+  ];
+  const TESTNET_INSTRUCTIONS = [{ key: 'deposit.testnet.warning', warning: true }];
 
   it.each([
     { testnet: false, isRelayEnabled: true, token: 'deposit.token.mainnet', instructions: MAINNET_INSTRUCTIONS, fees: 'deposit.fees.relayed' },

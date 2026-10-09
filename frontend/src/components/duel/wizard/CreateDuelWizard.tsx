@@ -20,8 +20,8 @@ import { useDefaultChain } from '@/hooks/useDefaultChain';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/translations';
 import { SUPPORTED_CHAINS } from '@/lib/constants';
-import type { CreateDuelDraft } from '@/lib/createDuelDraft';
-import type { Game, GameCategory } from '@/lib/game';
+import type { CreateDuelDraft, CreateDuelDraftGame } from '@/lib/createDuelDraft';
+import type { Game } from '@/lib/game';
 import {
   isGameStepValid,
   isReviewStepValid,
@@ -36,11 +36,6 @@ const STEP_LABEL_KEYS: TranslationKey[] = [
   'wizard.step.review',
 ];
 
-interface SelectedGame {
-  slug: string;
-  name: string;
-  category: GameCategory;
-}
 
 export function CreateDuelWizard() {
   const { t } = useTranslation();
@@ -49,7 +44,7 @@ export function CreateDuelWizard() {
 
   const [stepIndex, setStepIndex] = useState(0);
   const [maxStepReached, setMaxStepReached] = useState(0);
-  const [selectedGame, setSelectedGame] = useState<SelectedGame | null>(null);
+  const [selectedGame, setSelectedGame] = useState<CreateDuelDraftGame | null>(null);
   const [amount, setAmount] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [message, setMessage] = useState('');

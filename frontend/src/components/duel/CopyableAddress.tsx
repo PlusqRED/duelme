@@ -1,10 +1,9 @@
 'use client';
 
-import { useRef, useState, useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import Link from 'next/link';
 import { Check, Copy } from 'lucide-react';
-import { useAppToast } from '@/hooks/useAppToast';
-import { copyText } from '@/lib/clipboard';
+import { useCopyFeedback } from '@/hooks/useCopyFeedback';
 import { truncateAddress } from '@/lib/utils';
 
 interface CopyableAddressProps {
@@ -15,29 +14,13 @@ interface CopyableAddressProps {
 }
 
 export function CopyableAddress({ address, className, nickname, href }: CopyableAddressProps) {
-  const appToast = useAppToast();
-  const [copied, setCopied] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
+  const { copied, copy } = useCopyFeedback('deposit.copyFailed', 1500);
 
   const handleCopy = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    void copyText(address).then((didCopy) => {
-      if (!didCopy) {
-        appToast.error('deposit.copyFailed');
-        return;
-      }
-      setCopied(true);
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => setCopied(false), 1500);
-    });
-  }, [address, appToast]);
+    void copy(address);
+  }, [address, copy]);
 
   const content = (
     <span className="flex flex-col items-center gap-0.5">

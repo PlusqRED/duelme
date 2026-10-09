@@ -1,11 +1,10 @@
 'use client';
 
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAppToast } from '@/hooks/useAppToast';
-import { copyText } from '@/lib/clipboard';
+import { useCopyFeedback } from '@/hooks/useCopyFeedback';
 import { buildDuelLink, isPublicDuel } from '@/lib/invite';
 import { Copy, Check } from 'lucide-react';
 
@@ -18,7 +17,7 @@ interface ShareLinkProps {
 export function ShareLink({ duelId, inviteHash, inviteSecret }: ShareLinkProps) {
   const { t } = useTranslation();
   const appToast = useAppToast();
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyFeedback('toast.copyFailed');
   const isPublic = isPublicDuel(inviteHash);
   const url =
     typeof window !== 'undefined'
@@ -32,13 +31,9 @@ export function ShareLink({ duelId, inviteHash, inviteSecret }: ShareLinkProps) 
       return;
     }
 
-    if (!(await copyText(url))) {
-      appToast.error('toast.copyFailed');
-      return;
+    if (await copy(url)) {
+      appToast.success('action.copied');
     }
-    setCopied(true);
-    appToast.success('action.copied');
-    setTimeout(() => setCopied(false), 2000);
   }
 
   return (

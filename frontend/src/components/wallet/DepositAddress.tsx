@@ -1,12 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAppToast } from '@/hooks/useAppToast';
+import { useCopyFeedback } from '@/hooks/useCopyFeedback';
 import { useTranslation } from '@/i18n/useTranslation';
 import { buildQrPath, QR_QUIET_ZONE } from '@/lib/addressQr';
-import { copyText } from '@/lib/clipboard';
 
 interface DepositAddressProps {
   /** The player's own wallet address, exactly as displayed — the QR encodes this string. */
@@ -20,24 +19,7 @@ interface DepositAddressProps {
  */
 export function DepositAddress({ address }: DepositAddressProps) {
   const { t } = useTranslation();
-  const appToast = useAppToast();
-  const [copied, setCopied] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-  }, []);
-
-  async function handleCopy() {
-    if (!(await copyText(address))) {
-      setCopied(false);
-      appToast.error('deposit.copyFailed');
-      return;
-    }
-    setCopied(true);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => setCopied(false), 2000);
-  }
+  const { copied, copy } = useCopyFeedback('deposit.copyFailed');
 
   return (
     <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
@@ -53,11 +35,11 @@ export function DepositAddress({ address }: DepositAddressProps) {
         <Button
           type="button"
           variant="outline"
-          onClick={() => void handleCopy()}
+          onClick={() => void copy(address)}
           className="h-11 min-w-11 self-start px-4"
         >
           {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
-          {copied ? t('deposit.copied') : t('deposit.copy')}
+          {copied ? t('wallet.copied') : t('wallet.copy')}
         </Button>
       </div>
     </div>

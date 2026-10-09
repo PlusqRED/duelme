@@ -125,7 +125,7 @@ export function useJoinDuelFlow({
   });
   const review: FlowReviewGate = {
     funding,
-    canContinue: funding.hasEnoughBalance && canJoin && !isRecheckingDuel,
+    canContinue: funding.status.kind === 'enough' && canJoin && !isRecheckingDuel,
     blockedReason: !canJoin && !isRecheckingDuel ? 'deposit.joinUnavailable' : null,
   };
 

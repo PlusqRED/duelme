@@ -74,14 +74,15 @@ export function resolveFunding(balance: BalanceStatus, requiredRaw: bigint): Fun
     : { kind: 'short', shortfallRaw: requiredRaw - balance.raw };
 }
 
-/** The review step's gate: a fresh balance that covers the wager. Never a stale or unknown one. */
-export function hasEnoughFreshBalance(balance: BalanceStatus, requiredRaw: bigint): boolean {
-  return resolveFunding(balance, requiredRaw).kind === 'enough';
+export interface DepositInstruction {
+  key: TranslationKey;
+  /** Shown as a warning: the line that keeps real money off the wrong network. */
+  warning: boolean;
 }
 
 export interface DepositCopyKeys {
   token: TranslationKey;
-  instructions: TranslationKey[];
+  instructions: DepositInstruction[];
   /** `null` until the relayer probe has answered, so the panel never flashes the wrong claim. */
   fees: TranslationKey | null;
 }
@@ -101,8 +102,12 @@ export function getDepositCopyKeys(options: {
   return {
     token: options.testnet ? 'deposit.token.testnet' : 'deposit.token.mainnet',
     instructions: options.testnet
-      ? ['deposit.testnet.warning']
-      : ['deposit.mainnet.send', 'deposit.mainnet.exact', 'deposit.mainnet.otherNetwork'],
+      ? [{ key: 'deposit.testnet.warning', warning: true }]
+      : [
+          { key: 'deposit.mainnet.send', warning: false },
+          { key: 'deposit.mainnet.exact', warning: false },
+          { key: 'deposit.mainnet.otherNetwork', warning: true },
+        ],
     fees: !options.isRelayResolved
       ? null
       : options.isRelayEnabled
@@ -111,10 +116,7 @@ export function getDepositCopyKeys(options: {
   };
 }
 
-export type ChainBalance =
-  | { chainId: number; kind: 'checking' }
-  | { chainId: number; kind: 'error' }
-  | { chainId: number; kind: 'ready'; raw: bigint };
+export type ChainBalance = { chainId: number } & Exclude<BalanceStatus, { kind: 'no-wallet' }>;
 
 interface MulticallBalanceResult {
   status: 'success' | 'failure';

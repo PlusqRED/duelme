@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect } from 'react';
 import { useReadContract } from 'wagmi';
-import { USDT_ADDRESSES } from '@/lib/constants';
-import { balanceOfAbi } from '@/lib/contracts';
+import { balanceOfAbi, getUsdtAddress } from '@/lib/contracts';
 import { subscribeToBalanceRefresh } from '@/lib/balanceRefresh';
 import type { BalanceRead } from '@/lib/deposit';
 
@@ -20,7 +19,7 @@ export function useUsdtBalance(
   walletAddress: `0x${string}` | undefined,
   enabled: boolean,
 ) {
-  const usdtAddress = USDT_ADDRESSES[chainId];
+  const usdtAddress = getUsdtAddress(chainId);
   const active = enabled && !!walletAddress && !!usdtAddress;
 
   const query = useReadContract({

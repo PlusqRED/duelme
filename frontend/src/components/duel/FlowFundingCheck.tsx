@@ -5,23 +5,21 @@ import { Button } from '@/components/ui/button';
 import { DepositBalance } from '@/components/wallet/DepositBalance';
 import type { FlowReviewGate } from '@/hooks/useFlowFunding';
 import { useTranslation } from '@/i18n/useTranslation';
-import { resolveFunding } from '@/lib/deposit';
 import { formatUSDT } from '@/lib/utils';
 
 interface FlowFundingCheckProps {
   review: FlowReviewGate;
   chainName: string;
-  requiredRaw: bigint;
 }
 
 /**
  * The balance line on the create and join review steps: the player's balance on the duel's
  * network, and — only once a fresh read shows it is short — how much is missing and a way to top up.
  */
-export function FlowFundingCheck({ review, chainName, requiredRaw }: FlowFundingCheckProps) {
+export function FlowFundingCheck({ review, chainName }: FlowFundingCheckProps) {
   const { t } = useTranslation();
   const { funding, blockedReason } = review;
-  const status = resolveFunding(funding.balance, requiredRaw);
+  const { status } = funding;
 
   return (
     <div className="mt-4 flex flex-col gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
