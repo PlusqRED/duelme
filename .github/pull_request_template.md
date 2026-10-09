@@ -3,16 +3,16 @@
 <!-- Required on every PR and kept true at its head commit (CLAUDE.md, "Git Conventions").
 Runs: how many times the stage ran on this PR. Outcome: what it found and what became of it,
 e.g. "high: 6 fixed, 2 rejected as intended; round 3 found nothing serious".
-Write n/a and the reason when a stage does not apply. -->
+Fill in every row; write n/a and the reason when a stage does not apply. -->
 
 | Stage | Runs | Outcome |
 |---|---|---|
 | `/simplify` | | |
 | `/review-pr` | | |
 | `/code-review` | | |
-| `/security-review` | | Contract changes only |
+| `/security-review` (`contracts/src/` changes) | | |
 | Local checks | | |
-| Browser check | | UI changes only |
+| Browser check (UI changes) | | |
 | QA verification | | |
 | CTO acceptance | | |
 | CI at head | | |
