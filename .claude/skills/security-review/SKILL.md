@@ -20,9 +20,9 @@ Read all Solidity files and check for:
 - [ ] Reentrancy: CEI order (state written before the token call)? `nonReentrant` on every
       **player-facing** state-mutating function? (`onlyOwner` entry points deliberately have no
       guard — that is not a finding.)
-- [ ] Access control: `onlyOwner` where it belongs, and do every `onlyOwner` path (via the
-      `_checkOwner` override) and the `acceptOwnership` override resolve their caller through
-      `msg.sender`, not `_msgSender()`? A relayable admin path means one owner signature can be
+- [ ] Access control: `onlyOwner` where it belongs? Every `onlyOwner` path (via the `_checkOwner`
+      override) and the `acceptOwnership` override must resolve their caller through
+      `msg.sender`, not `_msgSender()`. A relayable admin path means one owner signature can be
       replayed through the forwarder by whoever picks it up.
 - [ ] Pause policy: `whenNotPaused` only on entering a duel and declaring a new result: the
       internal `_createDuel` and `_joinDuel` (every create and join entry point reaches them, so
@@ -35,19 +35,20 @@ Read all Solidity files and check for:
 - [ ] Payouts still derived by `_payoutOf`, never stored on the duel.
 - [ ] Integer overflow/underflow (Solidity 0.8+ has built-in, but check `unchecked` blocks and
       every downcast into `uint96` / `uint64` / `uint40` / `uint16`).
-- [ ] Token handling: `SafeERC20` for all transfers? No raw `.transfer()`? The wager token is
-      vetted once, at deploy: do `contracts/script/Deploy.s.sol` and
-      `contracts/script/DeployMainnet.s.sol` both still run
-      `TokenFeeProbe.requireNoTransferFee`, does `contracts/script/TokenFeeProbe.sol` still
-      require the balance back whole (`testProbe*` in `contracts/test/DuelMeTokenSafety.t.sol`),
-      and is `usdt` still `immutable`? `_pullWager` is a bare `safeTransferFrom` with no
-      balance-delta check, and that is deliberate, not a finding; new code must not rely on a
-      fee-taking token being refused per wager. Its first `@dev` still describes the removed
-      check: not a finding while the deployed source stays frozen, but fix it in any change that
-      redeploys `DuelMe.sol`. A fee switched on after deploy is a known residual risk, not a
-      solved one: every payout then arrives minus the fee, wagers taken after the switch leave
-      the escrow short (`testFeeSwitchedOnAfterDeployUnderCollateralisesTheDuel`), and `pause()`
-      only stops new wagers coming in.
+- [ ] Token handling: `SafeERC20` for all transfers? No raw `.transfer()`?
+- [ ] Fee-taking token, vetted once at deploy: do `contracts/script/Deploy.s.sol` and
+      `contracts/script/DeployMainnet.s.sol` both still run `TokenFeeProbe.requireNoTransferFee`?
+      Does `contracts/script/TokenFeeProbe.sol` still require the balance back whole
+      (`testProbe*` in `contracts/test/DuelMeTokenSafety.t.sol`)? Is `usdt` still `immutable`?
+      Does any new code rely on a fee-taking token being refused per wager?
+      Not findings: `_pullWager` is a bare `safeTransferFrom` with no balance-delta check, by
+      design. Its `@dev` that begins "Takes a wager and verifies" describes that removed check;
+      it stays while the deployed source is frozen and is fixed in any change that redeploys
+      `DuelMe.sol`.
+      Residual risk, not a solved one: once a fee is switched on after deploy, every payout
+      arrives minus the fee and wagers taken after the switch leave the escrow short
+      (`testFeeSwitchedOnAfterDeployUnderCollateralisesTheDuel`). `pause()` stops new wagers but
+      cannot make outstanding payouts whole.
 - [ ] USDT-specific: blocklist risk covered by pull payouts plus the `*To` destinations? Permit
       path still tolerant of a front-run `permit` (the `try/catch` + allowance check)?
 - [ ] State machine: can any transition be skipped, replayed, or reached from the wrong state?
