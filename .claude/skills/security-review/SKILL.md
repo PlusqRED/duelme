@@ -6,8 +6,7 @@ allowed-tools: Bash, Read, Grep, Glob
 
 Perform a security review of DuelMe smart contracts.
 
-Arguments: $ARGUMENTS (optional: specific file path, default: all contracts in `contracts/src/` and the
-deploy scripts in `contracts/script/`)
+Arguments: $ARGUMENTS (optional: specific file path, default: all contracts in `contracts/src/`)
 
 Read `CLAUDE.md` → "Smart Contract" under Architecture Decisions first. Several items below are
 rules that already hold and exist for a reason; the job is to check nothing has drifted off them,
@@ -32,13 +31,8 @@ Read all Solidity files and check for:
 - [ ] Payouts still derived by `_payoutOf`, never stored on the duel.
 - [ ] Integer overflow/underflow (Solidity 0.8+ has built-in, but check `unchecked` blocks and
       every downcast into `uint96` / `uint64` / `uint40` / `uint16`).
-- [ ] Token handling: `SafeERC20` for all transfers? No raw `.transfer()`? `_pullWager` is a bare
-      `safeTransferFrom` by design: the token is vetted once, at deploy (next item).
-- [ ] Deploy scripts: do both still run `TokenFeeProbe.requireNoTransferFee` on the wager token,
-      build the forwarder from `ForwarderConfig.NAME` (byte-identical to `FORWARDER_NAME` in
-      `frontend/src/lib/forwardRequest.ts`) and hand that forwarder to `DuelMe`, and deploy with a
-      `MIN_WAGER` that is at least `MIN_WAGER_FLOOR` and equal to `MIN_WAGER` in
-      `frontend/src/lib/constants.ts`?
+- [ ] Token handling: `SafeERC20` for all transfers? No raw `.transfer()`? Wagers pulled through
+      `_pullWager`, which refuses a token that takes a transfer fee?
 - [ ] USDT-specific: blocklist risk covered by pull payouts plus the `*To` destinations? Permit
       path still tolerant of a front-run `permit` (the `try/catch` + allowance check)?
 - [ ] State machine: can any transition be skipped, replayed, or reached from the wrong state?
