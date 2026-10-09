@@ -15,7 +15,8 @@ CLAUDE.md disagree, CLAUDE.md wins and this file is the bug.
 
 1. Get the diff:
    - If PR number given: `gh pr diff $ARGUMENTS`
-   - If branch name given: `git diff main...$ARGUMENTS`
+   - If branch name given: `git fetch origin`, then `git diff origin/dev...$ARGUMENTS` (PRs here
+     target `dev`, not `main`)
    - Otherwise: `git diff HEAD` (staged **and** unstaged; plain `git diff` misses staged changes)
 
 2. For each changed file, check:
@@ -23,9 +24,10 @@ CLAUDE.md disagree, CLAUDE.md wins and this file is the bug.
 ### Solidity (`contracts/`)
 - Reentrancy: CEI order, and `nonReentrant` on every new **player-facing** state-mutating
   function. `onlyOwner` entry points deliberately carry no guard — not a finding.
-- `onlyOwner` paths resolve their caller through `msg.sender`, never `_msgSender()`.
-- `whenNotPaused` only on entering a duel and declaring a result, never on a path that returns a
-  player's money.
+- `onlyOwner` paths (via `_checkOwner`) and the `acceptOwnership` override resolve their caller
+  through `msg.sender`, never `_msgSender()`.
+- `whenNotPaused` only on entering a duel (create, join, decline) and declaring a result
+  (`claimVictory`, `admitDefeat`), never on a path that returns a player's money.
 - `SafeERC20` everywhere; no raw `.transfer()` / `.transferFrom()`.
 - Events emitted for every state change; payouts still derived by `_payoutOf`, never stored.
 - Tests cover the change, including every new revert condition.
