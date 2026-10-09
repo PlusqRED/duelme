@@ -24,10 +24,12 @@ Read all Solidity files and check for:
       `_checkOwner` override) and the `acceptOwnership` override resolve their caller through
       `msg.sender`, not `_msgSender()`? A relayable admin path means one owner signature can be
       replayed through the forwarder by whoever picks it up.
-- [ ] Pause policy: `whenNotPaused` only on entering a duel (create, join, decline) and declaring
-      a new result (`claimVictory`, `admitDefeat`). Anything that hands a player money back —
-      `confirmResult`, `disputeResult`, `refund`, `cancelDuel`, the mutual-cancellation flow,
-      every claim — must stay callable while paused.
+- [ ] Pause policy: `whenNotPaused` only on entering a duel and declaring a new result: the
+      internal `_createDuel` and `_joinDuel` (every create and join entry point reaches them, so
+      the external ones carry no modifier of their own), `declineDuel`, `claimVictory` and
+      `admitDefeat`. Anything that hands a player money back — `confirmResult`, `disputeResult`,
+      `refund`, `cancelDuel`, the mutual-cancellation flow, every claim — must stay callable
+      while paused.
 - [ ] `DuelState.Nonexistent` still holds the enum's zero value, and every entry point whose
       required state is `Created` still goes through `_requireWaitingDuel`.
 - [ ] Payouts still derived by `_payoutOf`, never stored on the duel.
@@ -37,11 +39,13 @@ Read all Solidity files and check for:
       vetted once, at deploy: do `contracts/script/Deploy.s.sol` and
       `contracts/script/DeployMainnet.s.sol` both still run
       `TokenFeeProbe.requireNoTransferFee`, does `contracts/script/TokenFeeProbe.sol` still
-      require the balance back whole (`testProbe*` in `DuelMeTokenSafety.t.sol`), and is `usdt`
-      still `immutable`? `_pullWager` is a bare `safeTransferFrom` with no balance-delta check,
-      and that is deliberate, not a finding; its first `@dev` still describes the removed check —
-      known, and left alone because the deployed source is frozen. New code must not rely on a
-      fee-taking token being refused per wager: a fee switched on after deploy is `pause()`'s job
+      require the balance back whole (`testProbe*` in `contracts/test/DuelMeTokenSafety.t.sol`),
+      and is `usdt` still `immutable`? `_pullWager` is a bare `safeTransferFrom` with no
+      balance-delta check, and that is deliberate, not a finding; its first `@dev` still
+      describes the removed check — known, and left alone because the deployed source is frozen.
+      New code must not rely on a fee-taking token being refused per wager. A fee switched on
+      after deploy is a known residual risk, not a solved one: `pause()` stops new wagers coming
+      in, but duels already funded stay under-collateralised and the last claimant is short
       (`testFeeSwitchedOnAfterDeployUnderCollateralisesTheDuel`).
 - [ ] USDT-specific: blocklist risk covered by pull payouts plus the `*To` destinations? Permit
       path still tolerant of a front-run `permit` (the `try/catch` + allowance check)?

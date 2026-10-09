@@ -15,8 +15,9 @@ CLAUDE.md disagree, CLAUDE.md wins and this file is the bug.
 
 1. Get the diff:
    - If PR number given: `gh pr diff $ARGUMENTS`
-   - If branch name given: `git fetch origin`, then `git diff origin/dev...$ARGUMENTS` (feature
-     PRs here target `dev`; use `origin/$ARGUMENTS` for a branch not checked out locally)
+   - If branch name given: `git fetch origin`, then `git diff origin/dev...origin/$ARGUMENTS` —
+     the pushed branch against `dev`, which feature PRs target; for a PR into another base, pass
+     its number instead
    - Otherwise: `git diff HEAD` (staged **and** unstaged; plain `git diff` misses staged changes)
 
 2. For each changed file, check:
@@ -26,8 +27,8 @@ CLAUDE.md disagree, CLAUDE.md wins and this file is the bug.
   function. `onlyOwner` entry points deliberately carry no guard — not a finding.
 - `onlyOwner` paths (via `_checkOwner`) and the `acceptOwnership` override resolve their caller
   through `msg.sender`, never `_msgSender()`.
-- `whenNotPaused` only on entering a duel (create, join, decline) and declaring a result
-  (`claimVictory`, `admitDefeat`), never on a path that returns a player's money.
+- `whenNotPaused` only on entering a duel (`_createDuel`, `_joinDuel`, `declineDuel`) and
+  declaring a result (`claimVictory`, `admitDefeat`), never on a path that returns a player's money.
 - `SafeERC20` everywhere; no raw `.transfer()` / `.transferFrom()`.
 - Events emitted for every state change; payouts still derived by `_payoutOf`, never stored.
 - Tests cover the change, including every new revert condition.
