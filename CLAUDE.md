@@ -239,6 +239,13 @@ address, no relayer key — is the case the self-paid path still covers.
 | `frontend/src/lib/duelSearch.ts` | Shared visible-field search indexing |
 | `frontend/src/lib/actionFlowConfigs.ts` | Guided transaction flow configs for duel actions |
 | `frontend/src/lib/balanceRefresh.ts` | Shared client-side balance refresh event bus |
+| `frontend/src/components/wallet/DepositPanel.tsx` | Top-up panel: full address, QR, balance, fee note, faucet — for the `chainId` it is given |
+| `frontend/src/lib/deposit.ts` | Balance freshness / sufficiency rule (`resolveBalanceStatus`, `hasEnoughFreshBalance`), top-up copy, wallet-menu per-chain balances |
+| `frontend/src/hooks/useFlowFunding.ts` | Balance gate and review ↔ top-up switch on the create and join review steps |
+| `frontend/src/lib/createDuelDraft.ts` | Versioned `sessionStorage` draft of the create form, kept across a top-up (no invite secret) |
+| `frontend/src/lib/clipboard.ts` | `copyText` — the one clipboard write; confirm "Copied" only when it returns `true` |
+| `frontend/src/lib/addressQr.ts` | QR of a bare string as an SVG path, rendered as plain React markup |
+| `frontend/src/hooks/useFaucetClaim.ts` | Testnet faucet claim shared by the wallet menu and the top-up panel |
 | `frontend/src/lib/buildTransactionParams.ts` | Builds explicit `gas`/`maxFeePerGas`/`maxPriorityFeePerGas`/`nonce` to bypass Privy auto-populate (see Common Pitfalls) |
 | `frontend/src/lib/resilientBroadcast.ts` | Splits writes into sign + broadcast so wagmi fallback transport handles RPC retries |
 | `frontend/src/lib/errorDetails.ts` | Flattens an error graph into lowercase detail strings for failure classification; `bestErrorDetail` picks the one worth showing |
@@ -512,6 +519,7 @@ Runtime config source of truth: GitHub repository/environment secrets. Deploy wo
 - `createConfig` from `wagmi` instead of `@privy-io/wagmi` silently breaks wallet routing.
 - `useSetActiveWallet` in `useEffect` is too late — use `setActiveWalletForWagmi` sync callback.
 - Invite-only duels rely on the full private link (URL fragment) — never fall back to plain `/duel/{id}`.
+- **Top-up details belong to the duel's network, not the wallet's.** `DepositPanel` takes `chainId` from its caller (the flow's `draft.chainId`, the network picked in the wallet menu), never from `useChainId()` or the connected wallet — a player connected to another network would otherwise be told to send USDT where the duel cannot use it. Its QR encodes the bare address only: no `ethereum:` URI, amount, token or invite secret.
 - USDT has a blocklist — keep payouts pull-based, no push transfers.
 - Wilson Score gives low scores for small samples — players with 0 abandoned duels are never "unreliable".
 - Only `contracts/broadcast/{Deploy,DeployMainnet}.s.sol/<chainId>/run-latest.json` is tracked; timestamped `run-*.json` ignored via top-level `.gitignore`.
