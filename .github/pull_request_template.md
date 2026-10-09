@@ -1,20 +1,19 @@
 ## Quality gates
 
-<!-- Required on every PR and kept true at its head commit (CLAUDE.md, "Git Conventions").
+<!-- When each stage is required: CLAUDE.md, "Git Conventions".
 Runs: how many times the stage ran on this PR. Outcome: what it found and what became of it,
-e.g. "high: 6 fixed, 2 rejected as intended; round 3 found nothing serious".
-Fill in every row; write n/a and the reason when a stage does not apply. -->
+e.g. "high: 6 fixed, 2 rejected as intended; round 3 found nothing serious". -->
 
 | Stage | Runs | Outcome |
 |---|---|---|
 | `/simplify` | | |
 | `/review-pr` | | |
 | `/code-review` | | |
-| `/security-review` (`contracts/src/` changes) | | |
+| `/security-review` (`contracts/src/`, `contracts/script/`) | | |
 | Local checks | | |
 | Browser check (UI changes) | | |
 | QA verification | | |
-| CTO acceptance | | |
+| Acceptance | | |
 | CI at head | | |
 
 ## Summary
