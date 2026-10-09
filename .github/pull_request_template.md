@@ -10,7 +10,7 @@ other than the author. Acceptance: who marked the PR ready for review, at which 
 | `/simplify` | | |
 | `/review-pr` | | |
 | `/code-review` | | |
-| `/security-review` (`contracts/src/` changes) | | |
+| `/security-review` (contract or deploy-script changes) | | |
 | Local checks | | |
 | Browser check (UI changes) | | |
 | QA verification | | |
