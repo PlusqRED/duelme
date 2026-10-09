@@ -24,7 +24,13 @@ ops/         — Docker Compose, Caddy config
 - **Never** run `git add` / `commit` / `push` (or any equivalent like `git commit -a`, `git push --force`, `gh pr create`) unless the user explicitly asks for THAT specific action in their current message. Permission is per-action and per-message; past authorization does not carry forward. Read-only git commands (`status`, `diff`, `log`, `show`) are fine. After changes, stop at the working tree and report the diff — wait before staging/committing/pushing.
 - **Never** add `Co-Authored-By` or any Claude attribution to commits.
 - Don't amend existing commits unless explicitly asked.
-- Commit messages: imperative mood ("Add X" not "Added X"); first line ≤72 chars; body for non-obvious context.
+- Commit messages: in English, imperative mood ("Add X" not "Added X"); first line ≤72 chars; body for non-obvious context.
+- **PRs** are written in English and open as drafts. Their description opens with the **Quality gates** table from `.github/pull_request_template.md` — how many times each review and check ran on the PR, and what came of it — and it is kept true at the head commit, because the merge decision is made from it. Dependabot's PRs (the bot rewrites their description) and `dev` → `main` releases are exempt from the table and from the loop below.
+- **Review loop before a PR is marked ready for review**, in this order. `/review-pr <n>` and `/code-review <n>` read the pushed PR, so the draft PR is opened before step 2 and each round's fixes are pushed before the next round; a request to run the loop covers opening that draft PR and the commits and pushes to its branch that the loop needs. Snapshot the work before every auto-fix — a `git diff --binary HEAD` patch plus copies of untracked files is enough — and re-read what it changed against the spec: auto-fixes have rewritten explicit requirements before.
+  1. `/simplify` once on code changes, with the range named (`/simplify origin/<base>...HEAD`) so that it covers the whole branch, not only uncommitted work.
+  2. `/review-pr <n>` once, for this repo's conventions.
+  3. `/security-review` when `contracts/src/` changes, and again whenever a later fix touches it.
+  4. `/code-review high <n>` round after round until a round finds nothing serious — wrong behaviour, or a security, money or data risk. Use `max` when the diff touches `contracts/`, the relayer, permits, payouts or auth, and never `--comment`: findings are triaged before anything reaches the PR. Every finding gets a verdict in the table: fixed, rejected with the reason, or deferred. The clean round's minor findings are deferred rather than fixed, because later rounds have caught bugs that earlier fixes introduced, and anything that changes the PR's diff after that round — a CI fix, a conflict resolution — gets another round. If a fourth round still finds serious bugs, stop before fixing them and rethink the design.
 
 ## Native Image Compatibility (CRITICAL)
 
@@ -297,6 +303,7 @@ address, no relayer key — is the case the self-paid path still covers.
 | `backend/Dockerfile` | Backend container (multi-stage, GraalVM native) |
 | `frontend/Dockerfile` | Frontend container (multi-stage, Node 22) |
 | `.github/workflows/ci.yml` | CI pipeline: test + deploy (dev & prod) |
+| `.github/pull_request_template.md` | PR description skeleton; its Quality gates table is required (see Git Conventions) |
 | `ops/docker-compose.{dev,prod}.yml` | Compose stacks |
 | `ops/caddy/{dev.duelme.pro,duelme.pro}.Caddyfile` | Caddy reverse proxy |
 
@@ -327,7 +334,7 @@ cost the first time.
 - **DRY:** single source of truth for every constant/type/helper/ABI. See `constants.ts` / `contracts.ts`.
 - **YAGNI:** build what the task requires. No abstractions for hypothetical futures. Three similar lines beats a premature abstraction.
 - **Fail fast:** validate at system boundaries (user input, API, contract calls). Inside, trust the types. Never silently swallow errors.
-- **Self-review before "done":** `npx tsc --noEmit` · `npm run lint` · relevant tests (`forge test`, `./gradlew test`, `npm run test`) · read the diff for debug code / missing error handling / inconsistent naming.
+- **Self-review before "done":** `npx tsc --noEmit` · `npm run lint` · relevant tests (`forge test`, `./gradlew test`, `npm run test`) · read the diff for debug code / missing error handling / inconsistent naming. A change that goes into a PR then also gets the review loop under Git Conventions before the PR is marked ready for review.
 
 ### Frontend (Next.js / React / TS / Tailwind)
 
