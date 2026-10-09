@@ -36,10 +36,13 @@ Read all Solidity files and check for:
 - [ ] Token handling: `SafeERC20` for all transfers? No raw `.transfer()`? The wager token is
       vetted once, at deploy: do `contracts/script/Deploy.s.sol` and
       `contracts/script/DeployMainnet.s.sol` both still run
-      `TokenFeeProbe.requireNoTransferFee`, and is `usdt` still `immutable`? `_pullWager` is a
-      bare `safeTransferFrom` with no balance-delta check, and that is deliberate, not a finding —
-      but new code must not rely on a fee-taking token being refused per wager. A fee switched on
-      after deploy is `pause()`'s job (`testFeeSwitchedOnAfterDeployUnderCollateralisesTheDuel`).
+      `TokenFeeProbe.requireNoTransferFee`, does `contracts/script/TokenFeeProbe.sol` still
+      require the balance back whole (`testProbe*` in `DuelMeTokenSafety.t.sol`), and is `usdt`
+      still `immutable`? `_pullWager` is a bare `safeTransferFrom` with no balance-delta check,
+      and that is deliberate, not a finding; its first `@dev` still describes the removed check —
+      known, and left alone because the deployed source is frozen. New code must not rely on a
+      fee-taking token being refused per wager: a fee switched on after deploy is `pause()`'s job
+      (`testFeeSwitchedOnAfterDeployUnderCollateralisesTheDuel`).
 - [ ] USDT-specific: blocklist risk covered by pull payouts plus the `*To` destinations? Permit
       path still tolerant of a front-run `permit` (the `try/catch` + allowance check)?
 - [ ] State machine: can any transition be skipped, replayed, or reached from the wrong state?

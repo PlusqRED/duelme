@@ -15,8 +15,8 @@ CLAUDE.md disagree, CLAUDE.md wins and this file is the bug.
 
 1. Get the diff:
    - If PR number given: `gh pr diff $ARGUMENTS`
-   - If branch name given: `git fetch origin`, then `git diff origin/dev...$ARGUMENTS` (PRs here
-     target `dev`, not `main`)
+   - If branch name given: `git fetch origin`, then `git diff origin/dev...$ARGUMENTS` (feature
+     PRs here target `dev`; use `origin/$ARGUMENTS` for a branch not checked out locally)
    - Otherwise: `git diff HEAD` (staged **and** unstaged; plain `git diff` misses staged changes)
 
 2. For each changed file, check:
