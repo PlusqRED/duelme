@@ -1,6 +1,6 @@
 plugins {
     java
-    id("org.springframework.boot") version "4.0.3"
+    id("org.springframework.boot") version "4.1.1"
     id("org.graalvm.buildtools.native") version "0.11.5"
 }
 
@@ -24,17 +24,17 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-validation")
-    implementation("com.nimbusds:nimbus-jose-jwt:10.0.1")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2")
+    implementation("com.nimbusds:nimbus-jose-jwt:10.10")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1")
     // web3j powers the dev-only testnet faucet (signing + JSON-RPC). Kept in
     // core deps so JVM + native builds both include it; on-off is gated at
     // runtime inside FaucetService via `duelme.faucet.enabled`.
-    implementation("org.web3j:core:4.12.2")
+    implementation("org.web3j:core:4.14.0")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.springframework.security:spring-security-test")
-    testImplementation("de.flapdoodle.embed:de.flapdoodle.embed.mongo.spring4x:4.24.0")
+    testImplementation("de.flapdoodle.embed:de.flapdoodle.embed.mongo.spring4x:4.33.0")
 }
 
 tasks.withType<Test> {
