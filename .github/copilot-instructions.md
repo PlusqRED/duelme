@@ -75,5 +75,4 @@ never contradict CLAUDE.md; if it does, CLAUDE.md is right and this file is the 
 - When adding a runtime env var or secret, update `.github/workflows/ci.yml`, the matching
   `ops/docker-compose.*.yml`, and `CLAUDE.md`. GitHub secrets are the source of truth for deployed
   values; never commit them.
-- Pull requests follow CLAUDE.md, "Git Conventions": written in English, opened as drafts, and the
-  description starts with the Quality gates table from `.github/pull_request_template.md`.
+- Pull requests: follow "Git Conventions" in CLAUDE.md.

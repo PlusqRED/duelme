@@ -26,11 +26,11 @@ ops/         — Docker Compose, Caddy config
 - Don't amend existing commits unless explicitly asked.
 - Commit messages: in English, imperative mood ("Add X" not "Added X"); first line ≤72 chars; body for non-obvious context.
 - **PRs** are written in English and open as drafts. Their description opens with the **Quality gates** table from `.github/pull_request_template.md` — how many times each review and check ran on the PR, and what came of it — and it is kept true at the head commit, because the merge decision is made from it. Dependabot's PRs (the bot rewrites their description) and `dev` → `main` releases are exempt.
-- **Review loop before a PR is marked ready for review.** Snapshot the work before every auto-fix and re-read what it changed against the spec: auto-fixes have rewritten explicit requirements before.
+- **Review loop before a PR is marked ready for review.** Snapshot the work before every auto-fix — a `git diff HEAD` patch plus copies of untracked files is enough — and re-read what it changed against the spec: auto-fixes have rewritten explicit requirements before. Both review commands read the pushed PR, so push each round's fixes before the next round.
   1. `/simplify` once on code changes, covering the branch's whole diff against the PR's base.
-  2. `/review-pr` once, for this repo's conventions.
-  3. `/code-review high` round after round until a round finds nothing serious — wrong behaviour, or a security, money or data risk. Use `max` when the diff touches `contracts/`, the relayer, permits, payouts or auth, and never `--comment`: findings are triaged before anything reaches the PR. Every finding gets a verdict, fixed or rejected with the reason. The last change is always reviewed, because later rounds have caught bugs that earlier fixes introduced. If a fourth round still finds serious bugs, stop before fixing them and rethink the design.
-  4. `/security-review` when `contracts/src/` changes, and `/security-review <file>` for each changed file under `contracts/script/`.
+  2. `/review-pr <n>` once, for this repo's conventions.
+  3. `/code-review high <n>` round after round until a round finds nothing serious — wrong behaviour, or a security, money or data risk. Use `max` when the diff touches `contracts/`, the relayer, permits, payouts or auth, and never `--comment`: findings are triaged before anything reaches the PR. Every finding gets a verdict, fixed or rejected with the reason. The round that finds nothing serious is the last one and nothing changes after it, because later rounds have caught bugs that earlier fixes introduced; its minor findings are recorded, and fixed in a later PR if at all. If a fourth round still finds serious bugs, stop before fixing them and rethink the design.
+  4. `/security-review` when `contracts/src/` changes.
 
 ## Native Image Compatibility (CRITICAL)
 

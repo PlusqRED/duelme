@@ -31,8 +31,9 @@ Read all Solidity files and check for:
 - [ ] Payouts still derived by `_payoutOf`, never stored on the duel.
 - [ ] Integer overflow/underflow (Solidity 0.8+ has built-in, but check `unchecked` blocks and
       every downcast into `uint96` / `uint64` / `uint40` / `uint16`).
-- [ ] Token handling: `SafeERC20` for all transfers? No raw `.transfer()`? Wagers pulled through
-      `_pullWager`, which refuses a token that takes a transfer fee?
+- [ ] Token handling: `SafeERC20` for all transfers? No raw `.transfer()`? `_pullWager` is a bare
+      `safeTransferFrom` by design: the token is vetted once, at deploy, so do both deploy scripts
+      still call `TokenFeeProbe.requireNoTransferFee`?
 - [ ] USDT-specific: blocklist risk covered by pull payouts plus the `*To` destinations? Permit
       path still tolerant of a front-run `permit` (the `try/catch` + allowance check)?
 - [ ] State machine: can any transition be skipped, replayed, or reached from the wrong state?
