@@ -36,7 +36,7 @@ export function Header() {
   const [toAddress, setToAddress] = useState('');
   const [sendAmount, setSendAmount] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const { copied, copy } = useCopyFeedback('deposit.copyFailed');
+  const { copied, copy } = useCopyFeedback('wallet.copyFailed');
   const [selectedChain, setSelectedChain] = useState<number>(DEFAULT_CHAIN_ID);
   const [balanceFlash, setBalanceFlash] = useState(false);
   const [depositChainId, setDepositChainId] = useState<number | null>(null);

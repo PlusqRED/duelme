@@ -14,7 +14,7 @@ interface CopyableAddressProps {
 }
 
 export function CopyableAddress({ address, className, nickname, href }: CopyableAddressProps) {
-  const { copied, copy } = useCopyFeedback('deposit.copyFailed', 1500);
+  const { copied, copy } = useCopyFeedback('wallet.copyFailed', 1500);
 
   const handleCopy = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
