@@ -238,10 +238,9 @@ jobs:
       - name: Test
         run: npm test
 
-      # Without this a PR never runs `next build`: the image build in build-dev is the first
-      # place it happens, after the merge. No env needed: the chain key falls back to
-      # arbitrumSepolia, and the root layout is force-dynamic, so no page renders the Privy
-      # provider at build time.
+      # Otherwise `next build` first runs in build-dev's image build, after the merge. Needs no
+      # env: resolveDefaultChainKey falls back to arbitrumSepolia, and the force-dynamic root
+      # layout keeps the Privy provider out of build-time rendering.
       - name: Build
         run: npm run build
 
