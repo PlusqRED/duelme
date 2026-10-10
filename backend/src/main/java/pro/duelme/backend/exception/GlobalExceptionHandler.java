@@ -62,10 +62,8 @@ public class GlobalExceptionHandler {
             .body(Map.of("error", ex.getMessage()));
     }
 
-    @ExceptionHandler(SocialVerificationFailedException.class)
-    public ResponseEntity<Map<String, String>> handleSocialVerificationFailed(
-        SocialVerificationFailedException ex
-    ) {
+    @ExceptionHandler({SocialVerificationFailedException.class, NotLiveDeploymentException.class})
+    public ResponseEntity<Map<String, String>> handleBadRequest(RuntimeException ex) {
         return ResponseEntity.badRequest()
             .body(Map.of("error", ex.getMessage()));
     }

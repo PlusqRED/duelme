@@ -2,14 +2,19 @@ package pro.duelme.backend.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.bson.Document;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import pro.duelme.backend.dto.DuelMetaRequest;
 import pro.duelme.backend.dto.DuelMetaResponse;
 import pro.duelme.backend.exception.NotAuthorizedException;
+import pro.duelme.backend.exception.NotLiveDeploymentException;
+import pro.duelme.backend.model.DuelMeta;
 import pro.duelme.backend.model.GameCategory;
 import pro.duelme.backend.repository.DuelMetaRepository;
 import pro.duelme.backend.repository.GameRepository;
@@ -27,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @ActiveProfiles("test")
+@ExtendWith(OutputCaptureExtension.class)
 class DuelMetaServiceTest {
 
     @Autowired
@@ -37,6 +43,9 @@ class DuelMetaServiceTest {
 
     @Autowired
     private GameRepository gameRepository;
+
+    @Autowired
+    private GameService gameService;
 
     @Autowired
     private MongoTemplate template;
@@ -161,16 +170,31 @@ class DuelMetaServiceTest {
     void attachGameLetsANewDeploymentReuseADuelIdTakenByAnother() {
         // The 403 this change removes: duel 1 belonged to someone else under the
         // previous deployment, and the new duel 1 is a different duel entirely.
-        duelMetaService.attachGame(1, CHAIN_ID, CONTRACT, "0xold-creator", new DuelMetaRequest("CS2", null, null));
+        gameService.getOrCreate("CS2", null, null);
+        saveRetiredDeploymentRow(1, "cs2", "0xold-creator");
 
         DuelMetaResponse response = duelMetaService.attachGame(
-            1, CHAIN_ID, REDEPLOYED_CONTRACT, "0xnew-creator", new DuelMetaRequest("Valorant", null, null));
+            1, CHAIN_ID, CONTRACT, "0xnew-creator", new DuelMetaRequest("Valorant", null, null));
 
         assertThat(response.creatorAddress()).isEqualTo("0xnew-creator");
         assertThat(response.gameSlug()).isEqualTo("valorant");
         // And the old row keeps its game rather than being overwritten.
-        assertThat(duelMetaService.getByDuel(1, CHAIN_ID, CONTRACT).gameSlug()).isEqualTo("cs2");
+        assertThat(duelMetaService.getByDuel(1, CHAIN_ID, REDEPLOYED_CONTRACT).gameSlug()).isEqualTo("cs2");
         assertThat(duelMetaRepository.findAll()).hasSize(2);
+    }
+
+    @Test
+    void attachGameRejectsAContractThatIsNotLiveOnTheChain() {
+        var request = new DuelMetaRequest("CS2", null, null);
+
+        assertThatThrownBy(() -> duelMetaService.attachGame(1, CHAIN_ID, REDEPLOYED_CONTRACT, "0xcreator", request))
+            .isInstanceOf(NotLiveDeploymentException.class);
+        // A chain with no deployment configured at all has no live contract to match.
+        assertThatThrownBy(() -> duelMetaService.attachGame(1, 1, CONTRACT, "0xcreator", request))
+            .isInstanceOf(NotLiveDeploymentException.class);
+
+        assertThat(duelMetaRepository.findAll()).isEmpty();
+        assertThat(gameRepository.findAll()).isEmpty();
     }
 
     @Test
@@ -260,6 +284,14 @@ class DuelMetaServiceTest {
         assertThat(results).extracting(DuelMetaResponse::duelId).containsExactly(3L, 1L);
     }
 
+    /**
+     * A row of the deployment the tests do not treat as live. It was written while that
+     * deployment was live, so it goes straight to the repository: attachGame refuses it now.
+     */
+    private void saveRetiredDeploymentRow(long duelId, String gameSlug, String creator) {
+        duelMetaRepository.save(new DuelMeta(null, REDEPLOYED_CONTRACT, duelId, CHAIN_ID, gameSlug, creator, null));
+    }
+
     private void insertRow(long duelId, String gameSlug, Instant createdAt) {
         template.getCollection("duelMeta").insertOne(new Document()
             .append("contractAddress", CONTRACT)
@@ -272,13 +304,12 @@ class DuelMetaServiceTest {
 
     @Test
     void getByGameSlugFiltersBeforeApplyingTheLimit() {
-        var request = new DuelMetaRequest("CS2", null, null);
         // Rows this deployment must not see, written first so a post-cap filter
         // would spend the whole limit on them and return nothing.
-        duelMetaService.attachGame(1, 1, CONTRACT, "0xcreator", request);
-        duelMetaService.attachGame(2, 1, CONTRACT, "0xcreator", request);
-        duelMetaService.attachGame(3, CHAIN_ID, REDEPLOYED_CONTRACT, "0xcreator", request);
-        duelMetaService.attachGame(4, CHAIN_ID, CONTRACT, "0xcreator", request);
+        duelMetaRepository.save(new DuelMeta(null, CONTRACT, 1, 1, "cs2", "0xcreator", null));
+        duelMetaRepository.save(new DuelMeta(null, CONTRACT, 2, 1, "cs2", "0xcreator", null));
+        saveRetiredDeploymentRow(3, "cs2", "0xcreator");
+        duelMetaService.attachGame(4, CHAIN_ID, CONTRACT, "0xcreator", new DuelMetaRequest("CS2", null, null));
 
         List<DuelMetaResponse> results = duelMetaService.getByGameSlug("cs2", CHAIN_ID, CONTRACT, 2);
 
@@ -325,10 +356,33 @@ class DuelMetaServiceTest {
     @Test
     void getByDuelIdsSkipsAnotherDeploymentsRows() {
         duelMetaService.attachGame(1, CHAIN_ID, CONTRACT, "0xcreator", new DuelMetaRequest("CS2", null, null));
-        duelMetaService.attachGame(1, CHAIN_ID, REDEPLOYED_CONTRACT, "0xcreator", new DuelMetaRequest("Dota 2", null, null));
+        gameService.getOrCreate("Dota 2", null, null);
+        saveRetiredDeploymentRow(1, "dota-2", "0xcreator");
 
         List<DuelMetaResponse> results = duelMetaService.getByDuelIds(CHAIN_ID, REDEPLOYED_CONTRACT, List.of(1L));
 
         assertThat(results).extracting(DuelMetaResponse::gameSlug).containsExactly("dota-2");
+    }
+
+    @Test
+    void getByDuelIdsSkipsARowWhoseGameIsGoneAndServesTheRest(CapturedOutput output) {
+        duelMetaService.attachGame(1, CHAIN_ID, CONTRACT, "0xcreator", new DuelMetaRequest("CS2", null, null));
+        insertRow(2, "vanished-game", Instant.now());
+        duelMetaService.attachGame(3, CHAIN_ID, CONTRACT, "0xcreator", new DuelMetaRequest("Dota 2", null, null));
+
+        List<DuelMetaResponse> results = duelMetaService.getByDuelIds(CHAIN_ID, CONTRACT, List.of(1L, 2L, 3L));
+
+        // One orphan used to throw GameNotFoundException out of the whole batch —
+        // a 404 for every duel on the page, not just the broken one.
+        assertThat(results).extracting(DuelMetaResponse::duelId).containsExactlyInAnyOrder(1L, 3L);
+        assertThat(output).contains("WARN").contains("vanished-game").contains(CONTRACT);
+    }
+
+    @Test
+    void getByDuelTreatsARowWhoseGameIsGoneAsNoMetadata(CapturedOutput output) {
+        insertRow(2, "vanished-game", Instant.now());
+
+        assertThat(duelMetaService.getByDuel(2, CHAIN_ID, CONTRACT)).isNull();
+        assertThat(output).contains("WARN").contains("vanished-game").contains(CONTRACT);
     }
 }
