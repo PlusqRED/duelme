@@ -15,7 +15,11 @@ CLAUDE.md disagree, CLAUDE.md wins and this file is the bug.
 
 1. Get the diff:
    - If PR number given: `gh pr diff $ARGUMENTS`
-   - If branch name given: `git diff main...$ARGUMENTS`
+   - If branch name given: `git fetch origin` (stop if it fails), then
+     `git diff origin/dev...origin/$ARGUMENTS` — the pushed branch against `dev`, which feature
+     PRs target. If the branch was never pushed, diff `origin/dev...$ARGUMENTS`; if the local
+     branch has commits the remote lacks, name them in the output as not reviewed. For a PR
+     into another base, pass its number instead.
    - Otherwise: `git diff HEAD` (staged **and** unstaged; plain `git diff` misses staged changes)
 
 2. For each changed file, check:
@@ -23,10 +27,14 @@ CLAUDE.md disagree, CLAUDE.md wins and this file is the bug.
 ### Solidity (`contracts/`)
 - Reentrancy: CEI order, and `nonReentrant` on every new **player-facing** state-mutating
   function. `onlyOwner` entry points deliberately carry no guard — not a finding.
-- `onlyOwner` paths resolve their caller through `msg.sender`, never `_msgSender()`.
-- `whenNotPaused` only on entering a duel and declaring a result, never on a path that returns a
-  player's money.
-- `SafeERC20` everywhere; no raw `.transfer()` / `.transferFrom()`.
+- `onlyOwner` paths (via `_checkOwner`) and the `acceptOwnership` override resolve their caller
+  through `msg.sender`, never `_msgSender()`.
+- `whenNotPaused` only on entering a duel (`_createDuel`, `_joinDuel`, `declineDuel`) and
+  declaring a result (`claimVictory`, `admitDefeat`), never on a path that returns a player's money.
+- `SafeERC20` everywhere; no raw `.transfer()` / `.transferFrom()`. `_pullWager` is a bare
+  `safeTransferFrom` by design: the token is vetted once, at deploy, by `TokenFeeProbe`, which
+  both `contracts/script/Deploy*.s.sol` must keep running. New code must not rely on a fee-taking
+  token being refused per wager.
 - Events emitted for every state change; payouts still derived by `_payoutOf`, never stored.
 - Tests cover the change, including every new revert condition.
 - Contract changed ⇒ `duelMeAbi` in `frontend/src/lib/contracts.ts` updated in the same PR.
