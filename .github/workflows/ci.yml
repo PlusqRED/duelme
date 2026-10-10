@@ -238,10 +238,12 @@ jobs:
       - name: Test
         run: npm test
 
-      # Otherwise `next build` first runs in build-dev's image build, after the merge. Needs no
-      # env: resolveDefaultChainKey falls back to arbitrumSepolia, and the force-dynamic root
-      # layout keeps the Privy provider out of build-time rendering.
+      # Otherwise `next build` first runs in build-dev's image build, after the merge. Only the
+      # public chain key is set: the Privy app id is a secret, which the build can do without
+      # only while the root layout is force-dynamic (CLAUDE.md, Common Pitfalls).
       - name: Build
+        env:
+          NEXT_PUBLIC_DEFAULT_CHAIN_KEY: arbitrumSepolia
         run: npm run build
 
   # build-dev intentionally does NOT need backend-native — keeps dev iteration
