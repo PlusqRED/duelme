@@ -4,3 +4,40 @@ updates:
     directory: /
     schedule:
       interval: weekly
+
+  # Majors are ignored here and go through their own tasks. `update-types`
+  # filters version updates only, so a security fix that needs a major still
+  # arrives once security updates are on.
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    groups:
+      npm-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+      # These three pin viem/ox to exact versions, and package.json
+      # `overrides` holds ox at one version Dependabot never moves on a
+      # version update, so a bump here would run viem against an ox it was not
+      # built with. Bump them by hand, together with the override.
+      - dependency-name: viem
+        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
+      - dependency-name: "@privy-io/react-auth"
+        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
+      - dependency-name: "@privy-io/wagmi"
+        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
+
+  - package-ecosystem: gradle
+    directory: /backend
+    schedule:
+      interval: weekly
+    groups:
+      gradle-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
