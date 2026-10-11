@@ -17,13 +17,17 @@ if (typeof window !== 'undefined') {
   throw new Error('relayerConfig is server-only');
 }
 
-/** Per address: ~0.0005 ETH covers dozens of L2 duel actions in a day. */
+/**
+ * Per address, per day. A request is admitted against its worst case (`gasLimit ×
+ * maxFeePerGas`) and its receipt then books the real cost. On Arbitrum Sepolia one full duel
+ * cycle — five relayed actions — costs about 0.00022 ETH, so this covers at most two a day.
+ */
 const DEFAULT_DAILY_BUDGET_WEI = parseEther('0.0005');
 
 /**
  * Relayer-wide ceiling. Addresses are free to create, so the per-address budget alone does
- * not bound what a determined caller can drain — this does, at roughly a thousand L2 duel
- * actions a day. Raise it when real traffic justifies it, not before.
+ * not bound what a determined caller can drain — this does, at a few hundred relayed duel
+ * actions a day on Arbitrum Sepolia. Raise it when real traffic justifies it, not before.
  */
 const DEFAULT_GLOBAL_DAILY_BUDGET_WEI = parseEther('0.01');
 
