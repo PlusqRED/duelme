@@ -26,6 +26,11 @@ EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=3 \
     CMD curl -sf http://localhost:8080/api/v1/health || exit 1
 
+# The commit this image was built from, reported by the health endpoint. Last, so a new
+# commit rebuilds nothing above it.
+ARG APP_RELEASE
+ENV APP_RELEASE=$APP_RELEASE
+
 ENTRYPOINT ["java", \
     "-XX:+UseCompactObjectHeaders", \
     "-XX:+UseZGC", \
@@ -49,5 +54,10 @@ EXPOSE 8080
 
 HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -sf http://localhost:8080/api/v1/health || exit 1
+
+# The commit this image was built from, reported by the health endpoint. Last, so a new
+# commit rebuilds nothing above it.
+ARG APP_RELEASE
+ENV APP_RELEASE=$APP_RELEASE
 
 ENTRYPOINT ["./duelme-backend"]

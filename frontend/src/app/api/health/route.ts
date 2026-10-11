@@ -7,8 +7,8 @@ export async function GET() {
   return NextResponse.json(
     {
       status: 'ok',
-      environment: process.env.APP_ENV ?? 'unknown',
-      release: process.env.APP_RELEASE ?? 'unknown',
+      environment: process.env.APP_ENV || 'unknown',
+      release: process.env.APP_RELEASE || 'unknown',
     },
     {
       headers: {
