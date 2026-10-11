@@ -36,7 +36,10 @@ export function getFlowReviewSlots({
 
   const { funding } = review;
   return {
-    primaryAction: primaryAction && { ...primaryAction, disabled: !review.canContinue },
+    primaryAction: primaryAction && {
+      ...primaryAction,
+      disabled: primaryAction.disabled || !review.canContinue,
+    },
     stepExtra: <FlowFundingCheck review={review} chainName={draft.chainName} />,
     stepPanel: funding.view === 'deposit' ? (
       <DepositPanel

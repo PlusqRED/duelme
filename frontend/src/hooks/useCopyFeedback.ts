@@ -8,7 +8,7 @@ import { copyText } from '@/lib/clipboard';
 /**
  * A Copy button's state: `copied` turns on only for a write `copyText` confirmed and turns itself
  * off after `confirmMs`; a refused write shows `failureKey` instead. `copy` resolves to whether the
- * text landed, for callers that add their own confirmation.
+ * text landed and this copy is still the latest, for callers that add their own confirmation.
  */
 export function useCopyFeedback(failureKey: TranslationKey, confirmMs = 2000) {
   const appToast = useAppToast();
@@ -25,7 +25,7 @@ export function useCopyFeedback(failureKey: TranslationKey, confirmMs = 2000) {
     const landed = await copyText(text);
     // Only the latest copy speaks for the button: an earlier one settling late must neither
     // clear its "Copied" nor report a failure over it.
-    if (copyId !== lastCopyRef.current) return landed;
+    if (copyId !== lastCopyRef.current) return false;
     if (timerRef.current) clearTimeout(timerRef.current);
     if (!landed) {
       setCopied(false);

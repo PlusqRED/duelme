@@ -71,7 +71,8 @@ export function CreateDuelWizard() {
   const contractConfig = useContractConfig();
 
   // Back from topping up (the tab may have been reloaded meanwhile): the form as it was, on the
-  // review step. Applied during render, once per restored draft, so no step flashes empty first.
+  // review step. Applied during render, once per restored draft, so the steps between are never
+  // rendered on the way.
   if (restoredDraft && restoredDraft !== appliedDraft) {
     setAppliedDraft(restoredDraft);
     setSelectedGame(restoredDraft.game);
