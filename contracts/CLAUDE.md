@@ -1,7 +1,6 @@
 # Contracts (`contracts/`)
 
-Rules for the Solidity side. The root `CLAUDE.md` still applies: Git Conventions, Duel States,
-the general principles.
+Rules for the Solidity side. The root `CLAUDE.md` applies here too.
 
 ## Commands
 
@@ -102,7 +101,7 @@ the general principles.
   timelocked `requestEmergencyWithdraw` → `executeEmergencyWithdraw` pair (`emergencyDelay`,
   default and floor 30 days), which accepts any token. So escrowed wagers are never one owner
   transaction away.
-- Owner-settable params with hardcoded floors: `minWager` (≥ `MIN_WAGER_FLOOR` 0.1 USDT, set at deploy — 0.3 USDT in scripts), `claimTimeout` (≥ 1h), `emergencyDelay` (≥ 30d), `maxMessageCodepoints` (≥ 32), `maxMessageBytes` (≥ 128). The five are packed into one storage slot (`uint96`/`uint64`/`uint64`/`uint16`/`uint16`). Frontend reads the live values via `useContractConfig` (see below); `MIN_WAGER`/`CLAIM_TIMEOUT`/`MAX_DUEL_MESSAGE_CHARACTERS`/`MAX_DUEL_MESSAGE_BYTES` in `constants.ts` are only pre-fetch fallbacks — keep them equal to deploy-time defaults.
+- Owner-settable params with hardcoded floors: `minWager` (≥ `MIN_WAGER_FLOOR` 0.1 USDT, set at deploy — 0.3 USDT in scripts), `claimTimeout` (≥ 1h), `emergencyDelay` (≥ 30d), `maxMessageCodepoints` (≥ 32), `maxMessageBytes` (≥ 128). The five are packed into one storage slot (`uint96`/`uint64`/`uint64`/`uint16`/`uint16`). Frontend reads the live values via `useContractConfig` (see Key Files in `frontend/CLAUDE.md`); `MIN_WAGER`/`CLAIM_TIMEOUT`/`MAX_DUEL_MESSAGE_CHARACTERS`/`MAX_DUEL_MESSAGE_BYTES` in `constants.ts` are only pre-fetch fallbacks — keep them equal to deploy-time defaults.
 
 ## Standards (Solidity / Foundry)
 
@@ -133,7 +132,7 @@ the general principles.
 
 **ABI sync:** after contract changes, `forge build`, then copy the artifact's `abi` array into `duelMeAbi` in `frontend/src/lib/contracts.ts` **entry for entry, constructor included** — `contractMirrors.test.ts` compares the two canonicalised and fails on anything dropped. Type-checking proves nothing here; run `npm test` from `frontend/`. Update `DuelState` and the `Duel` interface if the enum or `DuelView` changed.
 
-## Testing (Foundry)
+## Testing
 
 **Contracts (Foundry):** one file per area, `vm.expectRevert` / `vm.expectEmit` / `vm.warp` /
 `vm.prank`. `test/helpers/` holds the shared scaffolding — never re-create it inside a suite:
@@ -206,5 +205,7 @@ against.
   USDT than it holds, but every handler action swallows its own revert — so without that lifecycle
   test the whole run can go green over duels that never got past `Created`. Payouts stay derived
   (see "Smart Contract"); a stored payout field would give the invariant something new to catch.
-- `ForwarderConfig.NAME` is the forwarder's EIP-712 domain name and has a copy in the frontend:
-  see the `FORWARDER_NAME` bullet in `frontend/CLAUDE.md`.
+- Three contract-side rules live in `frontend/CLAUDE.md`, beside the code that depends on them:
+  `ForwarderConfig.NAME` has a copy there (the `FORWARDER_NAME` pitfall); `MockUSDT` keeps USD₮0's
+  permit quirks so dev catches mainnet permit bugs (the USD₮0 pitfalls); a new player-facing
+  function is relayed only once it is in `RELAYABLE_DUEL_FUNCTIONS` ("Gasless Duel Actions").

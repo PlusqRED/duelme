@@ -1,7 +1,6 @@
 # Ops, CI and deploy (`ops/`, `.github/`)
 
-Environments, CI jobs and deploys. The root `CLAUDE.md` still applies: Git Conventions and the
-`backend-native` gate.
+Environments, CI jobs and deploys. The root `CLAUDE.md` applies here too.
 
 ## Deployment
 
@@ -37,4 +36,5 @@ Environments, CI jobs and deploys. The root `CLAUDE.md` still applies: Git Conve
 
 ## Common Pitfalls
 
-- **CSP `connect-src` must allowlist every external host the frontend calls** — otherwise the browser silently blocks the `fetch` ("Refused to connect ... Content Security Policy"). Set in the `Content-Security-Policy` header in `ops/caddy/{dev.duelme.pro,duelme.pro}.Caddyfile`. Must include the RPC fallback chain from `wagmi.ts` (`https://gateway.tenderly.co`, `https://*.drpc.org`, `arb1.arbitrum.io`, `sepolia-rollup.arbitrum.io`) — plus any custom `NEXT_PUBLIC_*_RPC_URL` host. The Privy wallet-login UI (`loginMethods` includes `'wallet'`) also needs the WalletConnect/Privy set per [Privy's CSP guide](https://docs.privy.io/security/implementation-guide/content-security-policy): `connect-src` += `https://explorer-api.walletconnect.com wss://relay.walletconnect.com wss://relay.walletconnect.org wss://www.walletlink.org https://*.rpc.privy.systems`; `frame-src` += `https://verify.walletconnect.com https://verify.walletconnect.org https://challenges.cloudflare.com`; `script-src` += `https://challenges.cloudflare.com` (Privy Turnstile). The **live** `/etc/caddy/Caddyfile` is a hand-maintained combined file (other sites too) and is **NOT** auto-deployed by CI — edit it on the host and `sudo systemctl reload caddy` (the repo `ops/caddy/*` files are the reference copy).
+- The CSP lives in the Caddyfiles here, but the rule for adding a host — and the hand-maintained live
+  `/etc/caddy/Caddyfile` — is the CSP pitfall in `frontend/CLAUDE.md`, where new hosts come from.

@@ -1,7 +1,6 @@
 # Backend (`backend/`)
 
-Rules for the Spring Boot API. The root `CLAUDE.md` still applies: Git Conventions, the
-native-image gate, the general principles.
+Rules for the Spring Boot API. The root `CLAUDE.md` applies here too.
 
 ## Architecture
 
@@ -64,7 +63,7 @@ When **modifying**: update `@Operation`, security annotations, and `SecurityConf
 
 OpenAPI config: `backend/src/.../config/OpenApiConfig.java`. Swagger UI at `/api/v1/swagger-ui` on each env.
 
-## Testing (JUnit 5)
+## Testing
 
 **Backend (JUnit 5 + Spring Boot Test):** `@SpringBootTest` + `@AutoConfigureMockMvc` + embedded MongoDB. Controller via `MockMvc` (status / shape / auth). Service for logic / auth / edges. `WalletAuthenticationToken` for auth simulation. `@BeforeEach` cleanup for isolation.
 

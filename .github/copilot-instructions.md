@@ -4,7 +4,7 @@
 `ops/`, is the full spec** — the root holds the rules every change needs; each area file holds that
 area's architecture decisions, standards, environment variables and Common Pitfalls. Read them
 before anything non-trivial. This file only repeats the handful of rules a suggestion is most
-likely to get silently wrong, and it must never contradict CLAUDE.md; if it does, CLAUDE.md is right
+likely to get silently wrong, and it must never contradict them; if it does, the CLAUDE.md is right
 and this file is the bug.
 
 ## Build, lint, and test commands

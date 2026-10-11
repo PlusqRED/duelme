@@ -19,9 +19,9 @@ Environment variables and Common Pitfalls in a `CLAUDE.md` of its own:
 | Working in | Read |
 |---|---|
 | `contracts/` | `contracts/CLAUDE.md` — contract design decisions, Solidity standards, Foundry helpers, ABI sync |
-| `frontend/` | `frontend/CLAUDE.md` — wallet, write flows, data fetching, the gas relayer (`/api/relay`), UI standards |
+| `frontend/` | `frontend/CLAUDE.md` — wallet, write flows, data fetching, the gas relayer (`/api/relay`), UI standards, CSP hosts |
 | `backend/` | `backend/CLAUDE.md` — layering, MongoDB indexes, native-image details, OpenAPI |
-| `ops/`, `.github/` | `ops/CLAUDE.md` — environments, CI jobs, deploy, Caddy and CSP |
+| `ops/`, `.github/` | `ops/CLAUDE.md` — environments, CI jobs, deploy, Caddy |
 
 A directory's `CLAUDE.md` is attached to the session when a file in it is read or edited with the
 file tools, not when it is read through the shell (`cat`, `grep`, `sed`): open the area's file
@@ -62,16 +62,11 @@ What commonly breaks, and the local check before merging to `main`: "Native Imag
 
 ## Architecture
 
-`contracts/` holds `DuelMe`, which escrows both USDT wagers and enforces every duel rule itself;
-payouts are pull-based and derived from the duel's terminal state. `frontend/` (Next.js) reads and
-writes the contract directly through wagmi/viem with Privy wallets, and hosts the gas relayer: while
-relaying is on, relayable duel writes are signed as ERC-2771 forward requests, funding with EIP-2612 permits,
-and `/api/relay` sends them. `backend/` (Spring Boot + MongoDB) keeps only off-chain data —
-profiles, social links, the game catalogue and duel metadata, the testnet faucet — and ships to
-prod as a GraalVM native image.
-
-Two environments: dev (Arbitrum Sepolia, dev.duelme.pro) and prod (Arbitrum One, duelme.pro).
-Merging to `dev` deploys dev, merging to `main` deploys prod; details in `ops/CLAUDE.md`.
+`contracts/` holds `DuelMe`, which escrows both USDT wagers and enforces every duel rule itself.
+`frontend/` (Next.js) reads and writes the contract directly through wagmi/viem with Privy wallets,
+and hosts the gas relayer behind `/api/relay` ("Gasless Duel Actions" in `frontend/CLAUDE.md`).
+`backend/` (Spring Boot + MongoDB) keeps only off-chain data: profiles, social links, the game
+catalogue and duel metadata, the testnet faucet. Environments and deploys: `ops/CLAUDE.md`.
 
 ## Duel States
 
@@ -154,3 +149,5 @@ Runtime config source of truth: GitHub repository/environment secrets. Deploy wo
   matches the wrong duel — it has already bitten stored invite secrets (`lib/invite.ts`) and duel
   metadata (`DuelMeta`), and in both cases the symptom was a wrong answer, never an error. Key on
   the contract address too, and take it from `DUELME_ADDRESSES[chainId]`.
+
+Source of truth for current deploys: `contracts/broadcast/Deploy.s.sol/421614/run-latest.json` (Arbitrum Sepolia / dev) and `contracts/broadcast/DeployMainnet.s.sol/42161/run-latest.json` (Arbitrum One / prod), mirrored into `README.md` and `frontend/src/lib/constants.ts`.

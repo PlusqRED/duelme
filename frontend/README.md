@@ -120,8 +120,8 @@ is not, and `contractAddresses.test.ts` fails if anything in the app stops agree
 
 ### Environment variables
 
-Every variable the app reads, and where each one is set, is listed in the **Environment** section
-of `frontend/CLAUDE.md`. The ones a local dev run needs are `NEXT_PUBLIC_PRIVY_APP_ID` and,
+Every variable the app reads, and where each one is set, is listed in the **Environment** sections
+of `frontend/CLAUDE.md` and the root `CLAUDE.md`. The ones a local dev run needs are `NEXT_PUBLIC_PRIVY_APP_ID` and,
 optionally, an authenticated RPC URL.
 
 ## Key patterns
