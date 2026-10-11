@@ -1,9 +1,9 @@
 # Wallet Top-Up Simplification Plan
 
-> **Superseded (2026-09-13).** 61c9e9c replaced the Pimlico sponsorship this plan led to with a
-> self-hosted ERC-2771 relayer — see "Gasless Duel Actions" in `CLAUDE.md`.
-> `sponsoredTransactions.ts` and `sponsoredTransactionConfig.ts`, named below, no longer exist;
-> the plan is kept as history only.
+> **Phase 1 superseded (2026-09-13).** 61c9e9c replaced the Pimlico sponsorship Phase 1 shipped
+> with a self-hosted ERC-2771 relayer — see "Gasless Duel Actions" in `CLAUDE.md`.
+> `sponsoredTransactions.ts` and `sponsoredTransactionConfig.ts`, named below, no longer exist.
+> Phases 2 and 3 (guided top-up, USDC wagers) were not built.
 
 Date: 2026-06-11
 

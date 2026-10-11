@@ -13,8 +13,8 @@
 #      2026-09-20 — long past forge's default retries, which exits non-zero on a deploy
 #      that already succeeded and leaves a live but unverified contract.
 #
-#   2. Testnet state that a redeploy invalidates. Not every collection, and deliberately
-#      neither duelMeta nor faucet_claims any more — see reset_mongo().
+#   2. Dev database state. Only short-lived OAuth handshake state by default, and
+#      deliberately neither duelMeta nor faucet_claims any more — see reset_mongo().
 #
 # Usage: scripts/post_testnet_deploy.sh [--dry-run] [--skip-verify] [--skip-mongo] [--all]
 set -euo pipefail
@@ -121,7 +121,7 @@ reset_mongo() {
   docker inspect "$MONGO_CONTAINER" >/dev/null 2>&1 \
     || die "container $MONGO_CONTAINER not found"
 
-  # What a redeploy actually invalidates:
+  # What is cleared by default:
   #
   #   social_oauth_states  short-lived handshake state; a redeploy is as good a moment as any.
   #
@@ -141,7 +141,8 @@ reset_mongo() {
   # Kept for the same reason: profiles holds nicknames, social links and DuelRep, none of it
   # contract-bound, and games is a catalog whose counts come from the live deployments' duelMeta
   # rows, so the Sepolia part of each count resets once duelme.contracts.duel-me names the new
-  # contract. --all clears duelMeta, profiles and games as well.
+  # contract. --all is the full reset: it clears duelMeta for every deployment, the live ones
+  # included, along with profiles and games.
   local collections=(social_oauth_states)
   [ "$WIPE_ALL" = 1 ] && collections+=(duelMeta profiles games)
 

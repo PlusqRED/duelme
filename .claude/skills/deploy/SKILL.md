@@ -50,12 +50,13 @@ address too — that is what most of the follow-up below is for.
    `duelme.contracts.duel-me` under that chain's id, or the backend refuses game metadata for the
    new contract's duels and keeps counting each game's duels on the old one; on Sepolia also
    `duelme.faucet.mock-usdt-address`, or the faucet keeps handing testers the previous MockUSDT.
-   Both are literals with no env override on purpose. **Keep the quotes** — a bare `0x…` parses
-   as a hex integer and the backend then refuses to start.
+   Both are literals with no `${…}` placeholder on purpose. **Keep the quotes** — a bare `0x…`
+   parses as a hex integer and the backend then refuses to start.
    On Sepolia a faucet claim is keyed by wallet **and** token, so this redeploy re-opens the
    faucet for every tester who already claimed — the ETH leg included. The signer therefore
-   drains at roughly testers x redeploys x `eth-amount-eth`, not testers once. Check its balance before a round of
-   testing: when it runs dry every claim returns 502 with nothing pointing at the balance.
+   drains at roughly testers x redeploys x `eth-amount-eth`, not testers once. Check its balance
+   before a round of testing: when it runs dry every claim returns 502 with nothing pointing at
+   the balance.
 9. Sync the README contract block: `python3 scripts/sync_readme_contract_addresses.py` from the
    repo root (the pre-commit hook runs it too). Never hand-edit that block.
 10. Verify the mirrors: `cd frontend && npm test` — `deployedAddresses.test.ts` and
@@ -63,10 +64,11 @@ address too — that is what most of the follow-up below is for.
 11. Sepolia only: `scripts/post_testnet_deploy.sh` from the repo root, with the contracts env
     loaded. It reads every address and DuelMe's constructor args back out of the broadcast
     artifact, confirms **all three** contracts verified — re-verifying any that did not, since
-    `--verify` reports per contract and one failure is easy to miss — and clears the dev state a
-    redeploy invalidates (`social_oauth_states`). `--dry-run` first if you want to see it before
+    `--verify` reports per contract and one failure is easy to miss — and clears the short-lived
+    OAuth handshake state (`social_oauth_states`). `--dry-run` first if you want to see it before
     it acts. It refuses to run against anything but the dev stack, and keeps `duelMeta`,
-    `profiles`, `games` and `faucet_claims`; why each one goes or stays is in the script's
-    `reset_mongo`.
+    `profiles`, `games` and `faucet_claims`. `--all` clears `duelMeta`, `profiles` and `games`
+    too — `duelMeta` for every deployment, the live Arbitrum One one included; why each
+    collection goes or stays is in the script's `reset_mongo`.
 12. Report the deployed addresses, the explorer links, and anything from steps 8–9 the user still
     has to do outside the repo.

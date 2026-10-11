@@ -215,9 +215,10 @@ After deploy:
      in the deploy log — that is how DuelMe was left unverified on 2026-09-20. Arbiscan
      auto-matches bytecode it has seen before, so an unchanged MockUSDT and forwarder come back
      instantly and a changed DuelMe is the one that waits in the queue.
-   - **clears the dev state a redeploy invalidates** — `social_oauth_states`. `duelMeta`,
-     `profiles` and `games` are kept, and `--all` clears them too; the comment in the script's
-     `reset_mongo` says why each collection goes or stays.
+   - **clears the short-lived OAuth handshake state** — `social_oauth_states`. `duelMeta`,
+     `profiles` and `games` are kept. `--all` clears them too, `duelMeta` for every deployment
+     including the live Arbitrum One one; the comment in the script's `reset_mongo` says why
+     each collection goes or stays.
 
    `faucet_claims` is not on that list. It used to have to be — the claim was keyed by wallet
    alone, so after a MockUSDT redeploy every past claimant got `FaucetAlreadyClaimedException`
@@ -230,6 +231,7 @@ After deploy:
    than dropping, so the collections keep their indexes and the backend needs no restart.
 
 Steps 2 and 2a are enforced by `deployedAddresses.test.ts`, which pins `constants.ts` and
-`application.yml` to the broadcast artifact — CI fails if either drifts. Step 3 runs only in the
-pre-commit hook; CI does not check the README block. Step 4 is not enforceable from CI, since it
-needs the Arbiscan key and the dev database.
+`application.yml` to the broadcast artifact — CI fails if either drifts. Step 3 is not: the
+pre-commit hook runs it only in a clone with `core.hooksPath` set to `.githooks`, and CI does not
+check the README block. Step 4 is not enforceable from CI, since it needs the Arbiscan key and
+the dev database.
