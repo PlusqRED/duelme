@@ -14,12 +14,11 @@ CLAUDE.md disagree, CLAUDE.md wins and this file is the bug.
 ## Steps
 
 1. Get the diff:
-   - If PR number given: `gh pr diff $ARGUMENTS`
-   - If branch name given: `git fetch origin` (stop if it fails), then
-     `git diff origin/dev...origin/$ARGUMENTS` — the pushed branch against `dev`, which feature
-     PRs target. If the branch was never pushed, diff `origin/dev...$ARGUMENTS`; if the local
-     branch has commits the remote lacks, name them in the output as not reviewed. For a PR
-     into another base, pass its number instead.
+   - If a PR number or a branch name is given: `gh pr diff $ARGUMENTS` — the pushed head against
+     the PR's own base. For a branch, name any local commits it lacks
+     (`git log origin/$ARGUMENTS..$ARGUMENTS`) in the output as not reviewed.
+   - If `gh` finds no PR for the branch: `git fetch origin` (stop if it fails), then
+     `git diff origin/dev...$ARGUMENTS`, since feature work targets `dev`.
    - Otherwise: `git diff HEAD` (staged **and** unstaged; plain `git diff` misses staged changes)
 
 2. For each changed file, check:
@@ -27,14 +26,15 @@ CLAUDE.md disagree, CLAUDE.md wins and this file is the bug.
 ### Solidity (`contracts/`)
 - Reentrancy: CEI order, and `nonReentrant` on every new **player-facing** state-mutating
   function. `onlyOwner` entry points deliberately carry no guard — not a finding.
-- `onlyOwner` paths (via `_checkOwner`) and the `acceptOwnership` override resolve their caller
-  through `msg.sender`, never `_msgSender()`.
-- `whenNotPaused` only on entering a duel (`_createDuel`, `_joinDuel`, `declineDuel`) and
-  declaring a result (`claimVictory`, `admitDefeat`), never on a path that returns a player's money.
-- `SafeERC20` everywhere; no raw `.transfer()` / `.transferFrom()`. `_pullWager` is a bare
-  `safeTransferFrom` by design: the token is vetted once, at deploy, by `TokenFeeProbe`, which
-  both `contracts/script/Deploy*.s.sol` must keep running. New code must not rely on a fee-taking
-  token being refused per wager.
+- `_checkOwner` (which every `onlyOwner` path goes through) and the `acceptOwnership` override
+  read `msg.sender`, never `_msgSender()`.
+- `whenNotPaused` only on entering a duel or declaring a result — today `_createDuel` and
+  `_joinDuel` (every create and join entry point must reach them; the external ones carry none),
+  `declineDuel`, `claimVictory`, `admitDefeat` — never on a path that returns a player's money.
+- `SafeERC20` everywhere; no raw `.transfer()` / `.transferFrom()`.
+- Both `contracts/script/Deploy*.s.sol` still run `TokenFeeProbe`, and no new code assumes
+  `_pullWager` refuses a fee-taking token: it has no check, by design, because the token is
+  vetted once, at deploy.
 - Events emitted for every state change; payouts still derived by `_payoutOf`, never stored.
 - Tests cover the change, including every new revert condition.
 - Contract changed ⇒ `duelMeAbi` in `frontend/src/lib/contracts.ts` updated in the same PR.
