@@ -29,8 +29,6 @@ cd backend
 ./build/native/nativeCompile/duelme-backend   # smoke-test boot
 ```
 
-If it fails, fix it. **Never** silence failure by deleting hints, weakening build-time init, dropping the `backend-native` job, or merging anyway.
-
 ## Standards (Java / Spring Boot / MongoDB)
 
 **Layer separation:**
@@ -87,7 +85,7 @@ OpenAPI config: `backend/src/.../config/OpenApiConfig.java`. Swagger UI at `/api
 | `backend/src/.../config/MongoConfig.java` | **Creates every index explicitly.** Spring Boot does not auto-create `@Indexed` / `@CompoundIndex` — see Common Pitfalls |
 | `backend/src/.../config/ContractProperties.java` | `duelme.contracts.duel-me` — the live DuelMe per chain, the backend's mirror of `constants.ts` |
 | `backend/src/.../validation/EvmAddress.java` | The one address regex, shared by the `@Pattern` annotations and the runtime checks |
-| `backend/Dockerfile` | Backend container (multi-stage, GraalVM native) |
+| `backend/Dockerfile` | Backend container: two runtime-only targets, `jvm` (dev) and `native` (prod); Gradle runs on the host (Deployment in `ops/CLAUDE.md`) |
 
 ## Environment
 
@@ -124,3 +122,5 @@ OpenAPI config: `backend/src/.../config/OpenApiConfig.java`. Swagger UI at `/api
   part of that key. Anything keyed on a wallet plus a contract-issued thing needs the contract in
   the key.
 - `PRIVY_APP_ID` env required for backend (no default in `application.yml`).
+- Both health endpoints report `environment` and `release`, and the deploy passes only when both
+  match: see Deployment in `ops/CLAUDE.md` before changing either.

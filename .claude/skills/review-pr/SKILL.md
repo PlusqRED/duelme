@@ -9,7 +9,7 @@ Review code changes in the current branch or a specified PR.
 Arguments: $ARGUMENTS (optional: PR number or branch name. Default: current uncommitted changes)
 
 Read `CLAUDE.md` first, then the `CLAUDE.md` of every area the diff touches (`contracts/`,
-`frontend/`, `backend/`, `ops/`) — the standards below are theirs, abbreviated. Where this file and
+`frontend/`, `backend/`, `ops/`; `ops/` also covers `.github/`) — the standards below are theirs, abbreviated. Where this file and
 a CLAUDE.md disagree, the CLAUDE.md wins and this file is the bug.
 
 ## Steps

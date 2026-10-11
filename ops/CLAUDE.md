@@ -32,6 +32,9 @@ Environments, CI jobs and deploys. The root `CLAUDE.md` applies here too.
 
 ## Environment
 
+The other variables are listed with the code that reads them, deploy constraints included (the
+relayer key is runtime-only; prod pins the faucet off): `frontend/CLAUDE.md`, `backend/CLAUDE.md`.
+
 - `APP_ENV` / `APP_RELEASE` — reported by both health endpoints (see Deployment). Not secrets and not in `.env`: `APP_ENV` is a literal in each compose file, `APP_RELEASE` a build arg.
 
 ## Common Pitfalls

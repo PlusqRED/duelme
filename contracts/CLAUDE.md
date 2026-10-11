@@ -101,7 +101,7 @@ Rules for the Solidity side. The root `CLAUDE.md` applies here too.
   timelocked `requestEmergencyWithdraw` → `executeEmergencyWithdraw` pair (`emergencyDelay`,
   default and floor 30 days), which accepts any token. So escrowed wagers are never one owner
   transaction away.
-- Owner-settable params with hardcoded floors: `minWager` (≥ `MIN_WAGER_FLOOR` 0.1 USDT, set at deploy — 0.3 USDT in scripts), `claimTimeout` (≥ 1h), `emergencyDelay` (≥ 30d), `maxMessageCodepoints` (≥ 32), `maxMessageBytes` (≥ 128). The five are packed into one storage slot (`uint96`/`uint64`/`uint64`/`uint16`/`uint16`). Frontend reads the live values via `useContractConfig` (see Key Files in `frontend/CLAUDE.md`); `MIN_WAGER`/`CLAIM_TIMEOUT`/`MAX_DUEL_MESSAGE_CHARACTERS`/`MAX_DUEL_MESSAGE_BYTES` in `constants.ts` are only pre-fetch fallbacks — keep them equal to deploy-time defaults.
+- Owner-settable params with hardcoded floors: `minWager` (≥ `MIN_WAGER_FLOOR` 0.1 USDT, set at deploy — 0.3 USDT in scripts), `claimTimeout` (≥ 1h), `emergencyDelay` (≥ 30d), `maxMessageCodepoints` (≥ 32), `maxMessageBytes` (≥ 128). The five are packed into one storage slot (`uint96`/`uint64`/`uint64`/`uint16`/`uint16`). Frontend reads the live values via `useContractConfig` (see Key Files in `frontend/CLAUDE.md`); `MIN_WAGER`/`CLAIM_TIMEOUT`/`MAX_DUEL_MESSAGE_CHARACTERS`/`MAX_DUEL_MESSAGE_BYTES` in `frontend/src/lib/constants.ts` are only pre-fetch fallbacks — keep them equal to deploy-time defaults.
 
 ## Standards (Solidity / Foundry)
 
@@ -169,7 +169,6 @@ against.
 ## Common Pitfalls
 
 - Only `contracts/broadcast/{Deploy,DeployMainnet}.s.sol/<chainId>/run-latest.json` is tracked; timestamped `run-*.json` ignored via top-level `.gitignore`.
-- README contract addresses auto-generated from `run-latest.json` by `scripts/sync_readme_contract_addresses.py` / pre-commit hook — don't edit that block manually.
 - Manual deploys here: source `contracts/.env` first (`set -a && . ./.env && set +a`).
 - **Do not enable `via_ir`, and leave `optimizer_runs` at 200.** Measured on this contract:
   `runs = 1000` changes runtime gas by under 0.1% while growing the deployed bytecode from 21.4 KB
@@ -209,3 +208,5 @@ against.
   `ForwarderConfig.NAME` has a copy there (the `FORWARDER_NAME` pitfall); `MockUSDT` keeps USD₮0's
   permit quirks so dev catches mainnet permit bugs (the USD₮0 pitfalls); a new player-facing
   function is relayed only once it is in `RELAYABLE_DUEL_FUNCTIONS` ("Gasless Duel Actions").
+
+Source of truth for current deploys: `contracts/broadcast/Deploy.s.sol/421614/run-latest.json` (Arbitrum Sepolia / dev) and `contracts/broadcast/DeployMainnet.s.sol/42161/run-latest.json` (Arbitrum One / prod), mirrored into `README.md` and `frontend/src/lib/constants.ts`.

@@ -13,8 +13,8 @@ ops/         — Docker Compose, Caddy config
 
 ## Where the rules live
 
-This file holds what every change needs. Each area keeps its own rules, Key Files table,
-Environment variables and Common Pitfalls in a `CLAUDE.md` of its own:
+This file holds what every change needs. Each area keeps its own rules, Key Files and Common
+Pitfalls in a `CLAUDE.md` of its own:
 
 | Working in | Read |
 |---|---|
@@ -57,6 +57,8 @@ relayer and permits — needs the file of every area it touches.
 
 The `backend-native` CI job (`./gradlew nativeCompile` on every push/PR to `dev`/`main`) is **the gate**. `build-prod` lists it in `needs:`, so a red `backend-native` blocks prod deploy. Do not add `if:` conditions — GitHub Actions treats skipped needs as success. If `backend-native` is red, do not merge to `main`.
 
+If it fails, fix it. **Never** silence failure by deleting hints, weakening build-time init, dropping the `backend-native` job, or merging anyway.
+
 What commonly breaks, and the local check before merging to `main`: "Native Image" in
 `backend/CLAUDE.md`.
 
@@ -92,7 +94,7 @@ cost the first time.
 ### General Principles
 
 - **File size:** ≤300 lines. Extract helpers/sub-components/composable hooks when approaching the limit. One file = one purpose (SRP). Three files are over it today — `frontend/src/lib/contracts.ts` (the ABI mirror, which must stay a literal copy of the artifact), `frontend/src/app/duel/[id]/page.tsx` and `frontend/src/components/layout/Header.tsx`. The last two are debt, not precedent: don't add to them.
-- **DRY:** single source of truth for every constant/type/helper/ABI. See `constants.ts` / `contracts.ts`.
+- **DRY:** single source of truth for every constant/type/helper/ABI. See `frontend/src/lib/constants.ts` / `contracts.ts`.
 - **YAGNI:** build what the task requires. No abstractions for hypothetical futures. Three similar lines beats a premature abstraction.
 - **Fail fast:** validate at system boundaries (user input, API, contract calls). Inside, trust the types. Never silently swallow errors.
 - **Self-review before "done":** `npx tsc --noEmit` · `npm run lint` · relevant tests (`forge test`, `./gradlew test`, `npm run test`) · read the diff for debug code / missing error handling / inconsistent naming. A change that goes into a PR then also gets the review loop under Git Conventions.
@@ -122,7 +124,7 @@ embedded MongoDB.
 
 **Subagents do NOT receive CLAUDE.md automatically.** Every Agent prompt must begin with:
 
-> "Read `CLAUDE.md` in the repository root first, then the `CLAUDE.md` of each area you will touch (`contracts/`, `frontend/`, `backend/`, `ops/`) — they contain project conventions, development standards, and quality requirements you must follow."
+> "Read `CLAUDE.md` in the repository root first, then the `CLAUDE.md` of each area you will touch (`contracts/`, `frontend/`, `backend/`, `ops/` — also for `.github/`) — they contain project conventions, development standards, and quality requirements you must follow."
 
 And must require:
 - **Context loading:** read the root and area CLAUDE.md files and relevant source files before writing code.
@@ -132,16 +134,17 @@ And must require:
 
 ## Environment
 
-Runtime config source of truth: GitHub repository/environment secrets. Deploy workflow writes them into `~/apps/duelme-{dev,prod}/.env` over SSH before `docker compose up`. When adding a new runtime variable, update `.github/workflows/ci.yml`, the matching `ops/docker-compose.*.yml`, and the Environment list in the `CLAUDE.md` of the area that reads it.
+Runtime config source of truth: GitHub repository/environment secrets. Deploy workflow writes them into `~/apps/duelme-{dev,prod}/.env` over SSH before `docker compose up`. When adding a new runtime variable, update `.github/workflows/ci.yml`, the matching `ops/docker-compose.*.yml`, and the Environment list it belongs to: the area that reads it, `ops/` for what the deploy sets.
 
 - Chains: Arbitrum One (42161) prod, Arbitrum Sepolia (421614) dev. Build-time `NEXT_PUBLIC_DEFAULT_CHAIN_KEY` (`arbitrum` / `arbitrumSepolia`) selects.
-- Contract addresses: `DUELME_ADDRESSES` map in `constants.ts`, mirrored for the backend by
+- Contract addresses: `DUELME_ADDRESSES` map in `frontend/src/lib/constants.ts`, mirrored for the backend by
   `duelme.contracts.duel-me` in `application.yml` (not an env var, same reasoning as the faucet
   token in `backend/CLAUDE.md`). A redeploy edits both in the commit that edits the broadcast artifact.
 
 ## Common Pitfalls
 
 - USDT has a blocklist — keep payouts pull-based, no push transfers.
+- README contract addresses auto-generated from `run-latest.json` by `scripts/sync_readme_contract_addresses.py` / pre-commit hook — don't edit that block manually.
 - **Contract addresses and chain ids have exactly one source.** `contracts/broadcast/*/run-latest.json` is what is deployed; `constants.ts` mirrors it by hand; everything else reads `constants.ts`. Never inline an address or a chain id anywhere else — `getUsdtAddress` once kept its own copy "to avoid a circular import" (`constants.ts` imports nothing, so there was no cycle), and after a MockUSDT redeploy the permit path read `nonces()` off the previous token, so duels failed with a revert that named no address. `deployedAddresses.test.ts` pins `constants.ts` and both of `application.yml`'s address copies (the faucet token and `duelme.contracts.duel-me`) to the broadcast artifact; `contractAddresses.test.ts` pins `getUsdtAddress`, `CHAIN_NAMES` and the forwarder map to `constants.ts`. Both run in the `frontend` CI job (`npm test`).
 - **A duel id identifies a duel only together with the contract it came from.** Ids are handed out
   by `duelCount`, which restarts at zero on every redeploy, so after a same-chain redeploy duel 3
@@ -149,5 +152,3 @@ Runtime config source of truth: GitHub repository/environment secrets. Deploy wo
   matches the wrong duel — it has already bitten stored invite secrets (`lib/invite.ts`) and duel
   metadata (`DuelMeta`), and in both cases the symptom was a wrong answer, never an error. Key on
   the contract address too, and take it from `DUELME_ADDRESSES[chainId]`.
-
-Source of truth for current deploys: `contracts/broadcast/Deploy.s.sol/421614/run-latest.json` (Arbitrum Sepolia / dev) and `contracts/broadcast/DeployMainnet.s.sol/42161/run-latest.json` (Arbitrum One / prod), mirrored into `README.md` and `frontend/src/lib/constants.ts`.
