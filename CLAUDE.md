@@ -21,7 +21,7 @@ Environment variables and Common Pitfalls in a `CLAUDE.md` of its own:
 | `contracts/` | `contracts/CLAUDE.md` — contract design decisions, Solidity standards, Foundry helpers, ABI sync |
 | `frontend/` | `frontend/CLAUDE.md` — wallet, write flows, data fetching, the gas relayer (`/api/relay`), UI standards, CSP hosts |
 | `backend/` | `backend/CLAUDE.md` — layering, MongoDB indexes, native-image details, OpenAPI |
-| `ops/`, `.github/` | `ops/CLAUDE.md` — environments, CI jobs, deploy, Caddy |
+| `ops/`, `.github/` | `ops/CLAUDE.md` — environments, CI jobs, deploy, Caddy; `.github/CLAUDE.md` points there |
 
 A directory's `CLAUDE.md` is attached to the session when a file in it is read or edited with the
 file tools, not when it is read through the shell (`cat`, `grep`, `sed`): open the area's file
