@@ -1,25 +1,21 @@
-## Quality gates
+## Why
 
-<!-- Fill in every row, n/a with the reason; a PR exempt under CLAUDE.md, "Git Conventions", deletes
-this section. Runs: how many times the stage ran on this PR. Outcome: what it found and what became
-of it, e.g. "high: 6 fixed, 2 rejected as intended; round 3 found nothing serious", or "stopped
-after round 4 to rethink the design". QA verification: the acceptance criteria checked by someone
-other than the author. Acceptance: who marked the PR ready for review, at which commit. -->
+<!-- 1–3 sentences: the problem or goal, for whom, and the task id, e.g. AGE-12. -->
 
-| Stage | Runs | Outcome |
-|---|---|---|
-| `/simplify` | | |
-| `/review-pr` | | |
-| `/security-review` (contract changes) | | |
-| `/code-review` | | |
-| Local checks | | |
-| Browser check (UI changes) | | |
-| QA verification | | |
-| Acceptance | | |
-| CI at head | | |
+## How
 
-## Summary
+<!-- 2–4 sentences on the approach as a concept: no file, class, function or flag names, no logs. -->
 
-## How to verify
+## Checks
 
-## Risk and rollback
+<!-- No finding details: each finding and its verdict go on the task. n/a needs a reason. A PR exempt
+under CLAUDE.md, "Git Conventions", deletes this section and gets QA's verdict as a PR comment instead. -->
+
+| | |
+|---|---|
+| Reviews | <!-- runs of /simplify, /review-pr, /security-review and /code-review; findings fixed / deferred / rejected; why any extra round ran --> |
+| Tests | <!-- what ran (unit, integration, browser check for UI) and the result --> |
+| QA | <!-- filled by QA: verdict, criteria passed, commit --> |
+| CI | <!-- checks green at the head commit --> |
+
+<!-- ## Note: one line, only when the CEO must do or watch something at merge, e.g. set a secret. -->
