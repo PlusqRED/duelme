@@ -8,12 +8,11 @@ import {
 } from '@/lib/relayRequest';
 import type { RelayerConfig } from '@/lib/relayerConfig';
 
-export type RelayAdmission = { ok: true; executeEstimate: bigint } | RelayRefusal;
+export type RelaySimulation = { ok: true; executeEstimate: bigint } | RelayRefusal;
 
 /**
  * The forwarder's own check of the signature, the signer's nonce and the deadline. One
- * `eth_call`, so it is cheap enough to repeat under the relayer lock, where the nonce may
- * have moved since the request was admitted.
+ * `eth_call`, cheap enough to repeat under the relayer lock.
  */
 export async function verifyForwardRequest(
   config: RelayerConfig,
@@ -35,25 +34,12 @@ export async function verifyForwardRequest(
       );
 }
 
-/**
- * Everything that can refuse a request without the relayer's own nonce: the forwarder's
- * `verify`, then a simulation of `execute`. It runs before the request may queue for the
- * relayer lock, so a request that would revert — which costs its sender nothing to sign —
- * never holds a place a real player is waiting for.
- *
- * The two calls stay in sequence: estimating in parallel with `verify` would buy every
- * badly signed request a simulation it never needed.
- */
-export async function admitRelayRequest(
+/** Estimates `execute` as the relayer would send it; a failure says why it would not run. */
+export async function simulateExecute(
   config: RelayerConfig,
   request: RelayForwardRequest,
   functionName: string
-): Promise<RelayAdmission> {
-  const rejected = await verifyForwardRequest(config, request);
-  if (rejected) {
-    return rejected;
-  }
-
+): Promise<RelaySimulation> {
   try {
     const executeEstimate = await config.publicClient.estimateContractGas({
       address: config.forwarderAddress,
@@ -71,6 +57,29 @@ export async function admitRelayRequest(
     console.error(`[relay] ${functionName} would revert for ${request.from}`);
     return refusal('EXECUTION_REVERTED', simulation.message, 400);
   }
+}
+
+/**
+ * Everything that can refuse a request without the relayer's own nonce: the forwarder's
+ * `verify`, then a simulation of `execute`. It runs before the request may queue for the
+ * relayer lock, so a request that would revert — which costs its sender nothing to sign —
+ * never holds a place a real player is waiting for.
+ *
+ * The two calls stay in sequence: estimating in parallel with `verify` would buy every
+ * badly signed request a simulation it never needed.
+ */
+export async function admitRelayRequest(
+  config: RelayerConfig,
+  request: RelayForwardRequest,
+  functionName: string
+): Promise<RelayRefusal | null> {
+  const rejected = await verifyForwardRequest(config, request);
+  if (rejected) {
+    return rejected;
+  }
+
+  const simulation = await simulateExecute(config, request, functionName);
+  return simulation.ok ? null : simulation;
 }
 
 /**

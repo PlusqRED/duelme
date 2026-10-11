@@ -39,7 +39,7 @@ export interface RelayErrorResponse {
   error: string;
 }
 
-const RELAY_ERROR_CODES = [
+const relayErrorCodes = [
   'INVALID_REQUEST',
   'NOT_RELAYABLE',
   'INVALID_SIGNATURE',
@@ -50,10 +50,10 @@ const RELAY_ERROR_CODES = [
   'EXECUTION_REVERTED',
 ] as const;
 
-export type RelayErrorCode = (typeof RELAY_ERROR_CODES)[number];
+export type RelayErrorCode = (typeof relayErrorCodes)[number];
 
 export function isRelayErrorCode(value: unknown): value is RelayErrorCode {
-  return RELAY_ERROR_CODES.some((code) => code === value);
+  return relayErrorCodes.some((code) => code === value);
 }
 
 /** A failed relay, before the route shapes it into an HTTP error response. */

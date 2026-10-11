@@ -83,8 +83,8 @@ export async function submitRelayRequest(chainId: number, request: RelayForwardR
     throw new RelayRequestError(code, message);
   }
 
-  // A repeat of a request the relayer already sent answers with that transaction's hash, so
-  // a retry after a dropped connection lands here like the first attempt would have.
+  // A repeat of a payload the relayer already sent answers with that transaction's hash,
+  // so it lands here exactly like the first post did.
   if (typeof fields.hash !== 'string' || !isHash(fields.hash)) {
     throw new RelayRequestError('RELAYER_UNAVAILABLE', 'Relayer returned no transaction hash.');
   }

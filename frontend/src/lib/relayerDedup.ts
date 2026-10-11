@@ -1,23 +1,17 @@
 import { encodeFunctionData, keccak256, type Hex } from 'viem';
 import { erc2771ForwarderAbi } from '@/lib/contracts';
-import {
-  refusal,
-  toForwardRequestArgs,
-  type RelayForwardRequest,
-  type RelayOutcome,
-  type RelayRefusal,
-} from '@/lib/relayRequest';
+import { toForwardRequestArgs, type RelayForwardRequest, type RelayOutcome } from '@/lib/relayRequest';
 
 /**
- * Collapses repeats of one signed forward request into a single relay, and holds back a
- * signer's next request while their last relayed transaction is unconfirmed.
+ * Collapses repeats of one signed forward request into a single relay.
  *
  * A request that is being relayed, or was relayed a moment ago, still passes the
  * forwarder's `verify` until its transaction is mined and spends the signer's nonce. Sent
  * again in that window it buys a second transaction, which reverts on the spent nonce and
- * burns the relayer's gas. A retry after a dropped connection, a double click and a replay
- * of a payload someone saw all look like that — so every copy shares the first one's
- * outcome, the same transaction hash, and only the first is ever sent.
+ * burns the relayer's gas. A replay of a payload someone saw, or any client posting the
+ * same body twice, looks like that — so every copy shares the first one's outcome, the same
+ * transaction hash, and only the first is ever sent. (The app itself signs afresh on every
+ * attempt; relayerSignerHold covers its retries.)
  *
  * Only a success is remembered past its own request. A refusal sent nothing, so the same
  * signed request may try again once whatever refused it has changed.
@@ -112,35 +106,9 @@ function makeRoom(at: number): void {
   }
 }
 
-/**
- * Signers whose last relayed transaction is sent but has no receipt yet. Their next
- * request was signed against a forwarder nonce that transaction is about to spend, so it
- * would revert on-chain too — a re-signed retry or a second tab, not a copy, so the
- * request key above cannot tell. It is refused instead of being sent.
- */
-const unconfirmedSigners = new Set<string>();
-
-export function refuseWhileUnconfirmed(signer: string): RelayRefusal | null {
-  return unconfirmedSigners.has(signer.toLowerCase())
-    ? refusal(
-        'RELAY_PENDING',
-        "This wallet's previous relayed transaction is still being confirmed — try again in a moment.",
-        409
-      )
-    : null;
-}
-
-/** Marks the signer's transaction as sent; the returned call marks its receipt as in. */
-export function awaitReceipt(signer: string): () => void {
-  const key = signer.toLowerCase();
-  unconfirmedSigners.add(key);
-  return () => unconfirmedSigners.delete(key);
-}
-
 /** Test seam — production code never clears the entries. */
 export function resetRelayDedup(): void {
   entries.clear();
-  unconfirmedSigners.clear();
 }
 
 /** Test seam — how many requests are remembered right now. */

@@ -19,8 +19,9 @@ import { getBufferedTestnetFeeParams, getMainnetFeeParams } from '@/lib/testnetG
 import { releaseDailyBudget, reserveDailyBudget, settleDailyBudget } from '@/lib/relayerBudget';
 import { RelayerBusyError, withRelayerLock } from '@/lib/relayerQueue';
 import { relayClientAddress, takeRelayRateLimit } from '@/lib/relayerRateLimit';
-import { awaitReceipt, refuseWhileUnconfirmed, relayOnce, relayRequestKey } from '@/lib/relayerDedup';
-import { admitRelayRequest, verifyForwardRequest } from '@/lib/relaySimulation';
+import { relayOnce, relayRequestKey } from '@/lib/relayerDedup';
+import { holdSigner, refuseWhileHeld, releaseSigner, SIGNER_HOLD_MS } from '@/lib/relayerSignerHold';
+import { admitRelayRequest, simulateExecute, verifyForwardRequest } from '@/lib/relaySimulation';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -28,7 +29,7 @@ export const dynamic = 'force-dynamic';
 /** How long to wait for a receipt before answering without an exact settlement. */
 const RECEIPT_TIMEOUT_MS = 30_000;
 
-const NO_STORE = { 'Cache-Control': 'no-store' };
+const noStoreHeaders = { 'Cache-Control': 'no-store' };
 
 /**
  * Whether this deployment can relay, and for which chain. The client needs the answer
@@ -45,7 +46,7 @@ export async function GET() {
     resolved.ok
       ? { available: true, chainId: resolved.config.chainId }
       : { available: false, chainId: null },
-    { headers: NO_STORE }
+    { headers: noStoreHeaders }
   );
 }
 
@@ -60,9 +61,10 @@ export async function GET() {
  *      request's answer instead of a second transaction, and a signer whose last relayed
  *      transaction has no receipt yet is asked to wait;
  *   4. the forwarder's own `verify`, then a simulation of `execute`.
- * Only a request that passes all four queues. Under the lock the signer hold and `verify`
- * run once more, since either may have changed while it waited; then the daily budget is
- * reserved and the transaction is signed and sent. The receipt is awaited after the lock.
+ * Only a request that passes all four queues. Under the lock the hold, `verify` and the
+ * simulation run once more — another transaction may have landed while it waited — then the
+ * daily budget is reserved and the transaction is signed and sent. The receipt is awaited
+ * after the lock.
  *
  * No session or token is required. The forwarder recovers the signer from an EIP-712
  * signature, so `request.from` is already authenticated by the signature itself — that is
@@ -108,7 +110,7 @@ export async function POST(httpRequest: Request) {
   }
 
   return outcome.ok
-    ? NextResponse.json<RelaySuccessResponse>({ hash: outcome.hash }, { headers: NO_STORE })
+    ? NextResponse.json<RelaySuccessResponse>({ hash: outcome.hash }, { headers: noStoreHeaders })
     : fail(outcome.code, outcome.error, outcome.status);
 }
 
@@ -117,15 +119,14 @@ async function relay(
   request: RelayForwardRequest,
   functionName: string
 ): Promise<RelayOutcome> {
-  const admission =
-    refuseWhileUnconfirmed(request.from) ?? (await admitRelayRequest(config, request, functionName));
-  if (!admission.ok) {
-    return admission;
+  const refused = refuseWhileHeld(request.from) ?? (await admitRelayRequest(config, request, functionName));
+  if (refused) {
+    return refused;
   }
 
   let sent: BroadcastOutcome;
   try {
-    sent = await withRelayerLock(() => broadcast(config, request, admission.executeEstimate));
+    sent = await withRelayerLock(() => broadcast(config, request, functionName));
   } catch (error) {
     if (error instanceof RelayerBusyError) {
       return refusal('RELAYER_UNAVAILABLE', error.message, 503);
@@ -143,15 +144,7 @@ async function relay(
   return await confirm(config, request.from, sent);
 }
 
-interface Broadcast {
-  ok: true;
-  hash: Hex;
-  worstCaseWei: bigint;
-  /** Lifts the signer's hold once the receipt is in (or the wait gives up). */
-  received: () => void;
-}
-
-type BroadcastOutcome = RelayRefusal | Broadcast;
+type BroadcastOutcome = RelayRefusal | { ok: true; hash: Hex; worstCaseWei: bigint };
 
 /**
  * Runs inside the relayer lock, which signs and sends one transaction at a time: nothing
@@ -161,23 +154,27 @@ type BroadcastOutcome = RelayRefusal | Broadcast;
 async function broadcast(
   config: RelayerConfig,
   request: RelayForwardRequest,
-  executeEstimate: bigint
+  functionName: string
 ): Promise<BroadcastOutcome> {
-  // Checked again here, where it cannot race: the signer may have had another request sent
-  // while this one was being admitted.
-  const unconfirmed = refuseWhileUnconfirmed(request.from);
-  if (unconfirmed) {
-    return unconfirmed;
+  // Checked again here, where it cannot race: only this lock sends, so no hold can appear
+  // between this check and the send below.
+  const held = refuseWhileHeld(request.from);
+  if (held) {
+    return held;
   }
 
   const args = toForwardRequestArgs(request);
   const { publicClient, walletClient, forwarderAddress } = config;
 
   // Nothing here depends on anything else here, and every one of them is a round trip the
-  // player waits through while the lock is held — so they go out together. `verify` repeats
-  // the admission check for a stale nonce or a passed deadline.
-  const [rejected, feeEstimate, block, nonce] = await Promise.all([
+  // player waits through while the lock is held — so they go out together. Admission
+  // already ran `verify` and the simulation, but either can change while the request
+  // waits: a transaction sent before it can take the duel it wanted, its deadline can pass,
+  // or someone can execute the same signed request elsewhere. Only admitted requests get
+  // here, so running both alongside costs junk nothing.
+  const [rejected, simulation, feeEstimate, block, nonce] = await Promise.all([
     verifyForwardRequest(config, request),
+    simulateExecute(config, request, functionName),
     publicClient.estimateFeesPerGas(),
     publicClient.getBlock(),
     publicClient.getTransactionCount({ address: config.relayerAddress, blockTag: 'pending' }),
@@ -185,6 +182,9 @@ async function broadcast(
 
   if (rejected) {
     return rejected;
+  }
+  if (!simulation.ok) {
+    return simulation;
   }
 
   // Fees come from the same policy the self-paid path uses: Arbitrum One legitimately reports
@@ -196,7 +196,7 @@ async function broadcast(
       ? getBufferedTestnetFeeParams(feeEstimate, block.baseFeePerGas)
       : getMainnetFeeParams(feeEstimate, block.baseFeePerGas);
 
-  const gasLimit = relayGasLimit(args.gas, executeEstimate);
+  const gasLimit = relayGasLimit(args.gas, simulation.executeEstimate);
   const worstCaseWei = gasLimit * maxFeePerGas;
 
   const budget = reserveDailyBudget(request.from, worstCaseWei, {
@@ -242,7 +242,8 @@ async function broadcast(
     return refusal('RELAYER_UNAVAILABLE', 'Could not broadcast the transaction.', 502);
   }
 
-  return { ok: true, hash, worstCaseWei, received: awaitReceipt(request.from) };
+  holdSigner(request.from, hash);
+  return { ok: true, hash, worstCaseWei };
 }
 
 /**
@@ -252,29 +253,33 @@ async function broadcast(
 async function confirm(
   config: RelayerConfig,
   from: `0x${string}`,
-  { hash, worstCaseWei, received }: Broadcast
+  { hash, worstCaseWei }: { hash: Hex; worstCaseWei: bigint }
 ): Promise<RelayOutcome> {
   try {
     const receipt = await config.publicClient.waitForTransactionReceipt({
       hash,
       timeout: RECEIPT_TIMEOUT_MS,
     });
+    releaseSigner(from, hash);
     // Gas was spent either way, so the reservation settles to the real cost before the
     // status is inspected.
     settleDailyBudget(from, worstCaseWei, receipt.gasUsed * receipt.effectiveGasPrice);
 
     if (receipt.status === 'reverted') {
-      // The simulation passed, so state moved between admission and mining — the duel was
-      // joined by someone else, the claim window closed, the permit nonce was used.
+      // The simulation under the lock passed, so state moved after it — the duel was joined
+      // by someone else, the claim window closed, the permit nonce was used.
       console.error('[relay] forwarded call reverted after a clean simulation', hash);
       return refusal('EXECUTION_REVERTED', 'The duel action reverted on-chain — reload and try again.', 409);
     }
   } catch {
     // The transaction is broadcast and may still land, so the worst-case reservation
-    // stands rather than handing back an allowance that is possibly being spent.
+    // stands rather than handing back an allowance that is possibly being spent, and the
+    // signer stays held until a receipt does turn up (or the hold expires).
     console.error('[relay] receipt wait timed out, keeping worst-case reservation', hash);
-  } finally {
-    received();
+    void config.publicClient.waitForTransactionReceipt({ hash, timeout: SIGNER_HOLD_MS }).then(
+      () => releaseSigner(from, hash),
+      () => undefined
+    );
   }
 
   return { ok: true, hash };
@@ -283,6 +288,6 @@ async function confirm(
 function fail(code: RelayErrorCode, error: string, status: number, headers: Record<string, string> = {}) {
   return NextResponse.json<RelayErrorResponse>(
     { code, error },
-    { status, headers: { ...NO_STORE, ...headers } }
+    { status, headers: { ...noStoreHeaders, ...headers } }
   );
 }

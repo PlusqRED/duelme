@@ -3,8 +3,6 @@ import type { Hex } from 'viem';
 import {
   MAX_REMEMBERED_RELAYS,
   RELAY_REPEAT_TTL_MS,
-  awaitReceipt,
-  refuseWhileUnconfirmed,
   relayOnce,
   relayRequestKey,
   resetRelayDedup,
@@ -127,23 +125,5 @@ describe('relayOnce', () => {
 
     expect(trackedRelayRequests()).toBe(MAX_REMEMBERED_RELAYS + 1);
     expect(relay).not.toHaveBeenCalled();
-  });
-});
-
-describe('refuseWhileUnconfirmed', () => {
-  it('holds a signer back from the moment their transaction is sent until its receipt is in', () => {
-    expect(refuseWhileUnconfirmed(REQUEST.from)).toBeNull();
-
-    const received = awaitReceipt(REQUEST.from);
-
-    expect(refuseWhileUnconfirmed(REQUEST.from.toLowerCase())).toMatchObject({
-      code: 'RELAY_PENDING',
-      status: 409,
-    });
-    expect(refuseWhileUnconfirmed('0x00000000000000000000000000000000000000e1')).toBeNull();
-
-    received();
-
-    expect(refuseWhileUnconfirmed(REQUEST.from)).toBeNull();
   });
 });
