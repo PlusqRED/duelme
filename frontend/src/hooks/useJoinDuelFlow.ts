@@ -33,7 +33,7 @@ export function useJoinDuelFlow({
   const appToast = useAppToast();
   const [flow, setFlow] = useState<JoinDuelFlowSession | null>(null);
   const [allowanceRefreshCount, setAllowanceRefreshCount] = useState(0);
-  const [isRecheckingDuel, setIsRecheckingDuel] = useState(false);
+  const [duelRecheckCount, setDuelRecheckCount] = useState(0);
 
   const { authenticated } = usePrivy();
   const { walletAddress } = useActiveWallet();
@@ -110,12 +110,16 @@ export function useJoinDuelFlow({
 
   // Back from topping up, the duel may have been joined, cancelled or declined meanwhile: read it
   // again and keep Continue closed until the answer is in, then re-run the same checks as the page.
-  // The flag drops through React Query's own scheduler, i.e. after the new duel reached the page —
-  // never in a render that still shows the old one.
+  // The count drops through React Query's own scheduler, i.e. after the new duel reached the page —
+  // never in a render that still shows the old one. A count, not a flag: a second recheck cancels
+  // the first refetch, whose promise then settles while the second is still in flight.
   const recheckDuel = useCallback(() => {
-    setIsRecheckingDuel(true);
-    void refetchDuel().finally(() => notifyManager.schedule(() => setIsRecheckingDuel(false)));
+    setDuelRecheckCount((count) => count + 1);
+    void refetchDuel().finally(() =>
+      notifyManager.schedule(() => setDuelRecheckCount((count) => Math.max(0, count - 1)))
+    );
   }, [refetchDuel]);
+  const isRecheckingDuel = duelRecheckCount > 0;
 
   const { funding, markOpened } = useFlowFunding({
     chainId: flow?.draft.chainId ?? chainConfig.id,
@@ -126,7 +130,9 @@ export function useJoinDuelFlow({
   const review: FlowReviewGate = {
     funding,
     canContinue: funding.status.kind === 'enough' && canJoin && !isRecheckingDuel,
-    blockedReason: !canJoin && !isRecheckingDuel ? 'deposit.joinUnavailable' : null,
+    // Only once the wallet is known: while it resolves, canJoin is false for no reason the duel gave.
+    blockedReason:
+      !canJoin && !isRecheckingDuel && !!walletAddress ? 'deposit.joinUnavailable' : null,
   };
 
   const actions = joinDuelFlowActions({
