@@ -58,12 +58,12 @@ export function CreateDuelWizard() {
   );
 
   const chainId = SUPPORTED_CHAINS[chainKey].id;
-  const [isCreateStarted, setIsCreateStarted] = useState(false);
+  const [isCreateInFlight, setIsCreateInFlight] = useState(false);
   const draftForm = useMemo(
     () => ({ chainId, game: selectedGame, amount, message, isPublic }),
     [chainId, selectedGame, amount, message, isPublic]
   );
-  const { restoredDraft, keepDraft } = useCreateDuelDraftStorage(draftForm, isCreateStarted);
+  const { restoredDraft, keepDraft } = useCreateDuelDraftStorage(draftForm, isCreateInFlight);
   const [appliedDraft, setAppliedDraft] = useState<CreateDuelDraft | null>(null);
   // The live on-chain limits, passed to the validators rather than read from the shared store:
   // the store is synced in an effect after this render, so a restored draft would be judged by
@@ -113,12 +113,15 @@ export function CreateDuelWizard() {
 
   // The draft goes once the create call is with the wallet, not when its receipt lands: a reload
   // while it is signed, relayed or confirmed must not bring the same terms back as "restored" and
-  // invite a second duel.
-  const hasCreateStarted =
+  // invite a second duel. Mirrored both ways, because the draft hook runs before the flow exists:
+  // a refused or failed call puts the form back in the player's hands, and a later Top up must
+  // keep it again.
+  const hasCreateInFlight =
     flow.flow?.pendingTransaction === 'create-duel' || flow.flow?.stage === 'success';
-  if (hasCreateStarted && !isCreateStarted) {
-    setIsCreateStarted(true);
+  if (hasCreateInFlight !== isCreateInFlight) {
+    setIsCreateInFlight(hasCreateInFlight);
   }
+
 
   const steps: WizardStep[] = useMemo(
     () =>
