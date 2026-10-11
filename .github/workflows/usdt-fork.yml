@@ -54,7 +54,7 @@ jobs:
       # suite ran and passed, and fails on zero tests or a single skip.
       - name: Run the fork suite
         env:
-          ARBITRUM_RPC_URL: ${{ secrets.ARBITRUM_RPC_URL || 'https://arb1.arbitrum.io/rpc' }}
+          ARBITRUM_RPC_URL: ''
         run: |
           forge_status=0
           forge test --match-path test/UsdtPermitFork.t.sol --json > fork-results.json || forge_status=$?
