@@ -257,7 +257,7 @@ address, no relayer key — is the case the self-paid path still covers.
 | `frontend/src/lib/resilientBroadcast.ts` | Splits writes into sign + broadcast so wagmi fallback transport handles RPC retries |
 | `frontend/src/lib/errorDetails.ts` | Flattens an error graph into lowercase detail strings for failure classification; `bestErrorDetail` picks the one worth showing |
 | `frontend/src/app/api/relay/route.ts` | Gas relayer: admits a signed ERC-2771 request (rate limit, repeat check, verify, simulation), then signs and sends `ERC2771Forwarder.execute` under the lock |
-| `frontend/src/lib/relayRequest.ts` | Relay wire types, relayable-function allowlist, payload validation, outer gas-limit rule |
+| `frontend/src/lib/relayRequest.ts` | Relay wire types and error codes, relayable-function allowlist, payload validation, outer gas-limit rule |
 | `frontend/src/lib/relayerConfig.ts` | Server-only relayer wiring (key, RPC, budget, viem clients) |
 | `frontend/src/lib/relayerBudget.ts` | In-memory per-address daily gas budget (reserve / settle / release) |
 | `frontend/src/lib/relayerQueue.ts` | Serializes relayed sends: one transaction is signed and sent at a time; receipts are awaited after the lock |
