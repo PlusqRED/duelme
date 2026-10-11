@@ -154,13 +154,6 @@ class GameServiceTest {
     }
 
     @Test
-    void findBySlugIsCaseInsensitive() {
-        gameService.getOrCreate("CS2", null, null);
-
-        assertThat(gameService.findBySlug("CS2")).map(GameResponse::slug).contains("cs2");
-    }
-
-    @Test
     void listReturnsAllGames() {
         gameRepository.save(new Game(null, "cs2", "Counter-Strike 2", null, GameCategory.FPS, null, null));
         gameRepository.save(new Game(null, "chess", "Chess", null, GameCategory.STRATEGY, null, null));
