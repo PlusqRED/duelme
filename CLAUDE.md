@@ -17,7 +17,7 @@ ops/         — Docker Compose, Caddy config
 
 **Backend (`backend/`):** `./gradlew build` (JDK 25 via toolchain) · `./gradlew bootRun` (localhost:8080, needs MongoDB) · `./gradlew test` (embedded MongoDB via Flapdoodle) · `./gradlew bootJar` · `./gradlew nativeCompile` (~5–10 min, ~50ms startup, ~60MB RSS) · `./gradlew nativeTest` · `docker compose up -d` (local MongoDB)
 
-**Contracts (`contracts/`):** `forge build` · `forge test` · `forge test -vvv` · `forge coverage --report summary`. `test/UsdtPermitFork.t.sol` skips unless `ARBITRUM_RPC_URL` is set — `set -a && . ./.env && set +a` first to include it. Skipped tests there are expected, not a failure.
+**Contracts (`contracts/`):** `forge build` · `forge test` · `forge test -vvv` · `FOUNDRY_PROFILE=coverage forge coverage --report summary` (the profile shortens the invariant run; see `foundry.toml`). `test/UsdtPermitFork.t.sol` skips unless `ARBITRUM_RPC_URL` is set — `set -a && . ./.env && set +a` first to include it. Skipped tests there are expected, not a failure.
 
 ## Git Conventions
 

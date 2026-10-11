@@ -42,6 +42,8 @@ jobs:
         run: forge test -v
 
       - name: Run coverage
+        env:
+          FOUNDRY_PROFILE: coverage
         run: |
           forge coverage --report summary 2>&1 | tee coverage-output.txt
 

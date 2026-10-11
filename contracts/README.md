@@ -69,9 +69,12 @@ and approved, and the common duel helpers), `MetaTxSigner` for the suites that n
 and `DuelMeTestConstants` for the values both bases start from. A suite calls `_deployFixture()`
 from `setUp` rather than building its own world.
 
-The invariant run is set to `runs = 256, depth = 256` in `foundry.toml` — 65,536 calls, about 25
-seconds. It was an eighth of that until the mainnet deploy; the contract is immutable and holds
-other people's money, so the search budget is worth the CI minute.
+The invariant run is set to `runs = 512, depth = 256` on four workers in `foundry.toml` — 131,072
+calls, about 35 seconds locally. It was 8,192 calls until the
+mainnet deploy; the contract is immutable and holds other people's money, so the search budget is
+worth the CI minute. `forge coverage` runs under `FOUNDRY_PROFILE=coverage`, which cuts the
+invariant run to 128 x 128: coverage only records which lines run, and at that budget the counts
+equal the full search's.
 
 ## Duel lifecycle
 

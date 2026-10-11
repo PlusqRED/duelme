@@ -12,7 +12,7 @@ never contradict CLAUDE.md; if it does, CLAUDE.md is right and this file is the 
 - Contracts (`contracts/`): `forge install` · `forge build` · `forge test` ·
   `forge test --match-test testCreateDuel` ·
   `forge test --match-test testCreateDuel --match-path test/DuelMe.t.sol` ·
-  `forge coverage --report summary`
+  `FOUNDRY_PROFILE=coverage forge coverage --report summary`
 - Backend (`backend/`): `./gradlew build` · `./gradlew bootRun` · `./gradlew test` ·
   `./gradlew nativeCompile`
 - One workflow, `.github/workflows/ci.yml`, covers everything: Forge tests + coverage, backend
