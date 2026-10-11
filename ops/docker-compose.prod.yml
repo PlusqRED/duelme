@@ -49,6 +49,7 @@ services:
       mongodb:
         condition: service_healthy
     environment:
+      APP_ENV: prod
       SPRING_MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/duelme?authSource=admin
       SPRING_PROFILES_ACTIVE: prod
       PRIVY_APP_ID: ${PRIVY_APP_ID:?PRIVY_APP_ID must be set in .env}
@@ -90,6 +91,7 @@ services:
     ports:
       - "127.0.0.1:3002:3001"
     environment:
+      APP_ENV: prod
       # Hot wallet that pays gas for relayed duel actions. Dedicated key, funded with only
       # what the daily budgets can spend — it signs nothing but ERC2771Forwarder.execute.
       RELAYER_PRIVATE_KEY: ${RELAYER_PRIVATE_KEY:-}

@@ -46,6 +46,11 @@ duelme:
       client-secret: ${TELEGRAM_CLIENT_SECRET:}
       return-url: ${TELEGRAM_RETURN_URL:}
       issuer: ${TELEGRAM_ISSUER:https://oauth.telegram.org}
+  # Reported by /api/v1/health. APP_RELEASE is baked into the image at build time, APP_ENV is
+  # set by the compose file; blank reads as "unknown".
+  build:
+    environment: ${APP_ENV:}
+    release: ${APP_RELEASE:}
 
 springdoc:
   api-docs:
