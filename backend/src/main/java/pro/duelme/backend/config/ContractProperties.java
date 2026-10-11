@@ -17,9 +17,10 @@ import java.util.Map;
  *
  * <p>Read by {@code GameService}, which scopes a game's duel badge to the deployments
  * named here — that is what makes the badge reset by itself on a redeploy instead of
- * counting a retired contract's duels forever.
+ * counting a retired contract's duels forever — and by {@code DuelMetaService}, which
+ * accepts metadata writes only for the deployment named here for the request's chain.
  *
- * <p>Every request-time lookup of a single duel takes the address from the caller
+ * <p>Every request-time read of a single duel takes the address from the caller
  * instead, because the client knows which deployment it is talking to and the backend
  * must keep serving rows for a deployment that is no longer current.
  */

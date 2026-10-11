@@ -17,6 +17,7 @@ import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class GameService {
@@ -36,9 +37,11 @@ public class GameService {
     }
 
     public GameResponse getBySlug(String slug) {
-        Game game = repository.findBySlug(slug.toLowerCase())
-            .orElseThrow(() -> new GameNotFoundException(slug));
-        return withLiveDuelCount(game);
+        return findBySlug(slug).orElseThrow(() -> new GameNotFoundException(slug));
+    }
+
+    public Optional<GameResponse> findBySlug(String slug) {
+        return repository.findBySlug(slug.toLowerCase()).map(this::withLiveDuelCount);
     }
 
     public List<GameResponse> list(GameCategory category, String search, int limit) {
