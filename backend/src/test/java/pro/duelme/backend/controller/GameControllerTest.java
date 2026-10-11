@@ -44,15 +44,6 @@ class GameControllerTest {
     }
 
     @Test
-    void healthReturnsOk() throws Exception {
-        mockMvc.perform(get("/api/v1/health"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.status").value("ok"))
-            .andExpect(jsonPath("$.environment").value("unknown"))
-            .andExpect(jsonPath("$.release").value("unknown"));
-    }
-
-    @Test
     void listGamesReturnsEmpty() throws Exception {
         mockMvc.perform(get("/api/v1/games"))
             .andExpect(status().isOk())

@@ -33,8 +33,8 @@ class HealthControllerTest {
     }
 
     @Test
-    void healthReportsUnknownForBlankValues() {
-        HealthResponse response = new HealthController("", " ").health();
+    void healthReportsUnknownForUnsetOrBlankValues() {
+        HealthResponse response = new HealthController(null, " ").health();
 
         assertThat(response.environment()).isEqualTo("unknown");
         assertThat(response.release()).isEqualTo("unknown");
