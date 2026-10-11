@@ -20,10 +20,10 @@ Read all Solidity files and check for:
 - [ ] Reentrancy: CEI order (state written before the token call)? `nonReentrant` on every
       **player-facing** state-mutating function? (`onlyOwner` entry points deliberately have no
       guard — that is not a finding.)
-- [ ] Access control: `onlyOwner` where it belongs? Do `_checkOwner` (which every `onlyOwner`
-      path goes through) and the `acceptOwnership` override still read `msg.sender`, not
-      `_msgSender()`? A relayable admin path means one owner signature can be replayed through
-      the forwarder by whoever picks it up.
+- [ ] Access control: `onlyOwner` where it belongs? Does every admin path — `_checkOwner`
+      (behind every `onlyOwner`), the `acceptOwnership` override, any new owner check — still
+      read `msg.sender`, not `_msgSender()`? A relayable admin path means one owner signature
+      can be replayed through the forwarder by whoever picks it up.
 - [ ] Pause policy: `whenNotPaused` only on entering a duel or declaring a new result — today
       `_createDuel` and `_joinDuel` (every create and join entry point must reach them; the
       external ones carry no modifier of their own), `declineDuel`, `claimVictory` and
@@ -43,9 +43,10 @@ Read all Solidity files and check for:
       Not findings: `_pullWager` has no balance-delta check, by design. Its `@dev` beginning
       "Takes a wager and verifies" is stale; it stays until a change redeploys `DuelMe.sol`,
       which must fix it.
-      Known and accepted (`testFeeSwitchedOnAfterDeployUnderCollateralisesTheDuel`): a fee
-      switched on after deploy short-pays every payout and leaves the escrow short for wagers
-      taken after it. `pause()` stops new wagers, not the shortfall.
+      Known and accepted: a fee switched on after deploy short-pays every payout, and wagers
+      taken after it leave the escrow short (the shortfall is pinned by
+      `testFeeSwitchedOnAfterDeployUnderCollateralisesTheDuel`). `pause()` stops new wagers,
+      not the shortfall.
 - [ ] USDT-specific: blocklist risk covered by pull payouts plus the `*To` destinations? Permit
       path still tolerant of a front-run `permit` (the `try/catch` + allowance check)?
 - [ ] State machine: can any transition be skipped, replayed, or reached from the wrong state?

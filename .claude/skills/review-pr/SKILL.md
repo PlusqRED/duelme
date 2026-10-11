@@ -14,11 +14,12 @@ CLAUDE.md disagree, CLAUDE.md wins and this file is the bug.
 ## Steps
 
 1. Get the diff:
-   - If a PR number or a branch name is given: `gh pr diff $ARGUMENTS` — the pushed head against
-     the PR's own base. For a branch you also have locally, name any local commits it lacks
-     (`git log origin/$ARGUMENTS..$ARGUMENTS`) in the output as not reviewed.
-   - If `gh` finds no PR for the branch: `git fetch origin` (stop if it fails), then
-     `git diff origin/dev...$ARGUMENTS`, since feature work targets `dev`.
+   - If PR number given: `gh pr diff $ARGUMENTS`
+   - If branch name given: `git fetch origin` (stop if it fails), then
+     `git diff origin/dev...origin/$ARGUMENTS` — the pushed branch against `dev`, which feature
+     PRs target. If the branch was never pushed, diff `origin/dev...$ARGUMENTS`; if the local
+     branch has commits the remote lacks (`git log origin/$ARGUMENTS..$ARGUMENTS`), name them in
+     the output as not reviewed. For a PR into another base, pass its number instead.
    - Otherwise: `git diff HEAD` (staged **and** unstaged; plain `git diff` misses staged changes)
 
 2. For each changed file, check:
@@ -26,8 +27,8 @@ CLAUDE.md disagree, CLAUDE.md wins and this file is the bug.
 ### Solidity (`contracts/`)
 - Reentrancy: CEI order, and `nonReentrant` on every new **player-facing** state-mutating
   function. `onlyOwner` entry points deliberately carry no guard — not a finding.
-- `_checkOwner` (which every `onlyOwner` path goes through) and the `acceptOwnership` override
-  read `msg.sender`, never `_msgSender()`.
+- Every admin path — `_checkOwner` (behind every `onlyOwner`), the `acceptOwnership` override,
+  any new owner check — reads `msg.sender`, never `_msgSender()`.
 - `whenNotPaused` only on entering a duel or declaring a result — today `_createDuel` and
   `_joinDuel` (every create and join entry point must reach them; the external ones carry none),
   `declineDuel`, `claimVictory`, `admitDefeat` — never on a path that returns a player's money.
