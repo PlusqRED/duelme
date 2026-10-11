@@ -12,7 +12,7 @@ Arguments: $ARGUMENTS (optional: specific test name or "--coverage" for coverage
 
 1. `cd contracts/`
 2. If $ARGUMENTS contains "--coverage":
-   - Run `FOUNDRY_PROFILE=coverage forge coverage --report summary` (see `foundry.toml`)
+   - Run `forge coverage --profile coverage --report summary` (see `foundry.toml`)
    - Report coverage percentages per file. The target is ≥90% lines on `src/DuelMe.sol`,
      emergency and admin paths included.
 3. If $ARGUMENTS contains a specific test name:

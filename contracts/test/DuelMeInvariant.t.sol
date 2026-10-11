@@ -18,7 +18,7 @@ contract DuelMeHandler is Test {
 
     // Ghost counters. Every action below swallows its own revert, so without these a run in
     // which nothing ever succeeded — a contract where no duel can be created at all — would
-    // satisfy both invariants. `afterInvariant` turns that into a failure.
+    // satisfy every invariant. `testHandlerDrivesAFullLifecycle` asserts them instead.
     /// @dev How far past `duelCount` the handler and `invariant_nothingExistsPastDuelCount`
     ///      both look.
     uint256 public constant OVERSHOOT = 4;
