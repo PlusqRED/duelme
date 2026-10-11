@@ -28,7 +28,8 @@ export function FlowFundingCheck({ review, chainName }: FlowFundingCheckProps) {
         balance={funding.balance}
         onRetry={funding.retry}
       />
-      {status.kind === 'short' && (
+      {/* A duel this player can no longer join is no reason to deposit. */}
+      {status.kind === 'short' && !blockedReason && (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-sm font-semibold text-amber-700">
             {t('deposit.short', { amount: formatUSDT(status.shortfallRaw) })}
