@@ -384,32 +384,41 @@ jobs:
           FAUCET_ENABLED=true
           FAUCET_PRIVATE_KEY=$FAUCET_PRIVATE_KEY
           ENVEOF
-          # .previous-images records what the stack ran before this deploy, for the cleanup step.
+          # .previous-images collects what the stack ran before this deploy, for the cleanup step.
+          # Appended, not overwritten: after a failed deploy it still holds the release before it.
           ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
             cd ~/apps/duelme-dev
-            docker compose images -q > .previous-images 2>/dev/null || true
+            docker compose images -q >> .previous-images 2>/dev/null || true
             docker compose pull -q
             docker compose up -d --remove-orphans --quiet-pull
           '
 
       # Both services must answer and report the commit this run built: a container still on an
-      # older image fails the deploy instead of passing for the new one.
+      # older image fails the deploy instead of passing for the new one. When both answer but
+      # with another release (say the pull failed), the old containers are healthy: the deploy
+      # fails, and the rollback leaves them running.
       - name: Verify health checks
+        id: verify
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          EXPECTED_ENV: dev
           EXPECTED_RELEASE: ${{ github.sha }}
         run: |
           health=''
           for i in $(seq 1 30); do
             if health=$(ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'curl -sf http://127.0.0.1:8080/api/v1/health && echo && curl -sf http://127.0.0.1:3001/api/health' 2>/dev/null) \
-              && jq -se --arg release "$EXPECTED_RELEASE" 'length == 2 and all(.[]; .release == $release)' <<<"$health" >/dev/null 2>&1; then
+              && jq -se --arg env "$EXPECTED_ENV" --arg release "$EXPECTED_RELEASE" \
+                'length == 2 and all(.[]; .environment == $env and .release == $release)' <<<"$health" >/dev/null 2>&1; then
               echo "Health checks passed, both services run $EXPECTED_RELEASE"
               exit 0
             fi
             sleep 2
           done
-          echo "Health checks failed after 60s; expected release $EXPECTED_RELEASE, last answers: $health"
+          echo "Health checks failed after 60s; expected $EXPECTED_ENV at $EXPECTED_RELEASE, last answers: $health"
+          if jq -se 'length == 2' <<<"$health" >/dev/null 2>&1; then
+            echo "healthy_but_stale=true" >> "$GITHUB_OUTPUT"
+          fi
           ssh "$DEPLOY_USER@$DEPLOY_HOST" 'cd ~/apps/duelme-dev && docker compose ps && docker compose logs --tail=20'
           exit 1
 
@@ -445,7 +454,7 @@ jobs:
           ' || echo "::warning::Image cleanup did not finish; the deploy itself succeeded"
 
       - name: Rollback on failure
-        if: failure()
+        if: failure() && steps.verify.outputs.healthy_but_stale != 'true'
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
@@ -593,32 +602,41 @@ jobs:
           RELAYER_DAILY_BUDGET_WEI=$RELAYER_DAILY_BUDGET_WEI
           RELAYER_GLOBAL_DAILY_BUDGET_WEI=$RELAYER_GLOBAL_DAILY_BUDGET_WEI
           ENVEOF
-          # .previous-images records what the stack ran before this deploy, for the cleanup step.
+          # .previous-images collects what the stack ran before this deploy, for the cleanup step.
+          # Appended, not overwritten: after a failed deploy it still holds the release before it.
           ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
             cd ~/apps/duelme-prod
-            docker compose images -q > .previous-images 2>/dev/null || true
+            docker compose images -q >> .previous-images 2>/dev/null || true
             docker compose pull -q
             docker compose up -d --remove-orphans --quiet-pull
           '
 
       # Both services must answer and report the commit this run built: a container still on an
-      # older image fails the deploy instead of passing for the new one.
+      # older image fails the deploy instead of passing for the new one. When both answer but
+      # with another release (say the pull failed), the old containers are healthy: the deploy
+      # fails, and the rollback leaves them running.
       - name: Verify health checks
+        id: verify
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          EXPECTED_ENV: prod
           EXPECTED_RELEASE: ${{ github.sha }}
         run: |
           health=''
           for i in $(seq 1 30); do
             if health=$(ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'curl -sf http://127.0.0.1:8081/api/v1/health && echo && curl -sf http://127.0.0.1:3002/api/health' 2>/dev/null) \
-              && jq -se --arg release "$EXPECTED_RELEASE" 'length == 2 and all(.[]; .release == $release)' <<<"$health" >/dev/null 2>&1; then
+              && jq -se --arg env "$EXPECTED_ENV" --arg release "$EXPECTED_RELEASE" \
+                'length == 2 and all(.[]; .environment == $env and .release == $release)' <<<"$health" >/dev/null 2>&1; then
               echo "Health checks passed, both services run $EXPECTED_RELEASE"
               exit 0
             fi
             sleep 2
           done
-          echo "Health checks failed after 60s; expected release $EXPECTED_RELEASE, last answers: $health"
+          echo "Health checks failed after 60s; expected $EXPECTED_ENV at $EXPECTED_RELEASE, last answers: $health"
+          if jq -se 'length == 2' <<<"$health" >/dev/null 2>&1; then
+            echo "healthy_but_stale=true" >> "$GITHUB_OUTPUT"
+          fi
           ssh "$DEPLOY_USER@$DEPLOY_HOST" 'cd ~/apps/duelme-prod && docker compose ps && docker compose logs --tail=20'
           exit 1
 
@@ -654,7 +672,7 @@ jobs:
           ' || echo "::warning::Image cleanup did not finish; the deploy itself succeeded"
 
       - name: Rollback on failure
-        if: failure()
+        if: failure() && steps.verify.outputs.healthy_but_stale != 'true'
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}

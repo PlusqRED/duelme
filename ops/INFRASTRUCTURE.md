@@ -59,9 +59,9 @@ Comprehensive hardening applied across CI/CD, Docker, reverse proxy, and runtime
 | Job timeouts | Contracts 15m, backend 15m, frontend 10m, builds 30m, deploys 10m |
 | Prod gated on native build | `build-prod` needs `backend-native`; a broken native image cannot reach production |
 | Parallel builds | Backend and frontend images built concurrently via matrix strategy |
-| Healthcheck verification | Post-deploy polling with 60s timeout across both backend and frontend endpoints; both must report the commit just built as `release` |
+| Healthcheck verification | Post-deploy polling with 60s timeout across both backend and frontend endpoints; both must report their environment and the commit just built as `release` |
 | Image cleanup | After a healthy deploy, the images the stack ran before it are removed; nothing outside the stack is touched |
-| Rollback on failure | Broken backend/frontend containers are stopped automatically if healthchecks fail |
+| Rollback on failure | Broken backend/frontend containers are stopped automatically if healthchecks fail; healthy containers on an older release are left running |
 | Concurrency control | In-progress PR runs are cancelled when new commits are pushed |
 | Least privilege | `contents: read` globally; `packages: write` only on build jobs |
 

@@ -16,10 +16,9 @@ public class HealthController {
 
     private final HealthResponse response;
 
-    // APP_RELEASE is baked into the image at build time and APP_ENV is set by the compose file;
-    // the deploy compares the release with the commit it just built.
-    public HealthController(@Value("${APP_ENV:}") String environment,
-                            @Value("${APP_RELEASE:}") String release) {
+    // The deploy compares the release with the commit it just built.
+    public HealthController(@Value("${duelme.build.environment:}") String environment,
+                            @Value("${duelme.build.release:}") String release) {
         this.response = new HealthResponse("ok", orUnknown(environment), orUnknown(release));
     }
 

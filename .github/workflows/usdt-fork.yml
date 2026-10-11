@@ -3,8 +3,8 @@ name: USDT Fork
 # test/UsdtPermitFork.t.sol runs the permit path against the real USD₮0 on Arbitrum One. That
 # token is an upgradeable proxy, so its permit can change without a change on our side: the
 # weekly run catches that, the path-filtered runs catch our own changes. Deliberately outside
-# ci.yml and out of every deploy's needs: — contracts are not deployed by CI, and an outage of
-# a public RPC must not hold back a release.
+# ci.yml and out of every deploy job's needs: — contracts are not deployed by CI, and an outage
+# of a public RPC must never stop a deploy. A red run caused by the RPC is re-run, not merged over.
 on:
   push:
     branches: [main, dev]
