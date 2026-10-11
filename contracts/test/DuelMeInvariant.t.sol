@@ -310,7 +310,7 @@ contract DuelMeInvariantTest is DuelMeFixture {
     ///      contract refuses, would leave them green over duels that never got past `Created`.
     ///      This drives the same handler through a whole lifecycle and fails loudly instead.
     ///
-    ///      Deliberately a plain test rather than `afterInvariant`: a single 128-call run is not
+    ///      Deliberately a plain test rather than `afterInvariant`: a single run is not
     ///      guaranteed to reach any particular state, so asserting per run would fail on an
     ///      unlucky sequence rather than on a real regression.
     function testHandlerDrivesAFullLifecycle() public {
