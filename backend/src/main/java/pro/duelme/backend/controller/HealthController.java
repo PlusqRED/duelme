@@ -31,6 +31,6 @@ public class HealthController {
     }
 
     private static String orUnknown(String value) {
-        return value == null || value.isBlank() ? UNKNOWN : value;
+        return value == null || value.isBlank() ? UNKNOWN : value.strip();
     }
 }
