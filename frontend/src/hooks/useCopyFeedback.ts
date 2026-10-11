@@ -14,14 +14,18 @@ export function useCopyFeedback(failureKey: TranslationKey, confirmMs = 2000) {
   const appToast = useAppToast();
   const [copied, setCopied] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastCopyRef = useRef(0);
 
   useEffect(() => () => {
     if (timerRef.current) clearTimeout(timerRef.current);
   }, []);
 
   const copy = useCallback(async (text: string) => {
+    const copyId = ++lastCopyRef.current;
     const landed = await copyText(text);
-    // Cleared after the write settles, so an overlapping copy cannot leave its own timer behind.
+    // Only the latest copy speaks for the button: an earlier one settling late must neither
+    // clear its "Copied" nor report a failure over it.
+    if (copyId !== lastCopyRef.current) return landed;
     if (timerRef.current) clearTimeout(timerRef.current);
     if (!landed) {
       setCopied(false);

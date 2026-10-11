@@ -293,7 +293,7 @@ export function Header() {
           ) : selectedBalance?.kind === 'error' ? (
             <span className="flex flex-wrap items-center gap-x-2 text-xs font-medium text-red-600">
               {t('deposit.balance.failed')}
-              <button type="button" onClick={refetchBalances} className="min-h-11 text-indigo-600 underline-offset-2 hover:underline">{t('deposit.balance.retry')}</button>
+              <button type="button" onClick={refetchBalances} className="min-h-11 min-w-11 px-2 text-indigo-600 underline-offset-2 hover:underline">{t('deposit.balance.retry')}</button>
             </span>
           ) : (
             <span className="text-xs text-slate-500">{t('deposit.balance.checking')}</span>
