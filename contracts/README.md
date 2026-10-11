@@ -191,10 +191,13 @@ After deploy:
 2. update `SUPPORTED_CHAINS.arbitrumSepolia` in `frontend/src/lib/constants.ts` — `duelMe`,
    `forwarder` **and** `usdt`, since MockUSDT is redeployed too. `DUELME_ADDRESSES` and
    `FORWARDER_ADDRESSES` are derived from that table; editing them directly does nothing,
-2a. update `faucet.mock-usdt-address` in `backend/src/main/resources/application.yml`, or the
-   faucet keeps handing out the previous token. That value is deliberately a bare literal with no
-   environment override, and `deployedAddresses.test.ts` pins it to the broadcast artifact —
-   keep the quotes, or YAML reads the address as a hex number and the backend refuses to start,
+2a. update two addresses in `backend/src/main/resources/application.yml`:
+   `duelme.contracts.duel-me` for chain `421614`, or the backend refuses game metadata for the
+   new contract's duels and keeps counting each game's duels on the old one, and
+   `duelme.faucet.mock-usdt-address`, or the faucet keeps handing out the previous token. Both
+   are deliberately bare literals with no environment override, and `deployedAddresses.test.ts`
+   pins them to the broadcast artifact — keep the quotes, or YAML reads an address as a hex
+   number and the backend refuses to start,
 3. sync the root `README.md` contract block with `python3 ../scripts/sync_readme_contract_addresses.py` (or use the configured git hook).
 4. run `../scripts/post_testnet_deploy.sh`, which does the two things nothing else checks:
 
@@ -214,9 +217,10 @@ After deploy:
      instantly and a changed DuelMe is the one that waits in the queue.
    - **clears the dev state a redeploy invalidates** — `duelMeta` and `social_oauth_states`.
      `duelMeta` rows stay correctly orphaned, which is what `contractAddress` is in the key
-     for, but `GameService` counts duels per slug without filtering on it, so stale rows
-     inflate every game's `duelCount`. `profiles` and `games` are kept; `--all` clears them
-     too.
+     for: `GameService` counts a game's duels only on the deployments in
+     `duelme.contracts.duel-me`, and the app asks for a duel's metadata by the live address, so
+     clearing them is housekeeping rather than a fix. `profiles` and `games` are kept; `--all`
+     clears them too.
 
    `faucet_claims` is not on that list. It used to have to be — the claim was keyed by wallet
    alone, so after a MockUSDT redeploy every past claimant got `FaucetAlreadyClaimedException`

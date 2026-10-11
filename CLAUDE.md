@@ -369,7 +369,7 @@ cost the first time.
 
 **Performance:** `next/dynamic` + `{ ssr: false }` for wallet-dependent UI. `useMemo` for derived lists. Don't create objects/arrays in render. `next/image` with explicit width/height + `loading="lazy"` for below-fold.
 
-**i18n:** All visible strings via `useTranslation()`. Add the key to the matching section file under `frontend/src/i18n/translations/` — with **both** `en` and `ru`; `defineSection` makes a missing `ru` a type error. `translations.ts` only merges the sections. Interpolation is `{token}` placeholders filled from the second argument (`t('dashboard.pageSummary', { current, total })`); there is no ICU and no plural support, so write a key per form rather than an ICU `plural` block, which would render literally.
+**i18n:** All visible strings via `useTranslation()`. Add the key to the matching section file under `frontend/src/i18n/translations/` — with **both** `en` and `ru`; `defineSection` makes a missing `ru` a type error. `translations.ts` only merges the sections. Interpolation is `{token}` placeholders filled from the second argument (`t('dashboard.pageSummary', { current, total })`); there is no ICU, so an ICU `plural` block would render literally. A word that agrees with a number goes through `plural(key, count)` from `useTranslation()` (`i18n/pluralize.ts`), which picks the form by `Intl.PluralRules` category: give the base key all four forms — `.one`, `.few`, `.many`, `.other` — in `en` too, because `defineSection` requires `ru` to have exactly `en`'s keys and Russian needs all four. `plural` returns the word alone and the caller places the number: `{game.duelCount} {plural('games.duelsCount', game.duelCount)}`.
 
 **Naming:** Components `PascalCase.tsx`, hooks `camelCase.ts` prefixed `use`, utils `camelCase.ts`, primitive constants `UPPER_SNAKE_CASE`, object constants `camelCase`, types `PascalCase` (prefer `interface` for object shapes).
 
@@ -481,7 +481,7 @@ against.
 
 **Subagents do NOT receive CLAUDE.md automatically.** Every Agent prompt must begin with:
 
-> "Read /home/oserver/projects/duelme/CLAUDE.md first — it contains project conventions, development standards, and quality requirements you must follow."
+> "Read `CLAUDE.md` in the repository root first — it contains project conventions, development standards, and quality requirements you must follow."
 
 And must require:
 - **Context loading:** read CLAUDE.md and relevant source files before writing code.

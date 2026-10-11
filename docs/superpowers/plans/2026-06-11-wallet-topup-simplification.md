@@ -1,5 +1,11 @@
 # Wallet Top-Up Simplification Plan
 
+> **Superseded (2026-09-13).** The Pimlico sponsorship this plan led to was removed in 61c9e9c
+> and replaced by a self-hosted ERC-2771 relayer: players sign an EIP-712 `ForwardRequest`, fund
+> duels through EIP-2612 permits, and `/api/relay` pays the gas. See "Gasless Duel Actions" in
+> `CLAUDE.md`. `sponsoredTransactions.ts` and `sponsoredTransactionConfig.ts`, named below, are
+> gone; the plan is kept as history only.
+
 Date: 2026-06-11
 
 ## Goal

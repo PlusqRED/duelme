@@ -124,8 +124,9 @@ reset_mongo() {
   # What a redeploy actually invalidates:
   #
   #   duelMeta             rows stay correctly orphaned — the key carries contractAddress for
-  #                        exactly this reason — but GameService counts duels per slug without
-  #                        filtering on it, so leaving them inflates every game's duelCount.
+  #                        exactly this reason. GameService counts duels only on the deployments
+  #                        in duelme.contracts.duel-me and the app asks by the live address, so
+  #                        the app no longer reads them; clearing them is housekeeping.
   #   social_oauth_states  short-lived handshake state; a redeploy is as good a moment as any.
   #
   # faucet_claims is deliberately NOT here any more. It used to be the one collection that had
@@ -136,8 +137,9 @@ reset_mongo() {
   # that key — if a wallet cannot claim after a redeploy, fix the key, do not wipe the evidence.
   #
   # Kept for the same reason: profiles holds nicknames, social links and DuelRep, none of it
-  # contract-bound, and games is a catalog whose counts are derived from duelMeta and so correct
-  # themselves once duelMeta is empty. --all clears profiles and games as well.
+  # contract-bound, and games is a catalog whose counts come from the live deployment's duelMeta
+  # rows, so they reset once duelme.contracts.duel-me names the new contract. --all clears
+  # profiles and games as well.
   local collections=(duelMeta social_oauth_states)
   [ "$WIPE_ALL" = 1 ] && collections+=(profiles games)
 

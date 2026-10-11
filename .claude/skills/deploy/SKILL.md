@@ -45,11 +45,15 @@ address too — that is what most of the follow-up below is for.
 7. Mirror them by hand into `frontend/src/lib/constants.ts`, **in the `SUPPORTED_CHAINS` entry for
    that chain**: `duelMe`, `forwarder`, and on Sepolia `usdt` as well. `DUELME_ADDRESSES`,
    `FORWARDER_ADDRESSES`, `USDT_ADDRESSES` and `CHAIN_NAMES` are derived from that object — do not
-   edit them, and never inline an address anywhere else.
-8. Sepolia only: update `duelme.faucet.mock-usdt-address` in
-   `backend/src/main/resources/application.yml`, or the faucet keeps handing testers the previous
-   MockUSDT. It is a literal with no env override on purpose. **Keep the quotes** — a bare `0x…`
-   parses as a hex integer and `FaucetService` then refuses to start.
+   edit them, and never inline an address anywhere else. The backend's mirror is
+   `duelme.contracts.duel-me` in `backend/src/main/resources/application.yml`: set the new DuelMe
+   under that chain's id, or the backend refuses game metadata for the new contract's duels and
+   keeps counting each game's duels on the old one. A literal with no env override, like the
+   faucet token below; **keep the quotes**, or `ContractProperties` refuses to start.
+8. Sepolia only: update `duelme.faucet.mock-usdt-address` in the same `application.yml`, or the
+   faucet keeps handing testers the previous MockUSDT. It is a literal with no env override on
+   purpose. **Keep the quotes** — a bare `0x…` parses as a hex integer and `FaucetService` then
+   refuses to start.
    A claim is keyed by wallet **and** token, so this redeploy re-opens the faucet for every
    tester who already claimed — the ETH leg included. The signer therefore drains at roughly
    testers x redeploys x `eth-amount-eth`, not testers once. Check its balance before a round of
@@ -62,8 +66,9 @@ address too — that is what most of the follow-up below is for.
     loaded. It reads every address and DuelMe's constructor args back out of the broadcast
     artifact, confirms **all three** contracts verified — re-verifying any that did not, since
     `--verify` reports per contract and one failure is easy to miss — and clears the dev state a
-    redeploy invalidates (`duelMeta`, whose stale rows inflate every game's `duelCount`, and
-    `social_oauth_states`). `--dry-run` first if you want to see it before it acts. It refuses to
-    run against anything but the dev stack, and keeps `profiles`, `games` and `faucet_claims`.
+    redeploy invalidates (`duelMeta` and `social_oauth_states`; the old contract's `duelMeta`
+    rows are no longer counted or asked for, so clearing them is housekeeping). `--dry-run`
+    first if you want to see it before it acts. It refuses to run against anything but the dev
+    stack, and keeps `profiles`, `games` and `faucet_claims`.
 12. Report the deployed addresses, the explorer links, and anything from steps 8–9 the user still
     has to do outside the repo.
