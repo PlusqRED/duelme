@@ -10,10 +10,11 @@ import {
 
 /**
  * Keeps the create-duel form across a trip to top up. `keepDraft` runs when the player opens the
- * top-up panel; on the next mount in this tab the draft comes back as `restoredDraft`, and a created
- * duel clears it. sessionStorage, so it never outlives the tab and never reaches a server.
+ * top-up panel; on the next mount in this tab the draft comes back as `restoredDraft`, and starting
+ * the create transaction clears it. sessionStorage, so it never outlives the tab and never reaches
+ * a server.
  */
-export function useCreateDuelDraftStorage(form: CreateDuelDraft, isCreated: boolean) {
+export function useCreateDuelDraftStorage(form: CreateDuelDraft, isCreateStarted: boolean) {
   const { chainId } = form;
   const [restoredDraft, setRestoredDraft] = useState<CreateDuelDraft | null>(null);
   const [isKeptByTopUp, setIsKeptByTopUp] = useState(false);
@@ -29,16 +30,16 @@ export function useCreateDuelDraftStorage(form: CreateDuelDraft, isCreated: bool
     // The stored copy follows every edit after Top up, so a reload brings back the form as last
     // typed rather than as it was when the panel opened. A refused write (quota, storage disabled)
     // only loses the restore after a reload; the form itself is still in memory.
-    if (isKept && !isCreated) {
+    if (isKept && !isCreateStarted) {
       saveCreateDuelDraft(window.sessionStorage, form);
     }
-  }, [isKept, isCreated, form]);
+  }, [isKept, isCreateStarted, form]);
 
   useEffect(() => {
-    if (isCreated) {
+    if (isCreateStarted) {
       clearCreateDuelDraft(window.sessionStorage);
     }
-  }, [isCreated]);
+  }, [isCreateStarted]);
 
   const keepDraft = useCallback(() => setIsKeptByTopUp(true), []);
 

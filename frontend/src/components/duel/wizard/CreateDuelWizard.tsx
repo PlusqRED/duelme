@@ -58,12 +58,12 @@ export function CreateDuelWizard() {
   );
 
   const chainId = SUPPORTED_CHAINS[chainKey].id;
-  const [isCreated, setIsCreated] = useState(false);
+  const [isCreateStarted, setIsCreateStarted] = useState(false);
   const draftForm = useMemo(
     () => ({ chainId, game: selectedGame, amount, message, isPublic }),
     [chainId, selectedGame, amount, message, isPublic]
   );
-  const { restoredDraft, keepDraft } = useCreateDuelDraftStorage(draftForm, isCreated);
+  const { restoredDraft, keepDraft } = useCreateDuelDraftStorage(draftForm, isCreateStarted);
   const [appliedDraft, setAppliedDraft] = useState<CreateDuelDraft | null>(null);
   // The live on-chain limits, passed to the validators rather than read from the shared store:
   // the store is synced in an effect after this render, so a restored draft would be judged by
@@ -111,9 +111,13 @@ export function CreateDuelWizard() {
     onOpenDeposit: keepDraft,
   });
 
-  const flowStage = flow.flow?.stage;
-  if (flowStage === 'success' && !isCreated) {
-    setIsCreated(true);
+  // The draft goes once the create call is with the wallet, not when its receipt lands: a reload
+  // while it is signed, relayed or confirmed must not bring the same terms back as "restored" and
+  // invite a second duel.
+  const hasCreateStarted =
+    flow.flow?.pendingTransaction === 'create-duel' || flow.flow?.stage === 'success';
+  if (hasCreateStarted && !isCreateStarted) {
+    setIsCreateStarted(true);
   }
 
   const steps: WizardStep[] = useMemo(
