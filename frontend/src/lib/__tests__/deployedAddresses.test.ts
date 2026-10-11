@@ -68,10 +68,11 @@ describe('constants.ts mirrors the deployed contracts', () => {
 });
 
 describe('the backend mirrors the same DuelMe deployments', () => {
-  it('names the live DuelMe on each chain, quoted, for the duelMeta backfill', () => {
-    // DuelMetaBackfillRunner stamps legacy rows with the deployment live on their
-    // chain. Sourced from a stale copy it would stamp them with the wrong contract
-    // and hide every one of them, so this copy is pinned like the faucet's below.
+  it('names the live DuelMe on each chain, quoted, for duelMeta writes and badges', () => {
+    // DuelMetaService accepts metadata writes only for the deployment named here, and
+    // GameService counts a game's duels only on it. A stale copy would reject every new
+    // duel's metadata and leave badges counting a retired contract, so it is pinned like
+    // the faucet's below.
     const block = APPLICATION_YML.match(/^\s*duel-me:\n((?:\s+"\d+":.*\n)+)/m);
 
     expect(block, 'duelme.contracts.duel-me must be present in application.yml').not.toBeNull();
@@ -83,7 +84,7 @@ describe('the backend mirrors the same DuelMe deployments', () => {
     );
 
     // Same count, so a chain added to constants.ts but not to application.yml fails
-    // here rather than silently going unbackfilled.
+    // here rather than with every duel's metadata rejected on that chain.
     expect(configured.size).toBe(Object.keys(DUELME_ADDRESSES).length);
     for (const [chainId, duelMe] of Object.entries(DUELME_ADDRESSES)) {
       expect(configured.get(Number(chainId)), `duel-me entry for chain ${chainId}`).toBe(
