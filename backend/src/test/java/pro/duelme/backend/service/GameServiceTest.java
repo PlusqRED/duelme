@@ -17,6 +17,7 @@ import java.util.List;
 
 import static pro.duelme.backend.support.TestContracts.CHAIN_ID;
 import static pro.duelme.backend.support.TestContracts.CONTRACT;
+import static pro.duelme.backend.support.TestContracts.OTHER_CHAIN_ID;
 import static pro.duelme.backend.support.TestContracts.REDEPLOYED_CONTRACT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -148,6 +149,11 @@ class GameServiceTest {
     }
 
     @Test
+    void findBySlugIsEmptyWhenNotFound() {
+        assertThat(gameService.findBySlug("nonexistent")).isEmpty();
+    }
+
+    @Test
     void listReturnsAllGames() {
         gameRepository.save(new Game(null, "cs2", "Counter-Strike 2", null, GameCategory.FPS, null, null));
         gameRepository.save(new Game(null, "chess", "Chess", null, GameCategory.STRATEGY, null, null));
@@ -258,7 +264,7 @@ class GameServiceTest {
         gameRepository.save(new Game(null, "cs2", "Counter-Strike 2", null, GameCategory.FPS, null, null));
         duelMetaRepository.save(new DuelMeta(null, CONTRACT, 1, CHAIN_ID, "cs2", "0xaaa", null));
         duelMetaRepository.save(new DuelMeta(null, REDEPLOYED_CONTRACT, 1, CHAIN_ID, "cs2", "0xbbb", null));
-        duelMetaRepository.save(new DuelMeta(null, CONTRACT, 1, 42161, "cs2", "0xccc", null));
+        duelMetaRepository.save(new DuelMeta(null, CONTRACT, 1, OTHER_CHAIN_ID, "cs2", "0xccc", null));
 
         // Only the first: the second is a retired contract, the third is the right contract
         // on a chain where it is not what is deployed.

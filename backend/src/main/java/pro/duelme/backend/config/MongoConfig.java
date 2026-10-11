@@ -3,7 +3,6 @@ package pro.duelme.backend.config;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.annotation.Order;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.config.EnableMongoAuditing;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -24,16 +23,9 @@ public class MongoConfig {
      * Spring Data MongoDB does not auto-create indexes declared on the model in
      * Spring Boot 3+, so the unique constraint that enforces "one claim per wallet
      * per token" would be unenforced without this. We create it explicitly at
-     * startup; {@code createIndex} is idempotent.
-     *
-     * <p>Named from the same constant as the annotation, and ordered after
-     * {@link FaucetClaimIndexMigrationRunner}: the single-field predecessor has to be
-     * gone before this goes in, or it keeps rejecting the second claim that a MockUSDT
-     * redeploy is supposed to allow. Declared rather than left to the
-     * {@code LOWEST_PRECEDENCE} an unordered runner gets, so that adding an order here
-     * later cannot quietly invert it.
+     * startup; {@code createIndex} is idempotent. Named from the same constant as
+     * the annotation, for the reason {@link FaucetClaim#UNIQUE_INDEX} gives.
      */
-    @Order(FaucetClaimIndexMigrationRunner.ORDER + 1)
     @Bean
     public ApplicationRunner ensureFaucetClaimIndexes(MongoTemplate template) {
         return args -> template.indexOps(FaucetClaim.class)
@@ -89,9 +81,8 @@ public class MongoConfig {
      * 500 on that duel's page.
      *
      * <p>Named to match the annotation, for the reason {@link DuelMeta#UNIQUE_INDEX}
-     * gives. Ordered after {@link DuelMetaIndexMigrationRunner#ORDER} — see there for why.
+     * gives.
      */
-    @Order(DuelMetaIndexMigrationRunner.ORDER + 1)
     @Bean
     public ApplicationRunner ensureDuelMetaIndexes(MongoTemplate template) {
         return args -> template.indexOps(DuelMeta.class)

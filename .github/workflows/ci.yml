@@ -16,7 +16,7 @@ concurrency:
 jobs:
   contracts:
     name: Forge Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -104,7 +104,7 @@ jobs:
 
   backend:
     name: Backend Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     defaults:
       run:
@@ -153,7 +153,7 @@ jobs:
   # bypass the native gate. The job runs on every triggered event by design.
   backend-native:
     name: Backend Native Image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     defaults:
       run:
@@ -185,7 +185,7 @@ jobs:
 
   frontend:
     name: Frontend Checks
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     defaults:
       run:
@@ -253,7 +253,7 @@ jobs:
     name: Build dev ${{ matrix.service }}
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
     needs: [contracts, backend, frontend]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read
@@ -318,7 +318,7 @@ jobs:
     name: Deploy dev.duelme.pro
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
     needs: [build-dev]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -424,7 +424,7 @@ jobs:
     name: Build prod ${{ matrix.service }}
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [contracts, backend, backend-native, frontend]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read
@@ -493,7 +493,7 @@ jobs:
     name: Deploy duelme.pro
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [build-prod]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
