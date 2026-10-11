@@ -1,6 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Hex } from 'viem';
-import { relayOnce, relayRequestKey, resetRelayDedup, trackedRelayRequests } from '@/lib/relayerDedup';
+import {
+  MAX_REMEMBERED_RELAYS,
+  RELAY_REPEAT_TTL_MS,
+  awaitReceipt,
+  refuseWhileUnconfirmed,
+  relayOnce,
+  relayRequestKey,
+  resetRelayDedup,
+  trackedRelayRequests,
+} from '@/lib/relayerDedup';
 import { refusal, type RelayForwardRequest, type RelayOutcome } from '@/lib/relayRequest';
 
 const REQUEST: RelayForwardRequest = {
@@ -14,8 +23,6 @@ const REQUEST: RelayForwardRequest = {
 };
 
 const HASH: Hex = `0x${'cd'.repeat(32)}`;
-const TTL_MS = 10 * 60_000;
-const MAX_ENTRIES = 2_000;
 
 const sent = (): Promise<RelayOutcome> => Promise.resolve({ ok: true, hash: HASH });
 
@@ -65,11 +72,11 @@ describe('relayOnce', () => {
     await relayOnce('0x01', relay, clock);
     await settle();
 
-    now = TTL_MS - 1;
+    now = RELAY_REPEAT_TTL_MS - 1;
     await expect(relayOnce('0x01', relay, clock)).resolves.toEqual({ ok: true, hash: HASH });
     expect(relay).toHaveBeenCalledTimes(1);
 
-    now = TTL_MS;
+    now = RELAY_REPEAT_TTL_MS;
     await relayOnce('0x01', relay, clock);
     expect(relay).toHaveBeenCalledTimes(2);
   });
@@ -95,14 +102,14 @@ describe('relayOnce', () => {
   });
 
   it('drops settled entries, oldest first, once full', async () => {
-    for (let i = 0; i < MAX_ENTRIES; i += 1) {
+    for (let i = 0; i < MAX_REMEMBERED_RELAYS; i += 1) {
       await relayOnce(`0x${i.toString(16).padStart(4, '0')}`, sent);
     }
     await settle();
 
     await relayOnce('0xffff', sent);
 
-    expect(trackedRelayRequests()).toBe(MAX_ENTRIES);
+    expect(trackedRelayRequests()).toBe(MAX_REMEMBERED_RELAYS);
     const relay = vi.fn(sent);
     await relayOnce('0x0000', relay);
     expect(relay).toHaveBeenCalledTimes(1);
@@ -110,7 +117,7 @@ describe('relayOnce', () => {
 
   it('never drops a request that is still being relayed, so its copies stay collapsed', async () => {
     const pending = () => new Promise<RelayOutcome>(() => {});
-    for (let i = 0; i < MAX_ENTRIES; i += 1) {
+    for (let i = 0; i < MAX_REMEMBERED_RELAYS; i += 1) {
       void relayOnce(`0x${i.toString(16).padStart(4, '0')}`, pending);
     }
 
@@ -118,7 +125,25 @@ describe('relayOnce', () => {
     const relay = vi.fn(sent);
     void relayOnce('0x0000', relay);
 
-    expect(trackedRelayRequests()).toBe(MAX_ENTRIES + 1);
+    expect(trackedRelayRequests()).toBe(MAX_REMEMBERED_RELAYS + 1);
     expect(relay).not.toHaveBeenCalled();
+  });
+});
+
+describe('refuseWhileUnconfirmed', () => {
+  it('holds a signer back from the moment their transaction is sent until its receipt is in', () => {
+    expect(refuseWhileUnconfirmed(REQUEST.from)).toBeNull();
+
+    const received = awaitReceipt(REQUEST.from);
+
+    expect(refuseWhileUnconfirmed(REQUEST.from.toLowerCase())).toMatchObject({
+      code: 'RELAY_PENDING',
+      status: 409,
+    });
+    expect(refuseWhileUnconfirmed('0x00000000000000000000000000000000000000e1')).toBeNull();
+
+    received();
+
+    expect(refuseWhileUnconfirmed(REQUEST.from)).toBeNull();
   });
 });

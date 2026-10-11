@@ -1,13 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  MAX_TRACKED_CLIENTS,
   RELAY_POSTS_PER_MINUTE,
   relayClientAddress,
   resetRelayRateLimit,
   takeRelayRateLimit,
   trackedRelayClients,
 } from '@/lib/relayerRateLimit';
-
-const MAX_TRACKED_CLIENTS = 10_000;
 
 beforeEach(() => {
   resetRelayRateLimit();

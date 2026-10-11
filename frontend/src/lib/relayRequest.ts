@@ -45,6 +45,7 @@ const RELAY_ERROR_CODES = [
   'INVALID_SIGNATURE',
   'BUDGET_EXCEEDED',
   'RATE_LIMITED',
+  'RELAY_PENDING',
   'RELAYER_UNAVAILABLE',
   'EXECUTION_REVERTED',
 ] as const;
@@ -56,10 +57,8 @@ export function isRelayErrorCode(value: unknown): value is RelayErrorCode {
 }
 
 /** A failed relay, before the route shapes it into an HTTP error response. */
-export interface RelayRefusal {
+export interface RelayRefusal extends RelayErrorResponse {
   ok: false;
-  code: RelayErrorCode;
-  error: string;
   status: number;
 }
 

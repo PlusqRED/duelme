@@ -19,7 +19,7 @@ import { getBufferedTestnetFeeParams, getMainnetFeeParams } from '@/lib/testnetG
 import { releaseDailyBudget, reserveDailyBudget, settleDailyBudget } from '@/lib/relayerBudget';
 import { RelayerBusyError, withRelayerLock } from '@/lib/relayerQueue';
 import { relayClientAddress, takeRelayRateLimit } from '@/lib/relayerRateLimit';
-import { relayOnce, relayRequestKey } from '@/lib/relayerDedup';
+import { awaitReceipt, refuseWhileUnconfirmed, relayOnce, relayRequestKey } from '@/lib/relayerDedup';
 import { admitRelayRequest, verifyForwardRequest } from '@/lib/relaySimulation';
 
 export const runtime = 'nodejs';
@@ -57,10 +57,11 @@ export async function GET() {
  *   1. the per-client rate limit;
  *   2. shape, chain and allowlist, locally;
  *   3. a repeat of a request already being relayed, or relayed a moment ago, gets that
- *      request's answer instead of a second transaction;
+ *      request's answer instead of a second transaction, and a signer whose last relayed
+ *      transaction has no receipt yet is asked to wait;
  *   4. the forwarder's own `verify`, then a simulation of `execute`.
- * Only a request that passes all four queues. Under the lock `verify` runs once more, since
- * the signer's forwarder nonce may have moved while it waited; then the daily budget is
+ * Only a request that passes all four queues. Under the lock the signer hold and `verify`
+ * run once more, since either may have changed while it waited; then the daily budget is
  * reserved and the transaction is signed and sent. The receipt is awaited after the lock.
  *
  * No session or token is required. The forwarder recovers the signer from an EIP-712
@@ -116,7 +117,8 @@ async function relay(
   request: RelayForwardRequest,
   functionName: string
 ): Promise<RelayOutcome> {
-  const admission = await admitRelayRequest(config, request, functionName);
+  const admission =
+    refuseWhileUnconfirmed(request.from) ?? (await admitRelayRequest(config, request, functionName));
   if (!admission.ok) {
     return admission;
   }
@@ -141,7 +143,15 @@ async function relay(
   return await confirm(config, request.from, sent);
 }
 
-type BroadcastOutcome = RelayRefusal | { ok: true; hash: Hex; worstCaseWei: bigint };
+interface Broadcast {
+  ok: true;
+  hash: Hex;
+  worstCaseWei: bigint;
+  /** Lifts the signer's hold once the receipt is in (or the wait gives up). */
+  received: () => void;
+}
+
+type BroadcastOutcome = RelayRefusal | Broadcast;
 
 /**
  * Runs inside the relayer lock, which signs and sends one transaction at a time: nothing
@@ -153,13 +163,19 @@ async function broadcast(
   request: RelayForwardRequest,
   executeEstimate: bigint
 ): Promise<BroadcastOutcome> {
+  // Checked again here, where it cannot race: the signer may have had another request sent
+  // while this one was being admitted.
+  const unconfirmed = refuseWhileUnconfirmed(request.from);
+  if (unconfirmed) {
+    return unconfirmed;
+  }
+
   const args = toForwardRequestArgs(request);
   const { publicClient, walletClient, forwarderAddress } = config;
 
   // Nothing here depends on anything else here, and every one of them is a round trip the
   // player waits through while the lock is held — so they go out together. `verify` repeats
-  // the admission check because the signer's forwarder nonce can move while the request
-  // waits, and a stale signature must not reach a paid broadcast.
+  // the admission check for a stale nonce or a passed deadline.
   const [rejected, feeEstimate, block, nonce] = await Promise.all([
     verifyForwardRequest(config, request),
     publicClient.estimateFeesPerGas(),
@@ -226,7 +242,7 @@ async function broadcast(
     return refusal('RELAYER_UNAVAILABLE', 'Could not broadcast the transaction.', 502);
   }
 
-  return { ok: true, hash, worstCaseWei };
+  return { ok: true, hash, worstCaseWei, received: awaitReceipt(request.from) };
 }
 
 /**
@@ -236,7 +252,7 @@ async function broadcast(
 async function confirm(
   config: RelayerConfig,
   from: `0x${string}`,
-  { hash, worstCaseWei }: { hash: Hex; worstCaseWei: bigint }
+  { hash, worstCaseWei, received }: Broadcast
 ): Promise<RelayOutcome> {
   try {
     const receipt = await config.publicClient.waitForTransactionReceipt({
@@ -257,6 +273,8 @@ async function confirm(
     // The transaction is broadcast and may still land, so the worst-case reservation
     // stands rather than handing back an allowance that is possibly being spent.
     console.error('[relay] receipt wait timed out, keeping worst-case reservation', hash);
+  } finally {
+    received();
   }
 
   return { ok: true, hash };

@@ -24,7 +24,7 @@ const WINDOW_MS = 60_000;
  * Clients tracked at once. Past it the oldest window is dropped, which resets that client's
  * count — far cheaper than letting a stream of distinct addresses grow the map without end.
  */
-const MAX_TRACKED_CLIENTS = 10_000;
+export const MAX_TRACKED_CLIENTS = 10_000;
 
 /** One shared bucket for requests that name no client at all. */
 const UNKNOWN_CLIENT = 'unknown';
@@ -57,7 +57,7 @@ export function takeRelayRateLimit(client: string, now: number = Date.now()): Ra
     if (current.count >= RELAY_POSTS_PER_MINUTE) {
       return {
         allowed: false,
-        retryAfterSeconds: Math.max(1, Math.ceil((current.startedAt + WINDOW_MS - now) / 1000)),
+        retryAfterSeconds: Math.ceil((current.startedAt + WINDOW_MS - now) / 1000),
       };
     }
 

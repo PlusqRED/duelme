@@ -111,10 +111,11 @@ pull-based — terminal duel flows expose claimable balances, never push transfe
 `DuelMe` trusts one immutable `ERC2771Forwarder`, set at deploy. The client signs an EIP-712
 `ForwardRequest`. `/api/relay` caps POSTs per client IP, refuses anything outside
 `RELAYABLE_DUEL_FUNCTIONS`, answers a repeat of a request it already sent with that
-transaction's hash, and runs `forwarder.verify` and a simulation of `execute` *before* the
-request may queue for the relayer lock, so a request that would revert never holds a place in
-the queue. Under the lock it repeats `verify` (the signer's nonce may have moved while it
-waited), meters a per-address daily gas budget under a relayer-wide daily ceiling, and signs
+transaction's hash, holds back a signer whose last relayed transaction has no receipt yet,
+and runs `forwarder.verify` and a simulation of `execute` *before* the request may queue for
+the relayer lock, so a request that would revert never holds a place in the queue. Under the
+lock it repeats the hold and `verify` (the signer's nonce may have moved while it waited),
+meters a per-address daily gas budget under a relayer-wide daily ceiling, and signs
 and sends `forwarder.execute`, one transaction at a time; receipts are awaited after the
 lock, so several sent transactions can be waiting to be mined at once. Funding uses EIP-2612 —
 `createDuelWithPermit` / `joinDuelWithPermit` — so no separate `approve` is needed. There is
@@ -262,7 +263,7 @@ address, no relayer key — is the case the self-paid path still covers.
 | `frontend/src/lib/relayerQueue.ts` | Serializes relayed sends: one transaction is signed and sent at a time; receipts are awaited after the lock |
 | `frontend/src/lib/relaySimulation.ts` | Admission before the lock: `forwarder.verify`, a simulation of `execute`, the inner revert reason |
 | `frontend/src/lib/relayerRateLimit.ts` | In-memory per-IP limit on relay POSTs, keyed on the right-most `X-Forwarded-For` entry |
-| `frontend/src/lib/relayerDedup.ts` | Collapses repeats of one signed request into a single relay; remembers sent ones for 10 min |
+| `frontend/src/lib/relayerDedup.ts` | Collapses repeats of one signed request into a single relay (remembered 10 min) and holds a signer back until their last relayed transaction's receipt |
 | `frontend/src/lib/forwardRequest.ts` | Signs the EIP-712 ForwardRequest (domain name, gas padding) |
 | `frontend/src/lib/permitSignature.ts` | Signs an EIP-2612 permit, rebuilding and verifying the token's EIP-712 domain |
 | `frontend/src/lib/relayApi.ts` | `/api/relay` client + `RelayRequestError` carrying the server's code |

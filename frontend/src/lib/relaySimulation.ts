@@ -1,6 +1,11 @@
 import { erc2771ForwarderAbi } from '@/lib/contracts';
 import { bestErrorDetail } from '@/lib/errorDetails';
-import { refusal, toForwardRequestArgs, type RelayForwardRequest, type RelayRefusal } from '@/lib/relayRequest';
+import {
+  refusal,
+  toForwardRequestArgs,
+  type RelayForwardRequest,
+  type RelayRefusal,
+} from '@/lib/relayRequest';
 import type { RelayerConfig } from '@/lib/relayerConfig';
 
 export type RelayAdmission = { ok: true; executeEstimate: bigint } | RelayRefusal;

@@ -1,8 +1,16 @@
-import { encodeAbiParameters, keccak256, parseAbiParameters, type Hex } from 'viem';
-import type { RelayForwardRequest, RelayOutcome } from '@/lib/relayRequest';
+import { encodeFunctionData, keccak256, type Hex } from 'viem';
+import { erc2771ForwarderAbi } from '@/lib/contracts';
+import {
+  refusal,
+  toForwardRequestArgs,
+  type RelayForwardRequest,
+  type RelayOutcome,
+  type RelayRefusal,
+} from '@/lib/relayRequest';
 
 /**
- * Collapses repeats of one signed forward request into a single relay.
+ * Collapses repeats of one signed forward request into a single relay, and holds back a
+ * signer's next request while their last relayed transaction is unconfirmed.
  *
  * A request that is being relayed, or was relayed a moment ago, still passes the
  * forwarder's `verify` until its transaction is mined and spends the signer's nonce. Sent
@@ -18,14 +26,14 @@ import type { RelayForwardRequest, RelayOutcome } from '@/lib/relayRequest';
  */
 
 /** How long a relayed request keeps answering with its transaction hash. */
-const SETTLED_TTL_MS = 10 * 60_000;
+export const RELAY_REPEAT_TTL_MS = 10 * 60_000;
 
 /**
  * Entries kept before settled ones are dropped, oldest first. Requests still being relayed
  * are never dropped — that would let their copies through — and are bounded by how many
  * requests can be in progress at once rather than by this.
  */
-const MAX_ENTRIES = 2_000;
+export const MAX_REMEMBERED_RELAYS = 2_000;
 
 interface Entry {
   outcome: Promise<RelayOutcome>;
@@ -34,24 +42,19 @@ interface Entry {
 
 const entries = new Map<Hex, Entry>();
 
-const SIGNED_REQUEST = parseAbiParameters('address, address, uint256, uint256, uint48, bytes, bytes');
-
 /**
  * Identifies the whole signed request, not just its signature: a copy of someone's
  * signature on altered fields must not inherit — or pre-empt — the real request's outcome.
- * ABI encoding makes the key blind to address and hex letter case.
+ * It hashes the `execute` calldata the request would be sent as, which is blind to address
+ * and hex letter case.
  */
 export function relayRequestKey(request: RelayForwardRequest): Hex {
   return keccak256(
-    encodeAbiParameters(SIGNED_REQUEST, [
-      request.from,
-      request.to,
-      BigInt(request.value),
-      BigInt(request.gas),
-      request.deadline,
-      request.data,
-      request.signature,
-    ])
+    encodeFunctionData({
+      abi: erc2771ForwarderAbi,
+      functionName: 'execute',
+      args: [toForwardRequestArgs(request)],
+    })
   );
 }
 
@@ -94,22 +97,13 @@ function forget(key: Hex, entry: Entry): void {
 }
 
 function isExpired(entry: Entry, at: number): boolean {
-  return entry.settledAt !== null && at - entry.settledAt >= SETTLED_TTL_MS;
+  return entry.settledAt !== null && at - entry.settledAt >= RELAY_REPEAT_TTL_MS;
 }
 
 function makeRoom(at: number): void {
-  if (entries.size < MAX_ENTRIES) {
-    return;
-  }
-
+  // Insertion order is close to settle order, since every relay settles within minutes.
   for (const [key, entry] of entries) {
-    if (isExpired(entry, at)) {
-      entries.delete(key);
-    }
-  }
-
-  for (const [key, entry] of entries) {
-    if (entries.size < MAX_ENTRIES) {
+    if (entries.size < MAX_REMEMBERED_RELAYS && !isExpired(entry, at)) {
       return;
     }
     if (entry.settledAt !== null) {
@@ -118,9 +112,35 @@ function makeRoom(at: number): void {
   }
 }
 
+/**
+ * Signers whose last relayed transaction is sent but has no receipt yet. Their next
+ * request was signed against a forwarder nonce that transaction is about to spend, so it
+ * would revert on-chain too — a re-signed retry or a second tab, not a copy, so the
+ * request key above cannot tell. It is refused instead of being sent.
+ */
+const unconfirmedSigners = new Set<string>();
+
+export function refuseWhileUnconfirmed(signer: string): RelayRefusal | null {
+  return unconfirmedSigners.has(signer.toLowerCase())
+    ? refusal(
+        'RELAY_PENDING',
+        "This wallet's previous relayed transaction is still being confirmed — try again in a moment.",
+        409
+      )
+    : null;
+}
+
+/** Marks the signer's transaction as sent; the returned call marks its receipt as in. */
+export function awaitReceipt(signer: string): () => void {
+  const key = signer.toLowerCase();
+  unconfirmedSigners.add(key);
+  return () => unconfirmedSigners.delete(key);
+}
+
 /** Test seam — production code never clears the entries. */
 export function resetRelayDedup(): void {
   entries.clear();
+  unconfirmedSigners.clear();
 }
 
 /** Test seam — how many requests are remembered right now. */

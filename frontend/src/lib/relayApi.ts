@@ -1,4 +1,4 @@
-import type { Hex } from 'viem';
+import { isHash, type Hex } from 'viem';
 import {
   isRecord,
   isRelayErrorCode,
@@ -77,21 +77,17 @@ export async function submitRelayRequest(chainId: number, request: RelayForwardR
   if (!response.ok) {
     // A code this bundle does not know — a tab left open across a deploy — reads as
     // "unavailable", the one answer every caller already handles.
-    throw new RelayRequestError(
-      isRelayErrorCode(fields.code) ? fields.code : 'RELAYER_UNAVAILABLE',
-      typeof fields.error === 'string' ? fields.error : `Relayer refused the request (HTTP ${response.status}).`
-    );
+    const code = isRelayErrorCode(fields.code) ? fields.code : 'RELAYER_UNAVAILABLE';
+    const message =
+      typeof fields.error === 'string' ? fields.error : `Relayer refused the request (HTTP ${response.status}).`;
+    throw new RelayRequestError(code, message);
   }
 
   // A repeat of a request the relayer already sent answers with that transaction's hash, so
   // a retry after a dropped connection lands here like the first attempt would have.
-  if (!isHash(fields.hash)) {
+  if (typeof fields.hash !== 'string' || !isHash(fields.hash)) {
     throw new RelayRequestError('RELAYER_UNAVAILABLE', 'Relayer returned no transaction hash.');
   }
 
   return fields.hash;
-}
-
-function isHash(value: unknown): value is Hex {
-  return typeof value === 'string' && value.startsWith('0x');
 }

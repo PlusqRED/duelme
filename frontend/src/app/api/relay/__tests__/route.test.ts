@@ -6,7 +6,7 @@ import { DEFAULT_CHAIN_ID, DUELME_ADDRESSES } from '@/lib/constants';
 import { getRelayerConfig, type RelayerConfig } from '@/lib/relayerConfig';
 import { resetDailyBudgets } from '@/lib/relayerBudget';
 import { resetRelayDedup } from '@/lib/relayerDedup';
-import { resetRelayerQueue, withRelayerLock } from '@/lib/relayerQueue';
+import { MAX_QUEUE_DEPTH, resetRelayerQueue, withRelayerLock } from '@/lib/relayerQueue';
 import { RELAY_POSTS_PER_MINUTE, resetRelayRateLimit } from '@/lib/relayerRateLimit';
 import type { RelayForwardRequest } from '@/lib/relayRequest';
 
@@ -15,7 +15,6 @@ vi.mock('@/lib/relayerConfig', () => ({ getRelayerConfig: vi.fn() }));
 const RELAYER = '0x00000000000000000000000000000000000000aa';
 const FORWARDER = '0x00000000000000000000000000000000000000fa';
 const TX_HASH: Hex = `0x${'cd'.repeat(32)}`;
-const QUEUE_DEPTH = 8;
 
 function forwardRequest(duelId: bigint): RelayForwardRequest {
   return {
@@ -112,7 +111,7 @@ describe('POST /api/relay', () => {
     publicClient.estimateContractGas.mockRejectedValue(new Error('execution reverted'));
     publicClient.call.mockRejectedValue(new Error('Nothing to claim'));
     const gate = deferred();
-    const held = Array.from({ length: QUEUE_DEPTH }, () => withRelayerLock(() => gate.promise));
+    const held = Array.from({ length: MAX_QUEUE_DEPTH }, () => withRelayerLock(() => gate.promise));
 
     const junk = await postRequest(forwardRequest(1n));
 
@@ -125,7 +124,7 @@ describe('POST /api/relay', () => {
 
   it('still sheds a request that passed admission when the queue is full', async () => {
     const gate = deferred();
-    const held = Array.from({ length: QUEUE_DEPTH }, () => withRelayerLock(() => gate.promise));
+    const held = Array.from({ length: MAX_QUEUE_DEPTH }, () => withRelayerLock(() => gate.promise));
 
     const response = await postRequest(forwardRequest(1n));
 
@@ -168,6 +167,46 @@ describe('POST /api/relay', () => {
       await expect(response.json()).resolves.toEqual({ hash: TX_HASH });
     }
     expect(walletClient.writeContract).toHaveBeenCalledTimes(1);
+  });
+
+  it('refuses a different request from a signer whose last transaction has no receipt yet', async () => {
+    const gate = deferred();
+    publicClient.waitForTransactionReceipt.mockImplementationOnce(async () => {
+      await gate.promise;
+      return { status: 'success', gasUsed: 150_000n, effectiveGasPrice: 10_000_000n };
+    });
+
+    const first = postRequest(forwardRequest(1n));
+    await vi.waitFor(() => expect(walletClient.writeContract).toHaveBeenCalledTimes(1));
+    const resigned = await postRequest(forwardRequest(2n));
+
+    expect(resigned.status).toBe(409);
+    await expect(resigned.json()).resolves.toMatchObject({ code: 'RELAY_PENDING' });
+    expect(publicClient.estimateContractGas).toHaveBeenCalledTimes(1);
+
+    gate.resolve();
+    expect((await first).status).toBe(200);
+    expect((await postRequest(forwardRequest(2n))).status).toBe(200);
+    expect(walletClient.writeContract).toHaveBeenCalledTimes(2);
+  });
+
+  it('refuses under the lock a request whose signer had another one sent while it was admitted', async () => {
+    const gate = deferred();
+    publicClient.waitForTransactionReceipt.mockImplementationOnce(async () => {
+      await gate.promise;
+      return { status: 'success', gasUsed: 150_000n, effectiveGasPrice: 10_000_000n };
+    });
+
+    const first = postRequest(forwardRequest(1n));
+    const second = await postRequest(forwardRequest(2n));
+
+    expect(second.status).toBe(409);
+    // Both were admitted, so it was the check under the lock that stopped the second.
+    expect(publicClient.estimateContractGas).toHaveBeenCalledTimes(2);
+    expect(walletClient.writeContract).toHaveBeenCalledTimes(1);
+
+    gate.resolve();
+    expect((await first).status).toBe(200);
   });
 
   it('relays two different requests separately', async () => {

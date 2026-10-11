@@ -7,16 +7,13 @@
  * nonce and one would be dropped or replaced. Chaining every send onto the previous one
  * also means the nonce can be read fresh from the chain (`pending`) inside the critical
  * section instead of being tracked in memory.
- *
- * Only requests that already passed verification and simulation queue here, so a request
- * that would revert never takes one of the places below.
  */
 
 /**
  * Requests allowed in the queue at once, the running one included — so at most
  * MAX_QUEUE_DEPTH - 1 are ever waiting behind it.
  */
-const MAX_QUEUE_DEPTH = 8;
+export const MAX_QUEUE_DEPTH = 8;
 
 export class RelayerBusyError extends Error {
   constructor() {
