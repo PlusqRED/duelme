@@ -61,7 +61,8 @@ never contradict CLAUDE.md; if it does, CLAUDE.md is right and this file is the 
   fallback and must equal the deploy-time default.
 - Use `useTranslation()` for every visible string, and add both `en` and `ru` keys in the matching
   `frontend/src/i18n/translations/<section>.ts`. Interpolation is `{token}` placeholders — there
-  is no ICU and no plural support.
+  is no ICU; a word that agrees with a number goes through `plural(key, count)` (see "i18n" in
+  `CLAUDE.md`).
 - Use the `@/*` import alias for frontend code (`frontend/tsconfig.json` maps it to
   `frontend/src/*`).
 - After a successful write, `refetch()` the affected read hooks and call `reset()` so later
