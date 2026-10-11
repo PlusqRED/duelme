@@ -13,27 +13,23 @@ remappings = [
 # The solvency suite in test/DuelMeInvariant.t.sol. Every handler action swallows its own
 # revert, so anything that escapes to the runner is a real failure.
 #
-# 512 x 256 is 131,072 calls. It was 64 x 128 until the mainnet deploy, then 256 x 256 — the
-# contract is immutable and holds other people's money, so the search budget is worth the CI
+# The contract is immutable and holds other people's money, so the search budget is worth the CI
 # minute. Keep the depth: the same number of calls in shorter sequences (512 x 128, 1024 x 64)
 # confirmed, refunded and claimed far fewer duels.
 #
-# Every invariant is checked after every call and walks every duel, so a run costs depth squared.
-# `workers = "auto"` derives from `--jobs`, which the other suites share, and left this suite on
-# one thread: 256 x 256 took over a minute in CI. Four workers draw their sequences differently —
-# at 256 runs they reached those deep states about a third less often than one worker did — so
-# the run count is doubled with them; 512 runs on four workers reach them at least as often, in
-# about half the time.
+# Every invariant walks every duel after every call, so a run costs depth squared, and
+# `workers = "auto"` follows `--jobs`, which the other suites share, so it left this suite on one
+# thread. Four workers reach deep states less often per run, hence 512 runs: with them the suite
+# reaches those states at least as often as one worker did at 256, in about half the time.
 [invariant]
 runs = 512
 depth = 256
 workers = 4
 fail_on_revert = true
 
-# `FOUNDRY_PROFILE=coverage forge coverage`, as CI runs it. Coverage only records which lines run;
-# the search above has already run under `forge test`, and repeating it instrumented and
-# unoptimised took CI four more minutes. At this budget the line and branch counts equal the full
-# search's.
+# For `FOUNDRY_PROFILE=coverage forge coverage`, as CI runs it. Coverage only records which lines
+# run; the full search has already run under `forge test`. At this budget the line and branch
+# counts equal the full search's; without the invariant suite they drop.
 [profile.coverage.invariant]
 runs = 128
 depth = 128
