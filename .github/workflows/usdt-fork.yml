@@ -4,7 +4,7 @@ name: USDT Fork
 # token is an upgradeable proxy, so its permit can change without a change on our side: the
 # weekly run catches that, the path-filtered runs catch our own changes. Deliberately outside
 # ci.yml and out of every deploy job's needs: — contracts are not deployed by CI, and an outage
-# of a public RPC must never stop a deploy. A red run caused by the RPC is re-run, not merged over.
+# of a public RPC must never stop a deploy. A red run caused by the RPC is re-run.
 on:
   push:
     branches: [main, dev]
@@ -45,6 +45,9 @@ jobs:
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1.9.1
+        with:
+          # The suite forks the latest block, so a cached RPC state never hits.
+          cache: false
 
       - name: Build
         run: forge build --silent
@@ -58,6 +61,10 @@ jobs:
         run: |
           forge_status=0
           forge test --match-path test/UsdtPermitFork.t.sol --json > fork-results.json || forge_status=$?
+          if ! jq -e . fork-results.json >/dev/null 2>&1; then
+            echo "::error::forge wrote no test results (exit $forge_status)"
+            exit 1
+          fi
           jq -r '.[].test_results | to_entries[] | "\(.value.status)\t\(.key)\t\(.value.reason // "")"' fork-results.json
           passed=$(jq '[.[].test_results[] | select(.status == "Success")] | length' fork-results.json)
           not_passed=$(jq '[.[].test_results[] | select(.status != "Success")] | length' fork-results.json)

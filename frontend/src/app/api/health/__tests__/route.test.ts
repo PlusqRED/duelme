@@ -17,7 +17,7 @@ describe('GET /api/health', () => {
 
   it('reports unknown when the variables are unset or blank', async () => {
     vi.stubEnv('APP_ENV', undefined);
-    vi.stubEnv('APP_RELEASE', '');
+    vi.stubEnv('APP_RELEASE', ' ');
 
     const body = await (await GET()).json();
 

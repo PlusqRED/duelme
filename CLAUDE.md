@@ -105,7 +105,7 @@ pull-based — terminal duel flows expose claimable balances, never push transfe
   - For day-to-day backend dev, prefer `./gradlew bootRun` — much faster.
 - Images: `ghcr.io/plusqred/duelme-{backend,frontend}:{dev,latest}`
 - Runtime secrets in GitHub repository/environment secrets; deploy job renders remote `.env` from them before `docker compose up`. Never commit secrets.
-- Both images carry the commit they were built from (`APP_RELEASE`, baked in at build time) and both health endpoints report it with `environment` (`unknown` when unset). A deploy passes only when both services answer with its environment and the commit it built; then it removes the images its own stack ran before, never anything else on the shared Docker host — no `docker image prune`.
+- Both images carry the commit they were built from (`APP_RELEASE`, baked in at build time) and both health endpoints report it with `environment` (`unknown` when unset). A deploy passes only when both services answer with its environment and the commit it built; then it removes the images its own stack ran before and that lost their tag, never anything else on the shared Docker host — no `docker image prune`.
 - Caddy on host: TLS + reverse proxy (`/api/v1/*` → backend, rest → frontend). Configs: `ops/caddy/{dev.duelme.pro,duelme.pro}.Caddyfile`.
 
 ### Gasless Duel Actions (ERC-2771)

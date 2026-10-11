@@ -394,11 +394,8 @@ jobs:
           '
 
       # Both services must answer and report the commit this run built: a container still on an
-      # older image fails the deploy instead of passing for the new one. When both answer but
-      # with another release (say the pull failed), the old containers are healthy: the deploy
-      # fails, and the rollback leaves them running.
+      # older image fails the deploy instead of passing for the new one.
       - name: Verify health checks
-        id: verify
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
@@ -416,17 +413,14 @@ jobs:
             sleep 2
           done
           echo "Health checks failed after 60s; expected $EXPECTED_ENV at $EXPECTED_RELEASE, last answers: $health"
-          if jq -se 'length == 2' <<<"$health" >/dev/null 2>&1; then
-            echo "healthy_but_stale=true" >> "$GITHUB_OUTPUT"
-          fi
           ssh "$DEPLOY_USER@$DEPLOY_HOST" 'cd ~/apps/duelme-dev && docker compose ps && docker compose logs --tail=20'
           exit 1
 
       # Removes the images this stack ran before the deploy, once the new release is healthy.
       # The Docker host is shared with other projects, so never a host-wide prune: images the
-      # stack still runs (mongo, an unchanged service) are skipped, and `docker rmi` without
-      # --force refuses any image another container uses. Best effort: a failure here is a
-      # warning, never a failed deploy.
+      # stack still runs (mongo, an unchanged service) and images that still carry a tag are
+      # skipped, and `docker rmi` without --force refuses any image another container uses.
+      # Best effort: a failure here is a warning, never a failed deploy.
       - name: Remove replaced images
         continue-on-error: true
         env:
@@ -444,6 +438,8 @@ jobs:
               [ -n "$id" ] || continue
               if printf "%s\n" "$current" | grep -qxF "$id"; then
                 echo "Kept $id: still in use by this stack"
+              elif [ "$(docker image inspect -f "{{len .RepoTags}}" "$id" 2>/dev/null)" != "0" ]; then
+                echo "Kept $id: still tagged, or already gone"
               elif out=$(docker rmi "$id" 2>&1); then
                 echo "Removed $id"
               else
@@ -453,12 +449,18 @@ jobs:
             rm -f .previous-images
           ' || echo "::warning::Image cleanup did not finish; the deploy itself succeeded"
 
+      # Stops backend and frontend only when they do not answer. Containers that answer, if on
+      # another release (a failed pull, a failed deploy step), keep serving; the deploy stays red.
       - name: Rollback on failure
-        if: failure() && steps.verify.outputs.healthy_but_stale != 'true'
+        if: failure()
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
         run: |
+          if ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'curl -sf http://127.0.0.1:8080/api/v1/health && curl -sf http://127.0.0.1:3001/api/health' >/dev/null 2>&1; then
+            echo "Both services answer; leaving the running containers up"
+            exit 0
+          fi
           echo "Stopping broken containers..."
           ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
             cd ~/apps/duelme-dev
@@ -612,11 +614,8 @@ jobs:
           '
 
       # Both services must answer and report the commit this run built: a container still on an
-      # older image fails the deploy instead of passing for the new one. When both answer but
-      # with another release (say the pull failed), the old containers are healthy: the deploy
-      # fails, and the rollback leaves them running.
+      # older image fails the deploy instead of passing for the new one.
       - name: Verify health checks
-        id: verify
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
@@ -634,17 +633,14 @@ jobs:
             sleep 2
           done
           echo "Health checks failed after 60s; expected $EXPECTED_ENV at $EXPECTED_RELEASE, last answers: $health"
-          if jq -se 'length == 2' <<<"$health" >/dev/null 2>&1; then
-            echo "healthy_but_stale=true" >> "$GITHUB_OUTPUT"
-          fi
           ssh "$DEPLOY_USER@$DEPLOY_HOST" 'cd ~/apps/duelme-prod && docker compose ps && docker compose logs --tail=20'
           exit 1
 
       # Removes the images this stack ran before the deploy, once the new release is healthy.
       # The Docker host is shared with other projects, so never a host-wide prune: images the
-      # stack still runs (mongo, an unchanged service) are skipped, and `docker rmi` without
-      # --force refuses any image another container uses. Best effort: a failure here is a
-      # warning, never a failed deploy.
+      # stack still runs (mongo, an unchanged service) and images that still carry a tag are
+      # skipped, and `docker rmi` without --force refuses any image another container uses.
+      # Best effort: a failure here is a warning, never a failed deploy.
       - name: Remove replaced images
         continue-on-error: true
         env:
@@ -662,6 +658,8 @@ jobs:
               [ -n "$id" ] || continue
               if printf "%s\n" "$current" | grep -qxF "$id"; then
                 echo "Kept $id: still in use by this stack"
+              elif [ "$(docker image inspect -f "{{len .RepoTags}}" "$id" 2>/dev/null)" != "0" ]; then
+                echo "Kept $id: still tagged, or already gone"
               elif out=$(docker rmi "$id" 2>&1); then
                 echo "Removed $id"
               else
@@ -671,12 +669,18 @@ jobs:
             rm -f .previous-images
           ' || echo "::warning::Image cleanup did not finish; the deploy itself succeeded"
 
+      # Stops backend and frontend only when they do not answer. Containers that answer, if on
+      # another release (a failed pull, a failed deploy step), keep serving; the deploy stays red.
       - name: Rollback on failure
-        if: failure() && steps.verify.outputs.healthy_but_stale != 'true'
+        if: failure()
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
         run: |
+          if ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'curl -sf http://127.0.0.1:8081/api/v1/health && curl -sf http://127.0.0.1:3002/api/health' >/dev/null 2>&1; then
+            echo "Both services answer; leaving the running containers up"
+            exit 0
+          fi
           echo "Stopping broken containers..."
           ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
             cd ~/apps/duelme-prod
