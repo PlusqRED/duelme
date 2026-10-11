@@ -1,0 +1,68 @@
+name: USDT Fork
+
+# test/UsdtPermitFork.t.sol runs the permit path against the real USD₮0 on Arbitrum One. That
+# token is an upgradeable proxy, so its permit can change without a change on our side: the
+# weekly run catches that, the path-filtered runs catch our own changes. Deliberately outside
+# ci.yml and out of every deploy's needs: — contracts are not deployed by CI, and an outage of
+# a public RPC must not hold back a release.
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/usdt-fork.yml'
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - 'contracts/**'
+      - '.github/workflows/usdt-fork.yml'
+  schedule:
+    - cron: '23 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  usdt-fork:
+    name: USDT Fork Tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    defaults:
+      run:
+        working-directory: contracts
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1.9.1
+
+      - name: Build
+        run: forge build --silent
+
+      # The suite skips itself without an RPC, and forge reports a run of nothing but skips as
+      # a success. So the job counts results itself: it passes only when every test in the
+      # suite ran and passed, and fails on zero tests or a single skip.
+      - name: Run the fork suite
+        env:
+          ARBITRUM_RPC_URL: ${{ secrets.ARBITRUM_RPC_URL || 'https://arb1.arbitrum.io/rpc' }}
+        run: |
+          forge_status=0
+          forge test --match-path test/UsdtPermitFork.t.sol --json > fork-results.json || forge_status=$?
+          jq -r '.[].test_results | to_entries[] | "\(.value.status)\t\(.key)\t\(.value.reason // "")"' fork-results.json
+          passed=$(jq '[.[].test_results[] | select(.status == "Success")] | length' fork-results.json)
+          not_passed=$(jq '[.[].test_results[] | select(.status != "Success")] | length' fork-results.json)
+          echo "### USD₮0 fork suite: $passed passed, $not_passed not passed" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$forge_status" -ne 0 ] || [ "$passed" -eq 0 ] || [ "$not_passed" -ne 0 ]; then
+            echo "::error::Fork suite must run every test and pass: $passed passed, $not_passed not passed, forge exit $forge_status"
+            exit 1
+          fi
