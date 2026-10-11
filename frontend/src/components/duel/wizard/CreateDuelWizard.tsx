@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Swords } from 'lucide-react';
 import { CreateDuelFlowDialog } from '@/components/duel/CreateDuelFlowDialog';
 import { GameStep } from '@/components/duel/wizard/GameStep';
@@ -59,10 +59,16 @@ export function CreateDuelWizard() {
 
   const chainId = SUPPORTED_CHAINS[chainKey].id;
   const [isCreated, setIsCreated] = useState(false);
-  const { restoredDraft, saveDraft } = useCreateDuelDraftStorage(chainId, isCreated);
+  const draftForm = useMemo(
+    () => ({ chainId, game: selectedGame, amount, message, isPublic }),
+    [chainId, selectedGame, amount, message, isPublic]
+  );
+  const { restoredDraft, keepDraft } = useCreateDuelDraftStorage(draftForm, isCreated);
   const [appliedDraft, setAppliedDraft] = useState<CreateDuelDraft | null>(null);
-  // Re-render on the live on-chain limits, so a restored draft is judged by today's minimum.
-  useContractConfig();
+  // The live on-chain limits, passed to the validators rather than read from the shared store:
+  // the store is synced in an effect after this render, so a restored draft would be judged by
+  // the fallbacks.
+  const contractConfig = useContractConfig();
 
   // Back from topping up (the tab may have been reloaded meanwhile): the form as it was, on the
   // review step. Applied during render, once per restored draft, so no step flashes empty first.
@@ -85,18 +91,14 @@ export function CreateDuelWizard() {
   };
 
   const isValidGame = isGameStepValid(wizardState);
-  const isValidWager = isWagerStepValid(wizardState);
-  const isValidMessage = isTypeMessageStepValid(wizardState);
-  const isValidReview = isReviewStepValid(wizardState);
+  const isValidWager = isWagerStepValid(wizardState, contractConfig);
+  const isValidMessage = isTypeMessageStepValid(wizardState, contractConfig);
+  const isValidReview = isReviewStepValid(wizardState, contractConfig);
 
   const stepValidations = useMemo(
     () => [isValidGame, isValidWager, isValidMessage, isValidReview] as const,
     [isValidGame, isValidWager, isValidMessage, isValidReview]
   );
-
-  const handleOpenDeposit = useCallback(() => {
-    saveDraft({ chainId, game: selectedGame, amount, message, isPublic });
-  }, [saveDraft, chainId, selectedGame, amount, message, isPublic]);
 
   const flow = useCreateDuelFlow({
     amount,
@@ -106,7 +108,7 @@ export function CreateDuelWizard() {
     selectedChain: chainKey,
     isValidAmount: isValidWager,
     isValidMessage,
-    onOpenDeposit: handleOpenDeposit,
+    onOpenDeposit: keepDraft,
   });
 
   const flowStage = flow.flow?.stage;
