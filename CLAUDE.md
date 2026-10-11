@@ -17,14 +17,22 @@ ops/         — Docker Compose, Caddy config
 
 **Backend (`backend/`):** `./gradlew build` (JDK 25 via toolchain) · `./gradlew bootRun` (localhost:8080, needs MongoDB) · `./gradlew test` (embedded MongoDB via Flapdoodle) · `./gradlew bootJar` · `./gradlew nativeCompile` (~5–10 min, ~50ms startup, ~60MB RSS) · `./gradlew nativeTest` · `docker compose up -d` (local MongoDB)
 
-**Contracts (`contracts/`):** `forge build` · `forge test` · `forge test -vvv` · `forge coverage --report summary`. `test/UsdtPermitFork.t.sol` skips unless `ARBITRUM_RPC_URL` is set — `set -a && . ./.env && set +a` first to include it. Skipped tests there are expected, not a failure.
+**Contracts (`contracts/`):** `forge build` · `forge test` · `forge test -vvv` · `forge coverage --report summary`. `test/UsdtPermitFork.t.sol` skips unless `ARBITRUM_RPC_URL` is set — `set -a && . ./.env && set +a` first to include it. Skipped tests there are expected locally, not a failure. CI runs that suite separately, in `.github/workflows/usdt-fork.yml` against the public Arbitrum One RPC (a repository secret `ARBITRUM_RPC_URL` overrides it), on contract changes and weekly — there a skip or an empty run fails the job.
 
 ## Git Conventions
 
 - **Never** run `git add` / `commit` / `push` (or any equivalent like `git commit -a`, `git push --force`, `gh pr create`) unless the user explicitly asks for THAT specific action in their current message. Permission is per-action and per-message; past authorization does not carry forward. Read-only git commands (`status`, `diff`, `log`, `show`) are fine. After changes, stop at the working tree and report the diff — wait before staging/committing/pushing.
 - **Never** add `Co-Authored-By` or any Claude attribution to commits.
 - Don't amend existing commits unless explicitly asked.
-- Commit messages: imperative mood ("Add X" not "Added X"); first line ≤72 chars; body for non-obvious context.
+- Commit messages: in English, imperative mood ("Add X" not "Added X"); first line ≤72 chars; body for non-obvious context.
+- **PRs** are written in English and open as drafts, and only QA marks one ready for review, after a PASS; a push after the PASS returns the PR to draft and to QA. Their description is the short, plain-language one `.github/pull_request_template.md` lays out — **Why**, **How** and a **Checks** table, readable in under a minute — and its Checks are kept true at the head commit, because the merge decision is made from them. Each review finding and its verdict go on the task in Paperclip, never into the PR. Dependabot's PRs (the bot rewrites their description) and `dev` → `main` releases are exempt from the Checks section and from the loop below, not from QA or CI: see "QA on Dependabot's PRs and releases" below, which also says where Dependabot's differ on drafts.
+- **Review loop before the QA handoff**, in this order. `/review-pr <n>` and `/code-review <n>` read the pushed PR, so the draft PR is opened before step 2 and each round's fixes are pushed before the next round; a request to run the loop covers opening that draft PR and the commits and pushes to its branch that the loop needs. Snapshot the work before every auto-fix — a `git diff --binary HEAD` patch plus copies of untracked files is enough — and re-read what it changed against the spec: auto-fixes have rewritten explicit requirements before.
+  1. `/simplify origin/<base>...HEAD` once on code changes; without the range it sees only uncommitted work.
+  2. `/review-pr <n>` once, for this repo's conventions.
+  3. `/security-review` when `contracts/src/` changes, and again whenever a later fix touches it.
+  4. `/code-review xhigh <n>` once. No round — this one or any later — runs with `--comment`: findings are triaged before anything reaches the PR, and every finding gets a verdict: fixed, rejected with the reason, or deferred.
+  5. Anything more is decided case by case, and the reason goes into the Checks section. Run another round when the last one found something serious — wrong behaviour, or a security, money or data risk — and it was fixed, or when something else changed the diff after it (a CI fix, a conflict resolution, a fix after QA). Minor findings are fixed or deferred without a new round. `max` is only for a diff that touches `contracts/`, the relayer, permits, payouts or auth, and runs separately from the other steps, still before the QA handoff — it is by far the slowest and costliest step. If a fourth round still finds serious bugs, stop before fixing them and ask the CEO.
+- **QA on Dependabot's PRs and releases.** Neither kind is merged without QA's PASS on its current head and green CI there, `backend-native` included: a FAIL, red or unfinished CI, or missing evidence blocks ready-for-review and the merge, which stays the CEO's. QA posts its verdict as a comment on the PR: PASS or FAIL, the head SHA it covers (a release's also names its base SHA) and a link to the evidence. Dependabot opens its PRs ready for review rather than as drafts. Leave them so, even when the bot pushes a new head after a PASS, which sends the PR back to QA; for these PRs, ready for review is no clearance to merge. A `dev` → `main` release gets its own short verdict on its current head and base SHAs: what the release contains, a link to each included change's PASS, CI at the head, and a targeted check of whatever no earlier PASS covers — a change merged without one, commits made for the release or to integrate its changes, and resolved conflicts. It neither repeats each PR's checks nor runs the review loop. A release goes back to QA after new commits on `dev` or a moved `main`, and if it was opened as a draft, QA marks it ready for review after the PASS.
 
 ## Native Image Compatibility (CRITICAL)
 
@@ -97,6 +105,7 @@ pull-based — terminal duel flows expose claimable balances, never push transfe
   - For day-to-day backend dev, prefer `./gradlew bootRun` — much faster.
 - Images: `ghcr.io/plusqred/duelme-{backend,frontend}:{dev,latest}`
 - Runtime secrets in GitHub repository/environment secrets; deploy job renders remote `.env` from them before `docker compose up`. Never commit secrets.
+- Both images carry the commit they were built from (`APP_RELEASE`, baked in at build time) and both health endpoints report it with `environment` (`unknown` when unset). A deploy passes only when both services answer with its environment and the commit it built; then it removes the images its own stack ran before and that lost their tag, never anything else on the shared Docker host — no `docker image prune`.
 - Caddy on host: TLS + reverse proxy (`/api/v1/*` → backend, rest → frontend). Configs: `ops/caddy/{dev.duelme.pro,duelme.pro}.Caddyfile`.
 
 ### Gasless Duel Actions (ERC-2771)
@@ -239,6 +248,14 @@ address, no relayer key — is the case the self-paid path still covers.
 | `frontend/src/lib/duelSearch.ts` | Shared visible-field search indexing |
 | `frontend/src/lib/actionFlowConfigs.ts` | Guided transaction flow configs for duel actions |
 | `frontend/src/lib/balanceRefresh.ts` | Shared client-side balance refresh event bus |
+| `frontend/src/components/wallet/DepositPanel.tsx` | Top-up panel: full address, QR, balance, fee note, faucet — for the `chainId` it is given |
+| `frontend/src/lib/deposit.ts` | Balance freshness / sufficiency rule (`resolveBalanceStatus`, `resolveFunding`), top-up copy, wallet-menu per-chain balances |
+| `frontend/src/hooks/useFlowFunding.ts` | Balance gate and review ↔ top-up switch on the create and join review steps |
+| `frontend/src/lib/createDuelDraft.ts` | Versioned `sessionStorage` draft of the create form, kept across a top-up (no invite secret) |
+| `frontend/src/lib/clipboard.ts` | `copyText` — the one clipboard write; confirm "Copied" only when it returns `true` |
+| `frontend/src/hooks/useCopyFeedback.ts` | Copy-button state on top of `copyText`: "Copied" only for a write that landed, a toast otherwise |
+| `frontend/src/lib/addressQr.ts` | QR of a bare string as an SVG path, rendered as plain React markup |
+| `frontend/src/hooks/useFaucetClaim.ts` | Testnet faucet claim shared by the wallet menu and the top-up panel |
 | `frontend/src/lib/buildTransactionParams.ts` | Builds explicit `gas`/`maxFeePerGas`/`maxPriorityFeePerGas`/`nonce` to bypass Privy auto-populate (see Common Pitfalls) |
 | `frontend/src/lib/resilientBroadcast.ts` | Splits writes into sign + broadcast so wagmi fallback transport handles RPC retries |
 | `frontend/src/lib/errorDetails.ts` | Flattens an error graph into lowercase detail strings for failure classification; `bestErrorDetail` picks the one worth showing |
@@ -281,14 +298,15 @@ address, no relayer key — is the case the self-paid path still covers.
 | `backend/src/.../service/SteamOpenIdService.java` | Steam OpenID 2.0 login + `check_authentication` |
 | `backend/src/.../service/SocialLinkStateService.java` | Server-side OAuth state store (wallet + PKCE verifier, TTL-indexed in Mongo) |
 | `backend/src/.../model/DuelMeta.java` | Duel → game metadata document. Keyed `{contractAddress, duelId, chainId}` — see the duel-id bullet under Common Pitfalls |
-| `backend/src/.../service/DuelMetaService.java` | Owns the creator check and normalises both addresses; every lookup is scoped to one deployment |
+| `backend/src/.../service/DuelMetaService.java` | Owns the creator check and normalises both addresses; every lookup is scoped to one deployment, and writes are accepted only for the live one |
 | `backend/src/.../config/MongoConfig.java` | **Creates every index explicitly.** Spring Boot does not auto-create `@Indexed` / `@CompoundIndex` — see Common Pitfalls |
-| `backend/src/.../config/DuelMetaBackfillRunner.java` | Stamps pre-`contractAddress` rows with their chain's live deployment, then drops the old `duelId_chainId` index. Runs before `MongoConfig` creates the new one |
 | `backend/src/.../config/ContractProperties.java` | `duelme.contracts.duel-me` — the live DuelMe per chain, the backend's mirror of `constants.ts` |
 | `backend/src/.../validation/EvmAddress.java` | The one address regex, shared by the `@Pattern` annotations and the runtime checks |
 | `backend/Dockerfile` | Backend container (multi-stage, GraalVM native) |
 | `frontend/Dockerfile` | Frontend container (multi-stage, Node 22) |
 | `.github/workflows/ci.yml` | CI pipeline: test + deploy (dev & prod) |
+| `.github/workflows/usdt-fork.yml` | Fork suite against the real USD₮0 on Arbitrum One (see Commands) |
+| `.github/pull_request_template.md` | PR description skeleton; its Checks table is required (see Git Conventions) |
 | `ops/docker-compose.{dev,prod}.yml` | Compose stacks |
 | `ops/caddy/{dev.duelme.pro,duelme.pro}.Caddyfile` | Caddy reverse proxy |
 
@@ -319,7 +337,7 @@ cost the first time.
 - **DRY:** single source of truth for every constant/type/helper/ABI. See `constants.ts` / `contracts.ts`.
 - **YAGNI:** build what the task requires. No abstractions for hypothetical futures. Three similar lines beats a premature abstraction.
 - **Fail fast:** validate at system boundaries (user input, API, contract calls). Inside, trust the types. Never silently swallow errors.
-- **Self-review before "done":** `npx tsc --noEmit` · `npm run lint` · relevant tests (`forge test`, `./gradlew test`, `npm run test`) · read the diff for debug code / missing error handling / inconsistent naming.
+- **Self-review before "done":** `npx tsc --noEmit` · `npm run lint` · relevant tests (`forge test`, `./gradlew test`, `npm run test`) · read the diff for debug code / missing error handling / inconsistent naming. A change that goes into a PR then also gets the review loop under Git Conventions.
 
 ### Frontend (Next.js / React / TS / Tailwind)
 
@@ -361,7 +379,7 @@ cost the first time.
 
 **Performance:** `next/dynamic` + `{ ssr: false }` for wallet-dependent UI. `useMemo` for derived lists. Don't create objects/arrays in render. `next/image` with explicit width/height + `loading="lazy"` for below-fold.
 
-**i18n:** All visible strings via `useTranslation()`. Add the key to the matching section file under `frontend/src/i18n/translations/` — with **both** `en` and `ru`; `defineSection` makes a missing `ru` a type error. `translations.ts` only merges the sections. Interpolation is `{token}` placeholders filled from the second argument (`t('dashboard.pageSummary', { current, total })`); there is no ICU and no plural support, so write a key per form rather than an ICU `plural` block, which would render literally.
+**i18n:** All visible strings via `useTranslation()`. Add the key to the matching section file under `frontend/src/i18n/translations/` — with **both** `en` and `ru`; `defineSection` makes a missing `ru` a type error. `translations.ts` only merges the sections. Interpolation is `{token}` placeholders filled from the second argument (`t('dashboard.pageSummary', { current, total })`); there is no ICU, so an ICU `plural` block would render literally. A word that agrees with a number goes through `plural(key, count)` from `useTranslation()` (`i18n/pluralize.ts`): give the base key `.one`, `.few`, `.many` and `.other` in both languages: Russian picks among the first three for whole numbers, and `.other` is the fallback a key needs to count as a `PluralKey` at all. It returns the word alone and the caller places the number: `{game.duelCount} {plural('games.duelsCount', game.duelCount)}`.
 
 **Naming:** Components `PascalCase.tsx`, hooks `camelCase.ts` prefixed `use`, utils `camelCase.ts`, primitive constants `UPPER_SNAKE_CASE`, object constants `camelCase`, types `PascalCase` (prefer `interface` for object shapes).
 
@@ -473,7 +491,7 @@ against.
 
 **Subagents do NOT receive CLAUDE.md automatically.** Every Agent prompt must begin with:
 
-> "Read /home/oserver/projects/duelme/CLAUDE.md first — it contains project conventions, development standards, and quality requirements you must follow."
+> "Read `CLAUDE.md` in the repository root first — it contains project conventions, development standards, and quality requirements you must follow."
 
 And must require:
 - **Context loading:** read CLAUDE.md and relevant source files before writing code.
@@ -487,6 +505,7 @@ Runtime config source of truth: GitHub repository/environment secrets. Deploy wo
 
 - `NEXT_PUBLIC_PRIVY_APP_ID` — Privy app ID (frontend)
 - `PRIVY_APP_ID` — Privy app ID (backend JWT verification)
+- `APP_ENV` / `APP_RELEASE` — reported by both health endpoints (see Deployment). Not secrets and not in `.env`: `APP_ENV` is a literal in each compose file, `APP_RELEASE` a build arg.
 - `MONGODB_URI` — Mongo connection (default `mongodb://localhost:27017/duelme`). Spring Boot 4 property: `spring.mongodb.uri` (not `spring.data.mongodb.uri`).
 - `NEXT_PUBLIC_API_URL` — Backend API base URL (default `/api/v1`)
 - `NEXT_PUBLIC_ARBITRUM_RPC_URL` — authenticated RPC for Arbitrum One. **Unset since 2026-09-20**, so both environments run on Tenderly Gateway public; the previous provider was disabled upstream and took withdrawals down with it (see the RPC gotcha below). Used as Privy embedded-wallet override + first wagmi fallback. If you set it: check the endpoint answers `eth_chainId`, add its host to `connect-src`, and lock the URL via the provider's "Allowed Origins" — `NEXT_PUBLIC_*` are inlined into the JS bundle.
@@ -512,6 +531,7 @@ Runtime config source of truth: GitHub repository/environment secrets. Deploy wo
 - `createConfig` from `wagmi` instead of `@privy-io/wagmi` silently breaks wallet routing.
 - `useSetActiveWallet` in `useEffect` is too late — use `setActiveWalletForWagmi` sync callback.
 - Invite-only duels rely on the full private link (URL fragment) — never fall back to plain `/duel/{id}`.
+- **Top-up details belong to the duel's network, not the wallet's.** `DepositPanel` takes `chainId` from its caller (the flow's `draft.chainId`, the network picked in the wallet menu), never from `useChainId()` or the connected wallet — a player connected to another network would otherwise be told to send USDT where the duel cannot use it. Its QR encodes the bare address only: no `ethereum:` URI, amount, token or invite secret.
 - USDT has a blocklist — keep payouts pull-based, no push transfers.
 - Wilson Score gives low scores for small samples — players with 0 abandoned duels are never "unreliable".
 - Only `contracts/broadcast/{Deploy,DeployMainnet}.s.sol/<chainId>/run-latest.json` is tracked; timestamped `run-*.json` ignored via top-level `.gitignore`.
@@ -595,6 +615,7 @@ Runtime config source of truth: GitHub repository/environment secrets. Deploy wo
   part of that key. Anything keyed on a wallet plus a contract-issued thing needs the contract in
   the key.
 - `PRIVY_APP_ID` env required for backend (no default in `application.yml`).
+- **The CI `next build` has no Privy app id.** The `frontend` job builds without secrets, so `NEXT_PUBLIC_PRIVY_APP_ID` is undefined there, and that works only because the root layout is `force-dynamic` and nothing under it is prerendered. Remove `force-dynamic` and the job fails with `Cannot initialize the Privy provider with an invalid Privy app ID`, while the image build, which gets the real id, passes.
 - Frontend npm pinned to `^11.12.1` via `frontend/package.json` `engines` + `frontend/.npmrc` `engine-strict=true`. CI and `frontend/Dockerfile` both pin it with `corepack enable npm && corepack prepare npm@11.12.1 --activate` — `corepack enable` alone does **not** shim npm (npm ships with Node), so npm has to be named explicitly or the `packageManager` field is ignored. A mismatch caused `EUSAGE` / `EBADENGINE` in `npm ci`.
 - `overrides.eslint-plugin-react-hooks: 7.0.1` is a temporary pin — `7.1.x` adds `react-hooks/set-state-in-effect`, which flags existing patterns in `dashboard/page.tsx`, `duel/[id]/page.tsx`, `Header.tsx`, `useCreateDuelFlow.ts`, `useJoinDuelFlow.ts`. Lift only after refactoring those files.
 

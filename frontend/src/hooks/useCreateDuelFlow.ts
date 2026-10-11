@@ -8,6 +8,7 @@ import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useAppToast } from '@/hooks/useAppToast';
 import { useCreateDuelFlowLifecycle } from '@/hooks/useCreateDuelFlowLifecycle';
 import { useDuelActions } from '@/hooks/useDuelActions';
+import { type FlowReviewGate, useFlowFunding } from '@/hooks/useFlowFunding';
 import { useTranslation } from '@/i18n/useTranslation';
 import { createDuelFlowActions } from '@/lib/createDuelFlowActions';
 import type { CreateDuelFlowSession } from '@/lib/createDuelFlow';
@@ -22,6 +23,8 @@ interface UseCreateDuelFlowArgs {
   selectedChain: keyof typeof SUPPORTED_CHAINS;
   isValidAmount: boolean;
   isValidMessage: boolean;
+  /** Called as the player opens the top-up panel, so the form can be kept for the way back. */
+  onOpenDeposit?: () => void;
 }
 
 export function useCreateDuelFlow({
@@ -32,6 +35,7 @@ export function useCreateDuelFlow({
   selectedChain,
   isValidAmount,
   isValidMessage,
+  onOpenDeposit,
 }: UseCreateDuelFlowArgs) {
   const { t } = useTranslation();
   const appToast = useAppToast();
@@ -100,6 +104,18 @@ export function useCreateDuelFlow({
         ((flow.stage === 'review' && allowanceRefreshCount > 0) ||
           currentAllowance === undefined ||
           currentAllowance < flow.draft.rawAmount)));
+
+  const { funding, markOpened } = useFlowFunding({
+    chainId: flow?.draft.chainId ?? chainConfig.id,
+    requiredRaw: flow?.draft.rawAmount ?? null,
+    isReviewing: flow?.stage === 'review',
+    onShowDeposit: onOpenDeposit,
+  });
+  const review: FlowReviewGate = {
+    funding,
+    canContinue: funding.status.kind === 'enough',
+    blockedReason: null,
+  };
 
   const actions = createDuelFlowActions({
     activeWalletAddress: activeWallet?.address,
@@ -174,8 +190,18 @@ export function useCreateDuelFlow({
     closeFlow: actions.closeFlow,
     flow,
     handleApprove: () => actions.handleApprove(flow),
-    handleContinueFlow: () => actions.handleContinueFlow(flow),
-    handleCreateDuelClick: actions.handleCreateDuelClick,
+    handleContinueFlow: () => {
+      // The button is disabled too, but the gate is here: nothing past review without a fresh
+      // balance that covers the wager.
+      if (!review.canContinue) {
+        return;
+      }
+      void actions.handleContinueFlow(flow);
+    },
+    handleCreateDuelClick: () => {
+      markOpened();
+      void actions.handleCreateDuelClick();
+    },
     handleCreateTransaction: () => actions.handleCreateTransaction(flow),
     handleFlowOpenChange: (open: boolean) => {
       if (!open) {
@@ -185,6 +211,7 @@ export function useCreateDuelFlow({
     handleSwitchNetwork: () => actions.handleSwitchNetwork(flow),
     needsApproval,
     needsNetworkSwitch,
+    review,
     submitDisabled: flow !== null || (authenticated && (!isValidAmount || !isValidMessage)),
   };
 }

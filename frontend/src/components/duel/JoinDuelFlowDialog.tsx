@@ -12,7 +12,9 @@ import {
   getJoinDuelStepLabelKey,
 } from '@/components/duel/joinDuelFlowDialogContent';
 import { formatUSDT, truncateAddress } from '@/lib/utils';
+import { getFlowReviewSlots } from '@/components/duel/flowReviewSlots';
 import { GuidedTransactionDialog } from '@/components/duel/GuidedTransactionDialog';
+import type { FlowReviewGate } from '@/hooks/useFlowFunding';
 import type {
   GuidedTransactionAction,
   GuidedTransactionDetailItem,
@@ -31,6 +33,7 @@ interface JoinDuelFlowDialogProps {
   completedSwitchNetwork: boolean;
   completedApproval: boolean;
   errorMessage?: string | null;
+  review: FlowReviewGate;
   onOpenChange: (open: boolean) => void;
   onContinue: () => void;
   onSwitchNetwork: () => void;
@@ -50,6 +53,7 @@ export function JoinDuelFlowDialog({
   completedSwitchNetwork,
   completedApproval,
   errorMessage,
+  review,
   onOpenChange,
   onContinue,
   onSwitchNetwork,
@@ -159,6 +163,14 @@ export function JoinDuelFlowDialog({
     t,
   });
 
+  const { primaryAction, stepExtra, stepPanel } = getFlowReviewSlots({
+    isReview: stage === 'review',
+    review,
+    draft,
+    primaryAction: config.primaryAction,
+    isJoining: true,
+  });
+
   return (
     <GuidedTransactionDialog
       open={open}
@@ -177,10 +189,12 @@ export function JoinDuelFlowDialog({
       technicalDetailsLabel={t('create.flow.technicalDetails')}
       technicalDetails={technicalDetails}
       errorMessage={errorMessage ?? undefined}
-      primaryAction={config.primaryAction}
+      primaryAction={primaryAction}
       secondaryAction={secondaryAction}
       success={stage === 'success'}
       footerContent={t('join.flow.footer')}
+      stepExtra={stepExtra}
+      stepPanel={stepPanel}
     />
   );
 }
