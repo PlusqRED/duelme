@@ -124,9 +124,9 @@ reset_mongo() {
   # What a redeploy actually invalidates:
   #
   #   duelMeta             rows stay correctly orphaned — the key carries contractAddress for
-  #                        exactly this reason. GameService counts duels only on the deployments
-  #                        in duelme.contracts.duel-me and the app asks by the live address, so
-  #                        the app no longer reads them; clearing them is housekeeping.
+  #                        exactly this reason. GameService counts only the deployments in
+  #                        duelme.contracts.duel-me and the frontend asks by the live address, so
+  #                        neither reads them any more; clearing them is housekeeping.
   #   social_oauth_states  short-lived handshake state; a redeploy is as good a moment as any.
   #
   # faucet_claims is deliberately NOT here any more. It used to be the one collection that had

@@ -18,9 +18,9 @@ if (typeof window !== 'undefined') {
 }
 
 /**
- * Per address, per day. A request is admitted against its worst case (`gasLimit ×
- * maxFeePerGas`) and its receipt then books the real cost. On Arbitrum Sepolia one full duel
- * cycle — five relayed actions — costs about 0.00022 ETH, so this covers at most two a day.
+ * Per address, per day. On Arbitrum Sepolia a full duel cycle — five relayed actions — costs
+ * about 0.00022 ETH, so this covers at most two; admission also needs room for the next
+ * action's worst case (`reserveDailyBudget` in `relayerBudget.ts`).
  */
 const DEFAULT_DAILY_BUDGET_WEI = parseEther('0.0005');
 
