@@ -23,9 +23,9 @@ Environment variables and Common Pitfalls in a `CLAUDE.md` of its own:
 | `backend/` | `backend/CLAUDE.md` — layering, MongoDB indexes, native-image details, OpenAPI |
 | `ops/`, `.github/` | `ops/CLAUDE.md` — environments, CI jobs, deploy, Caddy and CSP |
 
-Claude Code attaches a directory's `CLAUDE.md` when you read or edit a file in it with its file
-tools, not when you read through the shell (`cat`, `grep`, `sed`): open the area's file yourself
-before you change code there. A change that crosses areas — the ABI, contract addresses, the
+A directory's `CLAUDE.md` is attached to the session when a file in it is read or edited with the
+file tools, not when it is read through the shell (`cat`, `grep`, `sed`): open the area's file
+yourself before you change code there. A change that crosses areas — the ABI, contract addresses, the
 relayer and permits — needs the file of every area it touches.
 
 ## Commands

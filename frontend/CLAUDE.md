@@ -3,8 +3,8 @@
 Rules for the Next.js app, which also hosts the gas relayer. The root `CLAUDE.md` still applies:
 Git Conventions, Duel States, the general principles. Next.js 16 differs from older releases; its
 version-matched docs are in `node_modules/next/dist/docs/`. `next dev` would point at them from an
-untracked `AGENTS.md` here; `agentRules: false` in `next.config.ts` turns that off, since this file
-is the one Claude Code reads.
+untracked `AGENTS.md` here; `agentRules: false` in `next.config.ts` turns that off, since the area's
+rules live in this file.
 
 ## Architecture
 
