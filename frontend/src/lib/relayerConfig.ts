@@ -19,8 +19,8 @@ if (typeof window !== 'undefined') {
 
 /**
  * Per address, per day. On Arbitrum Sepolia a full duel cycle — five relayed actions — costs
- * about 0.00022 ETH, so this covers at most two; admission also needs room for the next
- * action's worst case (`reserveDailyBudget` in `relayerBudget.ts`).
+ * about 0.00022 ETH, so this covers at most two cycles a day; admission also needs room for
+ * the next action's worst case (`reserveDailyBudget` in `relayerBudget.ts`).
  */
 const DEFAULT_DAILY_BUDGET_WEI = parseEther('0.0005');
 
