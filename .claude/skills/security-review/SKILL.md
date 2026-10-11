@@ -8,7 +8,7 @@ Perform a security review of DuelMe smart contracts.
 
 Arguments: $ARGUMENTS (optional: specific file path, default: all contracts in `contracts/src/`)
 
-Read `CLAUDE.md` → "Smart Contract" under Architecture Decisions first. Several items below are
+Read `contracts/CLAUDE.md` → "Smart Contract" first. Several items below are
 rules that already hold and exist for a reason; the job is to check nothing has drifted off them,
 not to re-litigate them.
 
