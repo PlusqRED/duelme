@@ -76,6 +76,14 @@ describe('getCreateDuelFlowErrorMessage — relay failures', () => {
     );
   });
 
+  it('tells a rate-limited player to wait rather than showing the server text', () => {
+    const error = new RelayRequestError('RATE_LIMITED', 'Too many relay requests — try again in a minute.');
+
+    expect(getCreateDuelFlowErrorMessage(error, t, 'Arbitrum One')).toBe(
+      translations.en['create.flow.error.relayRateLimited']
+    );
+  });
+
   it('collapses every "relaying is off" code into one message', () => {
     for (const code of ['RELAYER_UNAVAILABLE', 'INVALID_SIGNATURE', 'NOT_RELAYABLE'] as const) {
       expect(getCreateDuelFlowErrorMessage(new RelayRequestError(code, 'x'), t, 'Arbitrum One')).toBe(

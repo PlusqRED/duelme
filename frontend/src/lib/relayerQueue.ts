@@ -1,10 +1,15 @@
 /**
- * Serializes relayed transactions so exactly one is ever in flight.
+ * Serializes relayed sends so exactly one transaction is being signed and sent at a time.
+ * Receipts are awaited after the lock, so several sent transactions can still be waiting to
+ * be mined; their nonces stay in order.
  *
  * The relayer signs from a single EOA, so two concurrent sends would race for the same
  * nonce and one would be dropped or replaced. Chaining every send onto the previous one
- * also means the nonce can be read fresh from the chain inside the critical section
- * instead of being tracked in memory.
+ * also means the nonce can be read fresh from the chain (`pending`) inside the critical
+ * section instead of being tracked in memory.
+ *
+ * Only requests that already passed verification and simulation queue here, so a request
+ * that would revert never takes one of the places below.
  */
 
 /**

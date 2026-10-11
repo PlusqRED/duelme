@@ -78,6 +78,21 @@ describe('submitRelayRequest', () => {
     });
   });
 
+  it('surfaces the per-client rate limit as its own code', async () => {
+    vi.mocked(fetch).mockReturnValue(respond(429, { code: 'RATE_LIMITED', error: 'Too many relay requests.' }));
+
+    await expect(submitRelayRequest(42161, REQUEST)).rejects.toMatchObject({ code: 'RATE_LIMITED' });
+  });
+
+  it('reads a code it does not know as RELAYER_UNAVAILABLE rather than passing it on', async () => {
+    vi.mocked(fetch).mockReturnValue(respond(400, { code: 'SOMETHING_NEW', error: 'x' }));
+
+    await expect(submitRelayRequest(42161, REQUEST)).rejects.toMatchObject({
+      code: 'RELAYER_UNAVAILABLE',
+      message: 'x',
+    });
+  });
+
   it('falls back to RELAYER_UNAVAILABLE when the body carries no code', async () => {
     vi.mocked(fetch).mockReturnValue(respond(502, null));
 

@@ -109,9 +109,14 @@ pull-based — terminal duel flows expose claimable balances, never push transfe
 
 ### Gasless Duel Actions (ERC-2771)
 `DuelMe` trusts one immutable `ERC2771Forwarder`, set at deploy. The client signs an EIP-712
-`ForwardRequest`; `/api/relay` verifies it with `forwarder.verify`, refuses anything outside
-`RELAYABLE_DUEL_FUNCTIONS`, meters a per-address daily gas budget under a relayer-wide daily ceiling, and sends
-`forwarder.execute` with one transaction in flight. Funding uses EIP-2612 —
+`ForwardRequest`. `/api/relay` caps POSTs per client IP, refuses anything outside
+`RELAYABLE_DUEL_FUNCTIONS`, answers a repeat of a request it already sent with that
+transaction's hash, and runs `forwarder.verify` and a simulation of `execute` *before* the
+request may queue for the relayer lock, so a request that would revert never holds a place in
+the queue. Under the lock it repeats `verify` (the signer's nonce may have moved while it
+waited), meters a per-address daily gas budget under a relayer-wide daily ceiling, and signs
+and sends `forwarder.execute`, one transaction at a time; receipts are awaited after the
+lock, so several sent transactions can be waiting to be mined at once. Funding uses EIP-2612 —
 `createDuelWithPermit` / `joinDuelWithPermit` — so no separate `approve` is needed. There is
 no automatic fallback: once `useRelayerStatus` reports relaying on, `useDuelActions` routes
 every relayable duel write through `/api/relay` and the guided flows pin `needsApproval` to
@@ -250,11 +255,14 @@ address, no relayer key — is the case the self-paid path still covers.
 | `frontend/src/lib/buildTransactionParams.ts` | Builds explicit `gas`/`maxFeePerGas`/`maxPriorityFeePerGas`/`nonce` to bypass Privy auto-populate (see Common Pitfalls) |
 | `frontend/src/lib/resilientBroadcast.ts` | Splits writes into sign + broadcast so wagmi fallback transport handles RPC retries |
 | `frontend/src/lib/errorDetails.ts` | Flattens an error graph into lowercase detail strings for failure classification; `bestErrorDetail` picks the one worth showing |
-| `frontend/src/app/api/relay/route.ts` | Gas relayer: verifies a signed ERC-2771 request and sends `ERC2771Forwarder.execute` |
+| `frontend/src/app/api/relay/route.ts` | Gas relayer: admits a signed ERC-2771 request (rate limit, repeat check, verify, simulation), then signs and sends `ERC2771Forwarder.execute` under the lock |
 | `frontend/src/lib/relayRequest.ts` | Relay wire types, relayable-function allowlist, payload validation, outer gas-limit rule |
 | `frontend/src/lib/relayerConfig.ts` | Server-only relayer wiring (key, RPC, budget, viem clients) |
 | `frontend/src/lib/relayerBudget.ts` | In-memory per-address daily gas budget (reserve / settle / release) |
-| `frontend/src/lib/relayerQueue.ts` | Serializes relayed sends so one transaction is in flight at a time |
+| `frontend/src/lib/relayerQueue.ts` | Serializes relayed sends: one transaction is signed and sent at a time; receipts are awaited after the lock |
+| `frontend/src/lib/relaySimulation.ts` | Admission before the lock: `forwarder.verify`, a simulation of `execute`, the inner revert reason |
+| `frontend/src/lib/relayerRateLimit.ts` | In-memory per-IP limit on relay POSTs, keyed on the right-most `X-Forwarded-For` entry |
+| `frontend/src/lib/relayerDedup.ts` | Collapses repeats of one signed request into a single relay; remembers sent ones for 10 min |
 | `frontend/src/lib/forwardRequest.ts` | Signs the EIP-712 ForwardRequest (domain name, gas padding) |
 | `frontend/src/lib/permitSignature.ts` | Signs an EIP-2612 permit, rebuilding and verifying the token's EIP-712 domain |
 | `frontend/src/lib/relayApi.ts` | `/api/relay` client + `RelayRequestError` carrying the server's code |
@@ -538,7 +546,8 @@ Runtime config source of truth: GitHub repository/environment secrets. Deploy wo
 - **`ForwardRequestData` has no `nonce` field in OpenZeppelin 5.x** — the forwarder reads it from `Nonces` at execution time and folds it into the signed struct hash via the typehash. It must be signed but never sent. `deadline` is a `uint48`, not `uint256` (the EIP-2612 permit deadline is `uint256` — do not mix them up).
 - **Mainnet USDT (USD₮0, Arbitrum One) has no ERC-5267 `eip712Domain()`** and its `name()` is `USD₮0` with U+20AE, not an ASCII "T". Build the permit domain from `name()` + version `"1"` and verify it against the token's own `DOMAIN_SEPARATOR()`. `MockUSDT` deliberately mirrors both traits so a mistake fails on dev. Covered by `contracts/test/UsdtPermitFork.t.sol` (skipped without `ARBITRUM_RPC_URL`).
 - **USD₮0 validates permit through ERC-1271 whenever the owner address has code**, which an EIP-7702 delegation gives a plain EOA. Such a player's permit can fail (`"Permit failed"`). The contract still accepts the plain `createDuel` / `joinDuel` once an allowance exists, but the UI does not currently offer that route while relaying is on — the approve step is pinned off — and `approve` cannot be relayed anyway, since the token does not trust our forwarder. So this player is blocked in the guided flow; reaching them needs a product decision, not just ETH.
-- **The relayer's budget ledger is in-memory**, so it resets on redeploy and is not shared across replicas. Accurate for the current single-container-per-env deployment; more than one replica needs a shared store.
+- **The relayer's budget ledger, per-IP rate limit and repeat memory are in-memory**, so they reset on redeploy and are not shared across replicas. Accurate for the current single-container-per-env deployment; more than one replica needs a shared store.
+- **The per-IP rate limit trusts the right-most `X-Forwarded-For` entry** because Caddy, with no `trusted_proxies`, overwrites the header with the address it saw, nothing sits in front of Caddy, and the container listens on `127.0.0.1` only. A CDN or another proxy in front of Caddy makes that entry the proxy's, and every player then shares one bucket: change the rule with it.
 - README contract addresses auto-generated from `run-latest.json` by `scripts/sync_readme_contract_addresses.py` / pre-commit hook — don't edit that block manually.
 - Manual deploys here: source `contracts/.env` first (`set -a && . ./.env && set +a`).
 - **Contract addresses and chain ids have exactly one source.** `contracts/broadcast/*/run-latest.json` is what is deployed; `constants.ts` mirrors it by hand; everything else reads `constants.ts`. Never inline an address or a chain id anywhere else — `getUsdtAddress` once kept its own copy "to avoid a circular import" (`constants.ts` imports nothing, so there was no cycle), and after a MockUSDT redeploy the permit path read `nonces()` off the previous token, so duels failed with a revert that named no address. `deployedAddresses.test.ts` pins `constants.ts` and both of `application.yml`'s address copies (the faucet token and `duelme.contracts.duel-me`) to the broadcast artifact; `contractAddresses.test.ts` pins `getUsdtAddress`, `CHAIN_NAMES` and the forwarder map to `constants.ts`. Both run in the `frontend` CI job (`npm test`).
