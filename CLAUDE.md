@@ -248,7 +248,7 @@ address, no relayer key — is the case the self-paid path still covers.
 | `frontend/src/lib/actionFlowConfigs.ts` | Guided transaction flow configs for duel actions |
 | `frontend/src/lib/balanceRefresh.ts` | Shared client-side balance refresh event bus |
 | `frontend/src/components/wallet/DepositPanel.tsx` | Top-up panel: full address, QR, balance, fee note, faucet — for the `chainId` it is given |
-| `frontend/src/lib/deposit.ts` | Balance freshness / sufficiency rule (`resolveBalanceStatus`, `hasEnoughFreshBalance`), top-up copy, wallet-menu per-chain balances |
+| `frontend/src/lib/deposit.ts` | Balance freshness / sufficiency rule (`resolveBalanceStatus`, `resolveFunding`), top-up copy, wallet-menu per-chain balances |
 | `frontend/src/hooks/useFlowFunding.ts` | Balance gate and review ↔ top-up switch on the create and join review steps |
 | `frontend/src/lib/createDuelDraft.ts` | Versioned `sessionStorage` draft of the create form, kept across a top-up (no invite secret) |
 | `frontend/src/lib/clipboard.ts` | `copyText` — the one clipboard write; confirm "Copied" only when it returns `true` |
