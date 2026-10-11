@@ -13,8 +13,8 @@
 #      2026-09-20 — long past forge's default retries, which exits non-zero on a deploy
 #      that already succeeded and leaves a live but unverified contract.
 #
-#   2. Testnet state that a redeploy invalidates. Not every collection, and deliberately not
-#      faucet_claims any more — see reset_mongo().
+#   2. Testnet state that a redeploy invalidates. Not every collection, and deliberately
+#      neither duelMeta nor faucet_claims any more — see reset_mongo().
 #
 # Usage: scripts/post_testnet_deploy.sh [--dry-run] [--skip-verify] [--skip-mongo] [--all]
 set -euo pipefail
@@ -123,11 +123,13 @@ reset_mongo() {
 
   # What a redeploy actually invalidates:
   #
-  #   duelMeta             rows stay correctly orphaned — the key carries contractAddress for
-  #                        exactly this reason. GameService counts only the deployments in
-  #                        duelme.contracts.duel-me and the frontend asks by the live address, so
-  #                        neither reads them any more; clearing them is housekeeping.
   #   social_oauth_states  short-lived handshake state; a redeploy is as good a moment as any.
+  #
+  # duelMeta is deliberately NOT here any more. It was cleared while GameService counted every
+  # row, so stale ones inflated each game's duelCount. Now it counts only the deployments in
+  # duelme.contracts.duel-me and the key carries contractAddress, so the old contract's rows
+  # just sit unread — and a blanket delete would also take the rows of every deployment that is
+  # still live (dev offers Arbitrum One too), and on a re-run the new contract's own.
   #
   # faucet_claims is deliberately NOT here any more. It used to be the one collection that had
   # to go: the claim was keyed by wallet alone, so after a MockUSDT redeploy every past claimant
@@ -137,11 +139,11 @@ reset_mongo() {
   # that key — if a wallet cannot claim after a redeploy, fix the key, do not wipe the evidence.
   #
   # Kept for the same reason: profiles holds nicknames, social links and DuelRep, none of it
-  # contract-bound, and games is a catalog whose counts come from the live deployment's duelMeta
-  # rows, so they reset once duelme.contracts.duel-me names the new contract. --all clears
-  # profiles and games as well.
-  local collections=(duelMeta social_oauth_states)
-  [ "$WIPE_ALL" = 1 ] && collections+=(profiles games)
+  # contract-bound, and games is a catalog whose counts come from the live deployments' duelMeta
+  # rows, so the Sepolia part of each count resets once duelme.contracts.duel-me names the new
+  # contract. --all clears duelMeta, profiles and games as well.
+  local collections=(social_oauth_states)
+  [ "$WIPE_ALL" = 1 ] && collections+=(duelMeta profiles games)
 
   local action='deleteMany'
   [ "$DRY_RUN" = 1 ] && action='countOnly'

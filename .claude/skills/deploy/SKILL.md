@@ -64,8 +64,8 @@ address too — that is what most of the follow-up below is for.
     loaded. It reads every address and DuelMe's constructor args back out of the broadcast
     artifact, confirms **all three** contracts verified — re-verifying any that did not, since
     `--verify` reports per contract and one failure is easy to miss — and clears the dev state a
-    redeploy invalidates (`duelMeta` and `social_oauth_states`). `--dry-run` first if you want to
-    see it before it acts. It refuses to run against anything but the dev stack, and keeps
+    redeploy invalidates (`social_oauth_states`). `--dry-run` first if you want to see it before
+    it acts. It refuses to run against anything but the dev stack, and keeps `duelMeta`,
     `profiles`, `games` and `faucet_claims`; why each one goes or stays is in the script's
     `reset_mongo`.
 12. Report the deployed addresses, the explorer links, and anything from steps 8–9 the user still

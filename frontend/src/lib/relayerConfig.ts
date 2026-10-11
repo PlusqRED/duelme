@@ -18,16 +18,17 @@ if (typeof window !== 'undefined') {
 }
 
 /**
- * Per address, per day. On Arbitrum Sepolia a full duel cycle — five relayed actions — costs
- * about 0.00022 ETH, so this covers at most two cycles a day; admission also needs room for
- * the next action's worst case (`reserveDailyBudget` in `relayerBudget.ts`).
+ * Per signer, per day. On Arbitrum Sepolia a full duel cycle costs about 0.00022 ETH over five
+ * relayed actions and one player signs three of them, so this covers about three cycles a day
+ * per player; Arbitrum One is roughly ten times cheaper per action. Admission also needs room
+ * for the next action's worst case (`reserveDailyBudget` in `relayerBudget.ts`).
  */
 const DEFAULT_DAILY_BUDGET_WEI = parseEther('0.0005');
 
 /**
  * Relayer-wide ceiling. Addresses are free to create, so the per-address budget alone does
  * not bound what a determined caller can drain — this does, at a few hundred relayed duel
- * actions a day on Arbitrum Sepolia. Raise it when real traffic justifies it, not before.
+ * actions a day on Arbitrum Sepolia and a few thousand on Arbitrum One. Raise it when real traffic justifies it, not before.
  */
 const DEFAULT_GLOBAL_DAILY_BUDGET_WEI = parseEther('0.01');
 

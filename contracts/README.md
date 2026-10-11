@@ -195,7 +195,7 @@ After deploy:
    `duelme.contracts.duel-me` for chain `421614` the backend refuses game metadata for the new
    contract's duels and keeps counting each game's duels on the old one; without
    `duelme.faucet.mock-usdt-address` the faucet keeps handing out the previous token. Both are
-   deliberately bare literals with no environment override, and `deployedAddresses.test.ts` pins
+   deliberately plain literals with no `${…}` override, and `deployedAddresses.test.ts` pins
    them to the broadcast artifact — keep the quotes, or YAML reads an address as a hex number and
    the backend refuses to start,
 3. sync the root `README.md` contract block with `python3 ../scripts/sync_readme_contract_addresses.py` (or use the configured git hook).
@@ -215,10 +215,9 @@ After deploy:
      in the deploy log — that is how DuelMe was left unverified on 2026-09-20. Arbiscan
      auto-matches bytecode it has seen before, so an unchanged MockUSDT and forwarder come back
      instantly and a changed DuelMe is the one that waits in the queue.
-   - **clears the dev state a redeploy invalidates** — `duelMeta` and `social_oauth_states`.
-     The app no longer reads the old contract's `duelMeta` rows, so that part is housekeeping;
-     the comment in the script's `reset_mongo` says why. `profiles` and `games` are kept;
-     `--all` clears them too.
+   - **clears the dev state a redeploy invalidates** — `social_oauth_states`. `duelMeta`,
+     `profiles` and `games` are kept, and `--all` clears them too; the comment in the script's
+     `reset_mongo` says why each collection goes or stays.
 
    `faucet_claims` is not on that list. It used to have to be — the claim was keyed by wallet
    alone, so after a MockUSDT redeploy every past claimant got `FaucetAlreadyClaimedException`
@@ -230,6 +229,7 @@ After deploy:
    The script refuses to run against anything but the dev stack, and uses `deleteMany` rather
    than dropping, so the collections keep their indexes and the backend needs no restart.
 
-Steps 2, 2a and 3 are enforced by `deployedAddresses.test.ts`, which pins `constants.ts` and
-`application.yml` to the broadcast artifact — CI fails if any of them drift. Step 4 is not
-enforceable from CI, since it needs the Arbiscan key and the dev database.
+Steps 2 and 2a are enforced by `deployedAddresses.test.ts`, which pins `constants.ts` and
+`application.yml` to the broadcast artifact — CI fails if either drifts. Step 3 runs only in the
+pre-commit hook; CI does not check the README block. Step 4 is not enforceable from CI, since it
+needs the Arbiscan key and the dev database.
