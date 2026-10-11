@@ -29,7 +29,8 @@ Read all Solidity files and check for:
       external ones carry no modifier of their own), `declineDuel`, `claimVictory` and
       `admitDefeat`. Anything that hands a player money back — `confirmResult`, `disputeResult`,
       `refund`, `cancelDuel`, the mutual-cancellation flow, every claim — must stay callable
-      while paused.
+      while paused. `declineDuel` refunds the creator yet is pausable on purpose: the creator's
+      own exit, `cancelDuel`, stays open.
 - [ ] `DuelState.Nonexistent` still holds the enum's zero value, and every entry point whose
       required state is `Created` still goes through `_requireWaitingDuel`.
 - [ ] Payouts still derived by `_payoutOf`, never stored on the duel.
