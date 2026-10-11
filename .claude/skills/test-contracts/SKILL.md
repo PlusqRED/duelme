@@ -29,7 +29,8 @@ Arguments: $ARGUMENTS (optional: specific test name or "--coverage" for coverage
 - **Skipped is normal.** `test/UsdtPermitFork.t.sol` forks Arbitrum One and skips its 5 tests
   unless `ARBITRUM_RPC_URL` is set — `set -a && . ./.env && set +a` first if you want them. Do not
   report the skip as a failure, and do not report a run without them as full coverage of the
-  permit path: mainnet USD₮0's EIP-712 domain is the thing Sepolia cannot reproduce.
+  permit path: mainnet USD₮0's EIP-712 domain is the thing Sepolia cannot reproduce. CI runs the
+  suite on its own in `.github/workflows/usdt-fork.yml`, where a skip fails the job.
 - **`contracts/README.md` lists the expected test count per suite.** After a refactor, compare
   against it — a suite that lost tests silently is the failure this catches.
 - The invariant suite runs with `fail_on_revert = true` (`foundry.toml`). Every handler action

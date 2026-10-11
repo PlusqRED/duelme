@@ -311,6 +311,7 @@ jobs:
             NEXT_PUBLIC_DEFAULT_CHAIN_KEY=${{ matrix.chain_key }}
             NEXT_PUBLIC_ARBITRUM_RPC_URL=${{ secrets.NEXT_PUBLIC_ARBITRUM_RPC_URL }}
             NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL=${{ secrets.NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL }}
+            APP_RELEASE=${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.scope }}
           cache-to: type=gha,mode=max,scope=${{ matrix.scope }}
 
@@ -339,6 +340,7 @@ jobs:
           chmod 600 ~/.ssh/known_hosts
 
       - name: Deploy
+        id: deploy
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
@@ -362,6 +364,10 @@ jobs:
           # Use a dedicated hot wallet, NEVER a key that holds mainnet funds.
           FAUCET_PRIVATE_KEY: ${{ secrets.FAUCET_PRIVATE_KEY }}
         run: |
+          # The images the stack runs before this deploy, for the cleanup after the health check.
+          # Only well-formed image ids get through; a first deploy simply records none.
+          previous_images=$(ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'cd ~/apps/duelme-dev 2>/dev/null && docker compose images -q 2>/dev/null' | grep -E '^(sha256:)?[0-9a-f]{12,64}$' | sort -u | tr '\n' ' ' || true)
+          echo "previous_images=$previous_images" >> "$GITHUB_OUTPUT"
           ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'mkdir -p ~/apps/duelme-dev'
           scp -q ops/docker-compose.dev.yml "$DEPLOY_USER@$DEPLOY_HOST:~/apps/duelme-dev/docker-compose.yml"
           # Pipe secrets via stdin so they never appear in ps / audit / .bash_history.
@@ -389,21 +395,56 @@ jobs:
             docker compose up -d --remove-orphans --quiet-pull
           '
 
+      # Both services must answer and report the commit this run built: a container still on an
+      # older image fails the deploy instead of passing for the new one.
       - name: Verify health checks
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          EXPECTED_RELEASE: ${{ github.sha }}
         run: |
+          health=''
           for i in $(seq 1 30); do
-            if ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'curl -sf http://127.0.0.1:8080/api/v1/health && curl -sf http://127.0.0.1:3001/api/health' 2>/dev/null; then
-              echo "Health checks passed"
+            if health=$(ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'curl -sf http://127.0.0.1:8080/api/v1/health && echo && curl -sf http://127.0.0.1:3001/api/health' 2>/dev/null) \
+              && jq -se --arg release "$EXPECTED_RELEASE" 'length == 2 and all(.[]; .release == $release)' <<<"$health" >/dev/null 2>&1; then
+              echo "Health checks passed, both services run $EXPECTED_RELEASE"
               exit 0
             fi
             sleep 2
           done
-          echo "Health checks failed after 60s"
+          echo "Health checks failed after 60s; expected release $EXPECTED_RELEASE, last answers: $health"
           ssh "$DEPLOY_USER@$DEPLOY_HOST" 'cd ~/apps/duelme-dev && docker compose ps && docker compose logs --tail=20'
           exit 1
+
+      # Removes only the images this stack ran before the deploy, and only once the new release
+      # is healthy. The Docker host is shared with other projects, so never a host-wide prune.
+      # `docker rmi` without --force refuses an image a container still uses, which keeps
+      # mongo and an unchanged service's image. Best effort: a failure here is a warning, never
+      # a failed deploy.
+      - name: Remove replaced images
+        continue-on-error: true
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          PREVIOUS_IMAGES: ${{ steps.deploy.outputs.previous_images }}
+        run: |
+          if [ -z "${PREVIOUS_IMAGES// /}" ]; then
+            echo "No previous images recorded, nothing to remove"
+            exit 0
+          fi
+          printf '%s\n' $PREVIOUS_IMAGES | ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
+            cd ~/apps/duelme-dev || exit 1
+            current=$(docker compose images -q)
+            while read -r id; do
+              if printf "%s\n" "$current" | grep -qxF "$id"; then
+                echo "Kept $id: still in use by this stack"
+              elif out=$(docker rmi "$id" 2>&1); then
+                echo "Removed $id"
+              else
+                echo "::warning::Could not remove image $id: $out"
+              fi
+            done
+          ' || echo "::warning::Image cleanup did not finish; the deploy itself succeeded"
 
       - name: Rollback on failure
         if: failure()
@@ -486,6 +527,7 @@ jobs:
             NEXT_PUBLIC_DEFAULT_CHAIN_KEY=${{ matrix.chain_key }}
             NEXT_PUBLIC_ARBITRUM_RPC_URL=${{ secrets.NEXT_PUBLIC_ARBITRUM_RPC_URL }}
             NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL=${{ secrets.NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL }}
+            APP_RELEASE=${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.scope }}
           cache-to: type=gha,mode=max,scope=${{ matrix.scope }}
 
@@ -514,6 +556,7 @@ jobs:
           chmod 600 ~/.ssh/known_hosts
 
       - name: Deploy
+        id: deploy
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
@@ -534,6 +577,10 @@ jobs:
           RELAYER_DAILY_BUDGET_WEI: ${{ vars.RELAYER_DAILY_BUDGET_WEI }}
           RELAYER_GLOBAL_DAILY_BUDGET_WEI: ${{ vars.RELAYER_GLOBAL_DAILY_BUDGET_WEI }}
         run: |
+          # The images the stack runs before this deploy, for the cleanup after the health check.
+          # Only well-formed image ids get through; a first deploy simply records none.
+          previous_images=$(ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'cd ~/apps/duelme-prod 2>/dev/null && docker compose images -q 2>/dev/null' | grep -E '^(sha256:)?[0-9a-f]{12,64}$' | sort -u | tr '\n' ' ' || true)
+          echo "previous_images=$previous_images" >> "$GITHUB_OUTPUT"
           ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'mkdir -p ~/apps/duelme-prod'
           scp -q ops/docker-compose.prod.yml "$DEPLOY_USER@$DEPLOY_HOST:~/apps/duelme-prod/docker-compose.yml"
           # Pipe secrets via stdin so they never appear in ps / audit / .bash_history.
@@ -559,21 +606,56 @@ jobs:
             docker compose up -d --remove-orphans --quiet-pull
           '
 
+      # Both services must answer and report the commit this run built: a container still on an
+      # older image fails the deploy instead of passing for the new one.
       - name: Verify health checks
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          EXPECTED_RELEASE: ${{ github.sha }}
         run: |
+          health=''
           for i in $(seq 1 30); do
-            if ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'curl -sf http://127.0.0.1:8081/api/v1/health && curl -sf http://127.0.0.1:3002/api/health' 2>/dev/null; then
-              echo "Health checks passed"
+            if health=$(ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'curl -sf http://127.0.0.1:8081/api/v1/health && echo && curl -sf http://127.0.0.1:3002/api/health' 2>/dev/null) \
+              && jq -se --arg release "$EXPECTED_RELEASE" 'length == 2 and all(.[]; .release == $release)' <<<"$health" >/dev/null 2>&1; then
+              echo "Health checks passed, both services run $EXPECTED_RELEASE"
               exit 0
             fi
             sleep 2
           done
-          echo "Health checks failed after 60s"
+          echo "Health checks failed after 60s; expected release $EXPECTED_RELEASE, last answers: $health"
           ssh "$DEPLOY_USER@$DEPLOY_HOST" 'cd ~/apps/duelme-prod && docker compose ps && docker compose logs --tail=20'
           exit 1
+
+      # Removes only the images this stack ran before the deploy, and only once the new release
+      # is healthy. The Docker host is shared with other projects, so never a host-wide prune.
+      # `docker rmi` without --force refuses an image a container still uses, which keeps
+      # mongo and an unchanged service's image. Best effort: a failure here is a warning, never
+      # a failed deploy.
+      - name: Remove replaced images
+        continue-on-error: true
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          PREVIOUS_IMAGES: ${{ steps.deploy.outputs.previous_images }}
+        run: |
+          if [ -z "${PREVIOUS_IMAGES// /}" ]; then
+            echo "No previous images recorded, nothing to remove"
+            exit 0
+          fi
+          printf '%s\n' $PREVIOUS_IMAGES | ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
+            cd ~/apps/duelme-prod || exit 1
+            current=$(docker compose images -q)
+            while read -r id; do
+              if printf "%s\n" "$current" | grep -qxF "$id"; then
+                echo "Kept $id: still in use by this stack"
+              elif out=$(docker rmi "$id" 2>&1); then
+                echo "Removed $id"
+              else
+                echo "::warning::Could not remove image $id: $out"
+              fi
+            done
+          ' || echo "::warning::Image cleanup did not finish; the deploy itself succeeded"
 
       - name: Rollback on failure
         if: failure()

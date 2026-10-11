@@ -17,7 +17,7 @@ ops/         — Docker Compose, Caddy config
 
 **Backend (`backend/`):** `./gradlew build` (JDK 25 via toolchain) · `./gradlew bootRun` (localhost:8080, needs MongoDB) · `./gradlew test` (embedded MongoDB via Flapdoodle) · `./gradlew bootJar` · `./gradlew nativeCompile` (~5–10 min, ~50ms startup, ~60MB RSS) · `./gradlew nativeTest` · `docker compose up -d` (local MongoDB)
 
-**Contracts (`contracts/`):** `forge build` · `forge test` · `forge test -vvv` · `forge coverage --report summary`. `test/UsdtPermitFork.t.sol` skips unless `ARBITRUM_RPC_URL` is set — `set -a && . ./.env && set +a` first to include it. Skipped tests there are expected, not a failure.
+**Contracts (`contracts/`):** `forge build` · `forge test` · `forge test -vvv` · `forge coverage --report summary`. `test/UsdtPermitFork.t.sol` skips unless `ARBITRUM_RPC_URL` is set — `set -a && . ./.env && set +a` first to include it. Skipped tests there are expected locally, not a failure. CI runs that suite separately, in `.github/workflows/usdt-fork.yml` against the public Arbitrum One RPC, on contract changes and weekly — there a skip or an empty run fails the job.
 
 ## Git Conventions
 
@@ -105,6 +105,7 @@ pull-based — terminal duel flows expose claimable balances, never push transfe
   - For day-to-day backend dev, prefer `./gradlew bootRun` — much faster.
 - Images: `ghcr.io/plusqred/duelme-{backend,frontend}:{dev,latest}`
 - Runtime secrets in GitHub repository/environment secrets; deploy job renders remote `.env` from them before `docker compose up`. Never commit secrets.
+- Both images carry the commit they were built from (`APP_RELEASE`, baked in at build time) and both health endpoints report it with `environment`. A deploy passes only when both services answer with the commit it built; then it removes the images its own stack ran before, never anything else on the shared Docker host — no `docker image prune`.
 - Caddy on host: TLS + reverse proxy (`/api/v1/*` → backend, rest → frontend). Configs: `ops/caddy/{dev.duelme.pro,duelme.pro}.Caddyfile`.
 
 ### Gasless Duel Actions (ERC-2771)
@@ -296,6 +297,7 @@ address, no relayer key — is the case the self-paid path still covers.
 | `backend/Dockerfile` | Backend container (multi-stage, GraalVM native) |
 | `frontend/Dockerfile` | Frontend container (multi-stage, Node 22) |
 | `.github/workflows/ci.yml` | CI pipeline: test + deploy (dev & prod) |
+| `.github/workflows/usdt-fork.yml` | Fork suite against the real USD₮0 on Arbitrum One: contract changes + weekly, fails on any skip |
 | `.github/pull_request_template.md` | PR description skeleton; its Checks table is required (see Git Conventions) |
 | `ops/docker-compose.{dev,prod}.yml` | Compose stacks |
 | `ops/caddy/{dev.duelme.pro,duelme.pro}.Caddyfile` | Caddy reverse proxy |
@@ -495,6 +497,7 @@ Runtime config source of truth: GitHub repository/environment secrets. Deploy wo
 
 - `NEXT_PUBLIC_PRIVY_APP_ID` — Privy app ID (frontend)
 - `PRIVY_APP_ID` — Privy app ID (backend JWT verification)
+- `APP_ENV` / `APP_RELEASE` — what `/api/health` and `/api/v1/health` report as `environment` and `release` (`unknown` when unset). Not secrets and not in `.env`: `APP_ENV` is a literal in each compose file, `APP_RELEASE` is the commit SHA passed as a build arg and baked into both images.
 - `MONGODB_URI` — Mongo connection (default `mongodb://localhost:27017/duelme`). Spring Boot 4 property: `spring.mongodb.uri` (not `spring.data.mongodb.uri`).
 - `NEXT_PUBLIC_API_URL` — Backend API base URL (default `/api/v1`)
 - `NEXT_PUBLIC_ARBITRUM_RPC_URL` — authenticated RPC for Arbitrum One. **Unset since 2026-09-20**, so both environments run on Tenderly Gateway public; the previous provider was disabled upstream and took withdrawals down with it (see the RPC gotcha below). Used as Privy embedded-wallet override + first wagmi fallback. If you set it: check the endpoint answers `eth_chainId`, add its host to `connect-src`, and lock the URL via the provider's "Allowed Origins" — `NEXT_PUBLIC_*` are inlined into the JS bundle.
