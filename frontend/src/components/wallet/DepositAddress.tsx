@@ -46,7 +46,12 @@ export function DepositAddress({ address }: DepositAddressProps) {
   );
 }
 
-function AddressQr({ address, label }: { address: string; label: string }) {
+interface AddressQrProps {
+  address: string;
+  label: string;
+}
+
+function AddressQr({ address, label }: AddressQrProps) {
   const { size, path } = useMemo(() => buildQrPath(address), [address]);
   const box = size + QR_QUIET_ZONE * 2;
 

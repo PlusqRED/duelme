@@ -20,8 +20,10 @@ export function useCopyFeedback(failureKey: TranslationKey, confirmMs = 2000) {
   }, []);
 
   const copy = useCallback(async (text: string) => {
+    const landed = await copyText(text);
+    // Cleared after the write settles, so an overlapping copy cannot leave its own timer behind.
     if (timerRef.current) clearTimeout(timerRef.current);
-    if (!(await copyText(text))) {
+    if (!landed) {
       setCopied(false);
       appToast.error(failureKey);
       return false;
