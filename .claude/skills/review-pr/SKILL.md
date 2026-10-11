@@ -15,7 +15,7 @@ CLAUDE.md disagree, CLAUDE.md wins and this file is the bug.
 
 1. Get the diff:
    - If a PR number or a branch name is given: `gh pr diff $ARGUMENTS` — the pushed head against
-     the PR's own base. For a branch, name any local commits it lacks
+     the PR's own base. For a branch you also have locally, name any local commits it lacks
      (`git log origin/$ARGUMENTS..$ARGUMENTS`) in the output as not reviewed.
    - If `gh` finds no PR for the branch: `git fetch origin` (stop if it fails), then
      `git diff origin/dev...$ARGUMENTS`, since feature work targets `dev`.
