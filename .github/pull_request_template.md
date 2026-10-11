@@ -13,8 +13,8 @@ CLAUDE.md, "Git Conventions", deletes this section and gets QA's verdict as a PR
 
 | | |
 |---|---|
-| Reviews | <!-- runs of /simplify, the repo's reviews and /code-review; findings fixed / deferred / rejected; why any extra round ran --> |
-| Tests | <!-- what ran and the result --> |
+| Reviews | <!-- runs of /simplify, /review-pr, /security-review and /code-review; findings fixed / deferred / rejected; why any extra round ran --> |
+| Tests | <!-- what ran (unit, integration, browser check for UI) and the result --> |
 | QA | <!-- filled by QA: verdict, criteria passed, commit --> |
 | CI | <!-- checks green at the head commit --> |
 
