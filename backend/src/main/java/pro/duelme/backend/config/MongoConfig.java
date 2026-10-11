@@ -23,9 +23,8 @@ public class MongoConfig {
      * Spring Data MongoDB does not auto-create indexes declared on the model in
      * Spring Boot 3+, so the unique constraint that enforces "one claim per wallet
      * per token" would be unenforced without this. We create it explicitly at
-     * startup; {@code createIndex} is idempotent.
-     *
-     * <p>Named from the same constant as the annotation.
+     * startup; {@code createIndex} is idempotent. Named from the same constant as
+     * the annotation, for the reason {@link FaucetClaim#UNIQUE_INDEX} gives.
      */
     @Bean
     public ApplicationRunner ensureFaucetClaimIndexes(MongoTemplate template) {

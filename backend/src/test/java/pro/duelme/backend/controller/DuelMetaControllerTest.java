@@ -8,6 +8,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import pro.duelme.backend.model.DuelMeta;
 import pro.duelme.backend.repository.DuelMetaRepository;
 import pro.duelme.backend.repository.GameRepository;
@@ -15,6 +16,7 @@ import pro.duelme.backend.security.WalletAuthenticationToken;
 
 import static pro.duelme.backend.support.TestContracts.CHAIN_ID;
 import static pro.duelme.backend.support.TestContracts.CONTRACT;
+import static pro.duelme.backend.support.TestContracts.OTHER_CHAIN_ID;
 import static pro.duelme.backend.support.TestContracts.REDEPLOYED_CONTRACT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
@@ -44,14 +46,17 @@ class DuelMetaControllerTest {
         gameRepository.deleteAll();
     }
 
+    private ResultActions postMeta(long duelId, int chainId, String contract, String body) throws Exception {
+        return mockMvc.perform(post("/api/v1/duels/" + duelId + "/meta")
+            .param("chainId", String.valueOf(chainId))
+            .param("contractAddress", contract)
+            .with(authentication(new WalletAuthenticationToken("0xcreator")))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body));
+    }
+
     private void attach(long duelId, String contract, String body) throws Exception {
-        mockMvc.perform(post("/api/v1/duels/" + duelId + "/meta")
-                .param("chainId", String.valueOf(CHAIN_ID))
-                .param("contractAddress", contract)
-                .with(authentication(new WalletAuthenticationToken("0xcreator")))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(body))
-            .andExpect(status().isOk());
+        postMeta(duelId, CHAIN_ID, contract, body).andExpect(status().isOk());
     }
 
     @Test
@@ -107,14 +112,9 @@ class DuelMetaControllerTest {
 
     @Test
     void attachGameRejectsAContractThatIsNotLiveOnTheChain() throws Exception {
-        mockMvc.perform(post("/api/v1/duels/1/meta")
-                .param("chainId", String.valueOf(CHAIN_ID))
-                .param("contractAddress", REDEPLOYED_CONTRACT)
-                .with(authentication(new WalletAuthenticationToken("0xcreator")))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                    {"gameName": "CS2"}
-                    """))
+        postMeta(1, CHAIN_ID, REDEPLOYED_CONTRACT, """
+                {"gameName": "CS2"}
+                """)
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.error").exists());
 
@@ -124,15 +124,10 @@ class DuelMetaControllerTest {
 
     @Test
     void attachGameRejectsTheLiveContractOnAnotherChain() throws Exception {
-        // 42161 has a deployment of its own in application.yml, and this is not it.
-        mockMvc.perform(post("/api/v1/duels/1/meta")
-                .param("chainId", "42161")
-                .param("contractAddress", CONTRACT)
-                .with(authentication(new WalletAuthenticationToken("0xcreator")))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                    {"gameName": "CS2"}
-                    """))
+        // OTHER_CHAIN_ID has a deployment of its own, and this is not it.
+        postMeta(1, OTHER_CHAIN_ID, CONTRACT, """
+                {"gameName": "CS2"}
+                """)
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.error").exists());
 

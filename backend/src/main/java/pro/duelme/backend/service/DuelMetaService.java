@@ -9,13 +9,11 @@ import pro.duelme.backend.config.ContractProperties;
 import pro.duelme.backend.dto.DuelMetaRequest;
 import pro.duelme.backend.dto.DuelMetaResponse;
 import pro.duelme.backend.dto.GameResponse;
-import pro.duelme.backend.exception.GameNotFoundException;
 import pro.duelme.backend.exception.NotAuthorizedException;
 import pro.duelme.backend.exception.NotLiveDeploymentException;
 import pro.duelme.backend.model.DuelMeta;
 import pro.duelme.backend.repository.DuelMetaRepository;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -80,33 +78,23 @@ public class DuelMetaService {
     }
 
     public DuelMetaResponse getByDuel(long duelId, int chainId, String contractAddress) {
-        DuelMeta meta = repository
+        return repository
             .findByChainIdAndContractAddressAndDuelId(chainId, contractAddress.toLowerCase(), duelId)
+            .flatMap(meta -> withGame(meta, gameService.findBySlug(meta.gameSlug())))
             .orElse(null);
-        if (meta == null) return null;
-        GameResponse game = findGame(meta.gameSlug()).orElse(null);
-        if (game == null) {
-            warnGameMissing(meta);
-            return null;
-        }
-        return toResponse(meta, game);
     }
 
     public List<DuelMetaResponse> getByGameSlug(String gameSlug, int chainId, String contractAddress, int limit) {
-        GameResponse game;
-        try {
-            game = gameService.getBySlug(gameSlug);
-        } catch (GameNotFoundException e) {
-            return List.of();
-        }
-        // game.slug() rather than the raw parameter: the lookup above accepts any
-        // casing, and querying on the uncanonicalised spelling would find nothing.
-        return repository
-            .findByGameSlugAndChainIdAndContractAddressOrderByCreatedAtDesc(
-                game.slug(), chainId, contractAddress.toLowerCase(), Limit.of(limit))
-            .stream()
-            .map(meta -> toResponse(meta, game))
-            .toList();
+        // game.slug() rather than the raw parameter: the lookup accepts any casing, and
+        // querying on the uncanonicalised spelling would find nothing.
+        return gameService.findBySlug(gameSlug)
+            .map(game -> repository
+                .findByGameSlugAndChainIdAndContractAddressOrderByCreatedAtDesc(
+                    game.slug(), chainId, contractAddress.toLowerCase(), Limit.of(limit))
+                .stream()
+                .map(meta -> toResponse(meta, game))
+                .toList())
+            .orElse(List.of());
     }
 
     public List<DuelMetaResponse> getByDuelIds(int chainId, String contractAddress, List<Long> duelIds) {
@@ -118,32 +106,23 @@ public class DuelMetaService {
         Map<String, Optional<GameResponse>> gamesBySlug = metas.stream()
             .map(DuelMeta::gameSlug)
             .distinct()
-            .collect(Collectors.toMap(slug -> slug, this::findGame));
+            .collect(Collectors.toMap(slug -> slug, gameService::findBySlug));
 
-        List<DuelMetaResponse> responses = new ArrayList<>(metas.size());
-        for (DuelMeta meta : metas) {
-            gamesBySlug.get(meta.gameSlug()).ifPresentOrElse(
-                game -> responses.add(toResponse(meta, game)),
-                () -> warnGameMissing(meta));
-        }
-        return responses;
+        return metas.stream()
+            .flatMap(meta -> withGame(meta, gamesBySlug.get(meta.gameSlug())).stream())
+            .toList();
     }
 
     /**
      * A row whose game is gone reads as a row with no metadata. Throwing instead turns one
      * broken row into a 404 for the whole batch, and with it every duel on the page.
      */
-    private Optional<GameResponse> findGame(String slug) {
-        try {
-            return Optional.of(gameService.getBySlug(slug));
-        } catch (GameNotFoundException e) {
-            return Optional.empty();
+    private Optional<DuelMetaResponse> withGame(DuelMeta meta, Optional<GameResponse> game) {
+        if (game.isEmpty()) {
+            log.warn("Game {} of duel {} on chain {} contract {} not found; serving the duel without metadata",
+                meta.gameSlug(), meta.duelId(), meta.chainId(), meta.contractAddress());
         }
-    }
-
-    private static void warnGameMissing(DuelMeta meta) {
-        log.warn("Game {} of duel {} on chain {} contract {} not found; serving the duel without metadata",
-            meta.gameSlug(), meta.duelId(), meta.chainId(), meta.contractAddress());
+        return game.map(found -> toResponse(meta, found));
     }
 
     private DuelMetaResponse toResponse(DuelMeta meta, GameResponse game) {
