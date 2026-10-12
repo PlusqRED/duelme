@@ -86,8 +86,8 @@ export function reserveDailyBudget(
 
 /**
  * Replaces a reservation with what the transaction actually cost, on both ledgers. Called
- * once the receipt is in; on a timeout the reservation is simply left standing, which errs
- * toward charging for gas that may still be spent.
+ * once the receipt is in; until a receipt that outlived the wait turns up, the reservation is
+ * left standing, which errs toward charging for gas that may still be spent.
  */
 export function settleDailyBudget(
   address: string,

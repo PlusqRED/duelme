@@ -1,17 +1,19 @@
 /**
- * Serializes relayed transactions so exactly one is ever in flight.
+ * Serializes relayed sends so exactly one transaction is being signed and sent at a time.
+ * Receipts are awaited after the lock, so several sent transactions can still be waiting to
+ * be mined; their nonces stay in order.
  *
  * The relayer signs from a single EOA, so two concurrent sends would race for the same
  * nonce and one would be dropped or replaced. Chaining every send onto the previous one
- * also means the nonce can be read fresh from the chain inside the critical section
- * instead of being tracked in memory.
+ * also means the nonce can be read fresh from the chain (`pending`) inside the critical
+ * section instead of being tracked in memory.
  */
 
 /**
  * Requests allowed in the queue at once, the running one included — so at most
  * MAX_QUEUE_DEPTH - 1 are ever waiting behind it.
  */
-const MAX_QUEUE_DEPTH = 8;
+export const MAX_QUEUE_DEPTH = 8;
 
 export class RelayerBusyError extends Error {
   constructor() {

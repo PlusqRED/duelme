@@ -41,3 +41,6 @@ relayer key is runtime-only; prod pins the faucet off): `frontend/CLAUDE.md`, `b
 
 - The CSP lives in the Caddyfiles here, but the rule for adding a host — and the hand-maintained live
   `/etc/caddy/Caddyfile` — is the CSP pitfall in `frontend/CLAUDE.md`, where new hosts come from.
+- The relayer's per-IP rate limit reads the right-most `X-Forwarded-For` entry, which is the
+  client only while nothing sits in front of Caddy. Putting a CDN or proxy there, or setting
+  `trusted_proxies`, means changing that rule too: see the `X-Forwarded-For` pitfall in `frontend/CLAUDE.md`.

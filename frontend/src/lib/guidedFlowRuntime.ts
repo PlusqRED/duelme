@@ -76,6 +76,10 @@ function getRelayErrorMessage(
   switch (error.code) {
     case 'BUDGET_EXCEEDED':
       return t('create.flow.error.relayBudget');
+    case 'RATE_LIMITED':
+      return t('create.flow.error.relayRateLimited');
+    case 'RELAY_PENDING':
+      return t('create.flow.error.relayPending');
     case 'RELAYER_UNAVAILABLE':
     case 'INVALID_SIGNATURE':
     case 'NOT_RELAYABLE':
