@@ -20,19 +20,34 @@ Read all Solidity files and check for:
 - [ ] Reentrancy: CEI order (state written before the token call)? `nonReentrant` on every
       **player-facing** state-mutating function? (`onlyOwner` entry points deliberately have no
       guard — that is not a finding.)
-- [ ] Access control: `onlyOwner` where it belongs, and does every `onlyOwner` path resolve its
-      caller through `msg.sender`, not `_msgSender()`? A relayable admin path means one owner
-      signature can be replayed through the forwarder by whoever picks it up.
-- [ ] Pause policy: `whenNotPaused` only on entering a duel and declaring a new result. Anything
-      that hands a player money back — `confirmResult`, `disputeResult`, `refund`, `cancelDuel`,
-      the mutual-cancellation flow, every claim — must stay callable while paused.
+- [ ] Access control: `onlyOwner` where it belongs? Does every admin path — `_checkOwner`
+      (behind every `onlyOwner`), the `acceptOwnership` override, any new owner check — still
+      read `msg.sender`, not `_msgSender()`? A relayable admin path means one owner signature
+      can be replayed through the forwarder by whoever picks it up.
+- [ ] Pause policy: `whenNotPaused` only on entering a duel or declaring a new result — today
+      `_createDuel` and `_joinDuel` (every create and join entry point must reach them; the
+      external ones carry no modifier of their own), `declineDuel`, `claimVictory` and
+      `admitDefeat`. Anything that hands a player money back — `confirmResult`, `disputeResult`,
+      `refund`, `cancelDuel`, the mutual-cancellation flow, every claim — must stay callable
+      while paused. `declineDuel` refunds the creator yet is pausable on purpose: the creator's
+      own exit, `cancelDuel`, stays open.
 - [ ] `DuelState.Nonexistent` still holds the enum's zero value, and every entry point whose
       required state is `Created` still goes through `_requireWaitingDuel`.
 - [ ] Payouts still derived by `_payoutOf`, never stored on the duel.
 - [ ] Integer overflow/underflow (Solidity 0.8+ has built-in, but check `unchecked` blocks and
       every downcast into `uint96` / `uint64` / `uint40` / `uint16`).
-- [ ] Token handling: `SafeERC20` for all transfers? No raw `.transfer()`? Wagers pulled through
-      `_pullWager`, which refuses a token that takes a transfer fee?
+- [ ] Token handling: `SafeERC20` for all transfers? No raw `.transfer()`?
+- [ ] Fee-taking token, vetted once at deploy: do both `contracts/script/Deploy*.s.sol` still run
+      `TokenFeeProbe.requireNoTransferFee`, does the probe still require the balance back whole
+      (pinned by `testProbe*`), and is `usdt` still `immutable`? Does new code assume
+      `_pullWager` refuses a fee-taking token?
+      Not findings: `_pullWager` has no balance-delta check, by design. Its `@dev` beginning
+      "Takes a wager and verifies" is stale; it stays until a change redeploys `DuelMe.sol`,
+      which must fix it.
+      Known and accepted: a fee switched on after deploy short-pays every payout, and wagers
+      taken after it leave the escrow short (the shortfall is pinned by
+      `testFeeSwitchedOnAfterDeployUnderCollateralisesTheDuel`). `pause()` stops new wagers,
+      not the shortfall.
 - [ ] USDT-specific: blocklist risk covered by pull payouts plus the `*To` destinations? Permit
       path still tolerant of a front-run `permit` (the `try/catch` + allowance check)?
 - [ ] State machine: can any transition be skipped, replayed, or reached from the wrong state?

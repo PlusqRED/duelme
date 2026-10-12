@@ -16,18 +16,31 @@ a CLAUDE.md disagree, the CLAUDE.md wins and this file is the bug.
 
 1. Get the diff:
    - If PR number given: `gh pr diff $ARGUMENTS`
-   - If branch name given: `git diff main...$ARGUMENTS`
+   - If branch name given: `git fetch --prune origin` (stop if it fails), then
+     `git diff origin/dev...origin/$ARGUMENTS` — the pushed branch against `dev`, which feature
+     PRs target. If the branch was never pushed, diff `origin/dev...$ARGUMENTS`; if you also
+     have it locally with commits the remote lacks (`git log origin/$ARGUMENTS..$ARGUMENTS`),
+     name them in the output as not reviewed. For a PR into another base, pass its number instead.
    - Otherwise: `git diff HEAD` (staged **and** unstaged; plain `git diff` misses staged changes)
+
+   An empty diff means the wrong range: report that instead of a verdict.
 
 2. For each changed file, check:
 
 ### Solidity (`contracts/`)
 - Reentrancy: CEI order, and `nonReentrant` on every new **player-facing** state-mutating
   function. `onlyOwner` entry points deliberately carry no guard — not a finding.
-- `onlyOwner` paths resolve their caller through `msg.sender`, never `_msgSender()`.
-- `whenNotPaused` only on entering a duel and declaring a result, never on a path that returns a
-  player's money.
+- Every admin path — `_checkOwner` (behind every `onlyOwner`), the `acceptOwnership` override,
+  any new owner check — reads `msg.sender`, never `_msgSender()`.
+- `whenNotPaused` only on entering a duel or declaring a result — today `_createDuel` and
+  `_joinDuel` (every create and join entry point must reach them; the external ones carry none),
+  `declineDuel`, `claimVictory`, `admitDefeat` — never on a path that returns a player's money.
+  `declineDuel` refunds the creator yet is pausable on purpose: the creator's own exit,
+  `cancelDuel`, stays open.
 - `SafeERC20` everywhere; no raw `.transfer()` / `.transferFrom()`.
+- Both `contracts/script/Deploy*.s.sol` still run `TokenFeeProbe`, and no new code assumes
+  `_pullWager` refuses a fee-taking token: it has no check, by design, because the token is
+  vetted once, at deploy.
 - Events emitted for every state change; payouts still derived by `_payoutOf`, never stored.
 - Tests cover the change, including every new revert condition.
 - Contract changed ⇒ `duelMeAbi` in `frontend/src/lib/contracts.ts` updated in the same PR.
