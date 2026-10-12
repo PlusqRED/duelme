@@ -4,6 +4,8 @@ Rules for the Solidity side. The root `CLAUDE.md` applies here too.
 
 ## Commands
 
+Run coverage as `forge coverage --profile coverage --report summary`: without the profile it reruns the whole invariant search unoptimised, which takes minutes; see `foundry.toml`.
+
 `test/UsdtPermitFork.t.sol` skips unless `ARBITRUM_RPC_URL` is set — `set -a && . ./.env && set +a` first to include it. Skipped tests there are expected locally, not a failure. CI runs that suite separately, in `.github/workflows/usdt-fork.yml` against the public Arbitrum One RPC (a repository secret `ARBITRUM_RPC_URL` overrides it), on contract changes and weekly — there a skip or an empty run fails the job.
 
 ## Smart Contract

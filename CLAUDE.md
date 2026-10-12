@@ -34,7 +34,7 @@ relayer and permits — needs the file of every area it touches.
 
 **Backend (`backend/`):** `./gradlew build` (JDK 25 via toolchain) · `./gradlew bootRun` (localhost:8080, needs MongoDB) · `./gradlew test` (embedded MongoDB via Flapdoodle) · `./gradlew bootJar` · `./gradlew nativeCompile` (~5–10 min, ~50ms startup, ~60MB RSS) · `./gradlew nativeTest` · `docker compose up -d` (local MongoDB)
 
-**Contracts (`contracts/`):** `forge build` · `forge test` · `forge test -vvv` · `forge coverage --report summary`. The fork suite and when it skips: "Commands" in `contracts/CLAUDE.md`.
+**Contracts (`contracts/`):** `forge build` · `forge test` · `forge test -vvv` · `forge coverage --profile coverage --report summary`. Why the profile, the fork suite and when it skips: "Commands" in `contracts/CLAUDE.md`.
 
 ## Git Conventions
 

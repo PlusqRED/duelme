@@ -14,7 +14,7 @@ and this file is the bug.
 - Contracts (`contracts/`): `forge install` · `forge build` · `forge test` ·
   `forge test --match-test testCreateDuel` ·
   `forge test --match-test testCreateDuel --match-path test/DuelMe.t.sol` ·
-  `forge coverage --report summary`
+  `forge coverage --profile coverage --report summary`
 - Backend (`backend/`): `./gradlew build` · `./gradlew bootRun` · `./gradlew test` ·
   `./gradlew nativeCompile`
 - One workflow, `.github/workflows/ci.yml`, covers everything: Forge tests + coverage, backend
