@@ -8,8 +8,9 @@ Review code changes in the current branch or a specified PR.
 
 Arguments: $ARGUMENTS (optional: PR number or branch name. Default: current uncommitted changes)
 
-Read `CLAUDE.md` first — the standards below are its standards, abbreviated. Where this file and
-CLAUDE.md disagree, CLAUDE.md wins and this file is the bug.
+Read `CLAUDE.md` first, then the `CLAUDE.md` of every area the diff touches (`contracts/`,
+`frontend/`, `backend/`, `ops/`; `ops/` also covers `.github/`) — the standards below are theirs, abbreviated. Where this file and
+a CLAUDE.md disagree, the CLAUDE.md wins and this file is the bug.
 
 ## Steps
 
@@ -57,10 +58,11 @@ CLAUDE.md disagree, CLAUDE.md wins and this file is the bug.
 
 ### General
 - No secrets or env values committed. New runtime var ⇒ `.github/workflows/ci.yml`,
-  `ops/docker-compose.*.yml` and `CLAUDE.md` all updated.
+  `ops/docker-compose.*.yml` and the Environment list in the area's `CLAUDE.md` all updated.
 - No debug logs, `console.log`, commented-out blocks, or `TODO` comments.
 - Files ≤300 lines; no constant, type or helper duplicated instead of imported.
-- CLAUDE.md kept in sync: Key Files entries for new or moved files, new gotchas in Common Pitfalls.
+- The area's `CLAUDE.md` kept in sync: Key Files entries for new or moved files, new gotchas in
+  Common Pitfalls.
 
 ## Output
 
