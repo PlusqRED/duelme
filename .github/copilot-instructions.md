@@ -1,9 +1,11 @@
 # DuelMe Copilot Instructions
 
-**`CLAUDE.md` at the repo root is the full spec** — architecture decisions, development standards,
-environment variables and the Common Pitfalls list. Read it before anything non-trivial. This file
-only repeats the handful of rules a suggestion is most likely to get silently wrong, and it must
-never contradict CLAUDE.md; if it does, CLAUDE.md is right and this file is the bug.
+**`CLAUDE.md` at the repo root, with the `CLAUDE.md` in `contracts/`, `frontend/`, `backend/` and
+`ops/`, is the full spec** — the root holds the rules every change needs; each area file holds that
+area's architecture decisions, standards, environment variables and Common Pitfalls. Read them
+before anything non-trivial. This file only repeats the handful of rules a suggestion is most
+likely to get silently wrong, and it must never contradict them; if it does, the CLAUDE.md is right
+and this file is the bug.
 
 ## Build, lint, and test commands
 
@@ -12,7 +14,7 @@ never contradict CLAUDE.md; if it does, CLAUDE.md is right and this file is the 
 - Contracts (`contracts/`): `forge install` · `forge build` · `forge test` ·
   `forge test --match-test testCreateDuel` ·
   `forge test --match-test testCreateDuel --match-path test/DuelMe.t.sol` ·
-  `forge coverage --report summary`
+  `forge coverage --profile coverage --report summary`
 - Backend (`backend/`): `./gradlew build` · `./gradlew bootRun` · `./gradlew test` ·
   `./gradlew nativeCompile`
 - One workflow, `.github/workflows/ci.yml`, covers everything: Forge tests + coverage, backend
@@ -61,7 +63,8 @@ never contradict CLAUDE.md; if it does, CLAUDE.md is right and this file is the 
   fallback and must equal the deploy-time default.
 - Use `useTranslation()` for every visible string, and add both `en` and `ru` keys in the matching
   `frontend/src/i18n/translations/<section>.ts`. Interpolation is `{token}` placeholders — there
-  is no ICU and no plural support.
+  is no ICU; a word that agrees with a number goes through `plural(key, count)` (see "i18n" in
+  `frontend/CLAUDE.md`).
 - Use the `@/*` import alias for frontend code (`frontend/tsconfig.json` maps it to
   `frontend/src/*`).
 - After a successful write, `refetch()` the affected read hooks and call `reset()` so later
@@ -73,5 +76,5 @@ never contradict CLAUDE.md; if it does, CLAUDE.md is right and this file is the 
 - Reputation labels intentionally special-case players with zero abandoned duels, so the Wilson
   score's conservatism on small samples does not mark a newcomer `unreliable`.
 - When adding a runtime env var or secret, update `.github/workflows/ci.yml`, the matching
-  `ops/docker-compose.*.yml`, and `CLAUDE.md`. GitHub secrets are the source of truth for deployed
+  `ops/docker-compose.*.yml`, and the Environment list in the area's `CLAUDE.md`. GitHub secrets are the source of truth for deployed
   values; never commit them.

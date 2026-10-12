@@ -1,10 +1,10 @@
-import type { Hex } from 'viem';
-import type {
-  RelayErrorCode,
-  RelayErrorResponse,
-  RelayForwardRequest,
-  RelayerStatus,
-  RelaySuccessResponse,
+import { isHash, type Hex } from 'viem';
+import {
+  isRecord,
+  isRelayErrorCode,
+  type RelayErrorCode,
+  type RelayForwardRequest,
+  type RelayerStatus,
 } from '@/lib/relayRequest';
 
 const RELAY_ENDPOINT = '/api/relay';
@@ -37,15 +37,13 @@ export async function fetchRelayerStatus(signal?: AbortSignal): Promise<RelayerS
 
   const body: unknown = await response.json();
 
-  if (typeof body !== 'object' || body === null) {
+  if (!isRecord(body)) {
     return { available: false, chainId: null };
   }
 
-  const { available, chainId } = body as Partial<RelayerStatus>;
-
   return {
-    available: available === true,
-    chainId: typeof chainId === 'number' ? chainId : null,
+    available: body.available === true,
+    chainId: typeof body.chainId === 'number' ? body.chainId : null,
   };
 }
 
@@ -74,20 +72,22 @@ export async function submitRelayRequest(chainId: number, request: RelayForwardR
   }
 
   const body: unknown = await response.json().catch(() => null);
+  const fields = isRecord(body) ? body : {};
 
   if (!response.ok) {
-    const { code, error } = (body ?? {}) as Partial<RelayErrorResponse>;
-    throw new RelayRequestError(
-      code ?? 'RELAYER_UNAVAILABLE',
-      error ?? `Relayer refused the request (HTTP ${response.status}).`
-    );
+    // A code this bundle does not know — a tab left open across a deploy — reads as
+    // "unavailable", the one answer every caller already handles.
+    const code = isRelayErrorCode(fields.code) ? fields.code : 'RELAYER_UNAVAILABLE';
+    const message =
+      typeof fields.error === 'string' ? fields.error : `Relayer refused the request (HTTP ${response.status}).`;
+    throw new RelayRequestError(code, message);
   }
 
-  const { hash } = (body ?? {}) as Partial<RelaySuccessResponse>;
-
-  if (typeof hash !== 'string' || !hash.startsWith('0x')) {
+  // A repeat of a payload the relayer already sent answers with that transaction's hash,
+  // so it lands here exactly like the first post did.
+  if (typeof fields.hash !== 'string' || !isHash(fields.hash)) {
     throw new RelayRequestError('RELAYER_UNAVAILABLE', 'Relayer returned no transaction hash.');
   }
 
-  return hash as Hex;
+  return fields.hash;
 }

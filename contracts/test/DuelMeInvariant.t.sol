@@ -18,7 +18,7 @@ contract DuelMeHandler is Test {
 
     // Ghost counters. Every action below swallows its own revert, so without these a run in
     // which nothing ever succeeded — a contract where no duel can be created at all — would
-    // satisfy both invariants. `afterInvariant` turns that into a failure.
+    // satisfy every invariant. `testHandlerDrivesAFullLifecycle` asserts them instead.
     /// @dev How far past `duelCount` the handler and `invariant_nothingExistsPastDuelCount`
     ///      both look.
     uint256 public constant OVERSHOOT = 4;
@@ -305,12 +305,12 @@ contract DuelMeInvariantTest is DuelMeFixture {
     }
 
     /// @dev The handler's own smoke test, and the reason the invariants above mean anything.
-    ///      Every handler action swallows its own revert, so both invariants are satisfied by a
+    ///      Every handler action swallows its own revert, so all three invariants hold for a
     ///      contract in which nothing ever happens: a wrong invite secret, or a caller the
     ///      contract refuses, would leave them green over duels that never got past `Created`.
     ///      This drives the same handler through a whole lifecycle and fails loudly instead.
     ///
-    ///      Deliberately a plain test rather than `afterInvariant`: a single 128-call run is not
+    ///      Deliberately a plain test rather than `afterInvariant`: a single run is not
     ///      guaranteed to reach any particular state, so asserting per run would fail on an
     ///      unlucky sequence rather than on a real regression.
     function testHandlerDrivesAFullLifecycle() public {

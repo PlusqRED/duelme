@@ -127,14 +127,7 @@ export default function DuelPage({
     storeInviteSecret(DEFAULT_CHAIN_ID, duelMeAddress, duelId, inviteSecret);
   }, [duel, inviteSecret, walletAddress, duelId, duelMeAddress]);
 
-  const joinFlow = useJoinDuelFlow({
-    duelId,
-    wagerAmount: duel?.wagerAmount ?? 0n,
-    inviteSecret,
-    creatorAddress: duel?.creator ?? '',
-    duelInviteHash: duel?.inviteHash ?? '',
-    refetchDuel: refetch,
-  });
+  const joinFlow = useJoinDuelFlow({ duelId, duel, inviteSecret, refetchDuel: refetch });
 
   const actionFlow = useActionFlow({ duelId, refetchDuel: refetch });
 
@@ -271,19 +264,12 @@ export default function DuelPage({
   // enough then — only that address can join or decline, and everyone else gets an on-chain
   // "Not the invited opponent" revert.
   const isAddressBoundDuel = duel.invitedOpponent !== ZERO_ADDRESS;
-  const isInvitedOpponent = !!walletAddress && walletAddress === duel.invitedOpponent.toLowerCase();
   // The contract refuses a decline only for a duel that is open in *both* senses — no secret and
   // no invited opponent — since its invite is public and any passer-by could otherwise end it.
   // A duel addressed to one player is declinable by that player, secret or not.
   const isDeclinableDuel = !isDuelPublic || isAddressBoundDuel;
   const hasResolvedViewerAddress = !authenticated || !!walletAddress;
   const canRespondToWaitingDuel = isWaitingOpponent && canPresentDuelInvite;
-  const canJoinWaitingDuel =
-    canRespondToWaitingDuel &&
-    authenticated &&
-    !!walletAddress &&
-    !isCreator &&
-    (!isAddressBoundDuel || isInvitedOpponent);
   const canLoginToJoinWaitingDuel =
     canRespondToWaitingDuel &&
     !authenticated;
@@ -544,7 +530,7 @@ export default function DuelPage({
               </div>
             )}
 
-            {canJoinWaitingDuel && (
+            {joinFlow.canJoin && (
               <div className="flex flex-col gap-3">
                 <Button
                   size="lg"
@@ -750,6 +736,7 @@ export default function DuelPage({
         completedSwitchNetwork={joinFlow.flow?.completedSteps.switchNetwork ?? false}
         completedApproval={joinFlow.flow?.completedSteps.approve ?? false}
         errorMessage={joinFlow.flow?.errorMessage}
+        review={joinFlow.review}
         onOpenChange={joinFlow.handleFlowOpenChange}
         onContinue={joinFlow.handleContinueFlow}
         onSwitchNetwork={joinFlow.handleSwitchNetwork}

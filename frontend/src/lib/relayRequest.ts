@@ -39,13 +39,35 @@ export interface RelayErrorResponse {
   error: string;
 }
 
-export type RelayErrorCode =
-  | 'INVALID_REQUEST'
-  | 'NOT_RELAYABLE'
-  | 'INVALID_SIGNATURE'
-  | 'BUDGET_EXCEEDED'
-  | 'RELAYER_UNAVAILABLE'
-  | 'EXECUTION_REVERTED';
+const relayErrorCodes = [
+  'INVALID_REQUEST',
+  'NOT_RELAYABLE',
+  'INVALID_SIGNATURE',
+  'BUDGET_EXCEEDED',
+  'RATE_LIMITED',
+  'RELAY_PENDING',
+  'RELAYER_UNAVAILABLE',
+  'EXECUTION_REVERTED',
+] as const;
+
+export type RelayErrorCode = (typeof relayErrorCodes)[number];
+
+export function isRelayErrorCode(value: unknown): value is RelayErrorCode {
+  return relayErrorCodes.some((code) => code === value);
+}
+
+/** A failed relay, before the route shapes it into an HTTP error response. */
+export interface RelayRefusal extends RelayErrorResponse {
+  ok: false;
+  status: number;
+}
+
+/** What one relay came to: the hash of the transaction it sent, or the error to answer with. */
+export type RelayOutcome = { ok: true; hash: Hex } | RelayRefusal;
+
+export function refusal(code: RelayErrorCode, error: string, status: number): RelayRefusal {
+  return { ok: false, code, error, status };
+}
 
 /**
  * Duel actions the relayer is willing to pay for. Everything else — owner controls, the
@@ -237,7 +259,7 @@ function invalid(error: string): RelayPayloadResult {
   return { ok: false, code: 'INVALID_REQUEST', error };
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 

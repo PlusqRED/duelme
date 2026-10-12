@@ -53,7 +53,7 @@ e2e/              # Playwright specs, beside src/
 ```
 
 Individual files are not listed here — a tree that names every module goes stale the week after
-it is written. The **Key Files** table in the repo's `CLAUDE.md` is the maintained map, and it is
+it is written. The **Key Files** table in `frontend/CLAUDE.md` is the maintained map, and it is
 updated in the same commit as the code it describes.
 
 ## Setup
@@ -91,7 +91,7 @@ npm run build        # production build
 The ABI check needs `forge build` to have run in `contracts/` — CI does that for you; locally it
 skips if you have not.
 
-For UI-facing changes, also verify the page in a real browser with Playwright screenshots at desktop and mobile widths. See `CLAUDE.md` for the full assistant workflow. Minimal example:
+For UI-facing changes, also verify the page in a real browser with Playwright screenshots at desktop and mobile widths. See "UI verification" in `frontend/CLAUDE.md` for the full assistant workflow. Minimal example:
 
 ```bash
 npm run dev -- --hostname 127.0.0.1 --port 3010
@@ -120,8 +120,8 @@ is not, and `contractAddresses.test.ts` fails if anything in the app stops agree
 
 ### Environment variables
 
-Every variable the app reads, and where each one is set, is listed in the **Environment** section
-of the repo's `CLAUDE.md`. The ones a local dev run needs are `NEXT_PUBLIC_PRIVY_APP_ID` and,
+Every variable the app reads, and where each one is set, is listed in the **Environment** sections
+of `frontend/CLAUDE.md`, `ops/CLAUDE.md` (`APP_ENV` / `APP_RELEASE`) and the root `CLAUDE.md`. The ones a local dev run needs are `NEXT_PUBLIC_PRIVY_APP_ID` and,
 optionally, an authenticated RPC URL.
 
 ## Key patterns

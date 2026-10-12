@@ -1,6 +1,6 @@
 import { afterEach, describe, it, expect } from 'vitest';
 import { MIN_WAGER } from '@/lib/constants';
-import { resetContractConfig, setContractConfig } from '@/lib/contractConfig';
+import { getContractConfig, resetContractConfig, setContractConfig } from '@/lib/contractConfig';
 import {
   isGameStepValid,
   isReviewStepValid,
@@ -54,6 +54,28 @@ describe('isWagerStepValid with on-chain config', () => {
   it('follows a lowered on-chain minWager', () => {
     setContractConfig({ minWager: 0.1 });
     expect(isWagerStepValid({ amount: '0.1' })).toBe(true);
+  });
+});
+
+describe('validators given the live config', () => {
+  // The wizard passes useContractConfig's value: in the render where it arrives, the shared
+  // store still holds the fallbacks.
+  it('judges the wager by the config passed in, not the store', () => {
+    const live = { ...getContractConfig(), minWager: 5 };
+    expect(isWagerStepValid({ amount: '3' }, live)).toBe(false);
+    expect(isWagerStepValid({ amount: '5' }, live)).toBe(true);
+  });
+
+  it('judges the message by the config passed in, not the store', () => {
+    const live = { ...getContractConfig(), maxMessageCharacters: 64 };
+    expect(isTypeMessageStepValid({ message: 'x'.repeat(64) }, live)).toBe(true);
+    expect(isTypeMessageStepValid({ message: 'x'.repeat(64) })).toBe(false);
+  });
+
+  it('carries the config into the review step', () => {
+    const state = { gameSlug: 'cs2', gameName: 'CS2', amount: '3', message: '', isPublic: false };
+    expect(isReviewStepValid(state)).toBe(true);
+    expect(isReviewStepValid(state, { ...getContractConfig(), minWager: 5 })).toBe(false);
   });
 });
 

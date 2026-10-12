@@ -69,9 +69,8 @@ and approved, and the common duel helpers), `MetaTxSigner` for the suites that n
 and `DuelMeTestConstants` for the values both bases start from. A suite calls `_deployFixture()`
 from `setUp` rather than building its own world.
 
-The invariant run is set to `runs = 256, depth = 256` in `foundry.toml` — 65,536 calls, about 25
-seconds. It was an eighth of that until the mainnet deploy; the contract is immutable and holds
-other people's money, so the search budget is worth the CI minute.
+The invariant budget, its worker count and the shorter `coverage` profile are set in
+`foundry.toml`, with the reasons beside them.
 
 ## Duel lifecycle
 
@@ -191,10 +190,13 @@ After deploy:
 2. update `SUPPORTED_CHAINS.arbitrumSepolia` in `frontend/src/lib/constants.ts` — `duelMe`,
    `forwarder` **and** `usdt`, since MockUSDT is redeployed too. `DUELME_ADDRESSES` and
    `FORWARDER_ADDRESSES` are derived from that table; editing them directly does nothing,
-2a. update `faucet.mock-usdt-address` in `backend/src/main/resources/application.yml`, or the
-   faucet keeps handing out the previous token. That value is deliberately a bare literal with no
-   environment override, and `deployedAddresses.test.ts` pins it to the broadcast artifact —
-   keep the quotes, or YAML reads the address as a hex number and the backend refuses to start,
+2a. update two addresses in `backend/src/main/resources/application.yml`. Without
+   `duelme.contracts.duel-me` for chain `421614` the backend refuses game metadata for the new
+   contract's duels and keeps counting each game's duels on the old one; without
+   `duelme.faucet.mock-usdt-address` the faucet keeps handing out the previous token. Both are
+   deliberately plain literals with no `${…}` override, and `deployedAddresses.test.ts` pins
+   them to the broadcast artifact — keep the quotes, or YAML reads an address as a hex number and
+   the backend refuses to start,
 3. sync the root `README.md` contract block with `python3 ../scripts/sync_readme_contract_addresses.py` (or use the configured git hook).
 4. run `../scripts/post_testnet_deploy.sh`, which does the two things nothing else checks:
 
@@ -212,11 +214,10 @@ After deploy:
      in the deploy log — that is how DuelMe was left unverified on 2026-09-20. Arbiscan
      auto-matches bytecode it has seen before, so an unchanged MockUSDT and forwarder come back
      instantly and a changed DuelMe is the one that waits in the queue.
-   - **clears the dev state a redeploy invalidates** — `duelMeta` and `social_oauth_states`.
-     `duelMeta` rows stay correctly orphaned, which is what `contractAddress` is in the key
-     for, but `GameService` counts duels per slug without filtering on it, so stale rows
-     inflate every game's `duelCount`. `profiles` and `games` are kept; `--all` clears them
-     too.
+   - **clears the short-lived OAuth handshake state** — `social_oauth_states`. `duelMeta`,
+     `profiles` and `games` are kept. `--all` clears them too, `duelMeta` for every deployment
+     including the live Arbitrum One one; the comment in the script's `reset_mongo` says why
+     each collection goes or stays.
 
    `faucet_claims` is not on that list. It used to have to be — the claim was keyed by wallet
    alone, so after a MockUSDT redeploy every past claimant got `FaucetAlreadyClaimedException`
@@ -228,6 +229,8 @@ After deploy:
    The script refuses to run against anything but the dev stack, and uses `deleteMany` rather
    than dropping, so the collections keep their indexes and the backend needs no restart.
 
-Steps 2, 2a and 3 are enforced by `deployedAddresses.test.ts`, which pins `constants.ts` and
-`application.yml` to the broadcast artifact — CI fails if any of them drift. Step 4 is not
-enforceable from CI, since it needs the Arbiscan key and the dev database.
+Steps 2 and 2a are enforced by `deployedAddresses.test.ts`, which pins `constants.ts` and
+`application.yml` to the broadcast artifact — CI fails if either drifts. Step 3 is not: the
+pre-commit hook runs it only in a clone with `core.hooksPath` set to `.githooks`, and CI does not
+check the README block. Step 4 is not enforceable from CI, since it needs the Arbiscan key and
+the dev database.

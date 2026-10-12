@@ -43,7 +43,8 @@ jobs:
 
       - name: Run coverage
         run: |
-          forge coverage --report summary 2>&1 | tee coverage-output.txt
+          set -o pipefail
+          forge coverage --profile coverage --report summary 2>&1 | tee coverage-output.txt
 
       - name: Parse coverage
         id: coverage
@@ -240,7 +241,7 @@ jobs:
 
       # Otherwise `next build` first runs in build-dev's image build, after the merge. Only the
       # public chain key is set: the Privy app id is a secret, which the build can do without
-      # only while the root layout is force-dynamic (CLAUDE.md, Common Pitfalls).
+      # only while the root layout is force-dynamic (frontend/CLAUDE.md, Common Pitfalls).
       - name: Build
         env:
           NEXT_PUBLIC_DEFAULT_CHAIN_KEY: arbitrumSepolia
@@ -311,6 +312,7 @@ jobs:
             NEXT_PUBLIC_DEFAULT_CHAIN_KEY=${{ matrix.chain_key }}
             NEXT_PUBLIC_ARBITRUM_RPC_URL=${{ secrets.NEXT_PUBLIC_ARBITRUM_RPC_URL }}
             NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL=${{ secrets.NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL }}
+            APP_RELEASE=${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.scope }}
           cache-to: type=gha,mode=max,scope=${{ matrix.scope }}
 
@@ -383,39 +385,91 @@ jobs:
           FAUCET_ENABLED=true
           FAUCET_PRIVATE_KEY=$FAUCET_PRIVATE_KEY
           ENVEOF
+          # .previous-images collects what the stack ran before this deploy, for the cleanup step.
+          # Appended, not overwritten: after a failed deploy it still holds the release before it.
+          # Pulls only the two images this run built, so a registry hiccup on the pinned mongo
+          # image, already on the host, cannot stop a deploy.
           ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
             cd ~/apps/duelme-dev
-            docker compose pull -q
+            docker compose images -q >> .previous-images || echo "::warning::Could not record the images before the deploy; they will not be removed"
+            docker compose pull -q backend frontend || exit 1
             docker compose up -d --remove-orphans --quiet-pull
           '
 
+      # Both services must answer and report the commit this run built: a container still on an
+      # older image fails the deploy instead of passing for the new one.
       - name: Verify health checks
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          EXPECTED_ENV: dev
+          EXPECTED_RELEASE: ${{ github.sha }}
         run: |
-          for i in $(seq 1 30); do
-            if ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'curl -sf http://127.0.0.1:8080/api/v1/health && curl -sf http://127.0.0.1:3001/api/health' 2>/dev/null; then
-              echo "Health checks passed"
+          health=''
+          deadline=$((SECONDS + 90))
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            if health=$(ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'curl -sf --max-time 5 http://127.0.0.1:8080/api/v1/health && echo && curl -sf --max-time 5 http://127.0.0.1:3001/api/health' 2>/dev/null) \
+              && jq -se --arg env "$EXPECTED_ENV" --arg release "$EXPECTED_RELEASE" \
+                'length == 2 and all(.[]; .environment == $env and .release == $release)' <<<"$health" >/dev/null 2>&1; then
+              echo "Health checks passed, both services run $EXPECTED_RELEASE"
               exit 0
             fi
             sleep 2
           done
-          echo "Health checks failed after 60s"
+          echo "Health checks failed after ${SECONDS}s; expected $EXPECTED_ENV at $EXPECTED_RELEASE, last answers: $health"
           ssh "$DEPLOY_USER@$DEPLOY_HOST" 'cd ~/apps/duelme-dev && docker compose ps && docker compose logs --tail=20'
           exit 1
 
+      # Removes the images this stack ran before the deploy, once the new release is healthy.
+      # The Docker host is shared with other projects, so never a host-wide prune: images the
+      # stack still runs (mongo, an unchanged service) and images that still carry a tag are
+      # skipped, and `docker rmi` without --force refuses any image another container uses.
+      # Best effort: a failure here is a warning, never a failed deploy.
+      - name: Remove replaced images
+        continue-on-error: true
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
+            cd ~/apps/duelme-dev || exit 1
+            if [ ! -s .previous-images ]; then
+              echo "No previous images recorded, nothing to remove"
+              exit 0
+            fi
+            current=$(docker compose images -q)
+            sort -u .previous-images | while read -r id; do
+              [ -n "$id" ] || continue
+              if printf "%s\n" "$current" | grep -qxF "$id"; then
+                echo "Kept $id: still in use by this stack"
+              elif [ "$(docker image inspect -f "{{len .RepoTags}}" "$id" 2>/dev/null)" != "0" ]; then
+                echo "Kept $id: still tagged, or already gone"
+              elif out=$(docker rmi "$id" 2>&1); then
+                echo "Removed $id"
+              else
+                echo "::warning::Could not remove image $id: $out"
+              fi
+            done
+            rm -f .previous-images
+          ' || echo "::warning::Image cleanup did not finish; the deploy itself succeeded"
+
+      # Stops each of backend and frontend that does not answer. One that answers, if on another
+      # release (a failed pull, a failed deploy step), keeps serving; the deploy stays red.
       - name: Rollback on failure
         if: failure()
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
         run: |
-          echo "Stopping broken containers..."
-          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
-            cd ~/apps/duelme-dev
-            docker compose stop backend frontend
-          '
+          stop=''
+          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'curl -sf --max-time 5 http://127.0.0.1:8080/api/v1/health' >/dev/null 2>&1 || stop="$stop backend"
+          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'curl -sf --max-time 5 http://127.0.0.1:3001/api/health' >/dev/null 2>&1 || stop="$stop frontend"
+          if [ -z "$stop" ]; then
+            echo "Both services answer; leaving the running containers up"
+            exit 0
+          fi
+          echo "Stopping containers that do not answer:$stop"
+          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" "cd ~/apps/duelme-dev && docker compose stop$stop"
 
   # `backend` stays in needs: as a JVM-mode test gate (Spring Boot integration
   # tests run against Flapdoodle, no native build). `backend-native` is the
@@ -486,6 +540,7 @@ jobs:
             NEXT_PUBLIC_DEFAULT_CHAIN_KEY=${{ matrix.chain_key }}
             NEXT_PUBLIC_ARBITRUM_RPC_URL=${{ secrets.NEXT_PUBLIC_ARBITRUM_RPC_URL }}
             NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL=${{ secrets.NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL }}
+            APP_RELEASE=${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.scope }}
           cache-to: type=gha,mode=max,scope=${{ matrix.scope }}
 
@@ -553,36 +608,88 @@ jobs:
           RELAYER_DAILY_BUDGET_WEI=$RELAYER_DAILY_BUDGET_WEI
           RELAYER_GLOBAL_DAILY_BUDGET_WEI=$RELAYER_GLOBAL_DAILY_BUDGET_WEI
           ENVEOF
+          # .previous-images collects what the stack ran before this deploy, for the cleanup step.
+          # Appended, not overwritten: after a failed deploy it still holds the release before it.
+          # Pulls only the two images this run built, so a registry hiccup on the pinned mongo
+          # image, already on the host, cannot stop a deploy.
           ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
             cd ~/apps/duelme-prod
-            docker compose pull -q
+            docker compose images -q >> .previous-images || echo "::warning::Could not record the images before the deploy; they will not be removed"
+            docker compose pull -q backend frontend || exit 1
             docker compose up -d --remove-orphans --quiet-pull
           '
 
+      # Both services must answer and report the commit this run built: a container still on an
+      # older image fails the deploy instead of passing for the new one.
       - name: Verify health checks
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          EXPECTED_ENV: prod
+          EXPECTED_RELEASE: ${{ github.sha }}
         run: |
-          for i in $(seq 1 30); do
-            if ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'curl -sf http://127.0.0.1:8081/api/v1/health && curl -sf http://127.0.0.1:3002/api/health' 2>/dev/null; then
-              echo "Health checks passed"
+          health=''
+          deadline=$((SECONDS + 90))
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            if health=$(ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'curl -sf --max-time 5 http://127.0.0.1:8081/api/v1/health && echo && curl -sf --max-time 5 http://127.0.0.1:3002/api/health' 2>/dev/null) \
+              && jq -se --arg env "$EXPECTED_ENV" --arg release "$EXPECTED_RELEASE" \
+                'length == 2 and all(.[]; .environment == $env and .release == $release)' <<<"$health" >/dev/null 2>&1; then
+              echo "Health checks passed, both services run $EXPECTED_RELEASE"
               exit 0
             fi
             sleep 2
           done
-          echo "Health checks failed after 60s"
+          echo "Health checks failed after ${SECONDS}s; expected $EXPECTED_ENV at $EXPECTED_RELEASE, last answers: $health"
           ssh "$DEPLOY_USER@$DEPLOY_HOST" 'cd ~/apps/duelme-prod && docker compose ps && docker compose logs --tail=20'
           exit 1
 
+      # Removes the images this stack ran before the deploy, once the new release is healthy.
+      # The Docker host is shared with other projects, so never a host-wide prune: images the
+      # stack still runs (mongo, an unchanged service) and images that still carry a tag are
+      # skipped, and `docker rmi` without --force refuses any image another container uses.
+      # Best effort: a failure here is a warning, never a failed deploy.
+      - name: Remove replaced images
+        continue-on-error: true
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
+            cd ~/apps/duelme-prod || exit 1
+            if [ ! -s .previous-images ]; then
+              echo "No previous images recorded, nothing to remove"
+              exit 0
+            fi
+            current=$(docker compose images -q)
+            sort -u .previous-images | while read -r id; do
+              [ -n "$id" ] || continue
+              if printf "%s\n" "$current" | grep -qxF "$id"; then
+                echo "Kept $id: still in use by this stack"
+              elif [ "$(docker image inspect -f "{{len .RepoTags}}" "$id" 2>/dev/null)" != "0" ]; then
+                echo "Kept $id: still tagged, or already gone"
+              elif out=$(docker rmi "$id" 2>&1); then
+                echo "Removed $id"
+              else
+                echo "::warning::Could not remove image $id: $out"
+              fi
+            done
+            rm -f .previous-images
+          ' || echo "::warning::Image cleanup did not finish; the deploy itself succeeded"
+
+      # Stops each of backend and frontend that does not answer. One that answers, if on another
+      # release (a failed pull, a failed deploy step), keeps serving; the deploy stays red.
       - name: Rollback on failure
         if: failure()
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
         run: |
-          echo "Stopping broken containers..."
-          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
-            cd ~/apps/duelme-prod
-            docker compose stop backend frontend
-          '
+          stop=''
+          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'curl -sf --max-time 5 http://127.0.0.1:8081/api/v1/health' >/dev/null 2>&1 || stop="$stop backend"
+          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'curl -sf --max-time 5 http://127.0.0.1:3002/api/health' >/dev/null 2>&1 || stop="$stop frontend"
+          if [ -z "$stop" ]; then
+            echo "Both services answer; leaving the running containers up"
+            exit 0
+          fi
+          echo "Stopping containers that do not answer:$stop"
+          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" "cd ~/apps/duelme-prod && docker compose stop$stop"
