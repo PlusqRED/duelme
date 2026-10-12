@@ -10,7 +10,7 @@ import {
 } from '@/lib/relayerDedup';
 import { refusal, type RelayForwardRequest, type RelayOutcome } from '@/lib/relayRequest';
 
-const REQUEST: RelayForwardRequest = {
+const signedRequest: RelayForwardRequest = {
   from: '0x328809Bc894f92807417D2dAD6b7C998c1aFdac6',
   to: '0x00000000000000000000000000000000000000d1',
   value: '0',
@@ -34,21 +34,21 @@ beforeEach(() => {
 describe('relayRequestKey', () => {
   it('is blind to address and hex letter case', () => {
     const shouted: RelayForwardRequest = {
-      ...REQUEST,
-      from: REQUEST.from.toLowerCase() as `0x${string}`,
+      ...signedRequest,
+      from: signedRequest.from.toLowerCase() as `0x${string}`,
       data: '0xDEADBEEF',
       signature: `0x${'AB'.repeat(65)}`,
     };
 
-    expect(relayRequestKey(shouted)).toBe(relayRequestKey(REQUEST));
+    expect(relayRequestKey(shouted)).toBe(relayRequestKey(signedRequest));
   });
 
   it('tells apart a request whose signed fields differ, not only its signature', () => {
-    const key = relayRequestKey(REQUEST);
+    const key = relayRequestKey(signedRequest);
 
-    expect(relayRequestKey({ ...REQUEST, gas: '400001' })).not.toBe(key);
-    expect(relayRequestKey({ ...REQUEST, deadline: REQUEST.deadline + 1 })).not.toBe(key);
-    expect(relayRequestKey({ ...REQUEST, signature: `0x${'ac'.repeat(65)}` })).not.toBe(key);
+    expect(relayRequestKey({ ...signedRequest, gas: '400001' })).not.toBe(key);
+    expect(relayRequestKey({ ...signedRequest, deadline: signedRequest.deadline + 1 })).not.toBe(key);
+    expect(relayRequestKey({ ...signedRequest, signature: `0x${'ac'.repeat(65)}` })).not.toBe(key);
   });
 });
 
