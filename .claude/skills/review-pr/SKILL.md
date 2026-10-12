@@ -8,25 +8,39 @@ Review code changes in the current branch or a specified PR.
 
 Arguments: $ARGUMENTS (optional: PR number or branch name. Default: current uncommitted changes)
 
-Read `CLAUDE.md` first — the standards below are its standards, abbreviated. Where this file and
-CLAUDE.md disagree, CLAUDE.md wins and this file is the bug.
+Read `CLAUDE.md` first, then the `CLAUDE.md` of every area the diff touches (`contracts/`,
+`frontend/`, `backend/`, `ops/`; `ops/` also covers `.github/`) — the standards below are theirs, abbreviated. Where this file and
+a CLAUDE.md disagree, the CLAUDE.md wins and this file is the bug.
 
 ## Steps
 
 1. Get the diff:
    - If PR number given: `gh pr diff $ARGUMENTS`
-   - If branch name given: `git diff main...$ARGUMENTS`
+   - If branch name given: `git fetch --prune origin` (stop if it fails), then
+     `git diff origin/dev...origin/$ARGUMENTS` — the pushed branch against `dev`, which feature
+     PRs target. If the branch was never pushed, diff `origin/dev...$ARGUMENTS`; if you also
+     have it locally with commits the remote lacks (`git log origin/$ARGUMENTS..$ARGUMENTS`),
+     name them in the output as not reviewed. For a PR into another base, pass its number instead.
    - Otherwise: `git diff HEAD` (staged **and** unstaged; plain `git diff` misses staged changes)
+
+   An empty diff means the wrong range: report that instead of a verdict.
 
 2. For each changed file, check:
 
 ### Solidity (`contracts/`)
 - Reentrancy: CEI order, and `nonReentrant` on every new **player-facing** state-mutating
   function. `onlyOwner` entry points deliberately carry no guard — not a finding.
-- `onlyOwner` paths resolve their caller through `msg.sender`, never `_msgSender()`.
-- `whenNotPaused` only on entering a duel and declaring a result, never on a path that returns a
-  player's money.
+- Every admin path — `_checkOwner` (behind every `onlyOwner`), the `acceptOwnership` override,
+  any new owner check — reads `msg.sender`, never `_msgSender()`.
+- `whenNotPaused` only on entering a duel or declaring a result — today `_createDuel` and
+  `_joinDuel` (every create and join entry point must reach them; the external ones carry none),
+  `declineDuel`, `claimVictory`, `admitDefeat` — never on a path that returns a player's money.
+  `declineDuel` refunds the creator yet is pausable on purpose: the creator's own exit,
+  `cancelDuel`, stays open.
 - `SafeERC20` everywhere; no raw `.transfer()` / `.transferFrom()`.
+- Both `contracts/script/Deploy*.s.sol` still run `TokenFeeProbe`, and no new code assumes
+  `_pullWager` refuses a fee-taking token: it has no check, by design, because the token is
+  vetted once, at deploy.
 - Events emitted for every state change; payouts still derived by `_payoutOf`, never stored.
 - Tests cover the change, including every new revert condition.
 - Contract changed ⇒ `duelMeAbi` in `frontend/src/lib/contracts.ts` updated in the same PR.
@@ -57,10 +71,11 @@ CLAUDE.md disagree, CLAUDE.md wins and this file is the bug.
 
 ### General
 - No secrets or env values committed. New runtime var ⇒ `.github/workflows/ci.yml`,
-  `ops/docker-compose.*.yml` and `CLAUDE.md` all updated.
+  `ops/docker-compose.*.yml` and the Environment list in the area's `CLAUDE.md` all updated.
 - No debug logs, `console.log`, commented-out blocks, or `TODO` comments.
 - Files ≤300 lines; no constant, type or helper duplicated instead of imported.
-- CLAUDE.md kept in sync: Key Files entries for new or moved files, new gotchas in Common Pitfalls.
+- The area's `CLAUDE.md` kept in sync: Key Files entries for new or moved files, new gotchas in
+  Common Pitfalls.
 
 ## Output
 

@@ -22,7 +22,6 @@ export const landingTranslations = defineSection({
     'publicDuels.subtitle': 'Open challenges with the stake, creator honor, game, and note visible before you join.',
     'publicDuels.empty': 'No public duels right now. Create one!',
     'publicDuels.viewAll': 'View all public duels',
-    'publicDuels.stats': '{count} duels · {total} USDT',
     'publicDuels.dedicatedSubtitle':
       'Browse public challenges waiting for an opponent. Check the creator, honor, game, note, and stake before joining.',
     'publicDuels.openChallenge': 'Open challenge',
@@ -185,7 +184,6 @@ export const landingTranslations = defineSection({
     'publicDuels.subtitle': 'Открытые вызовы со ставкой, честью создателя, игрой и сообщением до входа.',
     'publicDuels.empty': 'Публичных дуэлей пока нет. Создай первую!',
     'publicDuels.viewAll': 'Все публичные дуэли',
-    'publicDuels.stats': '{count} дуэлей · {total} USDT',
     'publicDuels.dedicatedSubtitle':
       'Публичные вызовы, которые ждут соперника. Перед входом видно создателя, честь, игру, сообщение и ставку.',
     'publicDuels.openChallenge': 'Открытый вызов',
