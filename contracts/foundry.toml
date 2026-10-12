@@ -20,8 +20,8 @@ remappings = [
 # The two solvency invariants walk every duel after every call, so a run costs depth squared, and
 # `workers = "auto"` follows `--jobs`, which the other suites share, so it left this suite on one
 # thread. Four workers — the vCPUs of GitHub's runner for public repos — reach deep states less
-# often per run, hence 512 runs: with them the suite reaches those states at least as often as one
-# worker did at 256. Locally that takes half the time; in CI, 80 s against 61-114 s before.
+# often per run, hence 512 runs: with them the suite reaches those states about as often as one
+# worker did at 256, or more. Locally that takes half the time; in CI, 80 s against 61-114 s before.
 [invariant]
 runs = 512
 depth = 256
