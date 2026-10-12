@@ -27,7 +27,7 @@ duelme:
     private-key: ${FAUCET_PRIVATE_KEY:}
     rpc-url: ${FAUCET_RPC_URL:https://sepolia-rollup.arbitrum.io/rpc}
     chain-id: ${FAUCET_CHAIN_ID:421614}
-    # Not overridable by env on purpose: this must be the MockUSDT the live DuelMe was
+    # No ${…} placeholder on purpose: this must be the MockUSDT the live DuelMe was
     # deployed against, which is the same redeploy that edits frontend constants.ts.
     # deployedAddresses.test.ts pins it to the broadcast artifact.
     # Quoted: YAML reads a bare 0x… as a hex integer, and Spring would then bind the decimal
@@ -46,6 +46,11 @@ duelme:
       client-secret: ${TELEGRAM_CLIENT_SECRET:}
       return-url: ${TELEGRAM_RETURN_URL:}
       issuer: ${TELEGRAM_ISSUER:https://oauth.telegram.org}
+  # Reported by /api/v1/health. APP_RELEASE is baked into the image at build time, APP_ENV is
+  # set by the compose file; blank reads as "unknown".
+  build:
+    environment: ${APP_ENV:}
+    release: ${APP_RELEASE:}
 
 springdoc:
   api-docs:

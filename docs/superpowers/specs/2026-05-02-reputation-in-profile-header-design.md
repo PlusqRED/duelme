@@ -59,7 +59,7 @@ If the nickname overflows when reputation pushes content, downgrade nickname to 
 
 ## Verification
 
-Per CLAUDE.md UI workflow:
+Per the UI workflow in `frontend/CLAUDE.md`:
 
 1. `npx tsc --noEmit` and `npm run lint` from `frontend/`.
 2. Start dev server on a free port (e.g. `--port 3010`).
