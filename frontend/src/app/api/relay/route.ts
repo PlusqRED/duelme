@@ -274,11 +274,15 @@ async function confirm(
   } catch {
     // The transaction is broadcast and may still land, so the worst-case reservation
     // stands rather than handing back an allowance that is possibly being spent, and the
-    // signer stays held until a receipt does turn up (or the hold expires).
+    // signer stays held until a receipt does turn up (or the hold expires). A late receipt
+    // books the real cost, as the one awaited above would have.
     console.error('[relay] receipt wait timed out, keeping worst-case reservation', hash);
     void config.publicClient.waitForTransactionReceipt({ hash, timeout: SIGNER_HOLD_MS }).then(
-      () => releaseSigner(from, hash),
-      () => undefined
+      (receipt) => {
+        releaseSigner(from, hash);
+        settleDailyBudget(from, worstCaseWei, receipt.gasUsed * receipt.effectiveGasPrice);
+      },
+      (error: unknown) => console.error('[relay] no receipt before the signer hold ran out', hash, error)
     );
   }
 

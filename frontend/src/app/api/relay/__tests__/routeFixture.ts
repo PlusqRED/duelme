@@ -20,7 +20,7 @@ import type { RelayForwardRequest } from '@/lib/relayRequest';
 const RELAYER = '0x00000000000000000000000000000000000000aa';
 const FORWARDER = '0x00000000000000000000000000000000000000fa';
 export const TX_HASH: Hex = `0x${'cd'.repeat(32)}`;
-export const MINED = { status: 'success', gasUsed: 150_000n, effectiveGasPrice: 10_000_000n } as const;
+export const minedReceipt = { status: 'success', gasUsed: 150_000n, effectiveGasPrice: 10_000_000n } as const;
 
 export function forwardRequest(duelId: bigint): RelayForwardRequest {
   return {
@@ -83,7 +83,9 @@ const configFields = {
 export const config = configFields as unknown as RelayerConfig;
 
 export function resetRelayRoute(): void {
-  vi.clearAllMocks();
+  // Reset, not clear: clearing keeps unconsumed `mock*Once` values, which would leak into
+  // the next test whenever one fails before using them.
+  vi.resetAllMocks();
   resetRelayerQueue();
   resetRelayDedup();
   resetRelayRateLimit();
@@ -98,7 +100,7 @@ export function resetRelayRoute(): void {
   publicClient.estimateFeesPerGas.mockResolvedValue({ maxFeePerGas: 20_000_000n, maxPriorityFeePerGas: 0n });
   publicClient.getBlock.mockResolvedValue({ baseFeePerGas: 10_000_000n });
   publicClient.getTransactionCount.mockResolvedValue(7);
-  publicClient.waitForTransactionReceipt.mockResolvedValue(MINED);
+  publicClient.waitForTransactionReceipt.mockResolvedValue(minedReceipt);
   walletClient.writeContract.mockResolvedValue(TX_HASH);
 }
 

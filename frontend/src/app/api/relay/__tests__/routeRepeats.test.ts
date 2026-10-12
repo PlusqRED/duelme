@@ -1,12 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { isRecord } from '@/lib/relayRequest';
 import {
-  MINED,
+  minedReceipt,
   TX_HASH,
   deferred,
   forwardRequest,
   postRequest,
   publicClient,
   resetRelayRoute,
+  setDailyBudgetWei,
   walletClient,
 } from './routeFixture';
 
@@ -21,13 +23,25 @@ function delayReceipt() {
   const gate = deferred();
   publicClient.waitForTransactionReceipt.mockImplementationOnce(async () => {
     await gate.promise;
-    return MINED;
+    return minedReceipt;
   });
   return gate.resolve;
 }
 
 /** Lets fire-and-forget receipt waits settle. */
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+/** Relays one request to read the worst case the route reserves for it, then starts over. */
+async function worstCaseOfOneRelay(): Promise<bigint> {
+  await postRequest(forwardRequest(1n));
+  const sent: unknown = walletClient.writeContract.mock.lastCall?.[0];
+  resetRelayRoute();
+
+  if (!isRecord(sent) || typeof sent.gas !== 'bigint' || typeof sent.maxFeePerGas !== 'bigint') {
+    throw new Error('The dry run sent no transaction.');
+  }
+  return sent.gas * sent.maxFeePerGas;
+}
 
 describe('POST /api/relay — repeats and the signer hold', () => {
   it('answers a repeated request with the first transaction instead of sending a second', async () => {
@@ -89,7 +103,7 @@ describe('POST /api/relay — repeats and the signer hold', () => {
       .mockRejectedValueOnce(new Error('timed out'))
       .mockImplementationOnce(async () => {
         await mine.promise;
-        return MINED;
+        return minedReceipt;
       });
 
     const first = await postRequest(forwardRequest(1n));
@@ -102,8 +116,36 @@ describe('POST /api/relay — repeats and the signer hold', () => {
     expect((await postRequest(forwardRequest(2n))).status).toBe(200);
   });
 
+  it('books the real cost once a receipt that outlived the wait does land', async () => {
+    const worstCaseWei = await worstCaseOfOneRelay();
+    // Room for one worst case plus the real cost of another, never for two worst cases.
+    setDailyBudgetWei(worstCaseWei + worstCaseWei / 2n);
+    const mine = deferred();
+    publicClient.waitForTransactionReceipt
+      .mockRejectedValueOnce(new Error('timed out'))
+      .mockImplementationOnce(async () => {
+        await mine.promise;
+        return minedReceipt;
+      });
+
+    expect((await postRequest(forwardRequest(1n))).status).toBe(200);
+    mine.resolve();
+    await settle();
+
+    expect((await postRequest(forwardRequest(2n))).status).toBe(200);
+  });
+
+  it('holds nobody and hands the reservation back when the broadcast fails', async () => {
+    setDailyBudgetWei(await worstCaseOfOneRelay());
+    walletClient.writeContract.mockRejectedValueOnce(new Error('rpc down'));
+
+    expect((await postRequest(forwardRequest(1n))).status).toBe(502);
+
+    expect((await postRequest(forwardRequest(2n))).status).toBe(200);
+  });
+
   it('forgets a request that reverted on-chain, so a repeat is checked again', async () => {
-    publicClient.waitForTransactionReceipt.mockResolvedValueOnce({ ...MINED, status: 'reverted' });
+    publicClient.waitForTransactionReceipt.mockResolvedValueOnce({ ...minedReceipt, status: 'reverted' });
     const request = forwardRequest(1n);
 
     const reverted = await postRequest(request);
