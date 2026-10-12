@@ -14,14 +14,15 @@ remappings = [
 # revert, so anything that escapes to the runner is a real failure.
 #
 # The contract is immutable and holds other people's money, so the search budget is worth the CI
-# minute. Keep the depth: the same number of calls in shorter sequences (512 x 128, 1024 x 64)
+# minute. Keep the depth: 256 x 256's calls in shorter sequences (512 x 128, 1024 x 64)
 # confirmed, refunded and claimed far fewer duels.
 #
 # The two solvency invariants walk every duel after every call, so a run costs depth squared, and
 # `workers = "auto"` follows `--jobs`, which the other suites share, so it left this suite on one
 # thread. Four workers — the vCPUs of GitHub's runner for public repos — reach deep states less
-# often per run, hence 512 runs: with them the suite reaches those states about as often as one
-# worker did at 256, or more. Locally that takes half the time; in CI, 80 s against 61-114 s before.
+# often per run: forge 1.8.5 spends one worker's whole share on a single handler action, so only
+# 384 of the 512 runs search. With 512 the suite reaches those states about as often as one worker
+# did at 256, or more. Locally that takes half the time; in CI, 80 s against 61-114 s before.
 [invariant]
 runs = 512
 depth = 256
@@ -30,8 +31,8 @@ fail_on_revert = true
 
 # For `forge coverage --profile coverage`, as CI runs it. Coverage only records which lines run;
 # the full search has already run under `forge test`. At this budget the line and branch counts
-# equal the full search's, and without the invariant suite they drop; the seed keeps the counts
-# from depending on luck.
+# equal the full search's, and without the invariant suite they drop. With the seed, three local
+# runs and CI agreed, but the few branches only this search reaches are hit a handful of times.
 [profile.coverage.fuzz]
 seed = "0x1"
 

@@ -15,6 +15,8 @@ Arguments: $ARGUMENTS (optional: specific test name or "--coverage" for coverage
    - Run `forge coverage --profile coverage --report summary` (see `foundry.toml`)
    - Report coverage percentages per file. The target is ≥90% lines on `src/DuelMe.sol`,
      emergency and admin paths included.
+   - The profile replays a short seeded invariant search, so run step 4 as well before
+     reporting the contracts as tested.
 3. If $ARGUMENTS contains a specific test name:
    - Run `forge test --match-test "$ARGUMENTS" -vvvv`
 4. Otherwise:

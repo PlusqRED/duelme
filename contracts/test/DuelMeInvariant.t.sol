@@ -305,7 +305,7 @@ contract DuelMeInvariantTest is DuelMeFixture {
     }
 
     /// @dev The handler's own smoke test, and the reason the invariants above mean anything.
-    ///      Every handler action swallows its own revert, so both invariants are satisfied by a
+    ///      Every handler action swallows its own revert, so all three invariants hold for a
     ///      contract in which nothing ever happens: a wrong invite secret, or a caller the
     ///      contract refuses, would leave them green over duels that never got past `Created`.
     ///      This drives the same handler through a whole lifecycle and fails loudly instead.
