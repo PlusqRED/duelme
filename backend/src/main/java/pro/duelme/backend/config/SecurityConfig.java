@@ -34,6 +34,9 @@ public class SecurityConfig {
         @Value("${springdoc.api-docs.enabled:true}") boolean apiDocsEnabled,
         @Value("${springdoc.swagger-ui.enabled:true}") boolean swaggerUiEnabled
     ) throws Exception {
+        // On the JVM springdoc drops Swagger UI, its swagger-config included, whenever the
+        // OpenAPI document is off, so the UI paths need both switches.
+        boolean swaggerUiOpen = apiDocsEnabled && swaggerUiEnabled;
         http
             .csrf(csrf -> csrf.disable())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -42,8 +45,9 @@ public class SecurityConfig {
                     response.sendError(HttpServletResponse.SC_UNAUTHORIZED)))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.GET, "/api/v1/health").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/docs/swagger-config").access(openWhen(swaggerUiOpen))
                 .requestMatchers(HttpMethod.GET, "/api/v1/docs/**").access(openWhen(apiDocsEnabled))
-                .requestMatchers(HttpMethod.GET, "/api/v1/swagger-ui/**").access(openWhen(swaggerUiEnabled))
+                .requestMatchers(HttpMethod.GET, "/api/v1/swagger-ui/**").access(openWhen(swaggerUiOpen))
                 .requestMatchers(HttpMethod.GET, "/api/v1/profiles/me").authenticated()
                 .requestMatchers(HttpMethod.PUT, "/api/v1/profiles/me").authenticated()
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/profiles/me").authenticated()

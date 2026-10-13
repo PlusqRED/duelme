@@ -8,9 +8,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import pro.duelme.backend.security.WalletAuthenticationToken;
 
 import java.util.List;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -47,6 +49,31 @@ class ApiDocsAccessTest {
     @AutoConfigureMockMvc
     @ActiveProfiles({"test", "prod"})
     class ProdProfile {
+
+        @Autowired
+        private MockMvc mockMvc;
+
+        @ParameterizedTest
+        @FieldSource("pro.duelme.backend.config.ApiDocsAccessTest#DOCS_PATHS")
+        void docsPathReturns401(String path) throws Exception {
+            mockMvc.perform(get(path)).andExpect(status().isUnauthorized());
+        }
+
+        // A signed-in wallet is refused too, so the rule is a deny and not merely authenticated().
+        @ParameterizedTest
+        @FieldSource("pro.duelme.backend.config.ApiDocsAccessTest#DOCS_PATHS")
+        void docsPathReturns403ForSignedInWallet(String path) throws Exception {
+            mockMvc.perform(get(path).with(authentication(new WalletAuthenticationToken("0xwallet"))))
+                .andExpect(status().isForbidden());
+        }
+    }
+
+    /** springdoc's master switch alone closes Swagger UI as well, as it does on the JVM. */
+    @Nested
+    @SpringBootTest(properties = "springdoc.api-docs.enabled=false")
+    @AutoConfigureMockMvc
+    @ActiveProfiles("test")
+    class ApiDocsSwitchedOff {
 
         @Autowired
         private MockMvc mockMvc;

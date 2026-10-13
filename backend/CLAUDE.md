@@ -60,7 +60,7 @@ When **adding** an endpoint:
 
 When **modifying**: update `@Operation`, security annotations, and `SecurityConfig`.
 
-OpenAPI config: `backend/src/.../config/OpenApiConfig.java`. Swagger UI at `/api/v1/swagger-ui` and the spec at `/api/v1/docs` in dev and locally; prod has neither (`application-prod.yml` turns springdoc off, `SecurityConfig` closes both paths).
+OpenAPI config: `backend/src/.../config/OpenApiConfig.java`. Swagger UI at `/api/v1/swagger-ui` and the spec at `/api/v1/docs` in dev and locally; prod has neither: `application-prod.yml` switches springdoc off, which the JVM honours but the native image does not (see Native Image above), so `SecurityConfig` reads the same switches at runtime and denies both paths.
 
 ## Testing
 
