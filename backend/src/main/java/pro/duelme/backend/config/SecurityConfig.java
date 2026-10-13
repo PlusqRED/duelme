@@ -6,11 +6,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.authorization.AuthorizationDecision;
+import org.springframework.security.authorization.AuthorizationManager;
+import org.springframework.security.authorization.SingleResultAuthorizationManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import pro.duelme.backend.security.PrivyJwtAuthenticationFilter;
 
@@ -40,10 +42,8 @@ public class SecurityConfig {
                     response.sendError(HttpServletResponse.SC_UNAUTHORIZED)))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.GET, "/api/v1/health").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/docs/**")
-                    .access((authentication, context) -> new AuthorizationDecision(apiDocsEnabled))
-                .requestMatchers(HttpMethod.GET, "/api/v1/swagger-ui/**")
-                    .access((authentication, context) -> new AuthorizationDecision(swaggerUiEnabled))
+                .requestMatchers(HttpMethod.GET, "/api/v1/docs/**").access(openWhen(apiDocsEnabled))
+                .requestMatchers(HttpMethod.GET, "/api/v1/swagger-ui/**").access(openWhen(swaggerUiEnabled))
                 .requestMatchers(HttpMethod.GET, "/api/v1/profiles/me").authenticated()
                 .requestMatchers(HttpMethod.PUT, "/api/v1/profiles/me").authenticated()
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/profiles/me").authenticated()
@@ -70,5 +70,9 @@ public class SecurityConfig {
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    private static AuthorizationManager<RequestAuthorizationContext> openWhen(boolean enabled) {
+        return enabled ? SingleResultAuthorizationManager.permitAll() : SingleResultAuthorizationManager.denyAll();
     }
 }
