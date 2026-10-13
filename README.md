@@ -92,7 +92,7 @@ cd backend && docker compose up -d && ./gradlew bootRun --args='--spring.profile
 | Environment | Swagger UI | OpenAPI JSON |
 |---|---|---|
 | Dev | https://dev.duelme.pro/api/v1/swagger-ui | https://dev.duelme.pro/api/v1/docs |
-| Prod | https://duelme.pro/api/v1/swagger-ui | https://duelme.pro/api/v1/docs |
+| Prod | off | off |
 
 ## CI/CD
 

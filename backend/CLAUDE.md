@@ -4,7 +4,7 @@ Rules for the Spring Boot API. The root `CLAUDE.md` applies here too.
 
 ## Architecture
 
-- Java 25 + Spring Boot 4.0.3, Gradle 9.4 (Kotlin DSL), MongoDB (Spring Data with auditing)
+- Java 25 + Spring Boot 4.1, Gradle 9.8 (Kotlin DSL), MongoDB (Spring Data with auditing)
 - Privy JWT auth via JWKS — wallet address from `linked_accounts` claim
 - Flapdoodle embedded MongoDB for tests — no external DB in CI
 - GraalVM Native Image via `org.graalvm.buildtools.native`; JDK 25 (Compact Object Headers, Generational ZGC, Virtual Threads)
@@ -19,6 +19,7 @@ Why it matters and which CI job is the gate: "Native Image Compatibility" in the
 - **Reflection without hints** (`Class.forName`, `Method.invoke`, JSON/JWT libs) — register in `backend/src/main/java/pro/duelme/backend/config/NativeImageHints.java` (see `nimbus-jose-jwt` entries).
 - **Static initializers touching I/O / network / randomness / runtime class graphs.** GraalVM runs `<clinit>` at build time by default. If a class must defer, add `--initialize-at-run-time=fqcn` to `graalvmNative.binaries.named("main").buildArgs` in `backend/build.gradle.kts` (see Bouncy Castle DRBG).
 - **Runtime classpath / resource scanning** (`getResources("META-INF/services/...")`, codegen libs) — needs explicit resource hints.
+- **Profile-dependent conditions** (`@ConditionalOnProperty`, `@Profile`, auto-configuration switches) — Spring AOT evaluates them once at build time with no profile active, so `application-prod.yml` cannot add or remove beans in the native image. A switch that must hold in prod is read at runtime (see the springdoc flags in `SecurityConfig.java`).
 - **New dependencies** — check the [GraalVM Reachability Metadata Repository](https://www.graalvm.org/native-image/libraries-and-frameworks/) first. Heavy crypto / serialization / dynamic-proxy libs usually need explicit `--initialize-at-build-time` settings (e.g. `web3j`, `bouncycastle`).
 
 ### Before merging to main, verify locally
@@ -59,7 +60,7 @@ When **adding** an endpoint:
 
 When **modifying**: update `@Operation`, security annotations, and `SecurityConfig`.
 
-OpenAPI config: `backend/src/.../config/OpenApiConfig.java`. Swagger UI at `/api/v1/swagger-ui` on each env.
+OpenAPI config: `backend/src/.../config/OpenApiConfig.java`. Swagger UI at `/api/v1/swagger-ui` and the spec at `/api/v1/docs` in dev and locally; prod has neither: `application-prod.yml` switches springdoc off, which the JVM honours but the native image does not (see Native Image above), so `SecurityConfig` reads the same switches at runtime and denies both paths.
 
 ## Testing
 

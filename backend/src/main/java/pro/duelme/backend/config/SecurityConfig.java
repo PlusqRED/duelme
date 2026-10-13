@@ -2,13 +2,17 @@ package pro.duelme.backend.config;
 
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authorization.AuthorizationManager;
+import org.springframework.security.authorization.SingleResultAuthorizationManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import pro.duelme.backend.security.PrivyJwtAuthenticationFilter;
 
@@ -22,8 +26,17 @@ public class SecurityConfig {
         this.jwtFilter = jwtFilter;
     }
 
+    // The springdoc flags are read here rather than left to springdoc's @ConditionalOnProperty,
+    // which Spring AOT settles at build time, so the native image would ignore the prod profile.
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(
+        HttpSecurity http,
+        @Value("${springdoc.api-docs.enabled:true}") boolean apiDocsEnabled,
+        @Value("${springdoc.swagger-ui.enabled:true}") boolean swaggerUiEnabled
+    ) throws Exception {
+        // On the JVM springdoc drops Swagger UI, its swagger-config included, whenever the
+        // OpenAPI document is off, so the UI paths need both switches.
+        boolean swaggerUiOpen = apiDocsEnabled && swaggerUiEnabled;
         http
             .csrf(csrf -> csrf.disable())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -32,8 +45,9 @@ public class SecurityConfig {
                     response.sendError(HttpServletResponse.SC_UNAUTHORIZED)))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.GET, "/api/v1/health").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/docs/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/swagger-ui/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/docs/swagger-config").access(openWhen(swaggerUiOpen))
+                .requestMatchers(HttpMethod.GET, "/api/v1/docs/**").access(openWhen(apiDocsEnabled))
+                .requestMatchers(HttpMethod.GET, "/api/v1/swagger-ui/**").access(openWhen(swaggerUiOpen))
                 .requestMatchers(HttpMethod.GET, "/api/v1/profiles/me").authenticated()
                 .requestMatchers(HttpMethod.PUT, "/api/v1/profiles/me").authenticated()
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/profiles/me").authenticated()
@@ -60,5 +74,9 @@ public class SecurityConfig {
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    private static AuthorizationManager<RequestAuthorizationContext> openWhen(boolean enabled) {
+        return enabled ? SingleResultAuthorizationManager.permitAll() : SingleResultAuthorizationManager.denyAll();
     }
 }

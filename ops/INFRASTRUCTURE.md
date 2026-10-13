@@ -27,7 +27,7 @@ Comprehensive hardening applied across CI/CD, Docker, reverse proxy, and runtime
 | Network isolation | Separate `backend` and `frontend` Docker networks — frontend cannot reach MongoDB |
 | MongoDB authentication | Root credentials via `--auth` flag, authenticated healthcheck, connection URI with `authSource=admin` |
 | Secrets management | `.env` files generated at deploy time from GitHub environment secrets — no secrets in repo or on disk manually |
-| Swagger blocked in prod | Disabled via Spring profile (`application-prod.yml`) and blocked at Caddy level (404 for `/swagger-ui`, `/docs`, `/v3/api-docs`) |
+| Swagger blocked in prod | Switched off in `application-prod.yml` and denied at runtime by `SecurityConfig` (the native image ignores the profile's springdoc switches) and blocked at Caddy level (404 for `/api/v1/swagger-ui*`, `/api/v1/docs*`, `/api/v1/v3/api-docs*`) |
 
 ## HTTP Security Headers (Caddy)
 
