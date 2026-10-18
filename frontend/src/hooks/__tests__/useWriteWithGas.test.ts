@@ -6,7 +6,7 @@ import { HttpRequestError, type TransactionReceipt } from 'viem';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WriteConfig } from '@/hooks/useWriteWithGas';
 import { DEFAULT_CHAIN } from '@/lib/constants';
-import { TransactionRevertedError } from '@/lib/writeReceipt';
+import { TransactionReplacedError, TransactionRevertedError } from '@/lib/writeErrors';
 
 const HASH = `0x${'a'.repeat(64)}` as const;
 const CHAIN_CLIENT = { chain: 'the write\'s chain' };
@@ -93,6 +93,17 @@ describe('useWriteWithGas — waiting for a sent transaction', () => {
     const { result } = renderWrite();
 
     await waitFor(() => expect(result.current.error).toBe(revert));
+    expect(result.current.isConfirming).toBe(false);
+  });
+
+  it('reports a transaction replaced in the wallet as the write error, since the write never ran', async () => {
+    const replaced = new TransactionReplacedError({ status: 'success' } as TransactionReceipt, 'cancelled');
+    wagmi.writeHash = HASH;
+    waitForWriteReceipt.mockRejectedValue(replaced);
+
+    const { result } = renderWrite();
+
+    await waitFor(() => expect(result.current.error).toBe(replaced));
     expect(result.current.isConfirming).toBe(false);
   });
 

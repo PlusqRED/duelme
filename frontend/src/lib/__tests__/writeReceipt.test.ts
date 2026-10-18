@@ -1,7 +1,8 @@
 import { BaseError, ExecutionRevertedError, HttpRequestError, type TransactionReceipt } from 'viem';
 import { describe, expect, it, vi } from 'vitest';
 import type { DuelPublicClient } from '@/lib/buildTransactionParams';
-import { TransactionRevertedError, waitForWriteReceipt } from '@/lib/writeReceipt';
+import { TransactionReplacedError, TransactionRevertedError } from '@/lib/writeErrors';
+import { waitForWriteReceipt } from '@/lib/writeReceipt';
 
 const HASH = `0x${'a'.repeat(64)}` as const;
 const FROM = '0x1111111111111111111111111111111111111111' as const;
@@ -11,11 +12,13 @@ function receipt(status: TransactionReceipt['status']) {
   return { status, transactionHash: HASH, blockNumber: 100n } as TransactionReceipt;
 }
 
+type ReceiptReadArgs = { onReplaced?: (replacement: { reason: string }) => void };
+
 function client({
   receiptRead = async () => receipt('success'),
   replay = async () => ({ data: undefined }),
 }: {
-  receiptRead?: () => Promise<TransactionReceipt>;
+  receiptRead?: (args: ReceiptReadArgs) => Promise<TransactionReceipt>;
   replay?: (args: { blockNumber?: bigint }) => Promise<unknown>;
 } = {}) {
   const fake = {
@@ -91,5 +94,27 @@ describe('waitForWriteReceipt', () => {
     });
 
     await expect(waitForWriteReceipt(offline, HASH)).rejects.toBe(outage);
+  });
+
+  it('ends a transaction cancelled in the wallet in a replacement, though the cancel itself succeeded', async () => {
+    const { client: cancelled } = client({
+      receiptRead: async ({ onReplaced }) => {
+        onReplaced?.({ reason: 'cancelled' });
+        return receipt('success');
+      },
+    });
+
+    await expect(waitForWriteReceipt(cancelled, HASH)).rejects.toBeInstanceOf(TransactionReplacedError);
+  });
+
+  it('takes a sped-up copy of the same call as the write itself', async () => {
+    const { client: repriced } = client({
+      receiptRead: async ({ onReplaced }) => {
+        onReplaced?.({ reason: 'repriced' });
+        return receipt('success');
+      },
+    });
+
+    await expect(waitForWriteReceipt(repriced, HASH)).resolves.toMatchObject({ status: 'success' });
   });
 });

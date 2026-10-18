@@ -116,7 +116,8 @@ address, no relayer key — is the case the self-paid path still covers.
 | `frontend/src/lib/contractConfig.ts` | Module-level cache of on-chain params for non-hook helpers (fallbacks from constants.ts) |
 | `frontend/src/hooks/useDuelActions.ts` | Write actions (join, cancel, claim, refundAndClaim, etc.) |
 | `frontend/src/hooks/useWriteWithGas.ts` | Duel write dispatcher: relayed / resilient / plain routing + merged hash/isPending/error surface |
-| `frontend/src/lib/writeReceipt.ts` | Waits for a write's receipt and decides by its status: `TransactionRevertedError` with the replayed reason, or the receipt |
+| `frontend/src/lib/writeReceipt.ts` | Waits for a write's receipt and decides by it: the receipt, `TransactionRevertedError` with the replayed reason, or `TransactionReplacedError` |
+| `frontend/src/lib/writeErrors.ts` | The ways a write ends without running (reverted, replaced, wallet not ready), which the guided flows word for the player |
 | `frontend/src/hooks/useDashboardClaims.ts` | Dashboard claim/refund handlers and computed state |
 | `frontend/src/hooks/usePlayerDuels.ts` | Filters `useDuelRange` down to one player; wins/losses/volume/withdrawn totals |
 | `frontend/src/hooks/usePlatformStats.ts` | Landing-page Total Volume / Duels Played stats |
@@ -196,13 +197,16 @@ address, no relayer key — is the case the self-paid path still covers.
 - **A dead RPC provider looks like nothing at all.** `resolveRpcUrl` validates the URL's shape, never calls it, and Privy embedded wallets broadcast through one URL with no fallback — so an endpoint that has been disabled upstream surfaces only as "HTTP request failed" in the wallet modal, with the fee estimate rendering fine because that goes through Privy's own RPC. On 2026-09-20 the configured Arbitrum One provider answered `403 App is inactive` and withdrawals were dead; the wallet had ample ETH, and gas was the first thing everyone suspected. Before blaming the chain, `curl` the endpoint with `eth_chainId`.
 - **Relayer gas limit must clear `request.gas * 64 / 63` plus forwarder overhead.** `ERC2771Forwarder._checkForwardedGas` triggers `invalid()` — burning the *entire* limit, not just the unused part — when the forwarded call did not get the gas the request promised. On Arbitrum the L1 posting fee is charged out of the same limit and only `eth_estimateGas` knows its size, so `relayGasLimit` adds the floor ON TOP of the estimate; `max(floor, estimate)` would starve the inner call. Measured forwarder overhead beyond the floor is ~25k.
 - **`ERC2771Forwarder.execute` does not bubble up the inner revert reason** — a failed forwarded call surfaces as a bare `Errors.FailedCall()`. `/api/relay` re-simulates the inner call directly as the signer to recover the real message.
-- **A sent write is decided by its receipt's status, on the chain it went to.** `useWriteWithGas`
-  reads the receipt through `lib/writeReceipt.ts`, not wagmi's `useWaitForTransactionReceipt`,
-  which watches the chain the wallet is on now and, on a revert, throws whatever its replay of the
-  call throws. A reverted receipt ends the write in a `TransactionRevertedError`, its reason
-  recovered from a replay on the block before; any other failure to read the receipt is retried for
-  as long as it lasts, because a write reported as failed that went through is one "Try again" away
-  from a second duel and a second wager.
+- **A sent write is decided by its receipt, on the chain it went to.** `useWriteWithGas` reads the
+  receipt through `lib/writeReceipt.ts`, not wagmi's `useWaitForTransactionReceipt`, which watches
+  the chain the wallet is on now and, on a revert, throws whatever its replay of the call throws.
+  A reverted receipt ends the write in a `TransactionRevertedError` (its reason recovered from a
+  replay on the block before), a cancel or another call with its nonce in a
+  `TransactionReplacedError`. Any other failure to read the receipt is retried for as long as it
+  lasts, and the write counts as confirming until the receipt decides, offline included: a write
+  reported as failed that went through is one "Try again" away from a second duel and a second
+  wager. For the same reason a Privy broadcast that fails asks the network for the transaction
+  before calling the write failed (`lib/resilientBroadcast.ts`).
 - **Whether relaying is on comes with the page, never from a request.** The root layout reads
   `getRelayerStatus()` from the server's relayer config and hands it to `useRelayerStatus` through
   context, so every flow plans and every write routes from the first render. An asynchronous

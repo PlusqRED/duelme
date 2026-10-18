@@ -1,17 +1,7 @@
-import { BaseError, ExecutionRevertedError, type Hex, type TransactionReceipt } from 'viem';
+import { BaseError, ExecutionRevertedError, type Hex, type ReplacementReason, type TransactionReceipt } from 'viem';
 import type { DuelPublicClient } from '@/lib/buildTransactionParams';
 import { bestErrorDetail } from '@/lib/errorDetails';
-
-/** A mined transaction that reverted: final, unlike a failure to read its receipt. */
-export class TransactionRevertedError extends Error {
-  readonly receipt: TransactionReceipt;
-
-  constructor(receipt: TransactionReceipt, reason: string | undefined) {
-    super(reason ?? 'The transaction reverted.');
-    this.name = 'TransactionRevertedError';
-    this.receipt = receipt;
-  }
-}
+import { TransactionReplacedError, TransactionRevertedError } from '@/lib/writeErrors';
 
 /**
  * Waits for a write's receipt on the chain the write went to and decides by the receipt's status,
@@ -19,7 +9,19 @@ export class TransactionRevertedError extends Error {
  * nothing about the transaction, so the caller reads again rather than call the write failed.
  */
 export async function waitForWriteReceipt(client: DuelPublicClient, hash: Hex): Promise<TransactionReceipt> {
-  const receipt = await client.waitForTransactionReceipt({ hash });
+  let replacedBecause: ReplacementReason | undefined;
+  const receipt = await client.waitForTransactionReceipt({
+    hash,
+    onReplaced: ({ reason }) => {
+      replacedBecause = reason;
+    },
+  });
+
+  // A sped-up copy of the same call ("repriced") is still this write; a cancel or another call
+  // with its nonce is not, whatever its own receipt says.
+  if (replacedBecause && replacedBecause !== 'repriced') {
+    throw new TransactionReplacedError(receipt, replacedBecause);
+  }
 
   if (receipt.status === 'success') {
     return receipt;

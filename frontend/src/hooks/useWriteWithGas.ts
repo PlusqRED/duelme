@@ -15,7 +15,8 @@ import { submitRelayRequest } from '@/lib/relayApi';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useRelayerStatus } from '@/hooks/useRelayerStatus';
 import { EMBEDDED_WALLET_CLIENT_TYPE } from '@/lib/walletSelection';
-import { TransactionRevertedError, waitForWriteReceipt } from '@/lib/writeReceipt';
+import { isFinalReceiptError, WalletNotReadyError } from '@/lib/writeErrors';
+import { waitForWriteReceipt } from '@/lib/writeReceipt';
 
 // Default min-gas floor used for non-create/approve actions on Sepolia.
 // Sepolia's eth_estimateGas occasionally under-reports; this is generous but
@@ -75,24 +76,25 @@ export function useWriteWithGas(chainId: number) {
 
   // Not wagmi's useWaitForTransactionReceipt: it watches the chain the wallet is on now, not the
   // one the write went to, and on a revert it guesses from how its replay of the call failed.
-  // This read decides by the receipt's status. A revert is final and ends the write in an error;
-  // any other failure to read the receipt says nothing about whether the transaction went
-  // through, so the read keeps trying — a write reported as failed that went through is one
-  // "Try again" away from being sent twice.
+  // This read decides by the receipt: a revert or a replacement is final and ends the write in an
+  // error; any other failure to read it says nothing about whether the transaction went through,
+  // so the read keeps trying — a write reported as failed that went through is one "Try again"
+  // away from being sent twice.
   const {
-    isLoading: receiptIsConfirming,
     isSuccess,
     data: receipt,
     error: receiptError,
   } = useQuery({
     queryKey: ['write-receipt', chainId, hash],
     queryFn: publicClient && hash ? () => waitForWriteReceipt(publicClient, hash) : skipToken,
-    retry: (_failureCount, readError) => !(readError instanceof TransactionRevertedError),
+    retry: (_failureCount, readError) => !isFinalReceiptError(readError),
     staleTime: Infinity,
   });
-  const isConfirming = managedIsConfirming || receiptIsConfirming;
-  const receiptRevert = receiptError instanceof TransactionRevertedError ? receiptError : null;
-  const error = managedError ?? wagmiError ?? receiptRevert;
+  const receiptEnd = isFinalReceiptError(receiptError) ? receiptError : null;
+  // A sent write confirms until its receipt decides, whatever the read is doing meanwhile: paused
+  // offline, it reports no loading, and the buttons it gates would send the write again.
+  const isConfirming = managedIsConfirming || (!!hash && !isSuccess && !receiptEnd);
+  const error = managedError ?? wagmiError ?? receiptEnd;
 
   /**
    * Owns the pending → confirming → hash sequence for every write this hook sends itself.
@@ -177,12 +179,12 @@ export function useWriteWithGas(chainId: number) {
       // A guard that bails reports through the managed error for every wallet type: nothing has
       // reached wagmi, so its own state would never tell the caller the write is over.
       if (!publicClient || !accountAddress) {
-        setManagedError(new Error('Wallet or RPC client not ready'));
+        setManagedError(new WalletNotReadyError('Wallet or RPC client not ready'));
         return;
       }
 
       if (isPrivyEmbedded && !walletClient) {
-        setManagedError(new Error('Embedded wallet client not ready — please retry'));
+        setManagedError(new WalletNotReadyError('Embedded wallet client not ready'));
         return;
       }
 
