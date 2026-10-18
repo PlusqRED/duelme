@@ -199,6 +199,10 @@ address, no relayer key — is the case the self-paid path still covers.
   ABI-padded reason as its message. `useWriteWithGas` merges that error into its `error`; a
   surface that reads only `isSuccess` / `isLoading` leaves a guided flow on "confirming" with its
   close button gone.
+- **Nothing plans a duel write before the relay probe answers.** While `useRelayerStatus` is in
+  flight, `isRelayEnabled` reads false, so a flow would plan the self-paid path (allowance read,
+  approve) for a player the relayer would carry. The guided flows keep Continue closed until
+  `isRelayResolved`, and the probe retries a failed request instead of settling on "off".
 - **`collectErrorDetails` returns viem's multi-line dump first.** An error's own `message` is visited before its `shortMessage` / `reason`, so the first entry is the whole "Contract Call / Request Arguments / Version" blob. Use `bestErrorDetail` (shortest non-placeholder detail) whenever the string reaches a person.
 - **`fundsViaPermit` has to gate every allowance check, not just the last one.** `handleContinueFlow`, `handleSwitchNetwork` and `handleCreateTransaction` / `handleJoinTransaction` all decide the approve step; a relayed flow that reads the allowance in any of them routes a zero-ETH player into a self-paid `approve`. They share `resolveNeedsApproval` from `guidedFlowSteps.ts`.
 - **`FORWARDER_NAME` must match on both sides.** `frontend/src/lib/forwardRequest.ts` and `contracts/script/ForwarderConfig.sol` (which both deploy scripts read) both spell `"DuelMe Forwarder"`; it is the EIP-712 domain name, so a mismatch makes every signature fail `verify` with no other symptom.

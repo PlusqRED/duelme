@@ -130,7 +130,9 @@ export function useJoinDuelFlow({
   });
   const review: FlowReviewGate = {
     funding,
-    canContinue: funding.status.kind === 'enough' && canJoin && !isRecheckingDuel,
+    // Until the relay probe answers, the flow cannot tell a permit from an approve step.
+    canContinue:
+      funding.status.kind === 'enough' && canJoin && !isRecheckingDuel && joinActions.isRelayResolved,
     // Only once the wallet is known: while it resolves, canJoin is false for no reason the duel gave.
     blockedReason:
       !canJoin && !isRecheckingDuel && !!walletAddress ? 'deposit.joinUnavailable' : null,

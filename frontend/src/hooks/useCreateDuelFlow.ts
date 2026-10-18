@@ -113,7 +113,8 @@ export function useCreateDuelFlow({
   });
   const review: FlowReviewGate = {
     funding,
-    canContinue: funding.status.kind === 'enough',
+    // Until the relay probe answers, the flow cannot tell a permit from an approve step.
+    canContinue: funding.status.kind === 'enough' && duelActions.isRelayResolved,
     blockedReason: null,
   };
 

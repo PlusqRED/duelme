@@ -53,7 +53,7 @@ export function useWriteWithGas(chainId: number) {
   const { data: walletClient } = useWalletClient({ chainId });
   const { activeWallet } = useActiveWallet();
   const isPrivyEmbedded = activeWallet?.walletClientType === EMBEDDED_WALLET_CLIENT_TYPE;
-  const { isRelayEnabled, forwarderAddress } = useRelayerStatus(chainId);
+  const { isRelayEnabled, isRelayResolved, forwarderAddress } = useRelayerStatus(chainId);
 
   const {
     writeContract,
@@ -265,6 +265,7 @@ export function useWriteWithGas(chainId: number) {
       writeWithGas,
       relayWrite,
       isRelayEnabled,
+      isRelayResolved,
       hash,
       isPending,
       isConfirming,
@@ -277,6 +278,7 @@ export function useWriteWithGas(chainId: number) {
       writeWithGas,
       relayWrite,
       isRelayEnabled,
+      isRelayResolved,
       hash,
       isPending,
       isConfirming,

@@ -10,7 +10,7 @@ import { FORWARDER_ADDRESSES } from '@/lib/constants';
  * Both halves have to agree: the client needs a forwarder address for the chain (a
  * build-time constant, filled from the deploy artifacts) and the server needs a funded
  * relayer key. The probe answers the second half and is static for the life of the page,
- * so it runs once and is never refetched.
+ * so once it has answered it is never refetched.
  */
 export function useRelayerStatus(chainId: number) {
   const forwarderAddress = FORWARDER_ADDRESSES[chainId];
@@ -19,7 +19,9 @@ export function useRelayerStatus(chainId: number) {
     queryKey: ['relayer-status'],
     queryFn: ({ signal }) => fetchRelayerStatus(signal),
     enabled: !!forwarderAddress,
-    retry: false,
+    // A probe that fails outright reads as "relaying off" for the whole page and would send a
+    // player without ETH down the self-paid path, so a failed request is tried again.
+    retry: 2,
     staleTime: Infinity,
     gcTime: Infinity,
   });
