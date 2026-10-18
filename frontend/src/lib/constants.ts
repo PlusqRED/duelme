@@ -69,6 +69,9 @@ export const AVAILABLE_CHAIN_IDS: readonly number[] = AVAILABLE_CHAINS.map((chai
 export const MIN_WAGER = 0.3; // 0.3 USDT (display value)
 export const MAX_WAGER_SLIDER = 500; // upper bound of the create-duel wager slider; text input still accepts larger values
 
+// How often live on-chain data is re-read (frontend/CLAUDE.md, "Data Fetching"), with staleTime 0.
+export const LIVE_DATA_POLL_INTERVAL = 10_000;
+
 // Chain ids where the backend-signed testnet faucet can operate.
 // Used to gate the faucet button in the UI.
 export const TESTNET_CHAIN_IDS: ReadonlySet<number> = new Set(
