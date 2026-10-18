@@ -4,6 +4,9 @@ import { useReadContract } from 'wagmi';
 import { duelMeAbi, type Duel } from '@/lib/contracts';
 import { DUELME_ADDRESSES, ZERO_ADDRESS } from '@/lib/constants';
 
+/** How often an open duel page re-reads the duel: the live-data interval of frontend/CLAUDE.md. */
+const DUEL_LIVE_POLL_INTERVAL = 10_000;
+
 interface UseDuelResult {
   duel: Duel | undefined;
   isLoading: boolean;
@@ -20,8 +23,12 @@ export function useDuel(duelId: bigint, chainId: number): UseDuelResult {
     functionName: 'getDuel',
     args: [duelId],
     chainId,
+    // The other player moves on their own schedule: without polling, their join, claim or
+    // confirmation would only show after a reload or a write of the viewer's own.
     query: {
       enabled: !!contractAddress && contractAddress !== ZERO_ADDRESS,
+      refetchInterval: DUEL_LIVE_POLL_INTERVAL,
+      staleTime: 0,
     },
   });
 
