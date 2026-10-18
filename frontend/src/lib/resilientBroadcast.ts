@@ -1,5 +1,6 @@
 import {
   encodeFunctionData,
+  keccak256,
   type Abi,
   type Account,
   type Chain,
@@ -65,7 +66,42 @@ export async function broadcastWithFallback(params: ResilientBroadcastArgs): Pro
     value: 0n,
   });
 
-  return params.publicClient.sendRawTransaction({
-    serializedTransaction: signedTx,
-  });
+  try {
+    return await params.publicClient.sendRawTransaction({
+      serializedTransaction: signedTx,
+    });
+  } catch (broadcastError) {
+    // A broadcast can fail after the network already has the transaction: the first provider
+    // forwards it and times out, and the next answers "already known" or "nonce too low". The
+    // error alone would read as a write that never went out, and "Try again" would send it a
+    // second time with a new nonce. Ask the network for the transaction itself before saying so.
+    const hash = keccak256(signedTx);
+
+    if (await isKnownToNetwork(params.publicClient, hash)) {
+      return hash;
+    }
+
+    throw broadcastError;
+  }
+}
+
+/** Lookups after a failed broadcast, spaced out because a provider can lag the sequencer briefly. */
+const NETWORK_LOOKUPS = 3;
+const NETWORK_LOOKUP_DELAY_MS = 1_000;
+
+async function isKnownToNetwork(publicClient: PublicClient<Transport, Chain>, hash: Hex): Promise<boolean> {
+  for (let lookup = 0; lookup < NETWORK_LOOKUPS; lookup++) {
+    if (lookup > 0) {
+      await new Promise((resolve) => setTimeout(resolve, NETWORK_LOOKUP_DELAY_MS));
+    }
+
+    try {
+      await publicClient.getTransaction({ hash });
+      return true;
+    } catch {
+      // Not found, or the lookup itself failed: either way the network has not shown it yet.
+    }
+  }
+
+  return false;
 }
