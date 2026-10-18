@@ -5,14 +5,22 @@ import { ACTIVE_STATES, DuelState, duelMeAbi, type Duel } from '@/lib/contracts'
 import { DUELME_ADDRESSES, LIVE_DATA_POLL_INTERVAL, ZERO_ADDRESS } from '@/lib/constants';
 import { isDuelFullySettled } from '@/lib/duel';
 
+/** Reads of an id that is not a duel, about a minute's worth, before the page stops asking. */
+const NONEXISTENT_DUEL_READS = 6;
+
 /**
  * A duel that is over and fully paid out cannot change again, so it is not polled. Until then it
- * is: a duel that is over still changes when a player takes their payout. `Nonexistent` keeps
- * polling, because a duel created a moment ago can read that from a node that lags behind.
+ * is: a duel that is over still changes when a player takes their payout. `Nonexistent` is read
+ * a few more times, because a duel created a moment ago can read that from a node that lags
+ * behind; an id nobody issued stops there.
  */
-function duelPollInterval(duel: Duel | undefined): number | false {
-  if (!duel || duel.state === DuelState.Nonexistent || ACTIVE_STATES.has(duel.state)) {
+function duelPollInterval(duel: Duel | undefined, reads: number): number | false {
+  if (!duel || ACTIVE_STATES.has(duel.state)) {
     return LIVE_DATA_POLL_INTERVAL;
+  }
+
+  if (duel.state === DuelState.Nonexistent) {
+    return reads < NONEXISTENT_DUEL_READS ? LIVE_DATA_POLL_INTERVAL : false;
   }
 
   return isDuelFullySettled(duel) ? false : LIVE_DATA_POLL_INTERVAL;
@@ -38,7 +46,7 @@ export function useDuel(duelId: bigint, chainId: number): UseDuelResult {
     // confirmation would only show after a reload or a write of the viewer's own.
     query: {
       enabled: !!contractAddress && contractAddress !== ZERO_ADDRESS,
-      refetchInterval: (query) => duelPollInterval(query.state.data),
+      refetchInterval: (query) => duelPollInterval(query.state.data, query.state.dataUpdateCount),
       staleTime: 0,
     },
   });

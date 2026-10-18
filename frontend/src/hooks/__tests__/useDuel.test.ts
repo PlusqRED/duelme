@@ -5,7 +5,7 @@ import { DEFAULT_CHAIN, LIVE_DATA_POLL_INTERVAL } from '@/lib/constants';
 import { DuelState, type Duel } from '@/lib/contracts';
 import { duelView } from '@/lib/__tests__/helpers/duelView';
 
-type PollInterval = (query: { state: { data: Duel | undefined } }) => number | false;
+type PollInterval = (query: { state: { data: Duel | undefined; dataUpdateCount: number } }) => number | false;
 type ReadContractConfig = { query?: { refetchInterval?: PollInterval; staleTime?: number } };
 
 function readResult(overrides: object = {}) {
@@ -23,11 +23,11 @@ function renderDuel(result = readResult()) {
   return renderHook(() => useDuel(7n, DEFAULT_CHAIN.id));
 }
 
-function pollIntervalFor(data: Duel) {
+function pollIntervalFor(data: Duel, dataUpdateCount = 1) {
   renderDuel();
   const [config] = useReadContract.mock.lastCall ?? [];
 
-  return config?.query?.refetchInterval?.({ state: { data } });
+  return config?.query?.refetchInterval?.({ state: { data, dataUpdateCount } });
 }
 
 afterEach(cleanup);
@@ -47,6 +47,14 @@ describe('useDuel', () => {
     expect(
       pollIntervalFor(duelView({ state: DuelState.Resolved, creatorPayout: 10_000_000n, creatorClaimed: true }))
     ).toBe(false);
+  });
+
+  it('keeps re-reading an id that reads as no duel for a while, as a fresh duel can lag on a node', () => {
+    expect(pollIntervalFor(duelView({ state: DuelState.Nonexistent }), 5)).toBe(LIVE_DATA_POLL_INTERVAL);
+  });
+
+  it('stops re-reading an id that keeps reading as no duel', () => {
+    expect(pollIntervalFor(duelView({ state: DuelState.Nonexistent }), 6)).toBe(false);
   });
 
   it('treats every read as stale, so a refetch after a write is never skipped', () => {
