@@ -120,8 +120,7 @@ export function createDuelFlowActions({
         inviteSecret,
         isPublic,
         gameName: gameName.trim(),
-        // The chain keeps the message for good; spaces around it, or nothing but spaces, are noise.
-        message: message.trim(),
+        message,
       },
       completedSteps: {
         switchNetwork: false,
