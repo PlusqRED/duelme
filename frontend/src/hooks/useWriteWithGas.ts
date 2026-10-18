@@ -26,6 +26,16 @@ import { EMBEDDED_WALLET_CLIENT_TYPE } from '@/lib/walletSelection';
 // still fits inside a single L2 block. Mainnet ignores the floor.
 const DEFAULT_TESTNET_MIN_GAS = 200_000n;
 
+/**
+ * wagmi decodes a revert reason by turning the ABI-encoded string into text whole, so the
+ * message carries the encoding's zero padding. Drop it before the reason reaches a person.
+ */
+function revertedReceiptError(error: Error | null): Error | null {
+  if (!error) return null;
+
+  return new Error(error.message.replace(/\u0000+$/, ''), { cause: error });
+}
+
 export type WriteConfig = Parameters<
   ReturnType<typeof useWriteContract>['writeContract']
 >[0];
@@ -64,7 +74,6 @@ export function useWriteWithGas(chainId: number) {
   // writeWithGas), so at most one of them holds state for the current write.
   const hash = managedHash ?? wagmiHash;
   const isPending = managedIsPending || wagmiIsPending;
-  const error = managedError ?? wagmiError;
 
   const reset = useCallback(() => {
     setManagedHash(undefined);
@@ -78,10 +87,15 @@ export function useWriteWithGas(chainId: number) {
     isLoading: receiptIsConfirming,
     isSuccess,
     data: receipt,
+    error: receiptQueryError,
   } = useWaitForTransactionReceipt({
     hash,
   });
   const isConfirming = managedIsConfirming || receiptIsConfirming;
+  // wagmi throws when a mined transaction reverted, so a sent write ends either in a receipt or
+  // here. Read it, or the caller waits on a write that has already failed.
+  const receiptError = useMemo(() => revertedReceiptError(receiptQueryError), [receiptQueryError]);
+  const error = managedError ?? wagmiError ?? receiptError;
 
   /**
    * Owns the pending → confirming → hash sequence for every write this hook sends itself.
@@ -163,23 +177,15 @@ export function useWriteWithGas(chainId: number) {
   //     estimation round-trip.
   const writeWithGas = useCallback(
     async (config: WriteConfig, minimumTestnetGas: bigint = DEFAULT_TESTNET_MIN_GAS) => {
-      function reportError(err: unknown) {
-        if (isPrivyEmbedded) {
-          setManagedError(err instanceof Error ? err : new Error(String(err)));
-          return;
-        }
-        // Injected-wallet pre-write failures only happen on wagmi
-        // misconfiguration (missing clients) — log and bail.
-        console.error('useWriteWithGas: pre-write failed for injected wallet', err);
-      }
-
+      // A guard that bails reports through the managed error for every wallet type: nothing has
+      // reached wagmi, so its own state would never tell the caller the write is over.
       if (!publicClient || !accountAddress) {
-        reportError(new Error('Wallet or RPC client not ready'));
+        setManagedError(new Error('Wallet or RPC client not ready'));
         return;
       }
 
       if (isPrivyEmbedded && !walletClient) {
-        reportError(new Error('Embedded wallet client not ready — please retry'));
+        setManagedError(new Error('Embedded wallet client not ready — please retry'));
         return;
       }
 
@@ -207,7 +213,7 @@ export function useWriteWithGas(chainId: number) {
         if (isPrivyEmbedded) {
           // No wagmi fallback for Privy: it would re-hit the single-URL
           // broadcast bug AND the all-zero-gas bug. Surface the error instead.
-          reportError(estimateError);
+          setManagedError(estimateError instanceof Error ? estimateError : new Error(String(estimateError)));
           return;
         }
         // Injected wallets handle their own RPC reliably — let the wallet
