@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Abi } from 'viem';
 import { duelMeAbi, erc20Abi } from '@/lib/contracts';
@@ -8,11 +8,14 @@ import { DUELME_ADDRESSES } from '@/lib/constants';
 import { RELAYABLE_DUEL_FUNCTIONS } from '@/lib/relayRequest';
 import { useWriteWithGas, type WriteConfig } from '@/hooks/useWriteWithGas';
 import { useDuelPermit } from '@/hooks/useDuelPermit';
-import { isRelayAvailable, relayerStatusQuery } from '@/hooks/useRelayerStatus';
+import { isRelayAvailable, relayerStatusQuery, useRelayerStatus } from '@/hooks/useRelayerStatus';
 import {
   ARBITRUM_SEPOLIA_APPROVE_MIN_GAS,
   ARBITRUM_SEPOLIA_CREATE_DUEL_MIN_GAS,
 } from '@/lib/testnetGas';
+
+/** How a write goes out, or that it doesn't: its screen was closed while the route was unknown. */
+type WriteRoute = 'relayed' | 'self-paid' | 'abandoned';
 
 interface BindWriteOptions {
   address?: `0x${string}`;
@@ -36,27 +39,46 @@ interface BindWriteOptions {
 export function useDuelActions(chainId: number) {
   const contractAddress = DUELME_ADDRESSES[chainId];
   const queryClient = useQueryClient();
-  const { writeWithGas, relayWrite, isRelayEnabled, ...writeState } = useWriteWithGas(chainId);
-  const { isRelayResolved } = writeState;
+  const { writeWithGas, relayWrite, ...writeState } = useWriteWithGas(chainId);
+  const { isRelayEnabled, isRelayResolved } = useRelayerStatus(chainId);
   const signDuelPermit = useDuelPermit(chainId);
   // Writes waiting for the relay probe before they are sent: they count as pending, so the
   // buttons that sent them stay disabled meanwhile.
   const [routingCount, setRoutingCount] = useState(0);
+  // A write that waited for the probe is not sent once the screen that sent it is gone: its
+  // wallet prompt would open on another page, with nothing there to follow the write.
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   const actions = useMemo(() => {
     // The route is taken as the write is sent, not from the last render: a write sent while the
     // relay probe is still in flight waits for its answer instead of going self-paid for a player
-    // the relayer would carry. A probe that cannot answer leaves the write self-paid, as before.
-    // Each write asks once; a second ask could answer differently while the probe is retried.
-    async function sendsRelayed() {
+    // the relayer would carry. A probe that cannot answer is "relaying off", the same answer
+    // useRelayerStatus settles on, so the write goes self-paid. Each write asks once.
+    async function routeOf(relayable: boolean): Promise<WriteRoute> {
+      if (!relayable) {
+        return 'self-paid';
+      }
+
       if (isRelayResolved) {
-        return isRelayEnabled;
+        return isRelayEnabled ? 'relayed' : 'self-paid';
       }
 
       setRoutingCount((count) => count + 1);
       try {
         const status = await queryClient.fetchQuery(relayerStatusQuery).catch(() => undefined);
-        return isRelayAvailable(status, chainId);
+
+        if (!isMounted.current) {
+          return 'abandoned';
+        }
+
+        return isRelayAvailable(status, chainId) ? 'relayed' : 'self-paid';
       } finally {
         setRoutingCount((count) => count - 1);
       }
@@ -72,17 +94,20 @@ export function useDuelActions(chainId: number) {
       return writeWithGas({ address, abi, functionName, args, chainId } as WriteConfig, minTestnetGas);
     }
 
-    function bindWrite(functionName: string, options: BindWriteOptions = {}) {
+    function bindWrite(
+      functionName: string,
+      { address = contractAddress, abi = duelMeAbi as Abi, minTestnetGas }: BindWriteOptions = {}
+    ) {
       return async (...args: readonly unknown[]) => {
-        const { address = contractAddress, abi = duelMeAbi as Abi } = options;
-
         // The relayer refuses anything outside its own allowlist, so the same list decides
         // here — an approve, for instance, is a token call and stays self-paid.
-        if (address === contractAddress && RELAYABLE_DUEL_FUNCTIONS.has(functionName) && (await sendsRelayed())) {
-          return relayWrite({ address, abi, functionName, args, chainId } as WriteConfig);
-        }
+        const route = await routeOf(address === contractAddress && RELAYABLE_DUEL_FUNCTIONS.has(functionName));
 
-        return selfPaidWrite(functionName, args, options);
+        if (route === 'relayed') {
+          await relayWrite({ address, abi, functionName, args, chainId } as WriteConfig);
+        } else if (route === 'self-paid') {
+          await selfPaidWrite(functionName, args, { address, abi, minTestnetGas });
+        }
       };
     }
 
@@ -112,8 +137,14 @@ export function useDuelActions(chainId: number) {
     // Callers do not pass that decision in — it is this hook's own route either way.
     return {
       async createDuel(amount: bigint, inviteHash: `0x${string}`, message = '') {
-        if (await sendsRelayed()) {
+        const route = await routeOf(true);
+
+        if (route === 'relayed') {
           await relayWithPermit('createDuelWithPermit', amount, [amount, inviteHash, message]);
+          return;
+        }
+
+        if (route === 'abandoned') {
           return;
         }
 
@@ -122,8 +153,14 @@ export function useDuelActions(chainId: number) {
         });
       },
       async joinDuel(duelId: bigint | number, inviteSecret: `0x${string}`, wagerAmount: bigint) {
-        if (await sendsRelayed()) {
+        const route = await routeOf(true);
+
+        if (route === 'relayed') {
           await relayWithPermit('joinDuelWithPermit', wagerAmount, [duelId, inviteSecret]);
+          return;
+        }
+
+        if (route === 'abandoned') {
           return;
         }
 
@@ -156,7 +193,7 @@ export function useDuelActions(chainId: number) {
   const isPending = writeState.isPending || routingCount > 0;
 
   return useMemo(
-    () => ({ ...actions, ...writeState, isPending, isRelayEnabled }),
-    [actions, writeState, isPending, isRelayEnabled]
+    () => ({ ...actions, ...writeState, isPending, isRelayEnabled, isRelayResolved }),
+    [actions, writeState, isPending, isRelayEnabled, isRelayResolved]
   );
 }

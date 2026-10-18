@@ -59,17 +59,16 @@ describe('useRelayerStatus', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it('counts the request a new reader starts after a failed probe as unresolved', async () => {
+  it('does not ask again for a new reader once a probe has failed, so a planned route cannot flip', async () => {
     const client = queryClient();
     const fetchMock = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
     vi.stubGlobal('fetch', fetchMock);
     const first = renderStatus(client);
     await waitFor(() => expect(first.result.current.isRelayResolved).toBe(true));
-    fetchMock.mockImplementation(() => new Promise<Response>(() => {}));
 
     const second = renderStatus(client);
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
-    expect(second.result.current.isRelayResolved).toBe(false);
+    expect(second.result.current.isRelayResolved).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 });

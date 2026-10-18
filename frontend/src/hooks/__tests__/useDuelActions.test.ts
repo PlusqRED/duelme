@@ -22,9 +22,6 @@ vi.mock('@/hooks/useWriteWithGas', () => ({
     ({
       writeWithGas: write.writeWithGas,
       relayWrite: write.relayWrite,
-      // The render saw the probe still in flight.
-      isRelayEnabled: false,
-      isRelayResolved: false,
       hash: undefined,
       isPending: false,
       isConfirming: false,
@@ -33,6 +30,12 @@ vi.mock('@/hooks/useWriteWithGas', () => ({
       error: null,
       reset: vi.fn(),
     }) satisfies ReturnType<typeof useWriteWithGas>,
+}));
+
+// The render saw the probe still in flight; the query the hook then awaits is the real one.
+vi.mock('@/hooks/useRelayerStatus', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/hooks/useRelayerStatus')>()),
+  useRelayerStatus: () => ({ isRelayEnabled: false, isRelayResolved: false, forwarderAddress: undefined }),
 }));
 
 vi.mock('@/hooks/useDuelPermit', () => ({ useDuelPermit: () => write.signPermit }));
@@ -112,5 +115,19 @@ describe('useDuelActions — a write sent before the relay probe answered', () =
     });
 
     await waitFor(() => expect(result.current.isPending).toBe(true));
+  });
+
+  it('is not sent once the screen that sent it is gone, so no wallet prompt opens elsewhere', async () => {
+    let answer: (status: RelayerStatus) => void = () => {};
+    write.probe.mockReturnValue(new Promise<RelayerStatus>((resolve) => (answer = resolve)));
+    const { result, unmount } = renderActions();
+    const sent = result.current.cancelDuel(1n);
+
+    unmount();
+    answer({ available: true, chainId: CHAIN_ID });
+    await sent;
+
+    expect(write.relayWrite).not.toHaveBeenCalled();
+    expect(write.writeWithGas).not.toHaveBeenCalled();
   });
 });

@@ -18,9 +18,10 @@ Write ops, relayed: check chain → sign EIP-2612 permit (funding calls only) �
 ForwardRequest → POST `/api/relay`. Self-paid: check chain → check allowance → approve if
 needed → execute. `useDuelActions` binds each duel action on top of `useWriteWithGas`, picks
 between the two paths as each write is sent, from the `useRelayerStatus` probe, and swaps in the
-`*WithPermit` variant when the write is relayed (see "Gasless Duel Actions" below). `createDuel` generates a private invite secret
-client-side and sends only its hash on-chain; `joinDuel`/`declineDuel` use the secret. Payouts are
-pull-based — terminal duel flows expose claimable balances, never push transfers.
+`*WithPermit` variant when the write is relayed (see "Gasless Duel Actions" below). `createDuel`
+generates a private invite secret client-side and sends only its hash on-chain;
+`joinDuel`/`declineDuel` use the secret. Payouts are pull-based — terminal duel flows expose
+claimable balances, never push transfers.
 
 ### Data Fetching
 - wagmi `useReadContract` / `useReadContracts` (multicall) for on-chain reads
@@ -204,13 +205,13 @@ address, no relayer key — is the case the self-paid path still covers.
   from a second duel and a second wager.
 - **Nothing plans or sends a duel write before the relay probe answers.** While
   `useRelayerStatus` is in flight, `isRelayEnabled` reads false, which would put a player the
-  relayer would carry on the self-paid path. So `useDuelActions` takes the route as the write is
-  sent, awaiting the probe if it has to (`relayerStatusQuery`; the wait counts as `isPending`),
-  and decides once per write. The create and join flows read no allowance and keep Continue closed
-  until `isRelayResolved`, because they plan the approve step before sending. `fetchRelayerStatus`
-  throws on anything but the route's answer (a 502, a body that is not a status, 8 s without one),
-  so the probe is asked again rather than read as "off", and a new ask after a failed probe counts
-  as unresolved until it answers.
+  relayer would carry on the self-paid path. So `useDuelActions` takes the route as each write is
+  sent, once, awaiting the probe if it has to (`relayerStatusQuery`; the wait counts as
+  `isPending`, and a write whose screen closed meanwhile is not sent). The create and join flows
+  plan the approve step before sending, so they take `getFundingRoute` and keep Continue closed
+  while it is `unknown`. The probe gives up after 5 s and is tried twice more on any failure (a
+  502, a body that is not a status); after that it settles on "off" for the page and is not asked
+  again, so a route a flow planned with cannot change under it.
 - **`collectErrorDetails` returns viem's multi-line dump first.** An error's own `message` is visited before its `shortMessage` / `reason`, so the first entry is the whole "Contract Call / Request Arguments / Version" blob. Use `bestErrorDetail` (shortest non-placeholder detail) whenever the string reaches a person.
 - **`fundsViaPermit` has to gate every allowance check, not just the last one.** `handleContinueFlow`, `handleSwitchNetwork` and `handleCreateTransaction` / `handleJoinTransaction` all decide the approve step; a relayed flow that reads the allowance in any of them routes a zero-ETH player into a self-paid `approve`. They share `resolveNeedsApproval` from `guidedFlowSteps.ts`.
 - **`FORWARDER_NAME` must match on both sides.** `frontend/src/lib/forwardRequest.ts` and `contracts/script/ForwarderConfig.sol` (which both deploy scripts read) both spell `"DuelMe Forwarder"`; it is the EIP-712 domain name, so a mismatch makes every signature fail `verify` with no other symptom.

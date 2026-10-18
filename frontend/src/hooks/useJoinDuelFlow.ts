@@ -10,6 +10,7 @@ import { useDuelActions } from '@/hooks/useDuelActions';
 import { type FlowReviewGate, useFlowFunding } from '@/hooks/useFlowFunding';
 import { useTranslation } from '@/i18n/useTranslation';
 import { joinDuelFlowActions } from '@/lib/joinDuelFlowActions';
+import { getFundingRoute } from '@/lib/guidedFlowSteps';
 import type { JoinDuelFlowSession } from '@/lib/joinDuelFlow';
 import { DUELME_ADDRESSES, DEFAULT_CHAIN } from '@/lib/constants';
 import { erc20Abi, type Duel } from '@/lib/contracts';
@@ -43,12 +44,9 @@ export function useJoinDuelFlow({
   const chainConfig = DEFAULT_CHAIN;
   const contractAddress = DUELME_ADDRESSES[chainConfig.id];
   const joinActions = useDuelActions(chainConfig.id);
-  // The relayed path funds the wager with an EIP-2612 signature carried inside the duel
-  // call, so there is no allowance to top up and no approve step to show.
-  const fundsViaPermit = joinActions.isRelayEnabled;
-  // The self-paid path funds it from an allowance. Until the relay probe answers the flow is on
-  // neither, so it reads no allowance and keeps Continue closed.
-  const fundsViaAllowance = joinActions.isRelayResolved && !fundsViaPermit;
+  const fundingRoute = getFundingRoute(joinActions);
+  const fundsViaPermit = fundingRoute === 'permit';
+  const fundsViaAllowance = fundingRoute === 'allowance';
 
   const { data: currentAllowance, refetch: refetchAllowance } = useReadContract({
     address: chainConfig.usdt,
@@ -133,9 +131,8 @@ export function useJoinDuelFlow({
   });
   const review: FlowReviewGate = {
     funding,
-    // Until the relay probe answers, the flow cannot tell a permit from an approve step.
     canContinue:
-      funding.status.kind === 'enough' && canJoin && !isRecheckingDuel && joinActions.isRelayResolved,
+      funding.status.kind === 'enough' && canJoin && !isRecheckingDuel && fundingRoute !== 'unknown',
     // Only once the wallet is known: while it resolves, canJoin is false for no reason the duel gave.
     blockedReason:
       !canJoin && !isRecheckingDuel && !!walletAddress ? 'deposit.joinUnavailable' : null,

@@ -11,6 +11,7 @@ import { useDuelActions } from '@/hooks/useDuelActions';
 import { type FlowReviewGate, useFlowFunding } from '@/hooks/useFlowFunding';
 import { useTranslation } from '@/i18n/useTranslation';
 import { createDuelFlowActions } from '@/lib/createDuelFlowActions';
+import { getFundingRoute } from '@/lib/guidedFlowSteps';
 import type { CreateDuelFlowSession } from '@/lib/createDuelFlow';
 import { DUELME_ADDRESSES, SUPPORTED_CHAINS } from '@/lib/constants';
 import { erc20Abi } from '@/lib/contracts';
@@ -53,12 +54,9 @@ export function useCreateDuelFlow({
   const chainConfig = SUPPORTED_CHAINS[selectedChain];
   const contractAddress = DUELME_ADDRESSES[chainConfig.id];
   const duelActions = useDuelActions(chainConfig.id);
-  // The relayed path funds the wager with an EIP-2612 signature carried inside the duel
-  // call, so there is no allowance to top up and no approve step to show.
-  const fundsViaPermit = duelActions.isRelayEnabled;
-  // The self-paid path funds it from an allowance. Until the relay probe answers the flow is on
-  // neither, so it reads no allowance and keeps Continue closed.
-  const fundsViaAllowance = duelActions.isRelayResolved && !fundsViaPermit;
+  const fundingRoute = getFundingRoute(duelActions);
+  const fundsViaPermit = fundingRoute === 'permit';
+  const fundsViaAllowance = fundingRoute === 'allowance';
   const { data: currentAllowance, refetch: refetchAllowance } = useReadContract({
     address: chainConfig.usdt,
     abi: erc20Abi,
@@ -116,8 +114,7 @@ export function useCreateDuelFlow({
   });
   const review: FlowReviewGate = {
     funding,
-    // Until the relay probe answers, the flow cannot tell a permit from an approve step.
-    canContinue: funding.status.kind === 'enough' && duelActions.isRelayResolved,
+    canContinue: funding.status.kind === 'enough' && fundingRoute !== 'unknown',
     blockedReason: null,
   };
 

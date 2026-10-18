@@ -28,6 +28,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
@@ -50,12 +51,20 @@ describe('fetchRelayerStatus', () => {
     await expect(fetchRelayerStatus()).rejects.toThrow('502');
   });
 
-  it('gives up on a probe that stalls instead of holding every write that waits for it', async () => {
-    vi.mocked(fetch).mockReturnValue(respond(200, { available: true, chainId: 42161 }));
+  it('gives up on a probe that stalls for 5 s instead of holding every write that waits for it', async () => {
+    vi.useFakeTimers();
+    vi.mocked(fetch).mockImplementation(
+      (_url, init) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(init.signal?.reason));
+        })
+    );
 
-    await fetchRelayerStatus();
+    const probe = fetchRelayerStatus();
+    const settled = expect(probe).rejects.toThrow();
+    await vi.advanceTimersByTimeAsync(5_000);
 
-    expect(vi.mocked(fetch).mock.lastCall?.[1]?.signal).toBeInstanceOf(AbortSignal);
+    await settled;
   });
 
   it('throws on a body that is not a status', async () => {
