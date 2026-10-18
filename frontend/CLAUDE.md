@@ -97,7 +97,7 @@ address, no relayer key — is the case the self-paid path still covers.
 
 ## Testing
 
-**Frontend (Vitest):** test `lib/` pure logic. Test complex hooks via `renderHook`. Test observable behavior, not implementation. Mock at boundaries.
+**Frontend (Vitest):** test `lib/` pure logic. Test complex hooks via `renderHook`. Test observable behavior, not implementation. Mock at boundaries. Vitest runs in `node`; a hook or component test opts into a DOM with `// @vitest-environment happy-dom` as its first line and renders through `@testing-library/react` (see `src/hooks/__tests__/`).
 
 ## Key Files
 
