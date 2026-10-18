@@ -131,8 +131,6 @@ export function useActionFlow({ duelId, refetchDuel }: UseActionFlowArgs) {
     flow,
     activeConfig,
     canClose,
-    // The write is routed when it is sent: until the relay probe answers, it could go self-paid.
-    canContinue: actions.isRelayResolved,
     needsNetworkSwitch,
     openFlow,
     closeFlow,

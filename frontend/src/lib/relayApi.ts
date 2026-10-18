@@ -27,18 +27,22 @@ export class RelayRequestError extends Error {
   }
 }
 
-/** Whether this deployment can relay at all, and for which chain. */
+/**
+ * Whether this deployment can relay at all, and for which chain. The route answers 200 with
+ * `available: false` when relaying is off, so anything else means the question went unanswered:
+ * it throws, and the caller may ask again rather than read it as "off".
+ */
 export async function fetchRelayerStatus(signal?: AbortSignal): Promise<RelayerStatus> {
   const response = await fetch(RELAY_ENDPOINT, { method: 'GET', signal });
 
   if (!response.ok) {
-    return { available: false, chainId: null };
+    throw new Error(`Relayer status probe answered ${response.status}`);
   }
 
   const body: unknown = await response.json();
 
   if (!isRecord(body)) {
-    return { available: false, chainId: null };
+    throw new Error('Relayer status probe answered without a status');
   }
 
   return {

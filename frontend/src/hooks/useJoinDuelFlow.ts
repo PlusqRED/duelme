@@ -46,6 +46,9 @@ export function useJoinDuelFlow({
   // The relayed path funds the wager with an EIP-2612 signature carried inside the duel
   // call, so there is no allowance to top up and no approve step to show.
   const fundsViaPermit = joinActions.isRelayEnabled;
+  // The self-paid path funds it from an allowance. Until the relay probe answers the flow is on
+  // neither, so it reads no allowance and keeps Continue closed.
+  const fundsViaAllowance = joinActions.isRelayResolved && !fundsViaPermit;
 
   const { data: currentAllowance, refetch: refetchAllowance } = useReadContract({
     address: chainConfig.usdt,
@@ -53,7 +56,7 @@ export function useJoinDuelFlow({
     functionName: 'allowance',
     args: walletAddress && contractAddress ? [walletAddress, contractAddress] : undefined,
     chainId: chainConfig.id,
-    query: { enabled: !fundsViaPermit && !!walletAddress && !!contractAddress },
+    query: { enabled: fundsViaAllowance && !!walletAddress && !!contractAddress },
   });
 
   const readLatestAllowance = useCallback(async () => {
@@ -73,12 +76,12 @@ export function useJoinDuelFlow({
   }, [refetchAllowance]);
 
   const refetchAllowanceIfRelevant = useCallback(async () => {
-    if (fundsViaPermit) {
+    if (!fundsViaAllowance) {
       return;
     }
 
     await refetchAllowance();
-  }, [fundsViaPermit, refetchAllowance]);
+  }, [fundsViaAllowance, refetchAllowance]);
 
   const canCloseFlow =
     flow?.actionState !== 'awaiting-wallet' &&
@@ -91,7 +94,7 @@ export function useJoinDuelFlow({
       (flow.stage === 'review' && connectedChainId !== flow.draft.chainId));
 
   const needsApproval =
-    !fundsViaPermit &&
+    fundsViaAllowance &&
     flow !== null &&
     (flow.stage === 'approve' ||
       ((flow.stage === 'review' || flow.stage === 'switch-network') &&
@@ -109,8 +112,8 @@ export function useJoinDuelFlow({
   });
 
   // On opening the flow and back from topping up, the duel may have been joined, cancelled or
-  // declined since the page last polled it: read it again and keep Continue
-  // closed until the answer is in, then re-run the same checks as the page.
+  // declined since the page last polled it: read it again and keep Continue closed until the
+  // answer is in, then re-run the same checks as the page.
   // The count drops through React Query's own scheduler, i.e. after the new duel reached the page —
   // never in a render that still shows the old one. A count, not a flag: a second recheck cancels
   // the first refetch, whose promise then settles while the second is still in flight.
@@ -178,12 +181,12 @@ export function useJoinDuelFlow({
 
   useEffect(() => {
     // React Query's refetch() ignores `enabled`, so the gate has to be here too.
-    if (!shouldRefreshReviewAllowance || fundsViaPermit) {
+    if (!shouldRefreshReviewAllowance || !fundsViaAllowance) {
       return;
     }
 
     void readLatestAllowance().catch(() => undefined);
-  }, [shouldRefreshReviewAllowance, fundsViaPermit, readLatestAllowance]);
+  }, [shouldRefreshReviewAllowance, fundsViaAllowance, readLatestAllowance]);
 
   return {
     canCloseFlow,

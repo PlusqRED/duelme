@@ -1,12 +1,14 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Abi } from 'viem';
 import { duelMeAbi, erc20Abi } from '@/lib/contracts';
 import { DUELME_ADDRESSES } from '@/lib/constants';
 import { RELAYABLE_DUEL_FUNCTIONS } from '@/lib/relayRequest';
 import { useWriteWithGas, type WriteConfig } from '@/hooks/useWriteWithGas';
 import { useDuelPermit } from '@/hooks/useDuelPermit';
+import { isRelayAvailable, relayerStatusQuery } from '@/hooks/useRelayerStatus';
 import {
   ARBITRUM_SEPOLIA_APPROVE_MIN_GAS,
   ARBITRUM_SEPOLIA_CREATE_DUEL_MIN_GAS,
@@ -33,22 +35,36 @@ interface BindWriteOptions {
  */
 export function useDuelActions(chainId: number) {
   const contractAddress = DUELME_ADDRESSES[chainId];
+  const queryClient = useQueryClient();
   const { writeWithGas, relayWrite, isRelayEnabled, ...writeState } = useWriteWithGas(chainId);
+  const { isRelayResolved } = writeState;
   const signDuelPermit = useDuelPermit(chainId);
 
   const actions = useMemo(() => {
+    // The route is taken as the write is sent, not from the last render: a write sent while the
+    // relay probe is still in flight waits for its answer instead of going self-paid for a player
+    // the relayer would carry. A probe that cannot answer leaves the write self-paid, as before.
+    async function sendsRelayed() {
+      if (isRelayResolved) {
+        return isRelayEnabled;
+      }
+
+      const status = await queryClient.fetchQuery(relayerStatusQuery).catch(() => undefined);
+      return isRelayAvailable(status, chainId);
+    }
+
     // Defaults cover the common case: a DuelMe write with the dispatcher's
     // Sepolia min-gas floor.
     function bindWrite(
       functionName: string,
       { address = contractAddress, abi = duelMeAbi as Abi, minTestnetGas }: BindWriteOptions = {}
     ) {
-      return (...args: readonly unknown[]) => {
+      return async (...args: readonly unknown[]) => {
         const config = { address, abi, functionName, args, chainId } as WriteConfig;
 
         // The relayer refuses anything outside its own allowlist, so the same list decides
         // here — an approve, for instance, is a token call and stays self-paid.
-        if (isRelayEnabled && address === contractAddress && RELAYABLE_DUEL_FUNCTIONS.has(functionName)) {
+        if (address === contractAddress && RELAYABLE_DUEL_FUNCTIONS.has(functionName) && (await sendsRelayed())) {
           return relayWrite(config);
         }
 
@@ -84,10 +100,10 @@ export function useDuelActions(chainId: number) {
 
     // Relaying is the only reason to sign a permit: it costs the player an extra signature,
     // which only pays for itself when it removes a transaction they would otherwise fund.
-    // Callers do not pass that decision in — it is this hook's own isRelayEnabled either way.
+    // Callers do not pass that decision in — it is this hook's own route either way.
     return {
       async createDuel(amount: bigint, inviteHash: `0x${string}`, message = '') {
-        if (isRelayEnabled) {
+        if (await sendsRelayed()) {
           await relayWithPermit('createDuelWithPermit', amount, [amount, inviteHash, message]);
           return;
         }
@@ -95,7 +111,7 @@ export function useDuelActions(chainId: number) {
         await createDuelWrite(...(message ? [amount, inviteHash, message] : [amount, inviteHash]));
       },
       async joinDuel(duelId: bigint | number, inviteSecret: `0x${string}`, wagerAmount: bigint) {
-        if (isRelayEnabled) {
+        if (await sendsRelayed()) {
           await relayWithPermit('joinDuelWithPermit', wagerAmount, [duelId, inviteSecret]);
           return;
         }
@@ -124,7 +140,7 @@ export function useDuelActions(chainId: number) {
       declineMutualCancellation: bindWrite('declineMutualCancellation'),
       withdrawMutualCancellationRequest: bindWrite('withdrawMutualCancellationRequest'),
     };
-  }, [writeWithGas, relayWrite, signDuelPermit, isRelayEnabled, contractAddress, chainId]);
+  }, [writeWithGas, relayWrite, signDuelPermit, isRelayEnabled, isRelayResolved, queryClient, contractAddress, chainId]);
 
   return useMemo(
     () => ({ ...actions, ...writeState, isRelayEnabled }),

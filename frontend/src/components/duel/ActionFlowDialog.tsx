@@ -10,7 +10,6 @@ import { DUELME_ADDRESSES, DEFAULT_CHAIN } from '@/lib/constants';
 interface ActionFlowDialogProps {
   open: boolean;
   canClose: boolean;
-  canContinue: boolean;
   flow: ActionFlowSession | null;
   config: ActionFlowConfig | null;
   needsNetworkSwitch: boolean;
@@ -25,7 +24,6 @@ interface ActionFlowDialogProps {
 export function ActionFlowDialog({
   open,
   canClose,
-  canContinue,
   flow,
   config,
   needsNetworkSwitch,
@@ -59,7 +57,7 @@ export function ActionFlowDialog({
     ),
   }));
 
-  const dialogConfig = getDialogConfig(flow, config, needsNetworkSwitch, canContinue, onContinue, onSwitchNetwork, onExecute, onDone, t);
+  const dialogConfig = getDialogConfig(flow, config, needsNetworkSwitch, onContinue, onSwitchNetwork, onExecute, onDone, t);
 
   const secondaryAction: GuidedTransactionAction | undefined =
     flow.stage === 'success' || flow.actionState === 'awaiting-wallet' || flow.actionState === 'confirming'
@@ -98,7 +96,6 @@ function getDialogConfig(
   flow: ActionFlowSession,
   config: ActionFlowConfig,
   needsNetworkSwitch: boolean,
-  canContinue: boolean,
   onContinue: () => void,
   onSwitchNetwork: () => void,
   onExecute: () => void,
@@ -114,12 +111,7 @@ function getDialogConfig(
       description: t(labels.reviewDescription),
       hint: t(needsNetworkSwitch ? labels.reviewHintSwitch : labels.reviewHint, { chain: flow.chainName }),
       icon: config.icon,
-      primaryAction: {
-        label: t('actionFlow.action.continue'),
-        onClick: onContinue,
-        disabled: !canContinue,
-        loading: !canContinue,
-      },
+      primaryAction: { label: t('actionFlow.action.continue'), onClick: onContinue },
     };
   }
 

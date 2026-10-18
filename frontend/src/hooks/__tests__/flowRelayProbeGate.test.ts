@@ -1,6 +1,8 @@
 // @vitest-environment happy-dom
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { useDuelActions } from '@/hooks/useDuelActions';
+import type { useFlowFunding } from '@/hooks/useFlowFunding';
 import { DuelState, type Duel } from '@/lib/contracts';
 import { DEFAULT_CHAIN, DEFAULT_CHAIN_KEY, ZERO_ADDRESS } from '@/lib/constants';
 import { OPEN_DUEL_INVITE_HASH } from '@/lib/invite';
@@ -9,11 +11,14 @@ const VIEWER = '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb' as const;
 const CREATOR = '0xAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa' as const;
 
 const relay = vi.hoisted(() => ({ isRelayResolved: false }));
+const useReadContract = vi.hoisted(() =>
+  vi.fn<(config: { query?: { enabled?: boolean } }) => object>(() => ({ data: undefined, refetch: vi.fn() }))
+);
 
 vi.mock('wagmi', () => ({
   useAccount: () => ({ chainId: DEFAULT_CHAIN.id }),
   useSwitchChain: () => ({ switchChainAsync: vi.fn() }),
-  useReadContract: () => ({ data: undefined, refetch: vi.fn() }),
+  useReadContract,
 }));
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
@@ -28,34 +33,35 @@ vi.mock('@/hooks/useActiveWallet', () => ({
 }));
 
 vi.mock('@/hooks/useFlowFunding', () => ({
-  useFlowFunding: () => ({
-    funding: {
-      balance: { kind: 'ready' },
-      status: { kind: 'enough' },
-      view: 'review',
-      retry: vi.fn(),
-      showDeposit: vi.fn(),
-      showReview: vi.fn(),
-    },
-    markOpened: vi.fn(),
-  }),
+  useFlowFunding: () =>
+    ({
+      funding: {
+        balance: { kind: 'ready', raw: 10_000_000n },
+        status: { kind: 'enough' },
+        view: 'review',
+        retry: vi.fn(),
+        showDeposit: vi.fn(),
+        showReview: vi.fn(),
+      },
+      markOpened: vi.fn(),
+    }) satisfies ReturnType<typeof useFlowFunding>,
 }));
 
 vi.mock('@/hooks/useDuelActions', () => ({
-  useDuelActions: () => ({
-    isRelayEnabled: false,
-    isRelayResolved: relay.isRelayResolved,
-    isPending: false,
-    isConfirming: false,
-    isSuccess: false,
-    error: null,
-    receipt: undefined,
-    hash: undefined,
-    reset: vi.fn(),
-  }),
+  useDuelActions: () =>
+    ({
+      isRelayEnabled: false,
+      isRelayResolved: relay.isRelayResolved,
+      isPending: false,
+      isConfirming: false,
+      isSuccess: false,
+      error: null,
+      receipt: undefined,
+      hash: undefined,
+      reset: vi.fn(),
+    }) satisfies Partial<ReturnType<typeof useDuelActions>>,
 }));
 
-const { useActionFlow } = await import('@/hooks/useActionFlow');
 const { useCreateDuelFlow } = await import('@/hooks/useCreateDuelFlow');
 const { useJoinDuelFlow } = await import('@/hooks/useJoinDuelFlow');
 
@@ -82,7 +88,6 @@ const WAITING_DUEL: Duel = {
 };
 
 function renderFlows() {
-  const action = renderHook(() => useActionFlow({ duelId: 7, refetchDuel: vi.fn() }));
   const create = renderHook(() =>
     useCreateDuelFlow({
       amount: '5',
@@ -98,28 +103,34 @@ function renderFlows() {
     useJoinDuelFlow({ duelId: 7, duel: WAITING_DUEL, inviteSecret: null, refetchDuel: vi.fn(async () => {}) })
   );
 
-  return { action, create, join };
+  return { create, join };
 }
 
 beforeEach(() => {
   relay.isRelayResolved = false;
+  useReadContract.mockClear();
 });
 
-describe('guided flows while the relay probe has not answered', () => {
-  it('keeps Continue closed in every flow, since the route is not known yet', () => {
-    const { action, create, join } = renderFlows();
+describe('create and join flows while the relay probe has not answered', () => {
+  it('keep Continue closed, since a permit and an approve step are not told apart yet', () => {
+    const { create, join } = renderFlows();
 
-    expect(action.result.current.canContinue).toBe(false);
     expect(create.result.current.review.canContinue).toBe(false);
     expect(join.result.current.review.canContinue).toBe(false);
   });
 
-  it('opens Continue in every flow once the probe has answered', () => {
+  it('read no allowance, which only the self-paid path would need', () => {
+    renderFlows();
+
+    const allowanceReads = useReadContract.mock.calls.map(([config]) => config.query?.enabled);
+    expect(allowanceReads).toEqual([false, false]);
+  });
+
+  it('open Continue once the probe has answered', () => {
     relay.isRelayResolved = true;
 
-    const { action, create, join } = renderFlows();
+    const { create, join } = renderFlows();
 
-    expect(action.result.current.canContinue).toBe(true);
     expect(create.result.current.review.canContinue).toBe(true);
     expect(join.result.current.review.canContinue).toBe(true);
   });

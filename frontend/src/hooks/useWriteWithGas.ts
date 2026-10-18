@@ -126,15 +126,15 @@ export function useWriteWithGas(chainId: number) {
     [wagmiReset]
   );
 
-  // Capability of the deployment, not of this render: client readiness is handled by the
-  // guard inside relayWrite, so the flag callers plan their steps from cannot flip while
-  // wagmi hydrates.
+  // What a relayed send needs. Whether to relay is the caller's decision, taken as the write is
+  // sent (useDuelActions), so this does not wait for the relay probe; `isRelayEnabled` stays a
+  // capability of the deployment that cannot flip while wagmi hydrates.
   const relayContext = useMemo(
     () =>
-      isRelayEnabled && forwarderAddress && publicClient && walletClient && accountAddress
+      forwarderAddress && publicClient && walletClient && accountAddress
         ? { publicClient, walletClient, forwarderAddress, from: accountAddress }
         : null,
-    [isRelayEnabled, forwarderAddress, publicClient, walletClient, accountAddress]
+    [forwarderAddress, publicClient, walletClient, accountAddress]
   );
 
   /**

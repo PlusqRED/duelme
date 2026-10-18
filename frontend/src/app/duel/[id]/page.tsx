@@ -748,7 +748,6 @@ export default function DuelPage({
       <ActionFlowDialog
         open={actionFlow.flow !== null}
         canClose={actionFlow.canClose}
-        canContinue={actionFlow.canContinue}
         flow={actionFlow.flow}
         config={actionFlow.activeConfig}
         needsNetworkSwitch={actionFlow.needsNetworkSwitch}

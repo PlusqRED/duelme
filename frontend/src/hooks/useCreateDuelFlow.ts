@@ -56,13 +56,16 @@ export function useCreateDuelFlow({
   // The relayed path funds the wager with an EIP-2612 signature carried inside the duel
   // call, so there is no allowance to top up and no approve step to show.
   const fundsViaPermit = duelActions.isRelayEnabled;
+  // The self-paid path funds it from an allowance. Until the relay probe answers the flow is on
+  // neither, so it reads no allowance and keeps Continue closed.
+  const fundsViaAllowance = duelActions.isRelayResolved && !fundsViaPermit;
   const { data: currentAllowance, refetch: refetchAllowance } = useReadContract({
     address: chainConfig.usdt,
     abi: erc20Abi,
     functionName: 'allowance',
     args: walletAddress && contractAddress ? [walletAddress, contractAddress] : undefined,
     chainId: chainConfig.id,
-    query: { enabled: !fundsViaPermit && !!walletAddress && !!contractAddress },
+    query: { enabled: fundsViaAllowance && !!walletAddress && !!contractAddress },
   });
   const readLatestAllowance = useCallback(async () => {
     setAllowanceRefreshCount((count) => count + 1);
@@ -81,12 +84,12 @@ export function useCreateDuelFlow({
   }, [refetchAllowance]);
 
   const refetchAllowanceIfRelevant = useCallback(async () => {
-    if (fundsViaPermit) {
+    if (!fundsViaAllowance) {
       return;
     }
 
     await refetchAllowance();
-  }, [fundsViaPermit, refetchAllowance]);
+  }, [fundsViaAllowance, refetchAllowance]);
 
   const canCloseFlow =
     flow?.actionState !== 'awaiting-wallet' &&
@@ -97,7 +100,7 @@ export function useCreateDuelFlow({
     (flow.stage === 'switch-network' ||
       (flow.stage === 'review' && connectedChainId !== flow.draft.chainId));
   const needsApproval =
-    !fundsViaPermit &&
+    fundsViaAllowance &&
     flow !== null &&
     (flow.stage === 'approve' ||
       ((flow.stage === 'review' || flow.stage === 'switch-network') &&
@@ -166,12 +169,12 @@ export function useCreateDuelFlow({
 
   useEffect(() => {
     // React Query's refetch() ignores `enabled`, so the gate has to be here too.
-    if (!shouldRefreshReviewAllowance || fundsViaPermit) {
+    if (!shouldRefreshReviewAllowance || !fundsViaAllowance) {
       return;
     }
 
     void readLatestAllowance().catch(() => undefined);
-  }, [shouldRefreshReviewAllowance, fundsViaPermit, readLatestAllowance]);
+  }, [shouldRefreshReviewAllowance, fundsViaAllowance, readLatestAllowance]);
 
   useEffect(() => {
     if (!redirectTarget) {

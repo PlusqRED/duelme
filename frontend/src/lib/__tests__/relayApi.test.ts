@@ -38,16 +38,22 @@ describe('fetchRelayerStatus', () => {
     await expect(fetchRelayerStatus()).resolves.toEqual({ available: true, chainId: 42161 });
   });
 
-  it('treats a failed probe as unavailable rather than throwing', async () => {
-    vi.mocked(fetch).mockReturnValue(respond(503, {}));
+  it('reports relaying off when the route says so', async () => {
+    vi.mocked(fetch).mockReturnValue(respond(200, { available: false, chainId: null }));
 
     await expect(fetchRelayerStatus()).resolves.toEqual({ available: false, chainId: null });
   });
 
-  it('treats a malformed body as unavailable', async () => {
+  it('throws on a failed probe so it can be asked again, rather than reading it as off', async () => {
+    vi.mocked(fetch).mockReturnValue(respond(502, {}));
+
+    await expect(fetchRelayerStatus()).rejects.toThrow('502');
+  });
+
+  it('throws on a body that is not a status', async () => {
     vi.mocked(fetch).mockReturnValue(respond(200, 'nope'));
 
-    await expect(fetchRelayerStatus()).resolves.toEqual({ available: false, chainId: null });
+    await expect(fetchRelayerStatus()).rejects.toThrow();
   });
 });
 
