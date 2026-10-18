@@ -1,26 +1,21 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
+import { skipToken, useQuery } from '@tanstack/react-query';
 import type { Abi, Hex } from 'viem';
-import {
-  useAccount,
-  usePublicClient,
-  useWaitForTransactionReceipt,
-  useWalletClient,
-  useWriteContract,
-} from 'wagmi';
+import { useAccount, usePublicClient, useWalletClient, useWriteContract } from 'wagmi';
 import {
   buildTransactionParams,
   type DuelPublicClient,
   type TransactionParams,
 } from '@/lib/buildTransactionParams';
-import { isRevertedReceiptError } from '@/lib/errorDetails';
 import { broadcastWithFallback } from '@/lib/resilientBroadcast';
 import { buildSignedForwardRequest } from '@/lib/forwardRequest';
 import { submitRelayRequest } from '@/lib/relayApi';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useRelayerStatus } from '@/hooks/useRelayerStatus';
 import { EMBEDDED_WALLET_CLIENT_TYPE } from '@/lib/walletSelection';
+import { TransactionRevertedError, waitForWriteReceipt } from '@/lib/writeReceipt';
 
 // Default min-gas floor used for non-create/approve actions on Sepolia.
 // Sepolia's eth_estimateGas occasionally under-reports; this is generous but
@@ -78,22 +73,25 @@ export function useWriteWithGas(chainId: number) {
     wagmiReset();
   }, [wagmiReset]);
 
+  // Not wagmi's useWaitForTransactionReceipt: it watches the chain the wallet is on now, not the
+  // one the write went to, and on a revert it guesses from how its replay of the call failed.
+  // This read decides by the receipt's status. A revert is final and ends the write in an error;
+  // any other failure to read the receipt says nothing about whether the transaction went
+  // through, so the read keeps trying — a write reported as failed that went through is one
+  // "Try again" away from being sent twice.
   const {
     isLoading: receiptIsConfirming,
     isSuccess,
     data: receipt,
-    error: receiptQueryError,
-  } = useWaitForTransactionReceipt({
-    hash,
-    // A revert is final, so it is not read again. Any other failure to read the receipt (a flaky
-    // RPC) says nothing about whether the transaction went through: the read keeps trying, since
-    // reporting a write that may have succeeded as failed invites "Try again" to send it twice.
-    query: { retry: (_failureCount, receiptError) => !isRevertedReceiptError(receiptError) },
+    error: receiptError,
+  } = useQuery({
+    queryKey: ['write-receipt', chainId, hash],
+    queryFn: publicClient && hash ? () => waitForWriteReceipt(publicClient, hash) : skipToken,
+    retry: (_failureCount, readError) => !(readError instanceof TransactionRevertedError),
+    staleTime: Infinity,
   });
   const isConfirming = managedIsConfirming || receiptIsConfirming;
-  // wagmi throws when a mined transaction reverted, so a sent write ends either in a receipt or
-  // in that revert. Read it, or the caller waits on a write that has already failed.
-  const receiptRevert = isRevertedReceiptError(receiptQueryError) ? receiptQueryError : null;
+  const receiptRevert = receiptError instanceof TransactionRevertedError ? receiptError : null;
   const error = managedError ?? wagmiError ?? receiptRevert;
 
   /**

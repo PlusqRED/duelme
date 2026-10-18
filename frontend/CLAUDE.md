@@ -115,6 +115,7 @@ address, no relayer key — is the case the self-paid path still covers.
 | `frontend/src/lib/contractConfig.ts` | Module-level cache of on-chain params for non-hook helpers (fallbacks from constants.ts) |
 | `frontend/src/hooks/useDuelActions.ts` | Write actions (join, cancel, claim, refundAndClaim, etc.) |
 | `frontend/src/hooks/useWriteWithGas.ts` | Duel write dispatcher: relayed / resilient / plain routing + merged hash/isPending/error surface |
+| `frontend/src/lib/writeReceipt.ts` | Waits for a write's receipt and decides by its status: `TransactionRevertedError` with the replayed reason, or the receipt |
 | `frontend/src/hooks/useDashboardClaims.ts` | Dashboard claim/refund handlers and computed state |
 | `frontend/src/hooks/usePlayerDuels.ts` | Filters `useDuelRange` down to one player; wins/losses/volume/withdrawn totals |
 | `frontend/src/hooks/usePlatformStats.ts` | Landing-page Total Volume / Duels Played stats |
@@ -136,7 +137,7 @@ address, no relayer key — is the case the self-paid path still covers.
 | `frontend/src/hooks/useFaucetClaim.ts` | Testnet faucet claim shared by the wallet menu and the top-up panel |
 | `frontend/src/lib/buildTransactionParams.ts` | Builds explicit `gas`/`maxFeePerGas`/`maxPriorityFeePerGas`/`nonce` to bypass Privy auto-populate (see Common Pitfalls) |
 | `frontend/src/lib/resilientBroadcast.ts` | Splits writes into sign + broadcast so wagmi fallback transport handles RPC retries |
-| `frontend/src/lib/errorDetails.ts` | Flattens an error graph into lowercase detail strings for failure classification; `bestErrorDetail` picks the one worth showing; `isRevertedReceiptError` tells a reverted receipt from a failure to read one |
+| `frontend/src/lib/errorDetails.ts` | Flattens an error graph into lowercase detail strings for failure classification; `bestErrorDetail` picks the one worth showing |
 | `frontend/src/app/api/relay/route.ts` | Gas relayer: admits a signed ERC-2771 request, then signs and sends `ERC2771Forwarder.execute` under the lock (order: "Gasless Duel Actions") |
 | `frontend/src/lib/relayRequest.ts` | Relay wire types and error codes, relayable-function allowlist, payload validation, outer gas-limit rule |
 | `frontend/src/lib/relayerConfig.ts` | Server-only relayer wiring (key, RPC, budget, viem clients) |
@@ -194,13 +195,13 @@ address, no relayer key — is the case the self-paid path still covers.
 - **A dead RPC provider looks like nothing at all.** `resolveRpcUrl` validates the URL's shape, never calls it, and Privy embedded wallets broadcast through one URL with no fallback — so an endpoint that has been disabled upstream surfaces only as "HTTP request failed" in the wallet modal, with the fee estimate rendering fine because that goes through Privy's own RPC. On 2026-09-20 the configured Arbitrum One provider answered `403 App is inactive` and withdrawals were dead; the wallet had ample ETH, and gas was the first thing everyone suspected. Before blaming the chain, `curl` the endpoint with `eth_chainId`.
 - **Relayer gas limit must clear `request.gas * 64 / 63` plus forwarder overhead.** `ERC2771Forwarder._checkForwardedGas` triggers `invalid()` — burning the *entire* limit, not just the unused part — when the forwarded call did not get the gas the request promised. On Arbitrum the L1 posting fee is charged out of the same limit and only `eth_estimateGas` knows its size, so `relayGasLimit` adds the floor ON TOP of the estimate; `max(floor, estimate)` would starve the inner call. Measured forwarder overhead beyond the floor is ~25k.
 - **`ERC2771Forwarder.execute` does not bubble up the inner revert reason** — a failed forwarded call surfaces as a bare `Errors.FailedCall()`. `/api/relay` re-simulates the inner call directly as the signer to recover the real message.
-- **A reverted transaction surfaces as an error, not as a receipt that never comes.** wagmi's
-  `useWaitForTransactionReceipt` throws when the mined receipt says `reverted`. `useWriteWithGas`
-  merges that error into its `error`; a surface that reads only `isSuccess` / `isLoading` leaves a
-  guided flow on "confirming" with its close button gone. Only a revert does
-  (`isRevertedReceiptError`): any other failure to read the receipt is retried for as long as it
-  lasts, because a write reported as failed that went through is one "Try again" away from a
-  second duel and a second wager.
+- **A sent write is decided by its receipt's status, on the chain it went to.** `useWriteWithGas`
+  reads the receipt through `lib/writeReceipt.ts`, not wagmi's `useWaitForTransactionReceipt`,
+  which watches the chain the wallet is on now and, on a revert, throws whatever its replay of the
+  call throws. A reverted receipt ends the write in a `TransactionRevertedError`, its reason
+  recovered from a replay on the block before; any other failure to read the receipt is retried for
+  as long as it lasts, because a write reported as failed that went through is one "Try again" away
+  from a second duel and a second wager.
 - **Nothing plans or sends a duel write before the relay probe answers.** While
   `useRelayerStatus` is in flight, `isRelayEnabled` reads false, which would put a player the
   relayer would carry on the self-paid path. So `useDuelActions` takes the route as the write is

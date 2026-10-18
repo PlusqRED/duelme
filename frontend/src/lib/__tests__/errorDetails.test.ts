@@ -1,17 +1,11 @@
-import { ChainNotConfiguredError } from 'wagmi';
-import { BaseError, ExecutionRevertedError, HttpRequestError } from 'viem';
 import { describe, expect, it } from 'vitest';
-import { bestErrorDetail, collectErrorDetails, isRevertedReceiptError } from '@/lib/errorDetails';
+import { bestErrorDetail, collectErrorDetails } from '@/lib/errorDetails';
 
 describe('collectErrorDetails', () => {
   it('normalizes whitespace and case', () => {
     expect(collectErrorDetails(new Error('  Execution   Reverted \n'))).toEqual([
       'execution reverted',
     ]);
-  });
-
-  it('drops the zero padding a revert reason keeps when decoded as raw text', () => {
-    expect(collectErrorDetails(new Error('Nothing to claim\u0000\u0000\u0000\u0000'))).toEqual(['nothing to claim']);
   });
 
   it('walks the cause chain', () => {
@@ -88,33 +82,5 @@ describe('bestErrorDetail', () => {
   it('returns nothing when the graph carries no usable text', () => {
     expect(bestErrorDetail({ message: 'execution reverted for an unknown reason' })).toBeUndefined();
     expect(bestErrorDetail(undefined)).toBeUndefined();
-  });
-});
-
-describe('isRevertedReceiptError', () => {
-  it('takes wagmi\'s plain error with the decoded reason as a revert', () => {
-    expect(isRevertedReceiptError(new Error('Duel not in Created state'))).toBe(true);
-  });
-
-  it('takes viem\'s error around a reverted replay of the call as a revert', () => {
-    const revert = new ExecutionRevertedError({ message: 'execution reverted: Nothing to claim' });
-
-    expect(isRevertedReceiptError(new BaseError('The call failed.', { cause: revert }))).toBe(true);
-  });
-
-  it('does not take a failed RPC request for a revert', () => {
-    expect(isRevertedReceiptError(new HttpRequestError({ url: 'https://rpc.example' }))).toBe(false);
-  });
-
-  it('does not take wagmi\'s own config error for a revert', () => {
-    expect(isRevertedReceiptError(new ChainNotConfiguredError())).toBe(false);
-  });
-
-  it('does not take a programming error for a revert', () => {
-    expect(isRevertedReceiptError(new TypeError('Cannot read properties of undefined'))).toBe(false);
-  });
-
-  it('does not take the absence of an error for a revert', () => {
-    expect(isRevertedReceiptError(null)).toBe(false);
   });
 });

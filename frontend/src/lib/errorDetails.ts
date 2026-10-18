@@ -1,5 +1,3 @@
-import { BaseError, ExecutionRevertedError } from 'viem';
-
 /**
  * Collects every human-readable detail from an error graph (message /
  * shortMessage / details / reason, walking cause / error / data recursively),
@@ -68,28 +66,12 @@ export function bestErrorDetail(error: unknown): string | undefined {
     .sort((a, b) => a.length - b.length)[0];
 }
 
-/**
- * Whether wagmi's receipt read failed because the transaction reverted. On a reverted receipt
- * wagmi replays the call for its reason and throws either a plain `Error` carrying the decoded
- * reason or, when the replay reverts too, viem's error around an `ExecutionRevertedError`. Any
- * other failure — the RPC, a timeout, wagmi's own config errors — says nothing about the
- * transaction itself.
- */
-export function isRevertedReceiptError(error: unknown): boolean {
-  if (error instanceof BaseError) {
-    return error.walk((cause) => cause instanceof ExecutionRevertedError) !== null;
-  }
-
-  return error instanceof Error && Object.getPrototypeOf(error) === Error.prototype;
-}
-
 function addDetail(details: Set<string>, value: unknown) {
   if (typeof value !== 'string') {
     return;
   }
 
-  // A revert reason decoded as raw text keeps the ABI's zero padding; `\s` does not match it.
-  const normalized = value.replace(/\u0000/g, '').trim().replace(/\s+/g, ' ').toLowerCase();
+  const normalized = value.trim().replace(/\s+/g, ' ').toLowerCase();
   if (normalized) {
     details.add(normalized);
   }
