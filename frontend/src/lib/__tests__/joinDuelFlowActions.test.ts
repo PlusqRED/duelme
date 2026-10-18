@@ -1,10 +1,10 @@
-import type { SetStateAction } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import type { TranslationKey, TranslationParams } from '@/i18n/translations';
 import { translations } from '@/i18n/translations';
 import type { JoinDuelFlowSession } from '@/lib/joinDuelFlow';
 import { joinDuelFlowActions } from '@/lib/joinDuelFlowActions';
 import { hashInviteSecret } from '@/lib/invite';
+import { captureFlowState, mockAppToast } from './helpers/flowHarness';
 
 type JoinDuelFlowActionsOptions = Parameters<typeof joinDuelFlowActions>[0];
 
@@ -31,19 +31,8 @@ function t(key: TranslationKey, params?: TranslationParams) {
 }
 
 function setup(overrides: Partial<JoinDuelFlowActionsOptions> = {}) {
-  let flow: JoinDuelFlowSession | null = null;
-  const setFlow = (update: SetStateAction<JoinDuelFlowSession | null>) => {
-    flow = typeof update === 'function'
-      ? update(flow)
-      : update;
-  };
-
-  const appToast = {
-    error: vi.fn(),
-    info: vi.fn(),
-    success: vi.fn(),
-    transactionError: vi.fn(),
-  };
+  const state = captureFlowState<JoinDuelFlowSession>();
+  const appToast = mockAppToast();
 
   const options: JoinDuelFlowActionsOptions = {
     appToast,
@@ -57,7 +46,7 @@ function setup(overrides: Partial<JoinDuelFlowActionsOptions> = {}) {
     joinDuel: vi.fn(),
     readLatestAllowance: vi.fn(async () => 1000n),
     reset: vi.fn(),
-    setFlow,
+    setFlow: state.setFlow,
     switchChainAsync: vi.fn(async () => undefined),
     t,
     tokenAddress: TOKEN,
@@ -74,10 +63,10 @@ function setup(overrides: Partial<JoinDuelFlowActionsOptions> = {}) {
     appToast,
     options,
     get flow() {
-      return flow;
+      return state.flow;
     },
     setFlowDirect(nextFlow: JoinDuelFlowSession | null) {
-      flow = nextFlow;
+      state.flow = nextFlow;
     },
   };
 }
