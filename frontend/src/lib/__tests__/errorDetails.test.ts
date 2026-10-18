@@ -1,11 +1,16 @@
+import { BaseError, ExecutionRevertedError, HttpRequestError } from 'viem';
 import { describe, expect, it } from 'vitest';
-import { bestErrorDetail, collectErrorDetails } from '@/lib/errorDetails';
+import { bestErrorDetail, collectErrorDetails, isRevertError } from '@/lib/errorDetails';
 
 describe('collectErrorDetails', () => {
   it('normalizes whitespace and case', () => {
     expect(collectErrorDetails(new Error('  Execution   Reverted \n'))).toEqual([
       'execution reverted',
     ]);
+  });
+
+  it('drops the zero padding a revert reason keeps when decoded as raw text', () => {
+    expect(collectErrorDetails(new Error('Nothing to claim\u0000\u0000\u0000\u0000'))).toEqual(['nothing to claim']);
   });
 
   it('walks the cause chain', () => {
@@ -82,5 +87,21 @@ describe('bestErrorDetail', () => {
   it('returns nothing when the graph carries no usable text', () => {
     expect(bestErrorDetail({ message: 'execution reverted for an unknown reason' })).toBeUndefined();
     expect(bestErrorDetail(undefined)).toBeUndefined();
+  });
+});
+
+describe('isRevertError', () => {
+  it('takes wagmi\'s plain error for a reverted receipt as a revert', () => {
+    expect(isRevertError(new Error('Duel not in Created state'))).toBe(true);
+  });
+
+  it('takes viem\'s error around an execution revert as a revert', () => {
+    const revert = new ExecutionRevertedError({ message: 'execution reverted: Nothing to claim' });
+
+    expect(isRevertError(new BaseError('The call failed.', { cause: revert }))).toBe(true);
+  });
+
+  it('takes a failed RPC request as worth another try', () => {
+    expect(isRevertError(new HttpRequestError({ url: 'https://rpc.example' }))).toBe(false);
   });
 });

@@ -14,6 +14,7 @@ import {
   type DuelPublicClient,
   type TransactionParams,
 } from '@/lib/buildTransactionParams';
+import { isRevertError } from '@/lib/errorDetails';
 import { broadcastWithFallback } from '@/lib/resilientBroadcast';
 import { buildSignedForwardRequest } from '@/lib/forwardRequest';
 import { submitRelayRequest } from '@/lib/relayApi';
@@ -26,14 +27,8 @@ import { EMBEDDED_WALLET_CLIENT_TYPE } from '@/lib/walletSelection';
 // still fits inside a single L2 block. Mainnet ignores the floor.
 const DEFAULT_TESTNET_MIN_GAS = 200_000n;
 
-/**
- * wagmi decodes a revert reason by turning the ABI-encoded string into text whole, so the
- * message carries the encoding's zero padding. Drop it before the reason reaches a person.
- */
-function revertedReceiptError(error: Error | null): Error | null {
-  if (!error) return null;
-
-  return new Error(error.message.replace(/\u0000+$/, ''), { cause: error });
+function toError(value: unknown): Error {
+  return value instanceof Error ? value : new Error(String(value));
 }
 
 export type WriteConfig = Parameters<
@@ -90,12 +85,13 @@ export function useWriteWithGas(chainId: number) {
     error: receiptQueryError,
   } = useWaitForTransactionReceipt({
     hash,
+    // A revert is final: trying it again only keeps the player waiting for the error.
+    query: { retry: (failureCount, receiptError) => !isRevertError(receiptError) && failureCount < 3 },
   });
   const isConfirming = managedIsConfirming || receiptIsConfirming;
   // wagmi throws when a mined transaction reverted, so a sent write ends either in a receipt or
   // here. Read it, or the caller waits on a write that has already failed.
-  const receiptError = useMemo(() => revertedReceiptError(receiptQueryError), [receiptQueryError]);
-  const error = managedError ?? wagmiError ?? receiptError;
+  const error = managedError ?? wagmiError ?? receiptQueryError;
 
   /**
    * Owns the pending → confirming → hash sequence for every write this hook sends itself.
@@ -117,7 +113,7 @@ export function useWriteWithGas(chainId: number) {
           })
         );
       } catch (sendError) {
-        setManagedError(sendError instanceof Error ? sendError : new Error(String(sendError)));
+        setManagedError(toError(sendError));
       } finally {
         setManagedIsPending(false);
         setManagedIsConfirming(false);
@@ -213,7 +209,7 @@ export function useWriteWithGas(chainId: number) {
         if (isPrivyEmbedded) {
           // No wagmi fallback for Privy: it would re-hit the single-URL
           // broadcast bug AND the all-zero-gas bug. Surface the error instead.
-          setManagedError(estimateError instanceof Error ? estimateError : new Error(String(estimateError)));
+          setManagedError(toError(estimateError));
           return;
         }
         // Injected wallets handle their own RPC reliably — let the wallet
