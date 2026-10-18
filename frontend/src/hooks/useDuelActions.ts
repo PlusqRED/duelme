@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Abi } from 'viem';
 import { duelMeAbi, erc20Abi } from '@/lib/contracts';
@@ -39,43 +39,52 @@ export function useDuelActions(chainId: number) {
   const { writeWithGas, relayWrite, isRelayEnabled, ...writeState } = useWriteWithGas(chainId);
   const { isRelayResolved } = writeState;
   const signDuelPermit = useDuelPermit(chainId);
+  // Writes waiting for the relay probe before they are sent: they count as pending, so the
+  // buttons that sent them stay disabled meanwhile.
+  const [routingCount, setRoutingCount] = useState(0);
 
   const actions = useMemo(() => {
     // The route is taken as the write is sent, not from the last render: a write sent while the
     // relay probe is still in flight waits for its answer instead of going self-paid for a player
     // the relayer would carry. A probe that cannot answer leaves the write self-paid, as before.
+    // Each write asks once; a second ask could answer differently while the probe is retried.
     async function sendsRelayed() {
       if (isRelayResolved) {
         return isRelayEnabled;
       }
 
-      const status = await queryClient.fetchQuery(relayerStatusQuery).catch(() => undefined);
-      return isRelayAvailable(status, chainId);
+      setRoutingCount((count) => count + 1);
+      try {
+        const status = await queryClient.fetchQuery(relayerStatusQuery).catch(() => undefined);
+        return isRelayAvailable(status, chainId);
+      } finally {
+        setRoutingCount((count) => count - 1);
+      }
     }
 
     // Defaults cover the common case: a DuelMe write with the dispatcher's
     // Sepolia min-gas floor.
-    function bindWrite(
+    function selfPaidWrite(
       functionName: string,
+      args: readonly unknown[],
       { address = contractAddress, abi = duelMeAbi as Abi, minTestnetGas }: BindWriteOptions = {}
     ) {
+      return writeWithGas({ address, abi, functionName, args, chainId } as WriteConfig, minTestnetGas);
+    }
+
+    function bindWrite(functionName: string, options: BindWriteOptions = {}) {
       return async (...args: readonly unknown[]) => {
-        const config = { address, abi, functionName, args, chainId } as WriteConfig;
+        const { address = contractAddress, abi = duelMeAbi as Abi } = options;
 
         // The relayer refuses anything outside its own allowlist, so the same list decides
         // here — an approve, for instance, is a token call and stays self-paid.
         if (address === contractAddress && RELAYABLE_DUEL_FUNCTIONS.has(functionName) && (await sendsRelayed())) {
-          return relayWrite(config);
+          return relayWrite({ address, abi, functionName, args, chainId } as WriteConfig);
         }
 
-        return writeWithGas(config, minTestnetGas);
+        return selfPaidWrite(functionName, args, options);
       };
     }
-
-    const createDuelWrite = bindWrite('createDuel', {
-      minTestnetGas: ARBITRUM_SEPOLIA_CREATE_DUEL_MIN_GAS,
-    });
-    const joinDuelWrite = bindWrite('joinDuel');
 
     /**
      * Funds a duel action with an EIP-2612 signature instead of an allowance. Only used on
@@ -108,7 +117,9 @@ export function useDuelActions(chainId: number) {
           return;
         }
 
-        await createDuelWrite(...(message ? [amount, inviteHash, message] : [amount, inviteHash]));
+        await selfPaidWrite('createDuel', message ? [amount, inviteHash, message] : [amount, inviteHash], {
+          minTestnetGas: ARBITRUM_SEPOLIA_CREATE_DUEL_MIN_GAS,
+        });
       },
       async joinDuel(duelId: bigint | number, inviteSecret: `0x${string}`, wagerAmount: bigint) {
         if (await sendsRelayed()) {
@@ -116,7 +127,7 @@ export function useDuelActions(chainId: number) {
           return;
         }
 
-        await joinDuelWrite(duelId, inviteSecret);
+        await selfPaidWrite('joinDuel', [duelId, inviteSecret]);
       },
       async approveToken(token: `0x${string}`, amount: bigint) {
         await bindWrite('approve', {
@@ -142,8 +153,10 @@ export function useDuelActions(chainId: number) {
     };
   }, [writeWithGas, relayWrite, signDuelPermit, isRelayEnabled, isRelayResolved, queryClient, contractAddress, chainId]);
 
+  const isPending = writeState.isPending || routingCount > 0;
+
   return useMemo(
-    () => ({ ...actions, ...writeState, isRelayEnabled }),
-    [actions, writeState, isRelayEnabled]
+    () => ({ ...actions, ...writeState, isPending, isRelayEnabled }),
+    [actions, writeState, isPending, isRelayEnabled]
   );
 }

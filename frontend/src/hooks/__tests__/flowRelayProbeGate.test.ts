@@ -1,14 +1,13 @@
 // @vitest-environment happy-dom
-import { renderHook } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, renderHook } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { useDuelActions } from '@/hooks/useDuelActions';
 import type { useFlowFunding } from '@/hooks/useFlowFunding';
-import { DuelState, type Duel } from '@/lib/contracts';
-import { DEFAULT_CHAIN, DEFAULT_CHAIN_KEY, ZERO_ADDRESS } from '@/lib/constants';
+import { DEFAULT_CHAIN, DEFAULT_CHAIN_KEY } from '@/lib/constants';
 import { OPEN_DUEL_INVITE_HASH } from '@/lib/invite';
+import { duelView } from '@/lib/__tests__/helpers/duelView';
 
 const VIEWER = '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb' as const;
-const CREATOR = '0xAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa' as const;
 
 const relay = vi.hoisted(() => ({ isRelayResolved: false }));
 const useReadContract = vi.hoisted(() =>
@@ -65,30 +64,10 @@ vi.mock('@/hooks/useDuelActions', () => ({
 const { useCreateDuelFlow } = await import('@/hooks/useCreateDuelFlow');
 const { useJoinDuelFlow } = await import('@/hooks/useJoinDuelFlow');
 
-const WAITING_DUEL: Duel = {
-  creator: CREATOR,
-  opponent: ZERO_ADDRESS,
-  invitedOpponent: ZERO_ADDRESS,
-  wagerAmount: 5_000_000n,
-  inviteHash: OPEN_DUEL_INVITE_HASH,
-  message: '',
-  claimedWinner: ZERO_ADDRESS,
-  claimedBy: ZERO_ADDRESS,
-  cancelRequestedBy: ZERO_ADDRESS,
-  createdAt: 1n,
-  fundedAt: 0n,
-  cancelRequestedAt: 0n,
-  claimTimestamp: 0n,
-  finalizedAt: 0n,
-  creatorPayout: 0n,
-  opponentPayout: 0n,
-  creatorClaimed: false,
-  opponentClaimed: false,
-  state: DuelState.Created,
-};
+const WAITING_DUEL = duelView({ inviteHash: OPEN_DUEL_INVITE_HASH });
 
-function renderFlows() {
-  const create = renderHook(() =>
+function renderCreateFlow() {
+  return renderHook(() =>
     useCreateDuelFlow({
       amount: '5',
       message: '',
@@ -99,11 +78,16 @@ function renderFlows() {
       isValidMessage: true,
     })
   );
-  const join = renderHook(() =>
+}
+
+function renderJoinFlow() {
+  return renderHook(() =>
     useJoinDuelFlow({ duelId: 7, duel: WAITING_DUEL, inviteSecret: null, refetchDuel: vi.fn(async () => {}) })
   );
+}
 
-  return { create, join };
+function allowanceReadEnabled() {
+  return useReadContract.mock.lastCall?.[0].query?.enabled;
 }
 
 beforeEach(() => {
@@ -111,27 +95,40 @@ beforeEach(() => {
   useReadContract.mockClear();
 });
 
-describe('create and join flows while the relay probe has not answered', () => {
-  it('keep Continue closed, since a permit and an approve step are not told apart yet', () => {
-    const { create, join } = renderFlows();
+afterEach(cleanup);
 
-    expect(create.result.current.review.canContinue).toBe(false);
-    expect(join.result.current.review.canContinue).toBe(false);
+describe('the create flow while the relay probe has not answered', () => {
+  it('keeps Continue closed, since a permit and an approve step are not told apart yet', () => {
+    expect(renderCreateFlow().result.current.review.canContinue).toBe(false);
   });
 
-  it('read no allowance, which only the self-paid path would need', () => {
-    renderFlows();
+  it('reads no allowance, which only the self-paid path would need', () => {
+    renderCreateFlow();
 
-    const allowanceReads = useReadContract.mock.calls.map(([config]) => config.query?.enabled);
-    expect(allowanceReads).toEqual([false, false]);
+    expect(allowanceReadEnabled()).toBe(false);
   });
 
-  it('open Continue once the probe has answered', () => {
+  it('opens Continue once the probe has answered', () => {
     relay.isRelayResolved = true;
 
-    const { create, join } = renderFlows();
+    expect(renderCreateFlow().result.current.review.canContinue).toBe(true);
+  });
+});
 
-    expect(create.result.current.review.canContinue).toBe(true);
-    expect(join.result.current.review.canContinue).toBe(true);
+describe('the join flow while the relay probe has not answered', () => {
+  it('keeps Continue closed, since a permit and an approve step are not told apart yet', () => {
+    expect(renderJoinFlow().result.current.review.canContinue).toBe(false);
+  });
+
+  it('reads no allowance, which only the self-paid path would need', () => {
+    renderJoinFlow();
+
+    expect(allowanceReadEnabled()).toBe(false);
+  });
+
+  it('opens Continue once the probe has answered', () => {
+    relay.isRelayResolved = true;
+
+    expect(renderJoinFlow().result.current.review.canContinue).toBe(true);
   });
 });

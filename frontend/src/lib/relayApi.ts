@@ -17,6 +17,12 @@ const RELAY_ENDPOINT = '/api/relay';
  */
 const RELAY_TIMEOUT_MS = 120_000;
 
+/**
+ * Ceiling on the relay probe. Duel writes wait for its answer before they are sent, so a request
+ * that stalls must end in an error the probe can be retried after, not hold every write.
+ */
+const RELAY_STATUS_TIMEOUT_MS = 8_000;
+
 export class RelayRequestError extends Error {
   readonly code: RelayErrorCode;
 
@@ -32,8 +38,11 @@ export class RelayRequestError extends Error {
  * `available: false` when relaying is off, so anything else means the question went unanswered:
  * it throws, and the caller may ask again rather than read it as "off".
  */
-export async function fetchRelayerStatus(signal?: AbortSignal): Promise<RelayerStatus> {
-  const response = await fetch(RELAY_ENDPOINT, { method: 'GET', signal });
+export async function fetchRelayerStatus(): Promise<RelayerStatus> {
+  const response = await fetch(RELAY_ENDPOINT, {
+    method: 'GET',
+    signal: AbortSignal.timeout(RELAY_STATUS_TIMEOUT_MS),
+  });
 
   if (!response.ok) {
     throw new Error(`Relayer status probe answered ${response.status}`);

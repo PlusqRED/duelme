@@ -50,6 +50,14 @@ describe('fetchRelayerStatus', () => {
     await expect(fetchRelayerStatus()).rejects.toThrow('502');
   });
 
+  it('gives up on a probe that stalls instead of holding every write that waits for it', async () => {
+    vi.mocked(fetch).mockReturnValue(respond(200, { available: true, chainId: 42161 }));
+
+    await fetchRelayerStatus();
+
+    expect(vi.mocked(fetch).mock.lastCall?.[1]?.signal).toBeInstanceOf(AbortSignal);
+  });
+
   it('throws on a body that is not a status', async () => {
     vi.mocked(fetch).mockReturnValue(respond(200, 'nope'));
 

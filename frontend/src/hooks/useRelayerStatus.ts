@@ -11,7 +11,8 @@ import type { RelayerStatus } from '@/lib/relayRequest';
  */
 export const relayerStatusQuery = queryOptions({
   queryKey: ['relayer-status'],
-  queryFn: ({ signal }) => fetchRelayerStatus(signal),
+  // Not cancelled with its last reader: an answer that arrives late is still the page's answer.
+  queryFn: () => fetchRelayerStatus(),
   // A probe that fails outright reads as "relaying off" for the whole page and would send a
   // player without ETH down the self-paid path, so a failed request is tried again.
   retry: 2,
@@ -34,12 +35,15 @@ export function isRelayAvailable(status: RelayerStatus | undefined, chainId: num
 export function useRelayerStatus(chainId: number) {
   const forwarderAddress = FORWARDER_ADDRESSES[chainId];
 
-  const { data, isFetched } = useQuery({ ...relayerStatusQuery, enabled: !!forwarderAddress });
+  const { data, isFetched, fetchStatus } = useQuery({ ...relayerStatusQuery, enabled: !!forwarderAddress });
 
   return {
     isRelayEnabled: isRelayAvailable(data, chainId),
     forwarderAddress,
-    /** False only while the probe is still in flight, so UI never flashes the wrong badge. */
-    isRelayResolved: !forwarderAddress || isFetched,
+    /**
+     * False while the probe is in flight, so UI never flashes the wrong badge — including the
+     * request a new reader starts after a probe that failed, which may yet answer "on".
+     */
+    isRelayResolved: !forwarderAddress || (isFetched && fetchStatus === 'idle'),
   };
 }
