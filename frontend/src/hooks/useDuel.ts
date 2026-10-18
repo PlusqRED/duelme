@@ -28,7 +28,7 @@ interface UseDuelResult {
 export function useDuel(duelId: bigint, chainId: number): UseDuelResult {
   const contractAddress = DUELME_ADDRESSES[chainId];
 
-  const { data, isLoading, isError, refetch } = useReadContract({
+  const { data, isLoading, isLoadingError, refetch } = useReadContract({
     address: contractAddress,
     abi: duelMeAbi,
     functionName: 'getDuel',
@@ -54,5 +54,7 @@ export function useDuel(duelId: bigint, chainId: number): UseDuelResult {
   // strict way round, so that drift fails here instead of as a TypeError on the duel page.
   const duel: Duel | undefined = data;
 
-  return { duel, isLoading, isError, refetch };
+  // Only a duel that never loaded is an error: a poll that fails keeps the last duel on screen,
+  // with any guided flow above it, until the next poll reads it again.
+  return { duel, isLoading, isError: isLoadingError, refetch };
 }
