@@ -10,7 +10,6 @@ import { useDuelActions } from '@/hooks/useDuelActions';
 import { type FlowReviewGate, useFlowFunding } from '@/hooks/useFlowFunding';
 import { useTranslation } from '@/i18n/useTranslation';
 import { joinDuelFlowActions } from '@/lib/joinDuelFlowActions';
-import { getFundingRoute } from '@/lib/guidedFlowSteps';
 import type { JoinDuelFlowSession } from '@/lib/joinDuelFlow';
 import { DUELME_ADDRESSES, DEFAULT_CHAIN } from '@/lib/constants';
 import { erc20Abi, type Duel } from '@/lib/contracts';
@@ -44,9 +43,9 @@ export function useJoinDuelFlow({
   const chainConfig = DEFAULT_CHAIN;
   const contractAddress = DUELME_ADDRESSES[chainConfig.id];
   const joinActions = useDuelActions(chainConfig.id);
-  const fundingRoute = getFundingRoute(joinActions);
-  const fundsViaPermit = fundingRoute === 'permit';
-  const fundsViaAllowance = fundingRoute === 'allowance';
+  // The relayed path funds the wager with an EIP-2612 signature carried inside the duel
+  // call, so there is no allowance to top up and no approve step to show.
+  const fundsViaPermit = joinActions.isRelayEnabled;
 
   const { data: currentAllowance, refetch: refetchAllowance } = useReadContract({
     address: chainConfig.usdt,
@@ -54,7 +53,7 @@ export function useJoinDuelFlow({
     functionName: 'allowance',
     args: walletAddress && contractAddress ? [walletAddress, contractAddress] : undefined,
     chainId: chainConfig.id,
-    query: { enabled: fundsViaAllowance && !!walletAddress && !!contractAddress },
+    query: { enabled: !fundsViaPermit && !!walletAddress && !!contractAddress },
   });
 
   const readLatestAllowance = useCallback(async () => {
@@ -74,12 +73,12 @@ export function useJoinDuelFlow({
   }, [refetchAllowance]);
 
   const refetchAllowanceIfRelevant = useCallback(async () => {
-    if (!fundsViaAllowance) {
+    if (fundsViaPermit) {
       return;
     }
 
     await refetchAllowance();
-  }, [fundsViaAllowance, refetchAllowance]);
+  }, [fundsViaPermit, refetchAllowance]);
 
   const canCloseFlow =
     flow?.actionState !== 'awaiting-wallet' &&
@@ -92,7 +91,7 @@ export function useJoinDuelFlow({
       (flow.stage === 'review' && connectedChainId !== flow.draft.chainId));
 
   const needsApproval =
-    fundsViaAllowance &&
+    !fundsViaPermit &&
     flow !== null &&
     (flow.stage === 'approve' ||
       ((flow.stage === 'review' || flow.stage === 'switch-network') &&
@@ -131,8 +130,7 @@ export function useJoinDuelFlow({
   });
   const review: FlowReviewGate = {
     funding,
-    canContinue:
-      funding.status.kind === 'enough' && canJoin && !isRecheckingDuel && fundingRoute !== 'unknown',
+    canContinue: funding.status.kind === 'enough' && canJoin && !isRecheckingDuel,
     // Only once the wallet is known: while it resolves, canJoin is false for no reason the duel gave.
     blockedReason:
       !canJoin && !isRecheckingDuel && !!walletAddress ? 'deposit.joinUnavailable' : null,
@@ -178,12 +176,12 @@ export function useJoinDuelFlow({
 
   useEffect(() => {
     // React Query's refetch() ignores `enabled`, so the gate has to be here too.
-    if (!shouldRefreshReviewAllowance || !fundsViaAllowance) {
+    if (!shouldRefreshReviewAllowance || fundsViaPermit) {
       return;
     }
 
     void readLatestAllowance().catch(() => undefined);
-  }, [shouldRefreshReviewAllowance, fundsViaAllowance, readLatestAllowance]);
+  }, [shouldRefreshReviewAllowance, fundsViaPermit, readLatestAllowance]);
 
   return {
     canCloseFlow,

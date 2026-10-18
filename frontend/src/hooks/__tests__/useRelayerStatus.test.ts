@@ -1,74 +1,44 @@
 // @vitest-environment happy-dom
 import { createElement, type ReactNode } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, renderHook, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { useRelayerStatus } from '@/hooks/useRelayerStatus';
+import { cleanup, renderHook } from '@testing-library/react';
+import { afterEach, describe, expect, it } from 'vitest';
+import { RelayerStatusContext, useRelayerStatus } from '@/hooks/useRelayerStatus';
 import { FORWARDER_ADDRESSES } from '@/lib/constants';
-import { mockFetch } from '@/lib/__tests__/helpers/mockFetch';
+import type { RelayerStatus } from '@/lib/relayRequest';
 
 const CHAIN_ID = Number(Object.keys(FORWARDER_ADDRESSES)[0]);
 
-function queryClient() {
-  // The hook keeps React Query's backoff; the test does not need to sit through it.
-  return new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } });
+function renderStatus(status: RelayerStatus, chainId = CHAIN_ID) {
+  const wrapper = ({ children }: { children: ReactNode }) =>
+    createElement(RelayerStatusContext.Provider, { value: status }, children);
+
+  return renderHook(() => useRelayerStatus(chainId), { wrapper });
 }
 
-function renderStatus(client = queryClient()) {
-  const wrapper = ({ children }: { children: ReactNode }) => createElement(QueryClientProvider, { client }, children);
-
-  return renderHook(() => useRelayerStatus(CHAIN_ID), { wrapper });
-}
-
-function relayerAnswers() {
-  return mockFetch({ json: async () => ({ available: true, chainId: CHAIN_ID }) });
-}
-
-afterEach(() => {
-  cleanup();
-  vi.unstubAllGlobals();
-});
+afterEach(cleanup);
 
 describe('useRelayerStatus', () => {
-  it('is unresolved while the probe is in flight, so no flow plans its steps yet', () => {
-    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(() => {})));
+  it('relays on the chain the server relays for, from the first render', () => {
+    const { result } = renderStatus({ available: true, chainId: CHAIN_ID });
 
-    const { result } = renderStatus();
+    expect(result.current.isRelayEnabled).toBe(true);
+  });
 
-    expect(result.current.isRelayResolved).toBe(false);
+  it('does not relay when the server has no relayer', () => {
+    const { result } = renderStatus({ available: false, chainId: null });
+
     expect(result.current.isRelayEnabled).toBe(false);
   });
 
-  it('asks again after a request that failed instead of reading it as relaying off', async () => {
-    const fetchMock = relayerAnswers().mockRejectedValueOnce(new TypeError('Failed to fetch'));
+  it('does not relay on a chain the server does not relay for', () => {
+    const { result } = renderStatus({ available: true, chainId: CHAIN_ID + 1 });
 
-    const { result } = renderStatus();
-
-    await waitFor(() => expect(result.current.isRelayResolved).toBe(true));
-    expect(result.current.isRelayEnabled).toBe(true);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result.current.isRelayEnabled).toBe(false);
   });
 
-  it('asks again after a gateway error instead of reading it as relaying off', async () => {
-    const fetchMock = relayerAnswers().mockResolvedValueOnce({ ok: false, status: 502 } as Response);
+  it('does not relay outside the provider', () => {
+    const { result } = renderHook(() => useRelayerStatus(CHAIN_ID));
 
-    const { result } = renderStatus();
-
-    await waitFor(() => expect(result.current.isRelayResolved).toBe(true));
-    expect(result.current.isRelayEnabled).toBe(true);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-
-  it('does not ask again for a new reader once a probe has failed, so a planned route cannot flip', async () => {
-    const client = queryClient();
-    const fetchMock = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
-    vi.stubGlobal('fetch', fetchMock);
-    const first = renderStatus(client);
-    await waitFor(() => expect(first.result.current.isRelayResolved).toBe(true));
-
-    const second = renderStatus(client);
-
-    expect(second.result.current.isRelayResolved).toBe(true);
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(result.current.isRelayEnabled).toBe(false);
   });
 });

@@ -82,7 +82,6 @@ export function DepositPanel({ chainId, requiredRaw, isJoining = false, onBack, 
 
   const copy = getDepositCopyKeys({
     testnet: chain.testnet,
-    isRelayResolved: relay.isRelayResolved,
     isRelayEnabled: relay.isRelayEnabled,
   });
   const funding = requiredRaw === undefined ? null : resolveFunding(balance, requiredRaw);
@@ -136,12 +135,10 @@ export function DepositPanel({ chainId, requiredRaw, isJoining = false, onBack, 
         )}
       </div>
 
-      {copy.fees && (
-        <p className="flex items-start gap-1.5 text-xs leading-5 text-slate-500">
-          <Fuel className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          <span>{t(copy.fees, { chain: chain.name })}</span>
-        </p>
-      )}
+      <p className="flex items-start gap-1.5 text-xs leading-5 text-slate-500">
+        <Fuel className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+        <span>{t(copy.fees, { chain: chain.name })}</span>
+      </p>
 
       <FaucetButton chainId={chain.id} />
 

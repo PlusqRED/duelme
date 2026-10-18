@@ -17,9 +17,9 @@ rules live in this file.
 Write ops, relayed: check chain → sign EIP-2612 permit (funding calls only) → sign
 ForwardRequest → POST `/api/relay`. Self-paid: check chain → check allowance → approve if
 needed → execute. `useDuelActions` binds each duel action on top of `useWriteWithGas`, picks
-between the two paths as each write is sent, from the `useRelayerStatus` probe, and swaps in the
-`*WithPermit` variant when the write is relayed (see "Gasless Duel Actions" below). `createDuel`
-generates a private invite secret client-side and sends only its hash on-chain;
+between the two paths from `useRelayerStatus` (which the server fills in with the page) and swaps
+in the `*WithPermit` variant when the write is relayed (see "Gasless Duel Actions" below).
+`createDuel` generates a private invite secret client-side and sends only its hash on-chain;
 `joinDuel`/`declineDuel` use the secret. Payouts are pull-based — terminal duel flows expose
 claimable balances, never push transfers.
 
@@ -151,7 +151,7 @@ address, no relayer key — is the case the self-paid path still covers.
 | `frontend/src/lib/forwardRequest.ts` | Signs the EIP-712 ForwardRequest (domain name, gas padding) |
 | `frontend/src/lib/permitSignature.ts` | Signs an EIP-2612 permit, rebuilding and verifying the token's EIP-712 domain |
 | `frontend/src/lib/relayApi.ts` | `/api/relay` client + `RelayRequestError` carrying the server's code |
-| `frontend/src/hooks/useRelayerStatus.ts` | Whether duel writes on a chain can be relayed (forwarder address + server probe); `relayerStatusQuery` is the probe `useDuelActions` awaits when a write is sent before it answered |
+| `frontend/src/hooks/useRelayerStatus.ts` | Whether duel writes on a chain can be relayed: the forwarder address and the server's relayer status, handed down with the page by the root layout |
 | `frontend/src/lib/testnetGas.ts` | Testnet vs mainnet gas/fee buffers; min-gas constants per duel action |
 | `frontend/src/i18n/translations.ts` | Merges the per-area section files into one EN/RU key map — **add keys in `frontend/src/i18n/translations/<section>.ts`**, not here |
 | `frontend/src/lib/__tests__/deployedAddresses.test.ts` | Fails the build when `constants.ts` or a backend `application.yml` address (faucet token, `duelme.contracts.duel-me`) drifts from the broadcast artifact |
@@ -203,15 +203,12 @@ address, no relayer key — is the case the self-paid path still covers.
   recovered from a replay on the block before; any other failure to read the receipt is retried for
   as long as it lasts, because a write reported as failed that went through is one "Try again" away
   from a second duel and a second wager.
-- **Nothing plans or sends a duel write before the relay probe answers.** While
-  `useRelayerStatus` is in flight, `isRelayEnabled` reads false, which would put a player the
-  relayer would carry on the self-paid path. So `useDuelActions` takes the route as each write is
-  sent, once, awaiting the probe if it has to (`relayerStatusQuery`; the wait counts as
-  `isPending`, and a write whose screen closed meanwhile is not sent). The create and join flows
-  plan the approve step before sending, so they take `getFundingRoute` and keep Continue closed
-  while it is `unknown`. The probe gives up after 5 s and is tried twice more on any failure (a
-  502, a body that is not a status); after that it settles on "off" for the page and is not asked
-  again, so a route a flow planned with cannot change under it.
+- **Whether relaying is on comes with the page, never from a request.** The root layout reads
+  `getRelayerStatus()` from the server's relayer config and hands it to `useRelayerStatus` through
+  context, so every flow plans and every write routes from the first render. An asynchronous
+  probe once did this job: a flow opened before it answered planned the self-paid path, approve
+  included, for a player the relayer would carry, and every fix for that (gates, retries,
+  timeouts, writes waiting for the answer) added a failure of its own.
 - **`collectErrorDetails` returns viem's multi-line dump first.** An error's own `message` is visited before its `shortMessage` / `reason`, so the first entry is the whole "Contract Call / Request Arguments / Version" blob. Use `bestErrorDetail` (shortest non-placeholder detail) whenever the string reaches a person.
 - **`fundsViaPermit` has to gate every allowance check, not just the last one.** `handleContinueFlow`, `handleSwitchNetwork` and `handleCreateTransaction` / `handleJoinTransaction` all decide the approve step; a relayed flow that reads the allowance in any of them routes a zero-ETH player into a self-paid `approve`. They share `resolveNeedsApproval` from `guidedFlowSteps.ts`.
 - **`FORWARDER_NAME` must match on both sides.** `frontend/src/lib/forwardRequest.ts` and `contracts/script/ForwarderConfig.sol` (which both deploy scripts read) both spell `"DuelMe Forwarder"`; it is the EIP-712 domain name, so a mismatch makes every signature fail `verify` with no other symptom.

@@ -28,22 +28,6 @@ export function getOptionalStepStatus(options: {
 }
 
 /**
- * How a create or join funds its stake. The relayed path carries an EIP-2612 permit inside the
- * duel call, so there is no allowance to top up and no approve step to show; the self-paid path
- * funds it from an allowance. While the relay probe is in flight it is neither: the flow reads no
- * allowance, plans no approve step and keeps Continue closed.
- */
-export type FundingRoute = 'permit' | 'allowance' | 'unknown';
-
-export function getFundingRoute(relay: { isRelayResolved: boolean; isRelayEnabled: boolean }): FundingRoute {
-  if (!relay.isRelayResolved) {
-    return 'unknown';
-  }
-
-  return relay.isRelayEnabled ? 'permit' : 'allowance';
-}
-
-/**
  * Whether the guided flow still has to send a separate `approve` before the duel call.
  *
  * Shared by the create and join flows because the rule is one rule: on the relayed path the

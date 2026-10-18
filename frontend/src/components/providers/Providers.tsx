@@ -8,6 +8,8 @@ import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/reac
 import { wagmiConfig, supportedChains } from '@/lib/wagmi';
 import { selectWallet } from '@/lib/walletSelection';
 import { useContractConfig } from '@/hooks/useContractConfig';
+import { RelayerStatusContext } from '@/hooks/useRelayerStatus';
+import type { RelayerStatus } from '@/lib/relayRequest';
 import { LanguageProvider } from '@/i18n/LanguageContext';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -44,7 +46,13 @@ function ContractConfigLoader() {
   return null;
 }
 
-export function Providers({ children }: { children: ReactNode }) {
+interface ProvidersProps {
+  children: ReactNode;
+  /** Read by the root layout from the server's relayer config, so it is known on the first render. */
+  relayerStatus: RelayerStatus;
+}
+
+export function Providers({ children, relayerStatus }: ProvidersProps) {
   const selectActiveWallet = useCallback<SetActiveWalletForWagmiType>(
     ({ wallets, user }) => selectWallet(wallets, user) ?? undefined,
     []
@@ -73,12 +81,14 @@ export function Providers({ children }: { children: ReactNode }) {
         <QueryCacheManager />
         <WagmiProvider config={wagmiConfig} setActiveWalletForWagmi={selectActiveWallet}>
           <ContractConfigLoader />
-          <LanguageProvider>
-            <TooltipProvider>
-              {children}
-            </TooltipProvider>
-            <Toaster position="top-center" />
-          </LanguageProvider>
+          <RelayerStatusContext.Provider value={relayerStatus}>
+            <LanguageProvider>
+              <TooltipProvider>
+                {children}
+              </TooltipProvider>
+              <Toaster position="top-center" />
+            </LanguageProvider>
+          </RelayerStatusContext.Provider>
         </WagmiProvider>
       </QueryClientProvider>
     </PrivyProvider>

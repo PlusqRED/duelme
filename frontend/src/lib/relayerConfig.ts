@@ -2,7 +2,7 @@ import { createPublicClient, createWalletClient, http, parseEther, type Account,
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrum, arbitrumSepolia } from 'viem/chains';
 import { DEFAULT_CHAIN, DEFAULT_CHAIN_ID, DUELME_ADDRESSES, FORWARDER_ADDRESSES } from '@/lib/constants';
-import { parseUintString } from '@/lib/relayRequest';
+import { parseUintString, type RelayerStatus } from '@/lib/relayRequest';
 
 /**
  * Server-side relayer wiring. Reads secrets from non-`NEXT_PUBLIC_` env, so nothing here
@@ -66,6 +66,16 @@ let cached: RelayerConfigResult | undefined;
 export function getRelayerConfig(): RelayerConfigResult {
   cached ??= buildRelayerConfig();
   return cached;
+}
+
+/**
+ * What the client is told about relaying: that it is on, and for which chain. Nothing about the
+ * relayer's address, its balance or the budgets.
+ */
+export function getRelayerStatus(): RelayerStatus {
+  const resolved = getRelayerConfig();
+
+  return resolved.ok ? { available: true, chainId: resolved.config.chainId } : { available: false, chainId: null };
 }
 
 function buildRelayerConfig(): RelayerConfigResult {

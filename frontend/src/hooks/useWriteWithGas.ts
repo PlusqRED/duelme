@@ -9,11 +9,11 @@ import {
   type DuelPublicClient,
   type TransactionParams,
 } from '@/lib/buildTransactionParams';
-import { FORWARDER_ADDRESSES } from '@/lib/constants';
 import { broadcastWithFallback } from '@/lib/resilientBroadcast';
 import { buildSignedForwardRequest } from '@/lib/forwardRequest';
 import { submitRelayRequest } from '@/lib/relayApi';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
+import { useRelayerStatus } from '@/hooks/useRelayerStatus';
 import { EMBEDDED_WALLET_CLIENT_TYPE } from '@/lib/walletSelection';
 import { TransactionRevertedError, waitForWriteReceipt } from '@/lib/writeReceipt';
 
@@ -43,7 +43,7 @@ export function useWriteWithGas(chainId: number) {
   const { data: walletClient } = useWalletClient({ chainId });
   const { activeWallet } = useActiveWallet();
   const isPrivyEmbedded = activeWallet?.walletClientType === EMBEDDED_WALLET_CLIENT_TYPE;
-  const forwarderAddress = FORWARDER_ADDRESSES[chainId];
+  const { isRelayEnabled, forwarderAddress } = useRelayerStatus(chainId);
 
   const {
     writeContract,
@@ -123,14 +123,15 @@ export function useWriteWithGas(chainId: number) {
     [wagmiReset]
   );
 
-  // What a relayed send needs. Whether to relay is the caller's decision, taken as the write is
-  // sent (useDuelActions); this only checks that the clients for it are there.
+  // Capability of the deployment, not of this render: client readiness is handled by the
+  // guard inside relayWrite, so the flag callers plan their steps from cannot flip while
+  // wagmi hydrates.
   const relayContext = useMemo(
     () =>
-      forwarderAddress && publicClient && walletClient && accountAddress
+      isRelayEnabled && forwarderAddress && publicClient && walletClient && accountAddress
         ? { publicClient, walletClient, forwarderAddress, from: accountAddress }
         : null,
-    [forwarderAddress, publicClient, walletClient, accountAddress]
+    [isRelayEnabled, forwarderAddress, publicClient, walletClient, accountAddress]
   );
 
   /**
@@ -260,6 +261,7 @@ export function useWriteWithGas(chainId: number) {
     () => ({
       writeWithGas,
       relayWrite,
+      isRelayEnabled,
       hash,
       isPending,
       isConfirming,
@@ -271,6 +273,7 @@ export function useWriteWithGas(chainId: number) {
     [
       writeWithGas,
       relayWrite,
+      isRelayEnabled,
       hash,
       isPending,
       isConfirming,

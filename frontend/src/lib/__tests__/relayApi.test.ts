@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { RelayRequestError, fetchRelayerStatus, submitRelayRequest } from '@/lib/relayApi';
+import { RelayRequestError, submitRelayRequest } from '@/lib/relayApi';
 import type { RelayForwardRequest } from '@/lib/relayRequest';
 import { DUELME_ADDRESSES, SUPPORTED_CHAINS } from '@/lib/constants';
 
@@ -28,50 +28,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.useRealTimers();
   vi.unstubAllGlobals();
-});
-
-describe('fetchRelayerStatus', () => {
-  it('reports availability and chain', async () => {
-    vi.mocked(fetch).mockReturnValue(respond(200, { available: true, chainId: 42161 }));
-
-    await expect(fetchRelayerStatus()).resolves.toEqual({ available: true, chainId: 42161 });
-  });
-
-  it('reports relaying off when the route says so', async () => {
-    vi.mocked(fetch).mockReturnValue(respond(200, { available: false, chainId: null }));
-
-    await expect(fetchRelayerStatus()).resolves.toEqual({ available: false, chainId: null });
-  });
-
-  it('throws on a failed probe so it can be asked again, rather than reading it as off', async () => {
-    vi.mocked(fetch).mockReturnValue(respond(502, {}));
-
-    await expect(fetchRelayerStatus()).rejects.toThrow('502');
-  });
-
-  it('gives up on a probe that stalls for 5 s instead of holding every write that waits for it', async () => {
-    vi.useFakeTimers();
-    vi.mocked(fetch).mockImplementation(
-      (_url, init) =>
-        new Promise<Response>((_resolve, reject) => {
-          init?.signal?.addEventListener('abort', () => reject(init.signal?.reason));
-        })
-    );
-
-    const probe = fetchRelayerStatus();
-    const settled = expect(probe).rejects.toThrow();
-    await vi.advanceTimersByTimeAsync(5_000);
-
-    await settled;
-  });
-
-  it('throws on a body that is not a status', async () => {
-    vi.mocked(fetch).mockReturnValue(respond(200, 'nope'));
-
-    await expect(fetchRelayerStatus()).rejects.toThrow();
-  });
 });
 
 describe('submitRelayRequest', () => {

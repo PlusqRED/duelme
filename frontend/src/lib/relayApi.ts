@@ -4,7 +4,6 @@ import {
   isRelayErrorCode,
   type RelayErrorCode,
   type RelayForwardRequest,
-  type RelayerStatus,
 } from '@/lib/relayRequest';
 
 const RELAY_ENDPOINT = '/api/relay';
@@ -17,12 +16,6 @@ const RELAY_ENDPOINT = '/api/relay';
  */
 const RELAY_TIMEOUT_MS = 120_000;
 
-/**
- * Ceiling on the relay probe. Duel writes wait for its answer before they are sent, so a request
- * that stalls must end in an error the probe can be retried after, not hold every write.
- */
-const RELAY_STATUS_TIMEOUT_MS = 5_000;
-
 export class RelayRequestError extends Error {
   readonly code: RelayErrorCode;
 
@@ -30,40 +23,6 @@ export class RelayRequestError extends Error {
     super(message, options);
     this.code = code;
     this.name = 'RelayRequestError';
-  }
-}
-
-/**
- * Whether this deployment can relay at all, and for which chain. The route answers 200 with
- * `available: false` when relaying is off, so anything else means the question went unanswered:
- * it throws, and the caller may ask again rather than read it as "off".
- */
-export async function fetchRelayerStatus(): Promise<RelayerStatus> {
-  const timeout = new AbortController();
-  const timer = setTimeout(
-    () => timeout.abort(new DOMException('The relayer status probe timed out.', 'TimeoutError')),
-    RELAY_STATUS_TIMEOUT_MS
-  );
-
-  try {
-    const response = await fetch(RELAY_ENDPOINT, { method: 'GET', signal: timeout.signal });
-
-    if (!response.ok) {
-      throw new Error(`Relayer status probe answered ${response.status}`);
-    }
-
-    const body: unknown = await response.json();
-
-    if (!isRecord(body)) {
-      throw new Error('Relayer status probe answered without a status');
-    }
-
-    return {
-      available: body.available === true,
-      chainId: typeof body.chainId === 'number' ? body.chainId : null,
-    };
-  } finally {
-    clearTimeout(timer);
   }
 }
 

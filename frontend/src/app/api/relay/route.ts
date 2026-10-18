@@ -32,25 +32,6 @@ const RECEIPT_TIMEOUT_MS = 30_000;
 const noStoreHeaders = { 'Cache-Control': 'no-store' };
 
 /**
- * Whether this deployment can relay, and for which chain. The client needs the answer
- * before it builds a duel action: relaying replaces the separate `approve` transaction with
- * an EIP-2612 permit signature, so the guided flow has to know which shape it is running.
- *
- * Deliberately says nothing about the relayer address, its balance or the budgets — only
- * that relaying is on.
- */
-export async function GET() {
-  const resolved = getRelayerConfig();
-
-  return NextResponse.json(
-    resolved.ok
-      ? { available: true, chainId: resolved.config.chainId }
-      : { available: false, chainId: null },
-    { headers: noStoreHeaders }
-  );
-}
-
-/**
  * Relays a signed ERC-2771 forward request so the player never needs ETH.
  *
  * Admission is layered, cheapest first. A request that would revert is turned away before
