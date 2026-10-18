@@ -136,7 +136,7 @@ address, no relayer key — is the case the self-paid path still covers.
 | `frontend/src/hooks/useFaucetClaim.ts` | Testnet faucet claim shared by the wallet menu and the top-up panel |
 | `frontend/src/lib/buildTransactionParams.ts` | Builds explicit `gas`/`maxFeePerGas`/`maxPriorityFeePerGas`/`nonce` to bypass Privy auto-populate (see Common Pitfalls) |
 | `frontend/src/lib/resilientBroadcast.ts` | Splits writes into sign + broadcast so wagmi fallback transport handles RPC retries |
-| `frontend/src/lib/errorDetails.ts` | Flattens an error graph into lowercase detail strings for failure classification; `bestErrorDetail` picks the one worth showing; `isRevertError` tells a final revert from a failure worth retrying |
+| `frontend/src/lib/errorDetails.ts` | Flattens an error graph into lowercase detail strings for failure classification; `bestErrorDetail` picks the one worth showing; `isRevertedReceiptError` tells a reverted receipt from a failure to read one |
 | `frontend/src/app/api/relay/route.ts` | Gas relayer: admits a signed ERC-2771 request, then signs and sends `ERC2771Forwarder.execute` under the lock (order: "Gasless Duel Actions") |
 | `frontend/src/lib/relayRequest.ts` | Relay wire types and error codes, relayable-function allowlist, payload validation, outer gas-limit rule |
 | `frontend/src/lib/relayerConfig.ts` | Server-only relayer wiring (key, RPC, budget, viem clients) |
@@ -195,10 +195,12 @@ address, no relayer key — is the case the self-paid path still covers.
 - **Relayer gas limit must clear `request.gas * 64 / 63` plus forwarder overhead.** `ERC2771Forwarder._checkForwardedGas` triggers `invalid()` — burning the *entire* limit, not just the unused part — when the forwarded call did not get the gas the request promised. On Arbitrum the L1 posting fee is charged out of the same limit and only `eth_estimateGas` knows its size, so `relayGasLimit` adds the floor ON TOP of the estimate; `max(floor, estimate)` would starve the inner call. Measured forwarder overhead beyond the floor is ~25k.
 - **`ERC2771Forwarder.execute` does not bubble up the inner revert reason** — a failed forwarded call surfaces as a bare `Errors.FailedCall()`. `/api/relay` re-simulates the inner call directly as the signer to recover the real message.
 - **A reverted transaction surfaces as an error, not as a receipt that never comes.** wagmi's
-  `useWaitForTransactionReceipt` throws when the mined receipt says `reverted`, with the
-  ABI-padded reason as its message. `useWriteWithGas` merges that error into its `error`; a
-  surface that reads only `isSuccess` / `isLoading` leaves a guided flow on "confirming" with its
-  close button gone.
+  `useWaitForTransactionReceipt` throws when the mined receipt says `reverted`. `useWriteWithGas`
+  merges that error into its `error`; a surface that reads only `isSuccess` / `isLoading` leaves a
+  guided flow on "confirming" with its close button gone. Only a revert does
+  (`isRevertedReceiptError`): any other failure to read the receipt is retried for as long as it
+  lasts, because a write reported as failed that went through is one "Try again" away from a
+  second duel and a second wager.
 - **Nothing plans or sends a duel write before the relay probe answers.** While
   `useRelayerStatus` is in flight, `isRelayEnabled` reads false, which would put a player the
   relayer would carry on the self-paid path. So `useDuelActions` takes the route as the write is

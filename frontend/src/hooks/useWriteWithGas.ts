@@ -14,7 +14,7 @@ import {
   type DuelPublicClient,
   type TransactionParams,
 } from '@/lib/buildTransactionParams';
-import { isRevertError } from '@/lib/errorDetails';
+import { isRevertedReceiptError } from '@/lib/errorDetails';
 import { broadcastWithFallback } from '@/lib/resilientBroadcast';
 import { buildSignedForwardRequest } from '@/lib/forwardRequest';
 import { submitRelayRequest } from '@/lib/relayApi';
@@ -85,13 +85,16 @@ export function useWriteWithGas(chainId: number) {
     error: receiptQueryError,
   } = useWaitForTransactionReceipt({
     hash,
-    // A revert is final: trying it again only keeps the player waiting for the error.
-    query: { retry: (failureCount, receiptError) => !isRevertError(receiptError) && failureCount < 3 },
+    // A revert is final, so it is not read again. Any other failure to read the receipt (a flaky
+    // RPC) says nothing about whether the transaction went through: the read keeps trying, since
+    // reporting a write that may have succeeded as failed invites "Try again" to send it twice.
+    query: { retry: (_failureCount, receiptError) => !isRevertedReceiptError(receiptError) },
   });
   const isConfirming = managedIsConfirming || receiptIsConfirming;
   // wagmi throws when a mined transaction reverted, so a sent write ends either in a receipt or
-  // here. Read it, or the caller waits on a write that has already failed.
-  const error = managedError ?? wagmiError ?? receiptQueryError;
+  // in that revert. Read it, or the caller waits on a write that has already failed.
+  const receiptRevert = isRevertedReceiptError(receiptQueryError) ? receiptQueryError : null;
+  const error = managedError ?? wagmiError ?? receiptRevert;
 
   /**
    * Owns the pending → confirming → hash sequence for every write this hook sends itself.

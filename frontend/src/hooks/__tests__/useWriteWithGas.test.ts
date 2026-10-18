@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
-import { act, renderHook } from '@testing-library/react';
+import { act, cleanup, renderHook } from '@testing-library/react';
 import { HttpRequestError } from 'viem';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WriteConfig } from '@/hooks/useWriteWithGas';
 import { DEFAULT_CHAIN } from '@/lib/constants';
 
@@ -60,6 +60,8 @@ beforeEach(() => {
   wagmi.receipt = idleReceipt();
 });
 
+afterEach(cleanup);
+
 describe('useWriteWithGas — a transaction that reverted after it was sent', () => {
   it('reports the revert as the write error instead of leaving the write confirming forever', () => {
     const revert = new Error('Duel not in Created state');
@@ -73,11 +75,27 @@ describe('useWriteWithGas — a transaction that reverted after it was sent', ()
     expect(result.current.isSuccess).toBe(false);
   });
 
-  it('does not read the receipt again after a revert, only after the RPC failed', () => {
+  it('does not read the receipt again after a revert', () => {
     renderHook(() => useWriteWithGas(DEFAULT_CHAIN.id));
 
     expect(wagmi.receiptRetry?.(0, new Error('Duel not in Created state'))).toBe(false);
-    expect(wagmi.receiptRetry?.(0, new HttpRequestError({ url: 'https://rpc.example' }))).toBe(true);
+  });
+});
+
+describe('useWriteWithGas — a receipt the RPC failed to return', () => {
+  it('reports no error, since the transaction may well have gone through', () => {
+    wagmi.writeHash = HASH;
+    wagmi.receipt.error = new HttpRequestError({ url: 'https://rpc.example' });
+
+    const { result } = renderHook(() => useWriteWithGas(DEFAULT_CHAIN.id));
+
+    expect(result.current.error).toBeNull();
+  });
+
+  it('keeps reading the receipt for as long as the RPC fails', () => {
+    renderHook(() => useWriteWithGas(DEFAULT_CHAIN.id));
+
+    expect(wagmi.receiptRetry?.(10, new HttpRequestError({ url: 'https://rpc.example' }))).toBe(true);
   });
 });
 

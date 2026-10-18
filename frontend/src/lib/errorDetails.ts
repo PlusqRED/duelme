@@ -69,17 +69,18 @@ export function bestErrorDetail(error: unknown): string | undefined {
 }
 
 /**
- * Whether a failed read or write ended in a revert, which is final, rather than in a transport or
- * node failure, which is worth another try. wagmi reports a reverted receipt as a plain `Error`
- * carrying the reason, or as viem's error around an `ExecutionRevertedError` when it replays the
- * call; every transport failure is one of viem's own errors.
+ * Whether wagmi's receipt read failed because the transaction reverted. On a reverted receipt
+ * wagmi replays the call for its reason and throws either a plain `Error` carrying the decoded
+ * reason or, when the replay reverts too, viem's error around an `ExecutionRevertedError`. Any
+ * other failure — the RPC, a timeout, wagmi's own config errors — says nothing about the
+ * transaction itself.
  */
-export function isRevertError(error: unknown): boolean {
-  if (!(error instanceof BaseError)) {
-    return error instanceof Error;
+export function isRevertedReceiptError(error: unknown): boolean {
+  if (error instanceof BaseError) {
+    return error.walk((cause) => cause instanceof ExecutionRevertedError) !== null;
   }
 
-  return error.walk((cause) => cause instanceof ExecutionRevertedError) !== null;
+  return error instanceof Error && Object.getPrototypeOf(error) === Error.prototype;
 }
 
 function addDetail(details: Set<string>, value: unknown) {
