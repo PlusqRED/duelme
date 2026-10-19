@@ -34,7 +34,7 @@ function isDecimal(text: string): text is `${number}` {
 }
 
 // Built once per language: a list's search text formats every duel's amount and date per keystroke.
-function perLanguage<T>(make: (locale: string) => T): Record<Language, T> {
+export function perLanguage<T>(make: (locale: string) => T): Record<Language, T> {
   return { en: make(intlLocales.en), ru: make(intlLocales.ru) };
 }
 

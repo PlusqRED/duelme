@@ -32,16 +32,15 @@ export function PublicDuelsSection() {
 
   const { metaByDuelId } = usePublicDuelMetas(duelIds, DEFAULT_CHAIN_ID);
   const { resolveDisplay } = useNicknames(addresses);
-  const { reputationByAddress, reputationStatsByAddress } = useReputationLevels(addresses, DEFAULT_CHAIN_ID);
+  const { reputationStatsByAddress } = useReputationLevels(addresses, DEFAULT_CHAIN_ID);
   const enrichedPreview = useMemo<EnrichedDuel[]>(
     () => preview.map((duel) => enrichPublicDuel({
       duel,
       meta: metaByDuelId[duel.id],
       resolveDisplay,
-      reputationByAddress,
       reputationStatsByAddress,
     })),
-    [preview, metaByDuelId, resolveDisplay, reputationByAddress, reputationStatsByAddress],
+    [preview, metaByDuelId, resolveDisplay, reputationStatsByAddress],
   );
 
   return (

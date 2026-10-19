@@ -8,7 +8,7 @@ const SIZE = 5;
 const DRAWN_COLUMNS = 3;
 const DRAWN_BITS = SIZE * DRAWN_COLUMNS;
 const DRAWN_MASK = (1 << DRAWN_BITS) - 1;
-/** Fewer squares than this hardly tell one face from another. */
+/** Fewer filled cells on the drawn side than this hardly tell one face from another. */
 const FEWEST_SQUARES = 3;
 
 /** FNV-1a, 32 bits: the same text always gives the same number. */
@@ -30,7 +30,7 @@ function countBits(bits: number): number {
 /**
  * A player's pattern, drawn from their address: 15 bits of its hash fill the left three columns
  * of a 5×5 grid, and the right two mirror them; a hash whose 15 bits fill fewer than three squares
- * adds its next 15, which still leaves too few for about one address in ten million. An address in
+ * adds its next 15, which still leaves too few for about one address in a million. An address in
  * any letter case draws the same one.
  */
 export function identiconCells(address: string): IdenticonCell[] {

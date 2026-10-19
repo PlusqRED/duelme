@@ -70,8 +70,7 @@ describe('applyRecentFilters - state filtering', () => {
     const result = applyRecentFilters(duels, {
       stateFilter: 'all',
       sort: 'newest',
-      searchQuery: '',
-      language: 'en',
+      normalizedQuery: '',
       buildSearchIndex: searchIndex,
     });
     expect(result).toHaveLength(9);
@@ -81,8 +80,7 @@ describe('applyRecentFilters - state filtering', () => {
     const result = applyRecentFilters(duels, {
       stateFilter: 'live',
       sort: 'newest',
-      searchQuery: '',
-      language: 'en',
+      normalizedQuery: '',
       buildSearchIndex: searchIndex,
     });
     expect(result.map((d) => d.id).sort()).toEqual([1, 2, 3]);
@@ -92,8 +90,7 @@ describe('applyRecentFilters - state filtering', () => {
     const result = applyRecentFilters(duels, {
       stateFilter: 'resolved',
       sort: 'newest',
-      searchQuery: '',
-      language: 'en',
+      normalizedQuery: '',
       buildSearchIndex: searchIndex,
     });
     expect(result.map((d) => d.id)).toEqual([4]);
@@ -103,8 +100,7 @@ describe('applyRecentFilters - state filtering', () => {
     const result = applyRecentFilters(duels, {
       stateFilter: 'refunded',
       sort: 'newest',
-      searchQuery: '',
-      language: 'en',
+      normalizedQuery: '',
       buildSearchIndex: searchIndex,
     });
     expect(result.map((d) => d.id)).toEqual([5]);
@@ -114,8 +110,7 @@ describe('applyRecentFilters - state filtering', () => {
     const result = applyRecentFilters(duels, {
       stateFilter: 'cancelled',
       sort: 'newest',
-      searchQuery: '',
-      language: 'en',
+      normalizedQuery: '',
       buildSearchIndex: searchIndex,
     });
     expect(result.map((d) => d.id).sort()).toEqual([6, 7, 8]);
@@ -125,8 +120,7 @@ describe('applyRecentFilters - state filtering', () => {
     const result = applyRecentFilters(duels, {
       stateFilter: 'disputed',
       sort: 'newest',
-      searchQuery: '',
-      language: 'en',
+      normalizedQuery: '',
       buildSearchIndex: searchIndex,
     });
     expect(result.map((d) => d.id)).toEqual([9]);
@@ -144,8 +138,7 @@ describe('applyRecentFilters - search', () => {
     const result = applyRecentFilters(duels, {
       stateFilter: 'all',
       sort: 'newest',
-      searchQuery: '',
-      language: 'en',
+      normalizedQuery: '',
       buildSearchIndex: () => 'whatever',
     });
     expect(result).toHaveLength(3);
@@ -160,35 +153,8 @@ describe('applyRecentFilters - search', () => {
     const result = applyRecentFilters(duels, {
       stateFilter: 'all',
       sort: 'newest',
-      searchQuery: 'bob',
-      language: 'en',
+      normalizedQuery: 'bob',
       buildSearchIndex: (d) => indexes[d.id],
-    });
-    expect(result.map((d) => d.id)).toEqual([2]);
-  });
-
-  it('search query is normalized (case-insensitive, trimmed)', () => {
-    const indexes: Record<number, string> = {
-      1: 'alice',
-      2: 'bob',
-      3: 'charlie',
-    };
-    const result = applyRecentFilters(duels, {
-      stateFilter: 'all',
-      sort: 'newest',
-      searchQuery: '  ALICE  ',
-      language: 'en',
-      buildSearchIndex: (d) => indexes[d.id],
-    });
-    expect(result.map((d) => d.id)).toEqual([1]);
-  });
-  it('folds the query the way the search text is, as the filter counts do', () => {
-    const result = applyRecentFilters(duels, {
-      stateFilter: 'all',
-      sort: 'newest',
-      searchQuery: 'Best  of 3,4',
-      language: 'ru',
-      buildSearchIndex: (d) => (d.id === 2 ? 'best of 3.4 maps' : ''),
     });
     expect(result.map((d) => d.id)).toEqual([2]);
   });
@@ -205,8 +171,7 @@ describe('applyRecentFilters - sorting', () => {
     const result = applyRecentFilters(duels, {
       stateFilter: 'all',
       sort: 'newest',
-      searchQuery: '',
-      language: 'en',
+      normalizedQuery: '',
       buildSearchIndex: searchIndex,
     });
     expect(result.map((d) => d.id)).toEqual([3, 2, 1]);
@@ -216,8 +181,7 @@ describe('applyRecentFilters - sorting', () => {
     const result = applyRecentFilters(duels, {
       stateFilter: 'all',
       sort: 'oldest',
-      searchQuery: '',
-      language: 'en',
+      normalizedQuery: '',
       buildSearchIndex: searchIndex,
     });
     expect(result.map((d) => d.id)).toEqual([1, 2, 3]);
@@ -227,8 +191,7 @@ describe('applyRecentFilters - sorting', () => {
     const result = applyRecentFilters(duels, {
       stateFilter: 'all',
       sort: 'highestWager',
-      searchQuery: '',
-      language: 'en',
+      normalizedQuery: '',
       buildSearchIndex: searchIndex,
     });
     expect(result.map((d) => d.id)).toEqual([2, 3, 1]);
@@ -238,8 +201,7 @@ describe('applyRecentFilters - sorting', () => {
     const result = applyRecentFilters(duels, {
       stateFilter: 'all',
       sort: 'lowestWager',
-      searchQuery: '',
-      language: 'en',
+      normalizedQuery: '',
       buildSearchIndex: searchIndex,
     });
     expect(result.map((d) => d.id)).toEqual([1, 3, 2]);
@@ -254,8 +216,7 @@ describe('applyRecentFilters - sorting', () => {
     const result = applyRecentFilters(sameWager, {
       stateFilter: 'all',
       sort: 'highestWager',
-      searchQuery: '',
-      language: 'en',
+      normalizedQuery: '',
       buildSearchIndex: searchIndex,
     });
     expect(result.map((d) => d.id)).toEqual([2, 3, 1]);
@@ -279,8 +240,7 @@ describe('applyRecentFilters - composition', () => {
     const result = applyRecentFilters(duels, {
       stateFilter: 'resolved',
       sort: 'highestWager',
-      searchQuery: 'alice',
-      language: 'en',
+      normalizedQuery: 'alice',
       buildSearchIndex: (d) => indexes[d.id],
     });
     // 'alice' matches 1 and 3, 'resolved' state keeps both, sort by wager desc
@@ -292,8 +252,7 @@ describe('applyRecentFilters - composition', () => {
     const result = applyRecentFilters(duels, {
       stateFilter: 'disputed',
       sort: 'newest',
-      searchQuery: '',
-      language: 'en',
+      normalizedQuery: '',
       buildSearchIndex: searchIndex,
     });
     expect(result).toEqual([]);
@@ -303,8 +262,7 @@ describe('applyRecentFilters - composition', () => {
     const result = applyRecentFilters([], {
       stateFilter: 'all',
       sort: 'newest',
-      searchQuery: 'anything',
-      language: 'en',
+      normalizedQuery: 'anything',
       buildSearchIndex: searchIndex,
     });
     expect(result).toEqual([]);

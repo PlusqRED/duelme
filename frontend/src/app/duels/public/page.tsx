@@ -44,17 +44,16 @@ export default function PublicDuelsPage() {
 
   const addresses = useMemo(() => duels.map((d) => d.creator), [duels]);
   const { resolveDisplay } = useNicknames(addresses);
-  const { reputationByAddress, reputationStatsByAddress } = useReputationLevels(addresses, DEFAULT_CHAIN_ID);
+  const { reputationStatsByAddress } = useReputationLevels(addresses, DEFAULT_CHAIN_ID);
 
   const enriched = useMemo<EnrichedDuel[]>(
     () => duels.map((duel) => enrichPublicDuel({
       duel,
       meta: metaByDuelId[duel.id],
       resolveDisplay,
-      reputationByAddress,
       reputationStatsByAddress,
     })),
-    [duels, metaByDuelId, resolveDisplay, reputationByAddress, reputationStatsByAddress],
+    [duels, metaByDuelId, resolveDisplay, reputationStatsByAddress],
   );
 
   const gameOptions = useMemo(() => {
@@ -68,6 +67,11 @@ export default function PublicDuelsPage() {
   }, [enriched]);
 
   const normalizedSearch = normalizeSearchQuery(searchQuery, language);
+  // Built once per list and language rather than per keystroke: each duel's text formats its amounts.
+  const searchTextById = useMemo(
+    () => new Map(enriched.map((d) => [d.id, buildPublicDuelSearchText(d, t, language)])),
+    [enriched, t, language],
+  );
 
   const filtered = useMemo(() => {
     let result = enriched;
@@ -84,7 +88,7 @@ export default function PublicDuelsPage() {
     }
 
     if (normalizedSearch) {
-      result = result.filter((d) => buildPublicDuelSearchText(d, language).includes(normalizedSearch));
+      result = result.filter((d) => searchTextById.get(d.id)?.includes(normalizedSearch));
     }
 
     result = [...result];
@@ -93,7 +97,7 @@ export default function PublicDuelsPage() {
     else result.sort((a, b) => a.wager - b.wager);
 
     return result;
-  }, [enriched, gameFilter, wagerRange, normalizedSearch, sortBy, language]);
+  }, [enriched, gameFilter, wagerRange, normalizedSearch, sortBy, searchTextById]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);

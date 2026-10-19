@@ -11,11 +11,13 @@ export function gameInitials(name: string): string {
 }
 
 // By what reads as one character, so a name that starts with an emoji, a flag or a family of
-// people keeps it whole.
-const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+// people keeps it whole. A browser without `Intl.Segmenter` (Firefox before 125) splits by code
+// point instead, which still keeps a plain emoji whole; constructing one there would throw.
+const graphemes =
+  typeof Intl.Segmenter === 'function' ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
 
 function lettersOf(word: string): string[] {
-  return Array.from(graphemes.segment(word), ({ segment }) => segment);
+  return graphemes ? Array.from(graphemes.segment(word), ({ segment }) => segment) : Array.from(word);
 }
 
 /** A letter in upper case, unless that makes it two: «ß» would turn into «SS». */

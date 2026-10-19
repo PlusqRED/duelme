@@ -43,7 +43,7 @@ describe('useDuelsByGame', () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
   });
 
-  it('keeps the list it had when a later read fails', async () => {
+  it('keeps the list it had, and says it may be out of date, when a later read fails', async () => {
     api.fetchDuelsByGame.mockResolvedValueOnce([CHESS_DUEL]).mockRejectedValue(new Error('down'));
     const { result } = renderHook(() => useDuelsByGame('chess', DEFAULT_CHAIN.id), { wrapper });
     await waitFor(() => expect(result.current.duels).toHaveLength(1));
@@ -53,6 +53,6 @@ describe('useDuelsByGame', () => {
     });
     await waitFor(() => expect(client.getQueryState(['duelsByGame', 'chess', DEFAULT_CHAIN.id])?.status).toBe('error'));
 
-    expect([result.current.duels.length, result.current.isError]).toEqual([1, false]);
+    expect([result.current.duels.length, result.current.isError]).toEqual([1, true]);
   });
 });

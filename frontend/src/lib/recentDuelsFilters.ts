@@ -1,7 +1,5 @@
 import { DuelState } from '@/lib/contracts';
-import { normalizeSearchQuery } from '@/lib/duelSearch';
 import type { RecentDuel } from '@/hooks/useRecentDuels';
-import type { Language } from '@/i18n/translations';
 
 export type RecentStateFilter =
   | 'all'
@@ -54,17 +52,15 @@ export function isStateInFilter(state: DuelState, filter: RecentStateFilter): bo
 export interface ApplyRecentFiltersOptions {
   stateFilter: RecentStateFilter;
   sort: RecentSortBy;
-  searchQuery: string;
-  /** The language the search text was built in: the query is folded the way it was. */
-  language: Language;
+  /** The query as `normalizeSearchQuery` folds it, the way the search text was folded. */
+  normalizedQuery: string;
   buildSearchIndex: (duel: RecentDuel) => string;
 }
 
 export function applyRecentFilters(
   duels: RecentDuel[],
-  { stateFilter, sort, searchQuery, language, buildSearchIndex }: ApplyRecentFiltersOptions
+  { stateFilter, sort, normalizedQuery, buildSearchIndex }: ApplyRecentFiltersOptions
 ): RecentDuel[] {
-  const normalizedQuery = normalizeSearchQuery(searchQuery, language);
 
   const filtered = duels.filter((duel) => {
     if (!isStateInFilter(duel.state, stateFilter)) return false;

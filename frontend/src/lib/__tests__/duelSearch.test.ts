@@ -3,7 +3,9 @@ import { DEFAULT_CHAIN_ID } from '@/lib/constants';
 import { DuelState } from '@/lib/contracts';
 import { toPlayerDuel } from '@/lib/duel';
 import { buildDashboardDuelSearchText, buildPublicDuelSearchText, normalizeSearchQuery } from '@/lib/duelSearch';
+import { translations, type TranslationKey } from '@/i18n/translations';
 import { enrichPublicDuel } from '@/lib/publicDuelsFilters';
+import { getReputationSummaryFromStats } from '@/lib/reputation';
 import { duelView } from '@/lib/__tests__/helpers/duelView';
 
 const WINNER = '0xAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa';
@@ -55,16 +57,29 @@ describe('buildDashboardDuelSearchText', () => {
 });
 
 describe('buildPublicDuelSearchText', () => {
+  // Abandoned more than honored: the card calls this creator Risky.
   const open = enrichPublicDuel({
     duel: { id: 1, creator: WINNER, wager: 0.5, message: '', createdAt: 1n, chainId: DEFAULT_CHAIN_ID },
     meta: undefined,
     resolveDisplay: () => 'alice',
-    reputationByAddress: {},
-    reputationStatsByAddress: {},
+    reputationStatsByAddress: { [WINNER.toLowerCase()]: getReputationSummaryFromStats(1, 4) },
   });
 
+  function findsOpen(language: 'en' | 'ru', query: string) {
+    const t = (key: TranslationKey) => translations[language][key];
+    return buildPublicDuelSearchText(open, t, language).includes(normalizeSearchQuery(query, language));
+  }
+
   it('finds the stake as the card writes it in Russian', () => {
-    expect(buildPublicDuelSearchText(open, 'ru').includes(normalizeSearchQuery('0,5', 'ru'))).toBe(true);
+    expect(findsOpen('ru', '0,5')).toBe(true);
+  });
+
+  it('finds the creator by the level the card names, not by a word inside another level', () => {
+    expect([findsOpen('en', 'risky'), findsOpen('en', 'reliable')]).toEqual([true, false]);
+  });
+
+  it('finds a stake typed with its currency', () => {
+    expect(findsOpen('en', '0.5 usdt')).toBe(true);
   });
 });
 
@@ -75,5 +90,17 @@ describe('normalizeSearchQuery', () => {
 
   it('drops an English thousands comma', () => {
     expect(normalizeSearchQuery('1,234.5', 'en')).toBe('1234.5');
+  });
+
+  it('folds a comma still being typed at either end of a number', () => {
+    expect([normalizeSearchQuery('1 234,', 'ru'), normalizeSearchQuery(',5', 'ru'), normalizeSearchQuery('1,', 'en')]).toEqual([
+      '1 234.',
+      '.5',
+      '1',
+    ]);
+  });
+
+  it('reads ё as е, the way it is often typed', () => {
+    expect(normalizeSearchQuery('Идёт', 'ru')).toBe('идет');
   });
 });

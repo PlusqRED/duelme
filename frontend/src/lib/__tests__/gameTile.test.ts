@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { gameInitials } from '@/lib/gameTile';
 
 describe('gameInitials', () => {
@@ -24,6 +24,18 @@ describe('gameInitials', () => {
 
   it('keeps a letter that upper case would turn into two', () => {
     expect(gameInitials('ßeta Game')).toBe('ßG');
+  });
+
+  it('still draws initials in a browser without Intl.Segmenter', async () => {
+    vi.stubGlobal('Intl', { ...Intl, Segmenter: undefined });
+    vi.resetModules();
+    try {
+      const { gameInitials: initialsWithout } = await import('@/lib/gameTile');
+
+      expect([initialsWithout('🔥 Fire Arena'), initialsWithout('Dota 2')]).toEqual(['🔥F', 'D2']);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('shows nothing for a name of blanks', () => {

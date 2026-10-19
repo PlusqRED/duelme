@@ -15,7 +15,7 @@ describe('PartialDataNotice', () => {
   it('says the list is short', () => {
     render(<PartialDataNotice when onRetry={() => {}} />);
 
-    expect(screen.getByRole('status').textContent).toContain('may be incomplete');
+    expect(screen.getByRole('status').textContent).toContain('may be incomplete or out of date');
   });
 
   it('reads the list again on Try again', () => {

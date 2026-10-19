@@ -15,7 +15,6 @@ function renderCard(stats: ReputationSummary | undefined) {
     duel: { id: 4, creator: CREATOR, wager: 5, message: '', createdAt: 1n, chainId: DEFAULT_CHAIN_ID },
     meta: undefined,
     resolveDisplay: () => 'alice',
-    reputationByAddress: stats ? { [CREATOR]: stats.level } : {},
     reputationStatsByAddress: stats ? { [CREATOR]: stats } : {},
   });
   render(<PublicDuelCard duel={duel} timeAgo={() => 'now'} />);

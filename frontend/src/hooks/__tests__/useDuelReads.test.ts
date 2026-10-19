@@ -53,13 +53,13 @@ describe('useDuelRange', () => {
     expect(result.current.isError).toBe(true);
   });
 
-  it('keeps a list whole when only a later read of it failed', () => {
+  it('says the list may be out of date when a later read of it failed', () => {
     chain.count = { data: 1n, isError: true };
     chain.pages = { data: [], isError: true };
 
     const { result } = renderHook(() => useDuelRange({ chainId: DEFAULT_CHAIN.id }));
 
-    expect(result.current.isError).toBe(false);
+    expect(result.current.isError).toBe(true);
   });
 });
 

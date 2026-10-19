@@ -42,23 +42,32 @@ const CANONICAL_OUTCOME_TERMS: Record<string, string[]> = {
   'dashboard.outcomeNoWinner': ['no winner', 'refund', 'draw'],
 };
 
+/** A comma in a number as the language writes it: Russian's decimal point, English's thousands separator. */
+function foldedComma(language: Language): string {
+  return language === 'ru' ? '.' : '';
+}
+
 /**
- * Search text as it is matched: lower case, any run of spaces (a non-breaking one in a Russian
- * amount too) as one space, and a comma between digits read the way the language writes numbers.
- * In Russian it is the decimal point, so `1 234,5` typed matches `1 234,5` shown and `1234,5`
- * matches `1234.5`; in English it groups thousands and is dropped, so `1,234.5` matches `1234.5`
- * while `1.5` does not match `1,500`.
+ * Search text as it is matched: lower case, ё as е the way it is often typed, any run of spaces (a
+ * non-breaking one in a Russian amount too) as one space, and a comma between digits read the way
+ * the language writes numbers. In Russian it is the decimal point, so `1 234,5` typed matches
+ * `1 234,5` shown and `1234,5` matches `1234.5`; in English it groups thousands and is dropped, so
+ * `1,234.5` matches `1234.5` while `1.5` does not match `1,500`.
  */
 function foldSearchText(text: string, language: Language): string {
   return text
     .toLowerCase()
+    .replace(/ё/g, 'е')
     .replace(/\s+/g, ' ')
-    .replace(/(?<=\d),(?=\d)/g, language === 'ru' ? '.' : '');
+    .replace(/(?<=\d),(?=\d)/g, foldedComma(language));
 }
 
-/** A search box's query, folded the way the search text is. */
+/**
+ * A search box's query, folded the way the search text is. A comma after its last digit or before
+ * its first is a number still being typed (`1 234,` on the way to `1 234,5`), so it folds too.
+ */
 export function normalizeSearchQuery(query: string, language: Language): string {
-  return foldSearchText(query.trim(), language);
+  return foldSearchText(query.trim(), language).replace(/(?<=\d),$|^,(?=\d)/g, foldedComma(language));
 }
 
 function normalizeSearchParts(parts: Array<string | number | undefined | null | false>, language: Language) {
@@ -118,8 +127,6 @@ export function buildDashboardDuelSearchText(
     nicknameByAddress?.[duel.creator.toLowerCase()] ?? '',
     nicknameByAddress?.[duel.opponent.toLowerCase()] ?? '',
     duel.chainName,
-    'arbitrum sepolia',
-    'arb sepolia',
     formatDateTime(getRelevantDuelTimestamp(duel), language),
     t('dashboard.lastUpdateLabel'),
     ...(CANONICAL_OUTCOME_TERMS[outcome.key] ?? []),
@@ -159,8 +166,6 @@ export function buildRecentDuelSearchText(
     isTimedOut ? 'timed out' : '',
     isTimedOut ? 'response timed out' : '',
     duel.chainName,
-    'arbitrum sepolia',
-    'arb sepolia',
     duel.state === DuelState.Resolved ? t('recent.won') : '',
     duel.state === DuelState.Resolved ? 'won' : '',
     duel.state === DuelState.Resolved ? 'winner' : '',
@@ -174,18 +179,25 @@ export function buildRecentDuelSearchText(
   ], language);
 }
 
-/** An open duel's search text: its creator, its stake as the card writes it and as typed, its game. */
-export function buildPublicDuelSearchText(duel: EnrichedDuel, language: Language) {
+/**
+ * An open duel's search text: its creator and their level as the card names it, its stake and pot
+ * as the card writes them and as typed, its game and the game's category.
+ */
+export function buildPublicDuelSearchText(duel: EnrichedDuel, t: Translate, language: Language) {
+  const stats = duel.reputationStats;
+
   return normalizeSearchParts([
     duel.creatorName,
     duel.creator,
     duel.wager,
+    `${duel.wager} usdt`,
     formatPublicDuelAmount(duel.wager, language),
+    formatPublicDuelAmount(duel.wager * 2, language),
     duel.message,
     duel.gameName,
-    duel.gameCategory,
-    duel.reputation,
-    duel.reputationStats?.honored,
-    duel.reputationStats?.total,
+    duel.gameCategory && t(`category.${duel.gameCategory}` as const),
+    stats && t(getReputationLabelKey(stats.level)),
+    stats?.honored,
+    stats?.total,
   ], language);
 }

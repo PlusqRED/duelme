@@ -79,20 +79,21 @@ export default function RecentDuelsPage() {
     [searchIndexByDuelId],
   );
 
+  // Folded once, so the list and its filter counts can never match a query differently.
+  const normalizedQuery = normalizeSearchQuery(searchQuery, language);
+
   const filteredDuels = useMemo(
     () =>
       applyRecentFilters(duels, {
         stateFilter,
         sort,
-        searchQuery,
-        language,
+        normalizedQuery,
         buildSearchIndex,
       }),
-    [duels, stateFilter, sort, searchQuery, language, buildSearchIndex],
+    [duels, stateFilter, sort, normalizedQuery, buildSearchIndex],
   );
 
   const countByFilter = useMemo(() => {
-    const normalizedQuery = normalizeSearchQuery(searchQuery, language);
     const counts = Object.fromEntries(
       RECENT_STATE_FILTERS.map((f) => [f, 0]),
     ) as Record<RecentStateFilter, number>;
@@ -109,7 +110,7 @@ export default function RecentDuelsPage() {
     }
 
     return counts;
-  }, [duels, searchQuery, language, searchIndexByDuelId]);
+  }, [duels, normalizedQuery, searchIndexByDuelId]);
 
   const visibleDuels = useMemo(
     () => filteredDuels.slice(0, visibleCount),
