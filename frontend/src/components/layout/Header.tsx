@@ -533,7 +533,7 @@ export function Header() {
                 )}
               </div>
 
-              <Button variant="ghost" size="sm" onClick={logout}>
+              <Button variant="ghost" size="sm" onClick={logout} aria-label={t('nav.signOut')}>
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
@@ -546,10 +546,9 @@ export function Header() {
 
         {/* Mobile menu button */}
         <button
-          className="inline-flex items-center justify-center rounded-md p-2 text-slate-600 hover:text-slate-900 md:hidden"
+          className="inline-flex size-11 items-center justify-center rounded-md text-slate-600 hover:text-slate-900 md:hidden"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label={t('nav.menu')}
-          aria-expanded={mobileMenuOpen}
+          aria-label={t('nav.menu')} aria-expanded={mobileMenuOpen}
         >
           {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
@@ -641,7 +640,7 @@ export function Header() {
                     <span className="text-sm font-medium truncate">{displayName || t('nav.myProfile')}</span>
                   </div>
                 </Link>
-                <Button variant="ghost" size="sm" onClick={logout}>
+                <Button variant="ghost" size="sm" onClick={logout} aria-label={t('nav.signOut')}>
                   <LogOut className="h-4 w-4" />
                 </Button>
               </div>

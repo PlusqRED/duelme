@@ -92,7 +92,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={geologica.variable}>
+    <html lang="en" className={geologica.variable} data-scroll-behavior="smooth">
       <body>
         {/* Organization + WebApplication are global brand identity — safe on every page. */}
         {/* FAQ is intentionally NOT here: it must live only on the page where the */}

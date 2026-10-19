@@ -10,9 +10,12 @@ function TooltipProvider({ delay = 0, ...props }: TooltipPrimitive.Provider.Prop
 const Tooltip = TooltipPrimitive.Root;
 const TooltipTrigger = TooltipPrimitive.Trigger;
 
+// Base UI also takes a className function of the popup's state, which cn() would drop.
 interface TooltipContentProps
-  extends TooltipPrimitive.Popup.Props,
-    Pick<TooltipPrimitive.Positioner.Props, 'side' | 'sideOffset'> {}
+  extends Omit<TooltipPrimitive.Popup.Props, 'className'>,
+    Pick<TooltipPrimitive.Positioner.Props, 'side' | 'sideOffset'> {
+  className?: string;
+}
 
 /** A short ink note beside what it explains. */
 function TooltipContent({ className, side = 'top', sideOffset = 6, children, ...props }: TooltipContentProps) {

@@ -710,8 +710,7 @@ export default function DuelPage({
 
                   {canManageParticipantDuel && hasClaimablePayout && (
                     <Button
-                      variant="sun"
-                      size="lg"
+                      variant="sun" size="lg"
                       className="w-full sm:w-auto"
                       onClick={openClaimPayout}
                       disabled={txPending || actionFlow.flow !== null}

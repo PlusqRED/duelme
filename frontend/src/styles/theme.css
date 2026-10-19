@@ -62,4 +62,8 @@
 
   --shadow-window: 0 40px 80px -30px rgb(4 8 31 / 0.55);
   --shadow-menu: 0 28px 56px -28px rgb(18 26 62 / 0.42);
+
+  /* Wider than a phone: a window stops being a sheet. Wide enough for a window's two columns. */
+  --breakpoint-xs: 35rem;
+  --breakpoint-split: 53.75rem;
 }

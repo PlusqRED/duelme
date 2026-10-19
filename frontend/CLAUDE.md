@@ -108,9 +108,10 @@ has not reached yet still looks old, and the guard tests below list it.
   winner and the payout, green (`good`) what is good (honored, unlocked, copied, under your
   control), orange what needs attention (an error, a shortfall, a late answer) — never red, which
   is a player. Reputation levels: Reliable green, Mixed amber, Risky orange, New grey.
-- **Tokens only.** Every colour, easing and shadow, and every type size or weight Tailwind's own
-  scale lacks, is a token in `src/styles/theme.css`, used by its role: `bg-canvas`, `text-ink-3`,
-  `bg-red-soft`, `text-body-sm`, `ease-press`. Tailwind's
+- **Tokens only.** Every colour, easing and shadow, and every type size, weight or breakpoint
+  Tailwind's own scale lacks, is a token in `src/styles/theme.css`, used by its role: `bg-canvas`,
+  `text-ink-3`, `bg-red-soft`, `text-body-sm`, `ease-press`, `xs:` (560px, where a window stops
+  being a sheet). Tailwind's
   own palette (`bg-slate-50`, `text-white`), a colour value in a component, and `dark:` (there is
   no dark theme) fail `styles/__tests__/designGuard.test.ts`. The files the port has not reached are
   listed in `styles/__tests__/notYetPorted.ts`; a screen's port takes its files off, and the list

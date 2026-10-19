@@ -88,7 +88,7 @@ export function GuidedTransactionDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="gap-0 p-0 min-[560px]:pt-0 min-[860px]:[--dialog-width:900px]"
+        className="gap-0 p-0 pb-[env(safe-area-inset-bottom)] xs:p-0 split:[--dialog-width:900px]"
         showCloseButton={canClose}
       >
         <div className="border-b border-slate-200 bg-gradient-to-r from-indigo-50 via-white to-slate-50 px-6 py-5">
@@ -102,7 +102,7 @@ export function GuidedTransactionDialog({
           </DialogHeader>
           <ol className={cn(
             'mt-5 grid gap-2',
-            steps.length <= 3 ? 'sm:grid-cols-3' : steps.length === 4 ? 'sm:grid-cols-4' : 'sm:grid-cols-5'
+            steps.length <= 3 ? 'split:grid-cols-3' : steps.length === 4 ? 'split:grid-cols-4' : 'split:grid-cols-5'
           )}>
             {steps.map((step) => (
               <li

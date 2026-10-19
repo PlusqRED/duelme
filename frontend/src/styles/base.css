@@ -18,7 +18,8 @@
     font-family: var(--font-sans);
     font-size: var(--text-body);
     line-height: var(--text-body--line-height);
-    font-synthesis: none;
+    /* Geologica has no italic face, so an italic is slanted by the browser, never bolded. */
+    font-synthesis: style;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }

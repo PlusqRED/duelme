@@ -33,7 +33,10 @@ const buttonVariants = cva(
   }
 );
 
-interface ButtonProps extends ButtonPrimitive.Props, VariantProps<typeof buttonVariants> {}
+// Base UI also takes a className function of the button's state, which cn() would drop.
+interface ButtonProps extends Omit<ButtonPrimitive.Props, 'className'>, VariantProps<typeof buttonVariants> {
+  className?: string;
+}
 
 function Button({ className, variant, size, ...props }: ButtonProps) {
   return <ButtonPrimitive className={cn(buttonVariants({ variant, size }), className)} {...props} />;

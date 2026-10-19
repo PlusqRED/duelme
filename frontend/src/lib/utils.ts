@@ -3,13 +3,16 @@ import { extendTailwindMerge } from 'tailwind-merge';
 import { USDT_DECIMALS } from './constants';
 import type { Language } from '@/i18n/translations';
 
-// tailwind-merge reads the theme's own type sizes and weights (styles/theme.css) as colours and
-// font families, and would drop `text-body` from `text-body text-ink` as a clash.
+// tailwind-merge does not read styles/theme.css: it takes the theme's own type sizes, weights and
+// shadows for colours or font families (dropping `text-body` from `text-body text-ink`), and does
+// not know its easings at all.
 const twMerge = extendTailwindMerge({
   extend: {
     theme: {
       text: ['note', 'body-sm', 'body', 'lead', 'h1', 'h2'],
       'font-weight': ['label', 'strong'],
+      shadow: ['window', 'menu'],
+      ease: ['spring', 'press', 'sheet'],
     },
   },
 });
