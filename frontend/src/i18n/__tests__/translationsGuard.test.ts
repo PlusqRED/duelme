@@ -26,16 +26,23 @@ function isUsed(key: string): boolean {
   return isQuoted(key) || (PLURAL_FORM.test(key) && isQuoted(key.replace(PLURAL_FORM, '')));
 }
 
-/**
- * «Вы» and its forms, and verbs that agree with it even where it is left out: «попробуйте»,
- * «поделитесь», «знаете», «чем занимаетесь». Only an -ете after a vowel counts, so a noun such as
- * «в тестнете» does not.
- */
-const FORMAL_ADDRESS =
-  /(?<![а-яё])(?:вы|вас|вам|вами|ваш[а-яё]*|[а-яё]+(?:ите|йте)(?:сь)?|[а-яё]*[аеиоуыэюяё][её]те(?:сь)?)(?![а-яё])/iu;
+/** «Вы» and its forms. */
+const FORMAL_PRONOUN = /(?<![а-яё])(?:вы|вас|вам|вами|ваш[а-яё]*)(?![а-яё])/iu;
+
+/** A verb that agrees with «вы» even where it is left out: «попробуйте», «проверьте», «можете», «поделитесь». */
+const FORMAL_VERB = /(?<![а-яё])[а-яё]+(?:ите|йте|ьте|ете|ёте)(?:сь)?(?![а-яё])/giu;
+
+/** Nouns that end like such a verb, in the case after «в» or «на»: «в тестнете», «на сайте». */
+const NOT_VERBS = new Set(['тестнете']);
+
+function isFormal(text: string): boolean {
+  return (
+    FORMAL_PRONOUN.test(text) || (text.match(FORMAL_VERB) ?? []).some((word) => !NOT_VERBS.has(word.toLowerCase()))
+  );
+}
 
 const formal = shrinkingList(
-  keys.filter((key) => FORMAL_ADDRESS.test(translations.ru[key])),
+  keys.filter((key) => isFormal(translations.ru[key])),
   STILL_FORMAL_KEYS
 );
 
