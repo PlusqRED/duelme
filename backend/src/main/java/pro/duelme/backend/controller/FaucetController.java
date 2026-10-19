@@ -7,10 +7,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import pro.duelme.backend.dto.FaucetClaimResponse;
+import pro.duelme.backend.dto.FaucetStatusResponse;
 import pro.duelme.backend.service.FaucetService;
 
 @Tag(name = "Faucet", description = "Dev-only testnet faucet (ETH + MockUSDT)")
@@ -40,5 +42,20 @@ public class FaucetController {
         @Parameter(hidden = true) @AuthenticationPrincipal String walletAddress
     ) {
         return faucetService.claim(walletAddress);
+    }
+
+    @Operation(
+        summary = "Whether the faucet runs here, what a claim gives, and whether the caller has claimed the live MockUSDT",
+        security = @SecurityRequirement(name = "bearer")
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Faucet status; every field but `enabled` is null when the faucet is off"),
+        @ApiResponse(responseCode = "401", description = "Missing or invalid authentication token")
+    })
+    @GetMapping("/status")
+    public FaucetStatusResponse status(
+        @Parameter(hidden = true) @AuthenticationPrincipal String walletAddress
+    ) {
+        return faucetService.status(walletAddress);
     }
 }

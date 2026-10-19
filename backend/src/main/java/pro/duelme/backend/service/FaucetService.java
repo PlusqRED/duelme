@@ -17,6 +17,7 @@ import org.web3j.tx.TransactionManager;
 import org.web3j.utils.Convert;
 import pro.duelme.backend.config.FaucetProperties;
 import pro.duelme.backend.dto.FaucetClaimResponse;
+import pro.duelme.backend.dto.FaucetStatusResponse;
 import pro.duelme.backend.exception.FaucetAlreadyClaimedException;
 import pro.duelme.backend.exception.FaucetDisabledException;
 import pro.duelme.backend.exception.FaucetExecutionException;
@@ -118,10 +119,7 @@ public class FaucetService {
             throw new FaucetExecutionException("Invalid wallet address", null);
         }
         String normalized = walletAddress.toLowerCase();
-        // The live MockUSDT is part of the key: a redeploy ships a new one, and a claim
-        // against the retired token must not stand in the way of claiming the new one.
-        // Validated in the constructor, which every enabled instance has already passed.
-        String token = props.mockUsdtAddress().toLowerCase();
+        String token = liveToken();
 
         FaucetClaim lock;
         Optional<FaucetClaim> existing =
@@ -158,8 +156,7 @@ public class FaucetService {
             BigInteger gasPrice = web3j.ethGasPrice().send().getGasPrice().multiply(BigInteger.TWO);
 
             if (ethTxHash == null) {
-                BigInteger ethValue = Convert.toWei(props.ethAmountEth(), Convert.Unit.ETHER).toBigInteger();
-                ethTxHash = sendRaw(gasPrice, ETH_GAS_LIMIT, normalized, "", ethValue, "ETH transfer");
+                ethTxHash = sendRaw(gasPrice, ETH_GAS_LIMIT, normalized, "", ethPerClaimWei(), "ETH transfer");
             }
             String usdtTxHash = sendRaw(
                 gasPrice,
@@ -195,6 +192,40 @@ public class FaucetService {
             if (ex instanceof FaucetExecutionException fee) throw fee;
             throw new FaucetExecutionException("Faucet execution failed", ex);
         }
+    }
+
+    /**
+     * What a claim gives and whether the caller has it. A claim whose ETH went out but whose mint
+     * failed is not claimed: the next {@link #claim} resumes it from the mint.
+     */
+    public FaucetStatusResponse status(String walletAddress) {
+        if (!props.enabled()) {
+            return FaucetStatusResponse.disabled();
+        }
+        boolean claimed = repository
+            .findByWalletAddressAndTokenAddress(walletAddress.toLowerCase(), liveToken())
+            .map(claim -> claim.usdtTxHash() != null)
+            .orElse(false);
+        return new FaucetStatusResponse(
+            true,
+            claimed,
+            props.chainId(),
+            props.usdtAmountRaw().toString(),
+            ethPerClaimWei().toString()
+        );
+    }
+
+    /**
+     * The live MockUSDT, lowercased as claims are keyed. It is part of the key because a redeploy
+     * ships a new one, and a claim against the retired token must not stand in the way of claiming
+     * the new one. Validated in the constructor, which every enabled instance has already passed.
+     */
+    private String liveToken() {
+        return props.mockUsdtAddress().toLowerCase();
+    }
+
+    private BigInteger ethPerClaimWei() {
+        return Convert.toWei(props.ethAmountEth(), Convert.Unit.ETHER).toBigInteger();
     }
 
     private String sendRaw(
