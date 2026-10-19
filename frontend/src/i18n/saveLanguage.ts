@@ -1,7 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { LANGUAGE_COOKIE, LANGUAGE_COOKIE_MAX_AGE_SECONDS, parseLanguage } from './language';
+import { LANGUAGE_COOKIE, LANGUAGE_COOKIE_OPTIONS, parseLanguage } from './language';
 
 /**
  * Keeps the reader's language in a cookie the server sets, and answers with the page re-rendered in
@@ -11,9 +11,5 @@ import { LANGUAGE_COOKIE, LANGUAGE_COOKIE_MAX_AGE_SECONDS, parseLanguage } from 
  * language is checked like any other input.
  */
 export async function saveLanguage(language: string): Promise<void> {
-  (await cookies()).set(LANGUAGE_COOKIE, parseLanguage(language), {
-    path: '/',
-    maxAge: LANGUAGE_COOKIE_MAX_AGE_SECONDS,
-    sameSite: 'lax',
-  });
+  (await cookies()).set(LANGUAGE_COOKIE, parseLanguage(language), LANGUAGE_COOKIE_OPTIONS);
 }

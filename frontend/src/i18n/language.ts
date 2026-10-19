@@ -5,7 +5,7 @@ export const LANGUAGE_COOKIE = 'duelme-lang';
 
 export const DEFAULT_LANGUAGE: Language = 'en';
 
-export const LANGUAGE_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
+const LANGUAGE_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
 function isLanguage(value: string | undefined): value is Language {
   return value !== undefined && Object.hasOwn(translations, value);
@@ -25,7 +25,14 @@ export function readLanguageCookie(cookies: string): string | undefined {
     ?.slice(prefix.length);
 }
 
+/**
+ * Where and how long the cookie lives, for the server's write and the browser's alike: two writes
+ * that differ would be two cookies, or one the browser refuses to replace.
+ */
+export const LANGUAGE_COOKIE_OPTIONS = { path: '/', maxAge: LANGUAGE_COOKIE_MAX_AGE_SECONDS, sameSite: 'lax' } as const;
+
 /** The `document.cookie` assignment that keeps `language` for a year. */
 export function languageCookie(language: Language): string {
-  return `${LANGUAGE_COOKIE}=${language}; path=/; max-age=${LANGUAGE_COOKIE_MAX_AGE_SECONDS}; samesite=lax`;
+  const { path, maxAge, sameSite } = LANGUAGE_COOKIE_OPTIONS;
+  return `${LANGUAGE_COOKIE}=${language}; path=${path}; max-age=${maxAge}; samesite=${sameSite}`;
 }

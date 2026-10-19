@@ -211,7 +211,9 @@ export function Header() {
         <button
           key={next}
           onClick={() => {
-            if (!setLanguage(next)) appToast.error('toast.languageNotKept');
+            void setLanguage(next).then((result) => {
+              if (result !== 'saved') appToast.error(result === 'blocked' ? 'toast.languageNotKept' : 'toast.languageNotSaved');
+            });
           }}
           className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
             language === next ? 'bg-indigo-600 text-white' : 'text-ink-3 hover:text-slate-900'
