@@ -2,7 +2,7 @@
 import { createElement, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
-import { HttpRequestError, type TransactionReceipt } from 'viem';
+import { HttpRequestError, WaitForTransactionReceiptTimeoutError, type TransactionReceipt } from 'viem';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WriteConfig } from '@/hooks/useWriteWithGas';
 import { DEFAULT_CHAIN } from '@/lib/constants';
@@ -110,6 +110,17 @@ describe('useWriteWithGas — waiting for a sent transaction', () => {
   it('reports no error while the RPC fails to return the receipt, since the transaction may have gone through', async () => {
     wagmi.writeHash = HASH;
     waitForWriteReceipt.mockRejectedValue(new HttpRequestError({ url: 'https://rpc.example' }));
+
+    const { result } = renderWrite();
+
+    await waitFor(() => expect(waitForWriteReceipt).toHaveBeenCalled());
+    expect(result.current.error).toBeNull();
+    expect(result.current.isConfirming).toBe(true);
+  });
+
+  it('keeps confirming when a receipt watch times out, since the transaction may still land', async () => {
+    wagmi.writeHash = HASH;
+    waitForWriteReceipt.mockRejectedValue(new WaitForTransactionReceiptTimeoutError({ hash: HASH }));
 
     const { result } = renderWrite();
 

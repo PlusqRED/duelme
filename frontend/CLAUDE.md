@@ -202,11 +202,12 @@ address, no relayer key — is the case the self-paid path still covers.
   the chain the wallet is on now and, on a revert, throws whatever its replay of the call throws.
   A reverted receipt ends the write in a `TransactionRevertedError` (its reason recovered from a
   replay on the block before), a cancel or another call with its nonce in a
-  `TransactionReplacedError`. Any other failure to read the receipt, a watch that timed out
-  included, is retried for as long as it lasts, and the write counts as confirming until the
-  receipt decides, offline included: a write reported as failed that went through is one "Try
-  again" away from a second duel and a second wager. For the same reason a Privy broadcast that
-  fails asks the network for the transaction before calling the write failed
+  `TransactionReplacedError` — seen only while a watch still holds the pending original, which on
+  Arbitrum, with no public mempool, it rarely does. Any other failure to read the receipt, a watch
+  that timed out included, is retried for as long as it lasts, and the write counts as confirming
+  until the receipt decides, offline included: a write reported as failed that went through is one
+  "Try again" away from a second duel and a second wager. For the same reason a Privy broadcast
+  that fails asks the network for the transaction before calling the write failed
   (`lib/resilientBroadcast.ts`), unless the node refused the transaction's own funds, gas or fee
   fields, and a relayed write whose answer is lost posts the same signed request again
   (`lib/relayApi.ts`).
