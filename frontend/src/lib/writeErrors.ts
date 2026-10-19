@@ -1,17 +1,13 @@
-import type { TransactionReceipt } from 'viem';
-
 /**
  * A mined transaction that reverted: final, unlike a failure to read its receipt. `reason` is the
  * contract's, when a replay of the call recovered it.
  */
 export class TransactionRevertedError extends Error {
-  readonly receipt: TransactionReceipt;
   readonly reason: string | undefined;
 
-  constructor(receipt: TransactionReceipt, reason: string | undefined) {
+  constructor(reason: string | undefined) {
     super(reason ?? 'The transaction reverted.');
     this.name = 'TransactionRevertedError';
-    this.receipt = receipt;
     this.reason = reason;
   }
 }
@@ -21,18 +17,15 @@ export class TransactionRevertedError extends Error {
  * the wallet — so the write itself never ran. Final as well: there is nothing left to wait for.
  */
 export class TransactionReplacedError extends Error {
-  readonly replacement: TransactionReceipt;
-
-  constructor(replacement: TransactionReceipt, reason: 'cancelled' | 'replaced') {
-    super(`The transaction was ${reason} in the wallet.`);
+  constructor() {
+    super('The transaction was cancelled or replaced in the wallet.');
     this.name = 'TransactionReplacedError';
-    this.replacement = replacement;
   }
 }
 
 /** A write that could not start because the wallet or its RPC client was not ready yet. */
 export class WalletNotReadyError extends Error {
-  constructor(message: string) {
+  constructor(message = 'Wallet or RPC client not ready') {
     super(message);
     this.name = 'WalletNotReadyError';
   }

@@ -86,7 +86,7 @@ describe('useWriteWithGas — waiting for a sent transaction', () => {
   });
 
   it('reports a reverted transaction as the write error instead of leaving it confirming forever', async () => {
-    const revert = new TransactionRevertedError({ status: 'reverted' } as TransactionReceipt, 'nothing to claim');
+    const revert = new TransactionRevertedError('nothing to claim');
     wagmi.writeHash = HASH;
     waitForWriteReceipt.mockRejectedValue(revert);
 
@@ -97,7 +97,7 @@ describe('useWriteWithGas — waiting for a sent transaction', () => {
   });
 
   it('reports a transaction replaced in the wallet as the write error, since the write never ran', async () => {
-    const replaced = new TransactionReplacedError({ status: 'success' } as TransactionReceipt, 'cancelled');
+    const replaced = new TransactionReplacedError();
     wagmi.writeHash = HASH;
     waitForWriteReceipt.mockRejectedValue(replaced);
 

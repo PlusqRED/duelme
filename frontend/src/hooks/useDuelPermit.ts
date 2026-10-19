@@ -5,6 +5,7 @@ import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
 import { DUELME_ADDRESSES } from '@/lib/constants';
 import { getUsdtAddress } from '@/lib/contracts';
 import { signErc2612Permit, type PermitSignature } from '@/lib/permitSignature';
+import { WalletNotReadyError } from '@/lib/writeErrors';
 
 /**
  * Signs an EIP-2612 permit letting DuelMe pull `value` of USDT from the active wallet.
@@ -24,7 +25,7 @@ export function useDuelPermit(chainId: number) {
   return useCallback(
     async (value: bigint): Promise<PermitSignature> => {
       if (!publicClient || !walletClient || !accountAddress || !usdtAddress || !duelMeAddress) {
-        throw new Error('Wallet or RPC client not ready');
+        throw new WalletNotReadyError();
       }
 
       return signErc2612Permit({

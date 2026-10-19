@@ -144,7 +144,8 @@ export function useWriteWithGas(chainId: number) {
   const relayWrite = useCallback(
     async (config: WriteConfig) => {
       if (!relayContext) {
-        setManagedError(new Error('Gasless relaying is not available'));
+        // Relaying is on (the caller routed here), so what is missing is the wallet's clients.
+        setManagedError(new WalletNotReadyError());
         return;
       }
 
@@ -179,7 +180,7 @@ export function useWriteWithGas(chainId: number) {
       // A guard that bails reports through the managed error for every wallet type: nothing has
       // reached wagmi, so its own state would never tell the caller the write is over.
       if (!publicClient || !accountAddress) {
-        setManagedError(new WalletNotReadyError('Wallet or RPC client not ready'));
+        setManagedError(new WalletNotReadyError());
         return;
       }
 

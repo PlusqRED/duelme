@@ -12,6 +12,9 @@ export async function waitForWriteReceipt(client: DuelPublicClient, hash: Hex): 
   let replacedBecause: ReplacementReason | undefined;
   const receipt = await client.waitForTransactionReceipt({
     hash,
+    // One watch for as long as it takes. viem notices a replacement only while it holds the
+    // original transaction, which a later attempt cannot fetch once the replacement is mined.
+    timeout: 0,
     onReplaced: ({ reason }) => {
       replacedBecause = reason;
     },
@@ -20,14 +23,14 @@ export async function waitForWriteReceipt(client: DuelPublicClient, hash: Hex): 
   // A sped-up copy of the same call ("repriced") is still this write; a cancel or another call
   // with its nonce is not, whatever its own receipt says.
   if (replacedBecause && replacedBecause !== 'repriced') {
-    throw new TransactionReplacedError(receipt, replacedBecause);
+    throw new TransactionReplacedError();
   }
 
   if (receipt.status === 'success') {
     return receipt;
   }
 
-  throw new TransactionRevertedError(receipt, await readRevertReason(client, receipt));
+  throw new TransactionRevertedError(await readRevertReason(client, receipt));
 }
 
 /**

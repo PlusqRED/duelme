@@ -202,11 +202,13 @@ address, no relayer key — is the case the self-paid path still covers.
   the chain the wallet is on now and, on a revert, throws whatever its replay of the call throws.
   A reverted receipt ends the write in a `TransactionRevertedError` (its reason recovered from a
   replay on the block before), a cancel or another call with its nonce in a
-  `TransactionReplacedError`. Any other failure to read the receipt is retried for as long as it
-  lasts, and the write counts as confirming until the receipt decides, offline included: a write
-  reported as failed that went through is one "Try again" away from a second duel and a second
-  wager. For the same reason a Privy broadcast that fails asks the network for the transaction
-  before calling the write failed (`lib/resilientBroadcast.ts`).
+  `TransactionReplacedError`. The receipt is watched in one call with no timeout, because viem
+  sees a replacement only while it still holds the original transaction, which a later call
+  cannot fetch once the replacement is mined. Any other failure to read the receipt is retried
+  for as long as it lasts, and the write counts as confirming until the receipt decides, offline
+  included: a write reported as failed that went through is one "Try again" away from a second
+  duel and a second wager. For the same reason a Privy broadcast that fails asks the network for
+  the transaction before calling the write failed (`lib/resilientBroadcast.ts`).
 - **Whether relaying is on comes with the page, never from a request.** The root layout reads
   `getRelayerStatus()` from the server's relayer config and hands it to `useRelayerStatus` through
   context, so every flow plans and every write routes from the first render. An asynchronous

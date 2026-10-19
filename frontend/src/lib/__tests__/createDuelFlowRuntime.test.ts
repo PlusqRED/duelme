@@ -1,4 +1,3 @@
-import type { TransactionReceipt } from 'viem';
 import { describe, expect, it } from 'vitest';
 import type { TranslationKey, TranslationParams } from '@/i18n/translations';
 import { translations } from '@/i18n/translations';
@@ -134,10 +133,8 @@ describe('getCreateDuelFlowErrorMessage — relay failures', () => {
 });
 
 describe('getCreateDuelFlowErrorMessage — writes that never ran', () => {
-  const RECEIPT = { status: 'reverted' } as TransactionReceipt;
-
   it('gives the contract\'s reason for a reverted transaction', () => {
-    const error = new TransactionRevertedError(RECEIPT, 'duel not in created state');
+    const error = new TransactionRevertedError('duel not in created state');
 
     expect(getCreateDuelFlowErrorMessage(error, t, 'Arbitrum One')).toBe(
       'This step failed: duel not in created state.'
@@ -145,7 +142,7 @@ describe('getCreateDuelFlowErrorMessage — writes that never ran', () => {
   });
 
   it('says the contract turned the transaction down when no reason came back', () => {
-    const error = new TransactionRevertedError(RECEIPT, undefined);
+    const error = new TransactionRevertedError(undefined);
 
     expect(getCreateDuelFlowErrorMessage(error, t, 'Arbitrum One')).toBe(
       translations.en['create.flow.error.reverted']
@@ -153,7 +150,7 @@ describe('getCreateDuelFlowErrorMessage — writes that never ran', () => {
   });
 
   it('says the transaction was replaced in the wallet rather than calling it rejected', () => {
-    const error = new TransactionReplacedError(RECEIPT, 'cancelled');
+    const error = new TransactionReplacedError();
 
     expect(getCreateDuelFlowErrorMessage(error, t, 'Arbitrum One')).toBe(
       translations.en['create.flow.error.replaced']
