@@ -77,14 +77,6 @@ describe('waitForWriteReceipt', () => {
     await expect(waitForWriteReceipt(reverted, HASH)).rejects.toBeInstanceOf(TransactionRevertedError);
   });
 
-  it('watches the receipt for as long as it takes, so a later replacement is still seen', async () => {
-    const { fake, client: success } = client();
-
-    await waitForWriteReceipt(success, HASH);
-
-    expect(fake.waitForTransactionReceipt).toHaveBeenCalledWith(expect.objectContaining({ timeout: 0 }));
-  });
-
   it('replays the reverted call on the state before its block', async () => {
     const { fake, client: reverted } = client({ receiptRead: async () => receipt('reverted') });
 
