@@ -8,6 +8,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import pro.duelme.backend.security.WalletAuthenticationToken;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -55,9 +56,9 @@ class FaucetControllerTest {
                 .with(authentication(auth)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.enabled").value(false))
-            .andExpect(jsonPath("$.claimed").isEmpty())
-            .andExpect(jsonPath("$.chainId").isEmpty())
-            .andExpect(jsonPath("$.usdtAmountRaw").isEmpty())
-            .andExpect(jsonPath("$.ethAmountWei").isEmpty());
+            .andExpect(jsonPath("$.claimed").value(nullValue()))
+            .andExpect(jsonPath("$.chainId").value(nullValue()))
+            .andExpect(jsonPath("$.usdtAmountRaw").value(nullValue()))
+            .andExpect(jsonPath("$.ethAmountWei").value(nullValue()));
     }
 }

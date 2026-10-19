@@ -39,7 +39,8 @@ import java.util.Optional;
  * signer drains at testers x redeploys rather than testers once.
  *
  * <p>The bean is ALWAYS wired. On-off is gated by the runtime
- * {@code duelme.faucet.enabled} flag checked inside {@link #claim}. We do not
+ * {@code duelme.faucet.enabled} flag, which every public method checks first:
+ * {@link #claim} refuses, {@link #status} answers that the faucet is off. We do not
  * use {@code @ConditionalOnProperty} here because Spring Boot's AOT evaluates
  * it at build time; in a GraalVM native image this would strip the bean
  * regardless of the runtime environment variable.
@@ -58,7 +59,7 @@ public class FaucetService {
     private final FaucetProperties props;
     private final FaucetClaimRepository repository;
     // Web3j + signer are only initialised when enabled. Disabled instances keep
-    // these null and short-circuit in claim() with FaucetDisabledException.
+    // these null, and every public method returns before it reaches them.
     private final Web3j web3j;
     private final Credentials credentials;
     private final TransactionManager txManager;
@@ -126,7 +127,7 @@ public class FaucetService {
             repository.findByWalletAddressAndTokenAddress(normalized, token);
         if (existing.isPresent()) {
             lock = existing.get();
-            if (lock.usdtTxHash() != null) {
+            if (minted(lock)) {
                 throw new FaucetAlreadyClaimedException(normalized);
             }
             // Otherwise resume: lock.ethTxHash() may hold a prior (landed)
@@ -194,17 +195,14 @@ public class FaucetService {
         }
     }
 
-    /**
-     * What a claim gives and whether the caller has it. A claim whose ETH went out but whose mint
-     * failed is not claimed: the next {@link #claim} resumes it from the mint.
-     */
+    /** What a claim gives and whether the caller already has it. */
     public FaucetStatusResponse status(String walletAddress) {
         if (!props.enabled()) {
             return FaucetStatusResponse.disabled();
         }
         boolean claimed = repository
             .findByWalletAddressAndTokenAddress(walletAddress.toLowerCase(), liveToken())
-            .map(claim -> claim.usdtTxHash() != null)
+            .map(FaucetService::minted)
             .orElse(false);
         return new FaucetStatusResponse(
             true,
@@ -222,6 +220,14 @@ public class FaucetService {
      */
     private String liveToken() {
         return props.mockUsdtAddress().toLowerCase();
+    }
+
+    /**
+     * A claim is done once its mint went out. Until then it can be resumed, so {@link #claim} takes it
+     * up again and {@link #status} still offers it.
+     */
+    private static boolean minted(FaucetClaim claim) {
+        return claim.usdtTxHash() != null;
     }
 
     private BigInteger ethPerClaimWei() {
