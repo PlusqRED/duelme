@@ -99,10 +99,11 @@ export async function broadcastWithFallback(params: ResilientBroadcastArgs): Pro
 }
 
 /**
- * Refusals of the signed transaction's own fields: its sender's funds, its gas, its fee caps, its
- * type. A node checks the nonce before any of them, so a copy the network already took reads as
- * "already known" or "nonce too low" instead, and these never follow one. A fee cap under the base
- * fee is not among them: the base fee moves, so a copy may have gone in before it rose.
+ * Refusals that never answer a copy the network already took. Gas, fee caps, type and nonce range
+ * are read off the signed bytes, the same in every copy, so a node that took one would have
+ * refused it too. Funds are checked after the nonce, so a copy already taken reads as "already
+ * known" or "nonce too low" first. A fee cap under the base fee is not among them: the base fee
+ * moves, so a copy may have gone in before it rose.
  */
 const OUTRIGHT_REFUSALS = [
   InsufficientFundsError,
