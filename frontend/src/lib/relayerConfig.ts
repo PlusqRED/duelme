@@ -122,7 +122,15 @@ function buildRelayerConfig(): RelayerConfigResult {
     retryCount: 2,
   });
 
-  const account = privateKeyToAccount(normalizedKey as `0x${string}`);
+  // 64 hex digits can still be no key at all (zero, or past the curve order), and viem throws on
+  // those. The root layout reads this config on every page, so a bad key must read as relaying
+  // off rather than take every page down with it.
+  let account: Account;
+  try {
+    account = privateKeyToAccount(normalizedKey as `0x${string}`);
+  } catch {
+    return { ok: false, reason: 'RELAYER_PRIVATE_KEY is not a valid secp256k1 private key.' };
+  }
 
   return {
     ok: true,

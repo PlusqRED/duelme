@@ -79,8 +79,7 @@ export function Header() {
     },
   });
 
-  // Only wallets paying their own gas need an ETH balance. Waiting for the relayer probe
-  // keeps a relayed wallet from firing a pointless eth_getBalance on every render.
+  // Only wallets paying their own gas need an ETH balance, so a relayed wallet never reads one.
   const paysOwnGas = !isRelayEnabled;
   const { data: ethBalanceData, refetch: refetchEthBalance } = useBalance({
     address: walletAddress,
