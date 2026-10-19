@@ -8,7 +8,7 @@ import { useDuelRange } from './useDuelReads';
 export interface PlayerStats {
   wins: number;
   losses: number;
-  totalWagered: number;
+  totalWagered: bigint;
   totalWithdrawn: bigint;
   activeDuels: PlayerDuel[];
   historyDuels: PlayerDuel[];
@@ -18,7 +18,7 @@ export function usePlayerDuels(
   address: `0x${string}` | undefined,
   chainId: number
 ) {
-  const { duels: duelRecords, isLoading, isError, refetch } = useDuelRange({ chainId, enabled: !!address });
+  const { duels: duelRecords, isLoading, isError, refetch, retry } = useDuelRange({ chainId, enabled: !!address });
 
   // Filter the history down to this player's duels.
   const result = useMemo<PlayerStats>(() => {
@@ -26,7 +26,7 @@ export function usePlayerDuels(
     const historyDuels: PlayerDuel[] = [];
     let wins = 0;
     let losses = 0;
-    let totalWagered = 0;
+    let totalWagered = 0n;
     let totalWithdrawn = 0n;
 
     if (!address) {
@@ -59,7 +59,7 @@ export function usePlayerDuels(
 
       // Compute wins/losses from resolved duels
       if (state === DuelState.Resolved) {
-        totalWagered += duel.wager;
+        totalWagered += d.wagerAmount;
         if (d.claimedWinner.toLowerCase() === addr) {
           wins++;
         } else {
@@ -71,7 +71,7 @@ export function usePlayerDuels(
         || state === DuelState.WinnerClaimed
         || state === DuelState.MutualCancelRequested
       ) {
-        totalWagered += duel.wager;
+        totalWagered += d.wagerAmount;
       }
     }
 
@@ -86,6 +86,7 @@ export function usePlayerDuels(
     ...result,
     isLoading,
     refetch,
+    retry,
     isError,
   };
 }

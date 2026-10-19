@@ -22,7 +22,7 @@ export function PublicDuelsSection() {
   const timeAgo = useTimeAgo();
   const { authenticated } = usePrivy();
   const { walletAddress } = useActiveWallet();
-  const { duels, isLoading, isError } = usePublicDuels();
+  const { duels, isLoading, isError, retry } = usePublicDuels();
   const viewerAddress = authenticated ? walletAddress : undefined;
   const isViewerIdentityPending = authenticated && !walletAddress;
 
@@ -32,21 +32,20 @@ export function PublicDuelsSection() {
 
   const { metaByDuelId } = usePublicDuelMetas(duelIds, DEFAULT_CHAIN_ID);
   const { resolveDisplay } = useNicknames(addresses);
-  const { reputationByAddress, reputationStatsByAddress } = useReputationLevels(addresses, DEFAULT_CHAIN_ID);
+  const { reputationStatsByAddress } = useReputationLevels(addresses, DEFAULT_CHAIN_ID);
   const enrichedPreview = useMemo<EnrichedDuel[]>(
     () => preview.map((duel) => enrichPublicDuel({
       duel,
       meta: metaByDuelId[duel.id],
       resolveDisplay,
-      reputationByAddress,
       reputationStatsByAddress,
     })),
-    [preview, metaByDuelId, resolveDisplay, reputationByAddress, reputationStatsByAddress],
+    [preview, metaByDuelId, resolveDisplay, reputationStatsByAddress],
   );
 
   return (
     <section id="public-duels" className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-      <PartialDataNotice when={isError} />
+      <PartialDataNotice when={isError} onRetry={retry} />
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">{t('publicDuels.title')}</h2>

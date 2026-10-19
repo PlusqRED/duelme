@@ -37,6 +37,30 @@
   --color-orange-wash: #fff4ee;
   --color-orange-line: #ffd2bf;
 
+  /* Reputation levels: Reliable is good, Risky orange, Mixed the sun and New grey. The sun is too
+     pale for a bar on paper, so Mixed's bars take a deeper one. */
+  --color-sun-bar: #e0a100;
+  --color-level-new-ink: #4c5577;
+  --color-level-new-soft: #eceff7;
+
+  /* A game's tile, by its category: a light face and the ink of its letters. */
+  --color-game-fps: #d9f2e7;
+  --color-game-fps-ink: #0b6e4a;
+  --color-game-moba: #ebe5ff;
+  --color-game-moba-ink: #5534cc;
+  --color-game-sport: #e6f3d3;
+  --color-game-sport-ink: #3d6a0c;
+  --color-game-strategy: #d8f0f3;
+  --color-game-strategy-ink: #0b6475;
+  --color-game-fighting: #fde2ee;
+  --color-game-fighting-ink: #a01a58;
+  --color-game-racing: #e3e6fb;
+  --color-game-racing-ink: #3a43a3;
+  --color-game-card: #f6e3d3;
+  --color-game-card-ink: #7d4a1c;
+  --color-game-other: #ffe7d4;
+  --color-game-other-ink: #9c4300;
+
   --font-sans: var(--font-geologica), system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-weight-label: 650;
   --font-weight-strong: 750;
@@ -62,6 +86,8 @@
 
   --shadow-window: 0 40px 80px -30px rgb(4 8 31 / 0.55);
   --shadow-menu: 0 28px 56px -28px rgb(18 26 62 / 0.42);
+  /* An avatar's lower rim, so a round face reads as a token on the table. */
+  --inset-shadow-avatar: inset 0 -4px 0 rgb(0 0 0 / 0.16);
 
   /* Wider than a phone: a window stops being a sheet. Wide enough for a window's two columns. */
   --breakpoint-xs: 35rem;

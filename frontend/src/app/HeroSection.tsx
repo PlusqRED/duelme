@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useMemo } from 'react';
 import { buttonVariants } from '@/components/ui/button';
 import { useTranslation } from '@/i18n/useTranslation';
+import { intlLocales } from '@/i18n/intlLocales';
 import { usePlatformStats } from '@/hooks/usePlatformStats';
 import { formatUnits } from 'viem';
 import { USDT_DECIMALS } from '@/lib/constants';
@@ -17,12 +18,13 @@ const sectionLinks = [
 
 export function HeroSection() {
   const { t, language } = useTranslation();
-  // `isError` means a page of the history failed to load, so both totals below are undercounts.
+  // `isError` means a page of the history failed to load, or the last read of it did, so both
+  // totals below may be undercounts or out of date.
   // A headline number nobody can qualify is better withheld than quietly wrong, so it reads `—`.
   const { duelsPlayed, totalVolumeRaw, isLoading, isError } = usePlatformStats();
   const isStatsUnavailable = isLoading || isError;
 
-  const locale = language === 'ru' ? 'ru-RU' : 'en-US';
+  const locale = intlLocales[language];
   const formattedVolume = useMemo(() => {
     const value = Number(formatUnits(totalVolumeRaw, USDT_DECIMALS));
 

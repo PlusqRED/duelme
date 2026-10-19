@@ -23,7 +23,7 @@ import { DUEL_STATE_CONFIG, TIMED_OUT_CONFIG } from '@/lib/duelStateColors';
 import { formatDateTime, formatUSDT, truncateAddress } from '@/lib/utils';
 import { ArrowUpRight, CheckCircle2, Coins, RotateCcw } from 'lucide-react';
 import { GameBadge } from '@/components/game/GameBadge';
-import { ReputationBadge } from './ReputationBadge';
+import { ReputationBadge } from '@/components/identity/ReputationBadge';
 
 interface DuelCardProps {
   duel: PlayerDuel;
@@ -85,7 +85,7 @@ export function DuelCard({
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-lg font-semibold text-slate-900">
-                {duel.wager} USDT
+                {formatUSDT(duel.wagerAmount, language)} USDT
               </span>
               {showOutcomeBadge && (
                 <span
@@ -161,7 +161,7 @@ export function DuelCard({
                 {t('dashboard.claimReady')}
               </div>
               <div className="mt-1 text-lg font-bold text-emerald-900">
-                {formatUSDT(claimableAmount)} USDT
+                {formatUSDT(claimableAmount, language)} USDT
               </div>
             </div>
           )}
@@ -192,7 +192,7 @@ export function DuelCard({
                 {t('dashboard.refundAvailable')}
               </div>
               <div className="mt-1 text-lg font-bold text-red-900">
-                {formatUSDT(duel.wagerAmount)} USDT
+                {formatUSDT(duel.wagerAmount, language)} USDT
               </div>
             </div>
           )}

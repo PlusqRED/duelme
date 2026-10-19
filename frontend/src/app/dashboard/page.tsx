@@ -9,7 +9,7 @@ import { DuelCard } from '@/components/duel/DuelCard';
 import { PartialDataNotice } from '@/components/duel/PartialDataNotice';
 import { useActionFlow } from '@/hooks/useActionFlow';
 import { useTranslation } from '@/i18n/useTranslation';
-import { ReputationBadge } from '@/components/duel/ReputationBadge';
+import { ReputationBadge } from '@/components/identity/ReputationBadge';
 import { useNicknames } from '@/hooks/useNicknames';
 import { useReputationLevels } from '@/hooks/useReputationLevels';
 import { useDashboardClaims } from '@/hooks/useDashboardClaims';
@@ -18,7 +18,7 @@ import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { usePlayerDuels } from '@/hooks/usePlayerDuels';
 import { DEFAULT_CHAIN } from '@/lib/constants';
 import { getClaimableAmountForAddress, isRefundableDuel } from '@/lib/duel';
-import { buildDashboardDuelSearchText } from '@/lib/duelSearch';
+import { buildDashboardDuelSearchText, normalizeSearchQuery } from '@/lib/duelSearch';
 import { formatUSDT } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Swords, Trophy, XCircle, BarChart3, Info, Wallet, Search, RotateCcw } from 'lucide-react';
@@ -36,9 +36,9 @@ export default function DashboardPage() {
   const [activePage, setActivePage] = useState(1);
   const [historyPage, setHistoryPage] = useState(1);
 
-  // `isError` means a page of the history failed to load: duels — including ones with an
-  // unclaimed payout — are missing from these lists and from the claim totals below.
-  const { wins, losses, totalWagered, totalWithdrawn, activeDuels, historyDuels, isLoading, isError, refetch } =
+  // `isError` means a page of the history, or the last read of it, failed: duels — including ones
+  // with an unclaimed payout — may be missing from these lists and the claim totals below, or stale.
+  const { wins, losses, totalWagered, totalWithdrawn, activeDuels, historyDuels, isLoading, isError, refetch, retry } =
     usePlayerDuels(walletAddress, DASHBOARD_CHAIN.id);
   const actionFlow = useActionFlow({ duelId: 0, refetchDuel: refetch });
   const {
@@ -52,7 +52,7 @@ export default function DashboardPage() {
   );
   const { reputationByAddress } = useReputationLevels(duelParticipantAddresses, DASHBOARD_CHAIN.id);
   const { resolveDisplay, nicknameByAddress } = useNicknames(duelParticipantAddresses);
-  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const normalizedSearchQuery = normalizeSearchQuery(searchQuery, language);
 
   const filteredActiveDuels = useMemo(
     () => activeDuels.filter((duel) => (
@@ -95,7 +95,7 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
-      <PartialDataNotice when={isError} />
+      <PartialDataNotice when={isError} onRetry={retry} />
       <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
         {t('dashboard.title')}
       </h1>
@@ -130,7 +130,7 @@ export default function DashboardPage() {
           <CardContent className="flex flex-col items-center gap-1 py-4">
             <BarChart3 className="h-5 w-5 text-indigo-500" />
             <span className="text-2xl font-bold text-slate-900">
-              {totalWagered.toFixed(0)} USDT
+              {formatUSDT(totalWagered, language)} USDT
             </span>
             <span className="text-xs font-medium text-ink-3">
               {t('dashboard.totalWagered')}
@@ -142,7 +142,7 @@ export default function DashboardPage() {
           <CardContent className="flex flex-col items-center gap-1 py-4">
             <Wallet className="h-5 w-5 text-teal-500" />
             <span className="text-2xl font-bold text-slate-900">
-              {formatUSDT(totalWithdrawn)} USDT
+              {formatUSDT(totalWithdrawn, language)} USDT
             </span>
             <span className="text-xs font-medium text-ink-3">
               {t('dashboard.totalWithdrawn')}
@@ -172,7 +172,7 @@ export default function DashboardPage() {
           <CardContent className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
               <p className="text-2xl font-bold text-emerald-950 sm:text-3xl">
-                {formatUSDT(totalClaimable)} USDT
+                {formatUSDT(totalClaimable, language)} USDT
               </p>
               <p className="text-sm text-emerald-800">{t('dashboard.claimAllHint')}</p>
             </div>
@@ -195,7 +195,7 @@ export default function DashboardPage() {
           <CardContent className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
               <p className="text-2xl font-bold text-red-950 sm:text-3xl">
-                {formatUSDT(totalRefundable)} USDT
+                {formatUSDT(totalRefundable, language)} USDT
               </p>
               <p className="text-sm text-red-800">{t('dashboard.refundAllHint')}</p>
             </div>
@@ -336,7 +336,7 @@ export default function DashboardPage() {
           chainName: DASHBOARD_CHAIN.name,
           opponentDisplay: '',
           claimedWinnerDisplay: '',
-          claimableDisplay: claimSummary.claimableDisplay || `${formatUSDT(totalClaimable)} USDT`,
+          claimableDisplay: claimSummary.claimableDisplay || `${formatUSDT(totalClaimable, language)} USDT`,
           t,
         }}
         onOpenChange={actionFlow.handleFlowOpenChange}

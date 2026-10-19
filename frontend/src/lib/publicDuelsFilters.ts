@@ -1,5 +1,7 @@
 import type { DuelMeta, GameCategory } from './game';
-import type { ReputationLevel, ReputationSummary } from './reputation';
+import type { ReputationSummary } from './reputation';
+import type { Language } from '@/i18n/translations';
+import { perLanguage } from '@/lib/utils';
 
 export type SortBy = 'newest' | 'highest' | 'lowest';
 export type WagerRange = 'all' | 'under10' | '10to50' | '50to100' | 'over100';
@@ -17,7 +19,6 @@ export interface EnrichedDuel {
   gameSlug: string | null;
   gameCategory: GameCategory | null;
   creatorName: string;
-  reputation: ReputationLevel | undefined;
   reputationStats: ReputationSummary | undefined;
 }
 
@@ -30,7 +31,6 @@ interface EnrichPublicDuelOptions {
   duel: PublicDuelInput;
   meta: DuelMeta | undefined;
   resolveDisplay: (address: string) => string;
-  reputationByAddress: Record<string, ReputationLevel>;
   reputationStatsByAddress: Record<string, ReputationSummary>;
 }
 
@@ -38,7 +38,6 @@ export function enrichPublicDuel({
   duel,
   meta,
   resolveDisplay,
-  reputationByAddress,
   reputationStatsByAddress,
 }: EnrichPublicDuelOptions): EnrichedDuel {
   const addressKey = duel.creator.toLowerCase();
@@ -54,7 +53,6 @@ export function enrichPublicDuel({
     gameSlug: meta?.gameSlug ?? null,
     gameCategory: meta?.category ?? null,
     creatorName: resolveDisplay(duel.creator),
-    reputation: reputationByAddress[addressKey],
     reputationStats: reputationStatsByAddress[addressKey],
   };
 }
@@ -80,8 +78,8 @@ export const WAGER_LABELS: Record<WagerRange, string> = {
   over100: '100+',
 };
 
-export function formatPublicDuelAmount(value: number, language: 'en' | 'ru'): string {
-  return new Intl.NumberFormat(language === 'ru' ? 'ru-RU' : 'en-US', {
-    maximumFractionDigits: 2,
-  }).format(value);
+const amountFormats = perLanguage((locale) => new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }));
+
+export function formatPublicDuelAmount(value: number, language: Language): string {
+  return amountFormats[language].format(value);
 }

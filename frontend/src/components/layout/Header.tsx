@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { BrandMark } from '@/components/identity/BrandMark';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
@@ -17,7 +17,7 @@ import { usePrivy, useExportWallet } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useReadContracts, useBalance } from 'wagmi';
 import { formatUnits, parseUnits, encodeFunctionData } from 'viem';
-import { AVAILABLE_CHAIN_IDS, AVAILABLE_CHAINS, DEFAULT_CHAIN_ID, USDT_DECIMALS } from '@/lib/constants';
+import { AVAILABLE_CHAIN_IDS, AVAILABLE_CHAINS, DEFAULT_CHAIN_ID, INSTAGRAM_URL, SITE_NAME, TELEGRAM_URL, USDT_DECIMALS } from '@/lib/constants';
 import { balanceOfAbi, getUsdtAddress, transferAbi } from '@/lib/contracts';
 import { emitBalanceRefreshBurst, subscribeToBalanceRefresh } from '@/lib/balanceRefresh';
 import { summarizeChainBalances } from '@/lib/deposit';
@@ -397,22 +397,15 @@ export function Header() {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }
             }}
-            className="flex items-center gap-2"
+            className="flex min-h-11 items-center gap-2.5"
           >
-            <Image
-              src="/logo.png"
-              alt="DuelMe logo"
-              width={28}
-              height={28}
-              priority
-              className="h-7 w-7 rounded-full"
-            />
-            <span className="text-lg font-bold text-slate-900">DuelMe</span>
+            <BrandMark />
+            <span className="text-xl font-extrabold tracking-[-0.03em] text-ink">{SITE_NAME}</span>
           </Link>
           <div className="flex shrink-0 items-center gap-1.5">
             <div className="flex items-center gap-1">
               <a
-                href="https://t.me/grapexel"
+                href={TELEGRAM_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600"
@@ -422,7 +415,7 @@ export function Header() {
                 <Send className="h-3.5 w-3.5" />
               </a>
               <a
-                href="https://www.instagram.com/rickes.oleg"
+                href={INSTAGRAM_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600"
@@ -560,7 +553,7 @@ export function Header() {
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1">
               <a
-                href="https://t.me/grapexel"
+                href={TELEGRAM_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600"
@@ -570,7 +563,7 @@ export function Header() {
                 <Send className="h-3.5 w-3.5" />
               </a>
               <a
-                href="https://www.instagram.com/rickes.oleg"
+                href={INSTAGRAM_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600"

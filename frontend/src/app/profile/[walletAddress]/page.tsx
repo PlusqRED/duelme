@@ -2,14 +2,14 @@
 
 import { use } from 'react';
 import Link from 'next/link';
-import { ReputationBadge } from '@/components/duel/ReputationBadge';
+import { ReputationBadge } from '@/components/identity/ReputationBadge';
 import { CopyableAddress } from '@/components/duel/CopyableAddress';
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { SocialLinksDisplay } from '@/components/profile/SocialLinksDisplay';
 import { useProfile } from '@/hooks/useProfile';
 import { useTranslation } from '@/i18n/useTranslation';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
-import { truncateAddress } from '@/lib/utils';
+import { formatDate, truncateAddress } from '@/lib/utils';
 import { usePrivy } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { ArrowLeft, User } from 'lucide-react';
@@ -23,7 +23,6 @@ export default function PublicProfilePage({
   const walletAddress = rawAddress.toLowerCase();
   const isValidAddress = /^0x[a-f0-9]{40}$/.test(walletAddress);
   const { t, language } = useTranslation();
-  const dateLocale = language === 'ru' ? 'ru-RU' : 'en-US';
   const { authenticated } = usePrivy();
   const { walletAddress: viewerAddress } = useActiveWallet();
   const isOwnProfile = viewerAddress === walletAddress;
@@ -158,7 +157,7 @@ export default function PublicProfilePage({
                     {t('profile.memberSince')}
                   </div>
                   <p className="text-sm text-slate-900">
-                    {new Date(profile.createdAt).toLocaleDateString(dateLocale, { dateStyle: 'medium' })}
+                    {formatDate(profile.createdAt, language)}
                   </p>
                 </div>
               )}
@@ -168,7 +167,7 @@ export default function PublicProfilePage({
                     {t('profile.lastUpdated')}
                   </div>
                   <p className="text-sm text-slate-900">
-                    {new Date(profile.updatedAt).toLocaleDateString(dateLocale, { dateStyle: 'medium' })}
+                    {formatDate(profile.updatedAt, language)}
                   </p>
                 </div>
               )}

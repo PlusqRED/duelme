@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { ArrowRight, Link2, Trophy } from 'lucide-react';
 import { Chip } from '@/components/ui/chip';
-import { ReputationBadge } from '@/components/duel/ReputationBadge';
+import { ReputationBadge } from '@/components/identity/ReputationBadge';
 import { GameBadge } from '@/components/game/GameBadge';
 import type { RecentDuel } from '@/hooks/useRecentDuels';
 import { useTimeAgo } from '@/hooks/useTimeAgo';

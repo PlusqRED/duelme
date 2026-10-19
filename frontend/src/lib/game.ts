@@ -1,4 +1,11 @@
+import type { TranslationKey } from '@/i18n/translations';
+
 export type GameCategory = 'FPS' | 'MOBA' | 'SPORT' | 'STRATEGY' | 'FIGHTING' | 'RACING' | 'CARD' | 'OTHER';
+
+/** A category's name as the screens write it. */
+export function getCategoryLabelKey(category: GameCategory): TranslationKey {
+  return `category.${category}`;
+}
 
 export interface Game {
   slug: string;

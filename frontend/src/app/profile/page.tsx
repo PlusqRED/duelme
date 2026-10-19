@@ -4,7 +4,7 @@ import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ReputationBadge } from '@/components/duel/ReputationBadge';
+import { ReputationBadge } from '@/components/identity/ReputationBadge';
 import { OAuthCallbackHandler } from '@/components/profile/OAuthCallbackHandler';
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { SocialLinksSection } from '@/components/profile/SocialLinksSection';
@@ -14,7 +14,7 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { PROFILE_LIMITS } from '@/lib/profile';
 import type { ProfileRequest } from '@/lib/profile';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
-import { truncateAddress } from '@/lib/utils';
+import { formatDate, truncateAddress } from '@/lib/utils';
 import { usePrivy } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { ArrowLeft, Pencil, X, Check, Plus, User } from 'lucide-react';
@@ -24,7 +24,6 @@ type EditingField = 'nickname' | 'status' | 'aboutMe' | 'games' | null;
 export default function MyProfilePage() {
   const { t, language } = useTranslation();
   const appToast = useAppToast();
-  const dateLocale = language === 'ru' ? 'ru-RU' : 'en-US';
   const { authenticated, login } = usePrivy();
   const { activeWallet, walletAddress } = useActiveWallet();
   const displayAddress = activeWallet?.address ?? '';
@@ -355,7 +354,7 @@ export default function MyProfilePage() {
                   {t('profile.memberSince')}
                 </div>
                 <p className="text-sm text-slate-900">
-                  {new Date(profile.createdAt).toLocaleDateString(dateLocale, { dateStyle: 'medium' })}
+                  {formatDate(profile.createdAt, language)}
                 </p>
               </div>
             )}
@@ -365,7 +364,7 @@ export default function MyProfilePage() {
                   {t('profile.lastUpdated')}
                 </div>
                 <p className="text-sm text-slate-900">
-                  {new Date(profile.updatedAt).toLocaleDateString(dateLocale, { dateStyle: 'medium' })}
+                  {formatDate(profile.updatedAt, language)}
                 </p>
               </div>
             )}

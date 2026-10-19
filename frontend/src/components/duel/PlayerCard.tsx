@@ -3,7 +3,7 @@
 import { useTranslation } from '@/i18n/useTranslation';
 import { Hourglass, Trophy, User } from 'lucide-react';
 import { CopyableAddress } from '@/components/duel/CopyableAddress';
-import { ReputationBadge } from '@/components/duel/ReputationBadge';
+import { ReputationBadge } from '@/components/identity/ReputationBadge';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
 
 interface PlayerCardProps {

@@ -52,16 +52,15 @@ export function isStateInFilter(state: DuelState, filter: RecentStateFilter): bo
 export interface ApplyRecentFiltersOptions {
   stateFilter: RecentStateFilter;
   sort: RecentSortBy;
-  searchQuery: string;
+  /** The query as `normalizeSearchQuery` folds it, the way the search text was folded. */
+  normalizedQuery: string;
   buildSearchIndex: (duel: RecentDuel) => string;
 }
 
 export function applyRecentFilters(
   duels: RecentDuel[],
-  { stateFilter, sort, searchQuery, buildSearchIndex }: ApplyRecentFiltersOptions
+  { stateFilter, sort, normalizedQuery, buildSearchIndex }: ApplyRecentFiltersOptions
 ): RecentDuel[] {
-  const normalizedQuery = searchQuery.trim().toLowerCase();
-
   const filtered = duels.filter((duel) => {
     if (!isStateInFilter(duel.state, stateFilter)) return false;
     if (!normalizedQuery) return true;

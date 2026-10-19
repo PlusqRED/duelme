@@ -97,7 +97,7 @@ export const duelTranslations = defineSection({
     'duel.mutuallyCancelledClaimHint':
       'This duel was cancelled by mutual agreement. Each player can claim back their own wager from My Duels. Reputation did not change.',
     'duel.notFound': 'Duel not found or contract not deployed yet.',
-    'duel.partiallyLoaded': 'Some duels could not be loaded — this list may be incomplete.',
+    'duel.partiallyLoaded': 'Not every duel loaded, so this list may be incomplete or out of date.',
     'duel.title': 'Duel #{id}',
     'duel.messageTitle': 'Challenge note',
     'duel.spectatorFundedTitle': 'Duel is live',
@@ -113,6 +113,7 @@ export const duelTranslations = defineSection({
     'action.refund': 'Refund',
     'action.share': 'Share Link',
     'action.copied': 'Link copied!',
+    'action.tryAgain': 'Try again',
     'action.copyLink': 'Copy link',
     'action.join': 'Join Duel',
     'action.loginToJoin': 'Connect wallet to respond to this invite',
@@ -221,7 +222,7 @@ export const duelTranslations = defineSection({
     'duel.mutuallyCancelledClaimHint':
       'Эта дуэль была отменена по обоюдному согласию. Каждый игрок может отдельно забрать назад свою ставку в разделе «Мои дуэли». Репутация не изменилась.',
     'duel.notFound': 'Дуэль не найдена или контракт ещё не задеплоен.',
-    'duel.partiallyLoaded': 'Часть дуэлей не загрузилась — список может быть неполным.',
+    'duel.partiallyLoaded': 'Загрузились не все дуэли, так что список может быть неполным или устаревшим.',
     'duel.title': 'Дуэль #{id}',
     'duel.messageTitle': 'Сообщение к дуэли',
     'duel.spectatorFundedTitle': 'Дуэль в процессе',
@@ -237,6 +238,7 @@ export const duelTranslations = defineSection({
     'action.refund': 'Возврат',
     'action.share': 'Поделиться ссылкой',
     'action.copied': 'Ссылка скопирована!',
+    'action.tryAgain': 'Попробовать снова',
     'action.copyLink': 'Скопировать ссылку',
     'action.join': 'Присоединиться',
     'action.loginToJoin': 'Подключите кошелёк, чтобы ответить на это приглашение',

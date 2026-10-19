@@ -7,21 +7,16 @@ import {
   Clock,
   Globe2,
   MessageSquareText,
-  ShieldAlert,
-  ShieldCheck,
-  ShieldQuestion,
-  Sparkles,
   UserRound,
-  type LucideIcon,
 } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { GameBadge } from '@/components/game/GameBadge';
+import { ReputationPill } from '@/components/identity/ReputationPill';
 import { useTranslation } from '@/i18n/useTranslation';
-import type { TranslationKey } from '@/i18n/translations';
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
+import { getCategoryLabelKey } from '@/lib/game';
 import { truncateUnicode } from '@/lib/duel';
 import { formatPublicDuelAmount, type EnrichedDuel } from '@/lib/publicDuelsFilters';
-import { getReputationLabelKey, type ReputationLevel } from '@/lib/reputation';
 import { cn, formatDateTime } from '@/lib/utils';
 
 interface PublicDuelCardProps {
@@ -32,31 +27,6 @@ interface PublicDuelCardProps {
   viewerAddress?: `0x${string}`;
   isViewerIdentityPending?: boolean;
 }
-
-const HONOR_CONFIG: Record<
-  ReputationLevel,
-  {
-    icon: LucideIcon;
-    className: string;
-  }
-> = {
-  new: {
-    icon: Sparkles,
-    className: 'border-blue-200 bg-blue-50 text-blue-700',
-  },
-  honorable: {
-    icon: ShieldCheck,
-    className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  },
-  fair: {
-    icon: ShieldQuestion,
-    className: 'border-amber-200 bg-amber-50 text-amber-700',
-  },
-  unreliable: {
-    icon: ShieldAlert,
-    className: 'border-red-200 bg-red-50 text-red-700',
-  },
-};
 
 export function PublicDuelCard({
   duel,
@@ -74,7 +44,7 @@ export function PublicDuelCard({
     ? t('action.viewDuel')
     : t('action.join');
   const gameCategoryLabel = duel.gameCategory
-    ? t(`category.${duel.gameCategory}` as TranslationKey)
+    ? t(getCategoryLabelKey(duel.gameCategory))
     : null;
   const wager = formatPublicDuelAmount(duel.wager, language);
   const pot = formatPublicDuelAmount(duel.wager * 2, language);
@@ -211,26 +181,21 @@ export function PublicDuelCard({
   );
 }
 
+/**
+ * Nothing while the creator's record is unknown, still loading or failed to read: a guess of New
+ * would vouch for a player nobody has checked.
+ */
 function HonorBadge({ duel }: { duel: EnrichedDuel }) {
   const { t } = useTranslation();
-  const level = duel.reputationStats?.level ?? duel.reputation ?? 'new';
-  const config = HONOR_CONFIG[level];
-  const Icon = config.icon;
   const stats = duel.reputationStats;
+
+  if (!stats) return null;
 
   return (
     <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5">
-      <span
-        className={cn(
-          'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium',
-          config.className,
-        )}
-      >
-        <Icon className="h-3 w-3" aria-hidden="true" />
-        {t(getReputationLabelKey(level))}
-      </span>
+      <ReputationPill level={stats.level} />
       <span className="truncate text-[11px] text-slate-400">
-        {stats && stats.total > 0
+        {stats.total > 0
           ? t('publicDuels.honorStats', { honored: stats.honored, total: stats.total })
           : t('publicDuels.noHonorHistory')}
       </span>

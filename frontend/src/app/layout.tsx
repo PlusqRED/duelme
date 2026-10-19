@@ -69,7 +69,7 @@ export const metadata: Metadata = {
       'max-video-preview': -1,
     },
   },
-  // Favicon is auto-registered by Next.js File Convention (`app/icon.png`).
+  // The favicon and the home-screen icon come from `app/icon.tsx` and `app/apple-icon.tsx`.
   formatDetection: {
     email: false,
     address: false,

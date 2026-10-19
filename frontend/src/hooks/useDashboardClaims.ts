@@ -5,6 +5,7 @@ import type { PlayerDuel } from '@/lib/duel';
 import type { ActionFlowSummaryContext } from '@/lib/actionFlow';
 import { getClaimableAmountForAddress, isRefundableDuel } from '@/lib/duel';
 import { formatUSDT } from '@/lib/utils';
+import { useTranslation } from '@/i18n/useTranslation';
 import {
   claimAllConfig,
   claimPayoutConfig,
@@ -26,6 +27,7 @@ export function useDashboardClaims({
   authenticated,
   actionFlow,
 }: UseDashboardClaimsOptions) {
+  const { language } = useTranslation();
   const [claimSummary, setClaimSummary] = useState<
     Pick<ActionFlowSummaryContext, 'duelId' | 'claimableDisplay'>
   >({ duelId: 0, claimableDisplay: '' });
@@ -61,11 +63,11 @@ export function useDashboardClaims({
   function handleClaimAll() {
     if (!claimableDuels.length) return;
     const duelIds = claimableDuels.map((duel) => BigInt(duel.id));
-    setClaimSummary({ duelId: 0, claimableDisplay: `${formatUSDT(totalClaimable)} USDT` });
+    setClaimSummary({ duelId: 0, claimableDisplay: `${formatUSDT(totalClaimable, language)} USDT` });
     actionFlow.openFlow(
       claimAllConfig(
         () => actionFlow.duelActions.claimPayouts(duelIds),
-        `${formatUSDT(totalClaimable)} USDT`,
+        `${formatUSDT(totalClaimable, language)} USDT`,
         claimableDuels.length,
       )
     );
@@ -74,7 +76,7 @@ export function useDashboardClaims({
   function handleClaimSingle(duelId: number) {
     const duel = historyDuels.find((d) => d.id === duelId);
     const amount = duel ? getClaimableAmountForAddress(duel, walletAddress) : 0n;
-    setClaimSummary({ duelId, claimableDisplay: `${formatUSDT(amount)} USDT` });
+    setClaimSummary({ duelId, claimableDisplay: `${formatUSDT(amount, language)} USDT` });
     actionFlow.openFlow(
       claimPayoutConfig(() => actionFlow.duelActions.claimPayout(BigInt(duelId)))
     );
@@ -83,11 +85,11 @@ export function useDashboardClaims({
   function handleRefundAndClaimAll() {
     if (!refundableDuels.length) return;
     const duelIds = refundableDuels.map((duel) => BigInt(duel.id));
-    setClaimSummary({ duelId: 0, claimableDisplay: `${formatUSDT(totalRefundable)} USDT` });
+    setClaimSummary({ duelId: 0, claimableDisplay: `${formatUSDT(totalRefundable, language)} USDT` });
     actionFlow.openFlow(
       refundAndClaimAllConfig(
         () => actionFlow.duelActions.refundAndClaimPayouts(duelIds),
-        `${formatUSDT(totalRefundable)} USDT`,
+        `${formatUSDT(totalRefundable, language)} USDT`,
         refundableDuels.length,
       )
     );
@@ -96,7 +98,7 @@ export function useDashboardClaims({
   function handleRefundAndClaimSingle(duelId: number) {
     const duel = historyDuels.find((d) => d.id === duelId);
     if (!duel) return;
-    setClaimSummary({ duelId, claimableDisplay: `${formatUSDT(duel.wagerAmount)} USDT` });
+    setClaimSummary({ duelId, claimableDisplay: `${formatUSDT(duel.wagerAmount, language)} USDT` });
     actionFlow.openFlow(
       refundAndClaimConfig(() => actionFlow.duelActions.refundAndClaimPayouts([BigInt(duelId)]))
     );

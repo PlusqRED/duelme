@@ -15,7 +15,7 @@ const LANDING_TEASER_LIMIT = 6;
 
 export function RecentDuelsTeaser() {
   const { t } = useTranslation();
-  const { duels, isLoading, isError } = useRecentDuels();
+  const { duels, isLoading, isError, retry } = useRecentDuels();
 
   const visibleDuels = useMemo(
     () => duels.slice(0, LANDING_TEASER_LIMIT),
@@ -33,7 +33,7 @@ export function RecentDuelsTeaser() {
 
   return (
     <div className="w-full">
-      <PartialDataNotice when={isError} />
+      <PartialDataNotice when={isError} onRetry={retry} />
       <RecentDuelsGrid
         duels={visibleDuels}
         isLoading={isLoading}
