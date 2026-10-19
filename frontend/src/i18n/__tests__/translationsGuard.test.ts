@@ -33,7 +33,9 @@ const FORMAL_PRONOUN = /(?<![а-яё])(?:вы|вас|вам|вами|ваш[а-�
 const FORMAL_VERB = /(?<![а-яё])[а-яё]+(?:ите|йте|ьте|ете|ёте)(?:сь)?(?![а-яё])/giu;
 
 /** Nouns that end like such a verb, in the case after «в» or «на»: «в тестнете», «на сайте». */
-const NOT_VERBS = new Set(['тестнете']);
+const NOT_VERBS = new Set([
+  'бюджете', 'депозите', 'интернете', 'кабинете', 'лимите', 'сайте', 'счете', 'счёте', 'тестнете',
+]);
 
 function isFormal(text: string): boolean {
   return (
@@ -53,6 +55,14 @@ describe('translations', () => {
 
   it.each(BUILT_KEY_PREFIXES)('still builds keys from %s at runtime', (prefix) => {
     expect(code).toContain(`\`${prefix}\${`);
+  });
+
+  it.each(['Попробуйте ещё раз', 'Проверьте сеть', 'Вы можете отменить'])('hears «вы» in «%s»', (text) => {
+    expect(isFormal(text)).toBe(true);
+  });
+
+  it.each(['Дуэль в тестнете', 'Ссылка на сайте', 'Сумма на депозите'])('hears no «вы» in «%s»', (text) => {
+    expect(isFormal(text)).toBe(false);
   });
 
   it('says «ты» in Russian outside the strings still waiting for their screen', () => {

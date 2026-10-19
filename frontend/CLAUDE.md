@@ -107,7 +107,8 @@ has not reached yet still looks old, and the guard tests below list it.
   the duel, blue the one who joined, navy (`ink`) the contract and every action button, sun the
   winner and the payout, green (`good`) what is good (honored, unlocked, copied, under your
   control), orange what needs attention (an error, a shortfall, a late answer) — never red, which
-  is a player. Reputation levels: Reliable green, Mixed amber, Risky orange, New grey.
+  is a player. Reputation levels: Reliable green, Mixed amber, Risky orange, New grey (amber gets
+  its token with the reputation badge, the first thing to show it).
 - **Tokens only.** Every colour, easing and shadow, and every type size, weight or breakpoint
   Tailwind's own scale lacks, is a token in `src/styles/theme.css`, used by its role: `bg-canvas`,
   `text-ink-3`, `bg-red-soft`, `text-body-sm`, `ease-press`, `xs:` (560px, where a window stops
@@ -130,8 +131,8 @@ has not reached yet still looks old, and the guard tests below list it.
   `lucide-react` stays only on screens not ported yet), `Dialog` (a card on a wide screen, a sheet
   from the bottom of a phone), `Input`, `Toaster`.
 - **Motion** either explains something once or answers a click, and moves only transform and
-  opacity. With `prefers-reduced-motion` everything is in its final place at once
-  (`styles/motion.css`).
+  opacity. The one exception is the keycap's edge, a shadow that shortens as the button goes down.
+  With `prefers-reduced-motion` everything is in its final place at once (`styles/motion.css`).
 - **Russian says «ты» and is gender-neutral**: nothing about a person in a past tense or a gendered
   adjective, and no slashes («победил(а)»). What you do is a noun or the present tense («Победа за
   мной», «Ты заявляешь победу»); what happened is the thing, not who did it («Победа заявлена»);
@@ -274,7 +275,7 @@ has not reached yet still looks old, and the guard tests below list it.
   probe once did this job: a flow opened before it answered planned the self-paid path, approve
   included, for a player the relayer would carry, and every fix for that (gates, retries,
   timeouts, writes waiting for the answer) added a failure of its own.
-- **tailwind-merge does not know the theme's own type sizes and weights.** Left alone it reads `text-body` as a colour and `font-label` as a font family, so `cn('text-body', 'text-ink')` silently drops the size. `cn()` in `lib/utils.ts` registers them; a new `--text-*` or `--font-weight-*` token goes there too (`utils.test.ts` fails until it does).
+- **tailwind-merge does not know the theme's own tokens, and a type size clears the line height before it.** Left alone it reads `text-body` as a colour and `font-label` as a font family, so `cn('text-body', 'text-ink')` silently drops the size, and a later shadow or easing does not replace `shadow-menu` or `ease-spring`. `cn()` in `lib/utils.ts` registers the type sizes, weights, shadows and easings; a new `--text-*`, `--font-weight-*`, `--shadow-*` or `--ease-*` token goes there too (`utils.test.ts` fails until it does). A `text-*` size also drops any `leading-*` that comes before it, so where a variant or a caller sets the size, the line height rides on it: `text-body-sm/[1.1]`, `text-lg/snug`.
 - **`collectErrorDetails` returns viem's multi-line dump first.** An error's own `message` is visited before its `shortMessage` / `reason`, so the first entry is the whole "Contract Call / Request Arguments / Version" blob. Use `bestErrorDetail` (shortest non-placeholder detail) whenever the string reaches a person.
 - **`fundsViaPermit` has to gate every allowance check, not just the last one.** `handleContinueFlow`, `handleSwitchNetwork` and `handleCreateTransaction` / `handleJoinTransaction` all decide the approve step; a relayed flow that reads the allowance in any of them routes a zero-ETH player into a self-paid `approve`. They share `resolveNeedsApproval` from `guidedFlowSteps.ts`.
 - **`FORWARDER_NAME` must match on both sides.** `frontend/src/lib/forwardRequest.ts` and `contracts/script/ForwarderConfig.sol` (which both deploy scripts read) both spell `"DuelMe Forwarder"`; it is the EIP-712 domain name, so a mismatch makes every signature fail `verify` with no other symptom.

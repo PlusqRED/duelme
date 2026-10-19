@@ -178,7 +178,7 @@ export function DuelCard({
               }}
               disabled={isClaiming}
             >
-              {!isClaiming && <ArrowUpRight className="mr-2 h-4 w-4" />}
+              {!isClaiming && <ArrowUpRight className="h-4 w-4" />}
               {isClaiming
                 ? t('status.claiming')
                 : t('dashboard.claimButton')}
@@ -208,7 +208,7 @@ export function DuelCard({
               }}
               disabled={isRefundClaiming}
             >
-              {!isRefundClaiming && <RotateCcw className="mr-2 h-4 w-4" />}
+              {!isRefundClaiming && <RotateCcw className="h-4 w-4" />}
               {isRefundClaiming
                 ? t('status.claiming')
                 : t('action.claimRefund')}

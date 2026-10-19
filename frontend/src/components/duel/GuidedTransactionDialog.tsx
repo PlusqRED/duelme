@@ -88,7 +88,7 @@ export function GuidedTransactionDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="gap-0 p-0 pb-[env(safe-area-inset-bottom)] xs:p-0 split:[--dialog-width:900px]"
+        className="gap-0 p-0 xs:p-0 split:[--dialog-width:900px]"
         showCloseButton={canClose}
       >
         <div className="border-b border-slate-200 bg-gradient-to-r from-indigo-50 via-white to-slate-50 px-6 py-5">
@@ -204,7 +204,7 @@ export function GuidedTransactionDialog({
                         className="sm:min-w-44"
                       >
                         {primaryAction.loading && (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          <Loader2 className="h-4 w-4 animate-spin" />
                         )}
                         {primaryAction.label}
                       </Button>

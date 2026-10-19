@@ -206,7 +206,7 @@ export default function DashboardPage() {
               onClick={handleRefundAndClaimAll}
               disabled={actionFlow.flow !== null}
             >
-              <RotateCcw className="mr-2 h-4 w-4" />
+              <RotateCcw className="h-4 w-4" />
               {t('action.claimAllRefunds')}
             </Button>
           </CardContent>

@@ -2,8 +2,10 @@ import type { ComponentProps } from 'react';
 import { Input as InputPrimitive } from '@base-ui/react/input';
 import { cn } from '@/lib/utils';
 
+type InputProps = ComponentProps<'input'>;
+
 /** A text field: a paper well whose border darkens to ink while it has the focus. */
-function Input({ className, ...props }: ComponentProps<'input'>) {
+function Input({ className, ...props }: InputProps) {
   return (
     <InputPrimitive
       className={cn(

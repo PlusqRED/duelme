@@ -131,7 +131,7 @@ export function MutualCancellationCard({
                 onClick={onAccept}
                 disabled={isPending}
               >
-                <Handshake className="mr-2 h-4 w-4" />
+                <Handshake className="h-4 w-4" />
                 {pendingAction === 'acceptingMutualCancel'
                   ? t('status.acceptingCancellation')
                   : t('action.acceptCancellation')}
@@ -143,7 +143,7 @@ export function MutualCancellationCard({
                 onClick={onDecline}
                 disabled={isPending}
               >
-                <XCircle className="mr-2 h-4 w-4" />
+                <XCircle className="h-4 w-4" />
                 {pendingAction === 'decliningMutualCancelRequest'
                   ? t('status.processing')
                   : t('action.declineCancellation')}
@@ -159,7 +159,7 @@ export function MutualCancellationCard({
               onClick={onWithdraw}
               disabled={isPending}
             >
-              <Undo2 className="mr-2 h-4 w-4" />
+              <Undo2 className="h-4 w-4" />
               {pendingAction === 'withdrawingMutualCancelRequest'
                 ? t('status.withdrawing')
                 : t('action.withdrawCancellationRequest')}

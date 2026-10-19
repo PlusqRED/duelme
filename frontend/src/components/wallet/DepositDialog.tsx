@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { DepositPanel } from '@/components/wallet/DepositPanel';
 import {
   Dialog,
@@ -18,6 +19,11 @@ interface DepositDialogProps {
 /** The wallet menu's "Top up": the deposit panel for the network picked in the menu. */
 export function DepositDialog({ chainId, onClose }: DepositDialogProps) {
   const { t } = useTranslation();
+  // The window plays its closing animation after `chainId` turns null; the panel stays until it ends.
+  const [shownChainId, setShownChainId] = useState(chainId);
+  if (chainId !== null && chainId !== shownChainId) {
+    setShownChainId(chainId);
+  }
 
   return (
     <Dialog open={chainId !== null} onOpenChange={(open) => !open && onClose()}>
@@ -25,7 +31,7 @@ export function DepositDialog({ chainId, onClose }: DepositDialogProps) {
         <DialogHeader>
           <DialogTitle>{t('deposit.title')}</DialogTitle>
         </DialogHeader>
-        {chainId !== null && <DepositPanel chainId={chainId} />}
+        {shownChainId !== null && <DepositPanel chainId={shownChainId} />}
       </DialogContent>
     </Dialog>
   );

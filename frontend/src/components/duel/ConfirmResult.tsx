@@ -90,7 +90,7 @@ export function ConfirmResult({
   return (
     <Card className={timedOut ? "border-red-200 bg-red-50 shadow-sm" : "border-amber-200 bg-amber-50 shadow-sm"}>
       <CardHeader>
-        <CardTitle className={`flex items-center gap-2 text-base font-semibold ${timedOut ? 'text-red-800' : 'text-amber-800'}`}>
+        <CardTitle className={`flex items-center gap-2 text-base/snug font-semibold ${timedOut ? 'text-red-800' : 'text-amber-800'}`}>
           {timedOut ? <TimerOff className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
           {timedOut ? t('duel.responseTimedOut') : title}
         </CardTitle>
@@ -137,7 +137,7 @@ export function ConfirmResult({
               onClick={onConfirm}
               disabled={isPending}
             >
-              <CheckCircle className="mr-2 h-4 w-4" />
+              <CheckCircle className="h-4 w-4" />
               {t('action.confirm')}
             </Button>
           )}
@@ -149,7 +149,7 @@ export function ConfirmResult({
               onClick={onDispute}
               disabled={isPending}
             >
-              <XCircle className="mr-2 h-4 w-4" />
+              <XCircle className="h-4 w-4" />
               {t('action.dispute')}
             </Button>
           )}
@@ -161,7 +161,7 @@ export function ConfirmResult({
               onClick={onRefund}
               disabled={isPending}
             >
-              <RotateCcw className="mr-2 h-4 w-4" />
+              <RotateCcw className="h-4 w-4" />
               {t('action.refund')}
             </Button>
           )}

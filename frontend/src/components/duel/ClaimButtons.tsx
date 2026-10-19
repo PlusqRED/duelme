@@ -25,7 +25,7 @@ export function ClaimButtons({
         onClick={onClaimVictory}
         disabled={isPending}
       >
-        <Trophy className="mr-2 h-4 w-4" />
+        <Trophy className="h-4 w-4" />
         {t('action.iWon')}
       </Button>
       <Button
@@ -35,7 +35,7 @@ export function ClaimButtons({
         onClick={onAdmitDefeat}
         disabled={isPending}
       >
-        <Flag className="mr-2 h-4 w-4" />
+        <Flag className="h-4 w-4" />
         {t('action.iLost')}
       </Button>
     </div>

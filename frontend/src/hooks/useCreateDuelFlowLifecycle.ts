@@ -129,7 +129,7 @@ export function useCreateDuelFlowLifecycle({
         flow.draft.contractAddress,
         flow.draft.gameName
       ).catch(() => {
-        appToast.info('toast.gameAttachFailed');
+        appToast.error('toast.gameAttachFailed');
       });
     }
 

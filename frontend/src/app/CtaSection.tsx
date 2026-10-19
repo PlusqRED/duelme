@@ -42,7 +42,7 @@ export function CtaSection() {
               href="/duel/create"
               className={buttonVariants({ size: 'lg' })}
             >
-              <Swords className="mr-2 h-4 w-4" />
+              <Swords className="h-4 w-4" />
               {t('hero.cta')}
             </Link>
           </div>

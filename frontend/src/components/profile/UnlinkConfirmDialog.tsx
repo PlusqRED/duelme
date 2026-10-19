@@ -78,7 +78,7 @@ export function UnlinkConfirmDialog({ open, platform, onOpenChange }: UnlinkConf
           >
             {unlink.isPending ? (
               <>
-                <Loader2 aria-hidden="true" className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
                 {t('profile.socialLinks.unlinking')}
               </>
             ) : (

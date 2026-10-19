@@ -34,6 +34,12 @@ describe('Button', () => {
     expect(className).toContain('bg-ink');
   });
 
+  it.each(['sm', 'md', 'lg'] as const)('keeps the label at a line height of 1.1 at size %s', (size) => {
+    render(<Button size={size}>Join</Button>);
+
+    expect(screen.getByRole('button', { name: 'Join' }).className).toMatch(/(?:^| )text-[\w-]+\/\[1\.1\](?: |$)/);
+  });
+
   it('cannot be pressed while disabled', () => {
     render(<Button disabled>Join</Button>);
 

@@ -538,7 +538,7 @@ export default function DuelPage({
                   onClick={joinFlow.handleOpenJoinFlow}
                   disabled={txPending || joinFlow.flow !== null}
                 >
-                  <Swords className="mr-2 h-4 w-4" />
+                  <Swords className="h-4 w-4" />
                   {t('action.join')} — {wagerDisplay} USDT
                 </Button>
                 {isDeclinableDuel && (
@@ -556,7 +556,7 @@ export default function DuelPage({
                       </span>
                     ) : (
                       <>
-                        <XCircle className="mr-2 h-4 w-4" />
+                        <XCircle className="h-4 w-4" />
                         {t('action.decline')}
                       </>
                     )}
@@ -571,7 +571,7 @@ export default function DuelPage({
                 className="w-full"
                 onClick={login}
               >
-                <LogIn className="mr-2 h-4 w-4" />
+                <LogIn className="h-4 w-4" />
                 {t('action.loginToJoin')}
               </Button>
             )}

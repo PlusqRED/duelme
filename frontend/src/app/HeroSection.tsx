@@ -111,7 +111,7 @@ export function HeroSection() {
                 href="/duel/create"
                 className={buttonVariants({ size: 'lg' })}
               >
-                <Swords className="mr-2.5 h-5 w-5" />
+                <Swords className="h-5 w-5" />
                 {t('hero.cta')}
               </Link>
               <a

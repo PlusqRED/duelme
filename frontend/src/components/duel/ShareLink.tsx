@@ -48,7 +48,6 @@ export function ShareLink({ duelId, inviteHash, inviteSecret }: ShareLinkProps) 
           className="flex-1 tabular-nums"
         />
         <Button
-          size="lg"
           variant="paper"
           className="shrink-0"
           onClick={handleCopy}

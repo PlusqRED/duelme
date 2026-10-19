@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
  * `buttonVariants` gives a link the same look: `<Link className={buttonVariants({ size: 'lg' })}>`.
  */
 const buttonVariants = cva(
-  'inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full text-center leading-[1.1] font-label no-underline select-none disabled:pointer-events-none disabled:opacity-55 data-disabled:pointer-events-none data-disabled:opacity-55 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=size-])]:size-5',
+  'inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full text-center font-label no-underline select-none disabled:pointer-events-none disabled:opacity-55 data-disabled:pointer-events-none data-disabled:opacity-55 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=size-])]:size-5',
   {
     variants: {
       variant: {
@@ -18,12 +18,13 @@ const buttonVariants = cva(
         paper:
           'keycap bg-paper text-ink [--keycap-edge:var(--color-line-strong)] [--keycap-ring:var(--color-line-strong)]',
         sun: 'keycap bg-sun text-ink [--keycap-edge:var(--color-sun-edge)]',
-        ghost: 'text-ink-2 transition-colors hover:bg-paper hover:text-ink',
+        ghost: 'text-ink-2 transition-colors hover:bg-ink/5 hover:text-ink',
       },
+      // The line height rides on the type size: cn() drops a `leading-*` that comes before one.
       size: {
-        sm: 'min-h-11 px-4 text-body-sm',
-        md: 'min-h-12 px-[22px] text-base',
-        lg: 'min-h-14 px-7 text-body',
+        sm: 'min-h-11 px-4 text-body-sm/[1.1]',
+        md: 'min-h-12 px-[22px] text-base/[1.1]',
+        lg: 'min-h-14 px-7 text-body/[1.1]',
       },
     },
     defaultVariants: {
