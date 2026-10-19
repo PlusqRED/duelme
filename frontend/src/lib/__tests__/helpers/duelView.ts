@@ -1,9 +1,10 @@
 import { ZERO_ADDRESS } from '@/lib/constants';
 import { DuelState, type Duel } from '@/lib/contracts';
+import { OPEN_DUEL_INVITE_HASH } from '@/lib/invite';
 
 /**
- * A full `Duel` as `getDuel` decodes it: a duel waiting for an opponent, with the fields a test
- * cares about overridden. One place to add a field when the struct grows.
+ * A full `Duel` as `getDuel` decodes it: an open duel waiting for an opponent, with the fields a
+ * test cares about overridden. One place to add a field when the struct grows.
  *
  * Not named `*.test.ts`, so vitest's `include` glob does not collect it.
  */
@@ -13,7 +14,7 @@ export function duelView(overrides: Partial<Duel> = {}): Duel {
     opponent: ZERO_ADDRESS,
     invitedOpponent: ZERO_ADDRESS,
     wagerAmount: 5_000_000n,
-    inviteHash: ZERO_ADDRESS,
+    inviteHash: OPEN_DUEL_INVITE_HASH,
     message: '',
     claimedWinner: ZERO_ADDRESS,
     claimedBy: ZERO_ADDRESS,
