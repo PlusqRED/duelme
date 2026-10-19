@@ -108,7 +108,7 @@ export default function DashboardPage() {
             <span className="text-2xl font-bold text-slate-900">
               {wins}
             </span>
-            <span className="text-xs font-medium text-slate-500">
+            <span className="text-xs font-medium text-ink-3">
               {t('dashboard.wins')}
             </span>
           </CardContent>
@@ -120,7 +120,7 @@ export default function DashboardPage() {
             <span className="text-2xl font-bold text-slate-900">
               {losses}
             </span>
-            <span className="text-xs font-medium text-slate-500">
+            <span className="text-xs font-medium text-ink-3">
               {t('dashboard.losses')}
             </span>
           </CardContent>
@@ -132,7 +132,7 @@ export default function DashboardPage() {
             <span className="text-2xl font-bold text-slate-900">
               {totalWagered.toFixed(0)} USDT
             </span>
-            <span className="text-xs font-medium text-slate-500">
+            <span className="text-xs font-medium text-ink-3">
               {t('dashboard.totalWagered')}
             </span>
           </CardContent>
@@ -144,7 +144,7 @@ export default function DashboardPage() {
             <span className="text-2xl font-bold text-slate-900">
               {formatUSDT(totalWithdrawn)} USDT
             </span>
-            <span className="text-xs font-medium text-slate-500">
+            <span className="text-xs font-medium text-ink-3">
               {t('dashboard.totalWithdrawn')}
             </span>
           </CardContent>
@@ -155,7 +155,7 @@ export default function DashboardPage() {
             <Swords className="h-5 w-5 text-violet-500" />
             <ReputationBadge address={walletAddress} chainId={DASHBOARD_CHAIN.id} showStats />
             <Tooltip>
-              <TooltipTrigger className="flex cursor-help items-center gap-1 text-xs font-medium text-slate-500">
+              <TooltipTrigger className="flex cursor-help items-center gap-1 text-xs font-medium text-ink-3">
                 {t('rep.title')}
                 <Info className="h-3 w-3 text-slate-400" />
               </TooltipTrigger>
@@ -220,7 +220,7 @@ export default function DashboardPage() {
           className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
             activeTab === 'active'
               ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
+              : 'text-ink-3 hover:text-slate-700'
           }`}
         >
           {t('dashboard.active')} {activeDuels.length > 0 && `(${activeDuels.length})`}
@@ -230,7 +230,7 @@ export default function DashboardPage() {
           className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
             activeTab === 'history'
               ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
+              : 'text-ink-3 hover:text-slate-700'
           }`}
         >
           {t('dashboard.history')} {historyDuels.length > 0 && `(${historyDuels.length})`}
@@ -261,7 +261,7 @@ export default function DashboardPage() {
         ) : paginatedDuels.length === 0 ? (
           <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-slate-300 bg-white py-16">
             <Swords className="h-10 w-10 text-slate-300" />
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-ink-3">
               {searchQuery ? t('dashboard.noMatches') : t('dashboard.noDuels')}
             </p>
             {!searchQuery && (

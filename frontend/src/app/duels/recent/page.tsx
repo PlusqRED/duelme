@@ -144,7 +144,7 @@ export default function RecentDuelsPage() {
         <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
           {t('recent.title')}
         </h1>
-        <p className="mt-2 text-sm text-slate-500 sm:text-base">
+        <p className="mt-2 text-sm text-ink-3 sm:text-base">
           {t('recent.dedicatedSubtitle')}
         </p>
       </div>
@@ -161,7 +161,7 @@ export default function RecentDuelsPage() {
             countByFilter={countByFilter}
           />
 
-          <p className="mt-3 text-xs text-slate-500">
+          <p className="mt-3 text-xs text-ink-3">
             {hasActiveFilters
               ? t('recent.filteredCount', { count: filteredDuels.length, total: duels.length })
               : t('recent.count', { count: duels.length })}
@@ -172,7 +172,7 @@ export default function RecentDuelsPage() {
       {filteredEmpty ? (
         <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-slate-300 bg-white py-16">
           <Globe className="h-10 w-10 text-slate-300" />
-          <p className="text-sm text-slate-500">{t('recent.noMatches')}</p>
+          <p className="text-sm text-ink-3">{t('recent.noMatches')}</p>
           {hasActiveFilters && (
             <Button variant="paper" size="sm" onClick={clearFilters}>
               {t('dashboard.clearSearch')}

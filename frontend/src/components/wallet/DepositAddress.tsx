@@ -25,7 +25,7 @@ export function DepositAddress({ address }: DepositAddressProps) {
     <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
       <AddressQr address={address} label={t('deposit.qrLabel')} />
       <div className="flex w-full min-w-0 flex-col gap-2">
-        <span className="text-xs font-medium text-slate-500">{t('deposit.addressLabel')}</span>
+        <span className="text-xs font-medium text-ink-3">{t('deposit.addressLabel')}</span>
         <p
           data-testid="deposit-address"
           className="select-all break-all rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 tabular-nums text-sm leading-6 text-slate-900"

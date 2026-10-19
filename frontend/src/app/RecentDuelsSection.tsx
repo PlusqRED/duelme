@@ -16,7 +16,7 @@ export function RecentDuelsSection() {
           <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
             {t('recent.title')}
           </h2>
-          <p className="mt-3 text-base text-slate-500">
+          <p className="mt-3 text-base text-ink-3">
             {t('recent.subtitle')}
           </p>
         </div>

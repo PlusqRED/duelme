@@ -151,7 +151,7 @@ export function PublicDuelCard({
             </span>
             <div className="mt-2 flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-500">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-ink-3">
                   <UserRound className="h-4 w-4" aria-hidden="true" />
                 </span>
                 <div className="min-w-0">

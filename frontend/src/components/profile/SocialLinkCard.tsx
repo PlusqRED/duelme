@@ -82,14 +82,14 @@ function StatusBadge({ state }: { state: SocialLinkState }) {
 
   if (state === 'selfReported') {
     return (
-      <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+      <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-ink-3">
         {t('profile.socialLinks.selfReported')}
       </span>
     );
   }
 
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-500">
+    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-ink-3">
       <CircleDashed aria-hidden="true" className="h-3 w-3" />
       {t('profile.socialLinks.notLinked')}
     </span>

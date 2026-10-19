@@ -61,7 +61,7 @@ export function ShareLink({ duelId, inviteHash, inviteSecret }: ShareLinkProps) 
           )}
         </Button>
       </div>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-ink-3">
         {isPublic
           ? t('duel.sharePublic')
           : inviteSecret

@@ -85,7 +85,7 @@ export function OnboardingSection() {
                 <h3 className="text-xl font-semibold text-slate-950">
                   {t('onboarding.stepsTitle')}
                 </h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-500 sm:text-base">
+                <p className="mt-2 text-sm leading-relaxed text-ink-3 sm:text-base">
                   {t('onboarding.stepsSubtitle')}
                 </p>
               </div>
@@ -108,7 +108,7 @@ export function OnboardingSection() {
                   <h4 className="mt-4 text-base font-semibold text-slate-950">
                     {t(titleKey)}
                   </h4>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-500">
+                  <p className="mt-2 text-sm leading-relaxed text-ink-3">
                     {t(descKey)}
                   </p>
                 </div>
@@ -117,7 +117,7 @@ export function OnboardingSection() {
           </div>
 
           <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
-            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-3">
               {t('onboarding.sideTitle')}
             </div>
             <div className="mt-5 space-y-4">

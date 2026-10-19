@@ -121,7 +121,7 @@ function OutcomeRouteCard({
         </div>
         <div>
           <h3 className="text-base font-semibold text-slate-950 sm:text-lg">{title}</h3>
-          <p className="mt-2 min-h-[4.5rem] text-sm leading-relaxed text-slate-500">{description}</p>
+          <p className="mt-2 min-h-[4.5rem] text-sm leading-relaxed text-ink-3">{description}</p>
         </div>
       </div>
 
@@ -216,7 +216,7 @@ export function HowItWorks() {
               <h3 className="mt-5 text-xl font-semibold text-slate-950">
                 {t(titleKey)}
               </h3>
-              <p className="mt-3 text-sm leading-relaxed text-slate-500 sm:text-base">
+              <p className="mt-3 text-sm leading-relaxed text-ink-3 sm:text-base">
                 {t(descKey)}
               </p>
             </div>
@@ -225,7 +225,7 @@ export function HowItWorks() {
 
         <div className="mt-14 rounded-[36px] border border-slate-200 bg-[linear-gradient(180deg,rgba(239,246,255,0.72)_0%,rgba(255,255,255,0.98)_56%,rgba(248,250,252,0.98)_100%)] p-6 shadow-[0_32px_90px_-56px_rgba(15,23,42,0.32)] sm:p-8">
           <div className="overflow-hidden rounded-[30px] border border-white/80 bg-white/88 p-5 text-center shadow-sm backdrop-blur-sm sm:p-6">
-            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-3">
               {t('howItWorks.diagramEyebrow')}
             </div>
             <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-slate-600 sm:text-base">
@@ -309,7 +309,7 @@ export function HowItWorks() {
               <h3 className="mt-5 text-lg font-semibold text-slate-950">
                 {t(titleKey)}
               </h3>
-              <p className="mt-3 text-sm leading-relaxed text-slate-500 sm:text-base">
+              <p className="mt-3 text-sm leading-relaxed text-ink-3 sm:text-base">
                 {t(descKey)}
               </p>
             </div>

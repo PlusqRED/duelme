@@ -83,7 +83,7 @@ export function ReputationSection() {
           </div>
         </div>
 
-        <p className="mx-auto mt-6 max-w-3xl text-center text-sm leading-relaxed text-slate-500">
+        <p className="mx-auto mt-6 max-w-3xl text-center text-sm leading-relaxed text-ink-3">
           {t('rep.howFormula')}
         </p>
 
@@ -99,7 +99,7 @@ export function ReputationSection() {
               <h3 className="mt-4 text-lg font-semibold text-slate-950">
                 {t(labelKey)}
               </h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-500">
+              <p className="mt-2 text-sm leading-relaxed text-ink-3">
                 {t(descKey)}
               </p>
             </div>

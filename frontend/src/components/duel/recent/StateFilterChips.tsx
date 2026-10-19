@@ -52,7 +52,7 @@ export function StateFilterChips({ value, onChange, countByFilter }: StateFilter
             <span
               className={cn(
                 'inline-flex min-w-[1.5rem] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold leading-tight',
-                isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500',
+                isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-ink-3',
               )}
             >
               {count}

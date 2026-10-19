@@ -140,7 +140,7 @@ export function RecentDuelCard({
           {t(getDuelStateLabelKey(duel.state, isTimedOut))}
         </span>
         <span
-          className="text-xs text-slate-500"
+          className="text-xs text-ink-3"
           title={formatDateTime(duel.lastEventAt, language)}
         >
           {timeAgo(duel.lastEventAt)}

@@ -22,7 +22,7 @@ export function Footer() {
           />
           <span className="text-sm font-semibold text-slate-900">DuelMe</span>
           <span className="hidden text-sm text-slate-300 sm:inline">&middot;</span>
-          <span className="text-xs text-slate-500 sm:text-sm">
+          <span className="text-xs text-ink-3 sm:text-sm">
             {t('footer.tagline')}
           </span>
         </div>
@@ -31,7 +31,7 @@ export function Footer() {
           href={`mailto:${DEVELOPER_EMAIL}`}
           title={t('footer.developer')}
           aria-label={`${t('footer.developer')}: ${DEVELOPER_EMAIL}`}
-          className="group inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-slate-500 transition-colors hover:bg-indigo-50 hover:text-indigo-600 sm:text-sm"
+          className="group inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-ink-3 transition-colors hover:bg-indigo-50 hover:text-indigo-600 sm:text-sm"
         >
           <Mail className="h-3.5 w-3.5 text-slate-400 transition-colors group-hover:text-indigo-600" />
           <span className="font-medium">{DEVELOPER_EMAIL}</span>

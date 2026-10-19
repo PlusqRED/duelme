@@ -87,7 +87,7 @@ export function CreateGameInline({ initialName, onCreated }: CreateGameInlinePro
           })}
         </div>
         {category === null && (
-          <p className="text-xs text-slate-500">{t('createGame.categoryRequired')}</p>
+          <p className="text-xs text-ink-3">{t('createGame.categoryRequired')}</p>
         )}
       </div>
 

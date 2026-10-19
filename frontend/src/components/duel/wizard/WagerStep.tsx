@@ -35,7 +35,7 @@ export function WagerStep({ amount, onAmountChange, isValid }: WagerStepProps) {
         <h2 tabIndex={-1} className="text-xl font-bold text-slate-900 outline-none sm:text-2xl">
           {t('wizard.title.wager')}
         </h2>
-        <p className="text-sm text-slate-500">{t('wizard.subtitle.wager')}</p>
+        <p className="text-sm text-ink-3">{t('wizard.subtitle.wager')}</p>
       </div>
 
       <div className="flex flex-col gap-4">
@@ -73,7 +73,7 @@ export function WagerStep({ amount, onAmountChange, isValid }: WagerStepProps) {
             style={sliderTrack}
             className="h-2 w-full cursor-pointer appearance-none rounded-full outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-indigo-300 disabled:cursor-not-allowed disabled:opacity-60 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-indigo-500 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:active:scale-110 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-indigo-500 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:active:scale-110"
           />
-          <div className="flex items-center justify-between text-xs font-medium text-slate-500">
+          <div className="flex items-center justify-between text-xs font-medium text-ink-3">
             <span>{minWager} USDT</span>
             <span>
               {slider.isAboveRange
@@ -112,7 +112,7 @@ export function WagerStep({ amount, onAmountChange, isValid }: WagerStepProps) {
               <Trophy className="h-5 w-5" />
             </div>
             <div className="flex flex-col">
-              <span className="text-xs font-medium text-slate-500">{t('create.pot')}</span>
+              <span className="text-xs font-medium text-ink-3">{t('create.pot')}</span>
               <span className="text-xl font-bold text-slate-900">
                 {pot} <span className="text-sm font-medium text-slate-400">USDT</span>
               </span>

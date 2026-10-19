@@ -210,7 +210,7 @@ export function Header() {
       <button
         onClick={() => setLanguage('en')}
         className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
-          language === 'en' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-900'
+          language === 'en' ? 'bg-indigo-600 text-white' : 'text-ink-3 hover:text-slate-900'
         }`}
       >
         EN
@@ -218,7 +218,7 @@ export function Header() {
       <button
         onClick={() => setLanguage('ru')}
         className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
-          language === 'ru' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-900'
+          language === 'ru' ? 'bg-indigo-600 text-white' : 'text-ink-3 hover:text-slate-900'
         }`}
       >
         RU
@@ -231,7 +231,7 @@ export function Header() {
     <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-lg">
       {/* Address */}
       <div className="flex items-center justify-between">
-        <span className="tabular-nums text-xs text-slate-500">{walletShort}</span>
+        <span className="tabular-nums text-xs text-ink-3">{walletShort}</span>
         <button onClick={handleCopy} className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-700">
           {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
           {copied ? t('wallet.copied') : t('wallet.copy')}
@@ -254,7 +254,7 @@ export function Header() {
                       ? meta.testnet
                         ? 'bg-amber-50 text-amber-800 shadow-sm ring-1 ring-amber-200'
                         : 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700'
+                      : 'text-ink-3 hover:text-slate-700'
                   }`}
                 >
                   {meta.shortName}
@@ -276,7 +276,7 @@ export function Header() {
         balanceFlash ? 'bg-emerald-50/80 ring-1 ring-emerald-200' : 'bg-slate-50'
       }`}>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-slate-500">{t('wallet.balance')}</span>
+          <span className="text-xs text-ink-3">{t('wallet.balance')}</span>
           <div className={`flex items-center gap-1 rounded-full px-2 py-0.5 ${
             chainMeta?.testnet
               ? 'bg-amber-50'
@@ -295,7 +295,7 @@ export function Header() {
               <button type="button" onClick={refetchBalances} className="min-h-11 min-w-11 px-2 text-indigo-600 underline-offset-2 hover:underline">{t('deposit.balance.retry')}</button>
             </span>
           ) : (
-            <span className="text-xs text-slate-500">{t('deposit.balance.checking')}</span>
+            <span className="text-xs text-ink-3">{t('deposit.balance.checking')}</span>
           )}
           <Button type="button" size="sm" onClick={openDeposit} className="shrink-0">
             <Plus className="h-3.5 w-3.5" />
@@ -328,7 +328,7 @@ export function Header() {
 
         <div className="mt-1.5 flex items-center gap-1.5 border-t border-slate-200 pt-1.5">
           <span className="text-[10px] text-slate-400">{t('wallet.totalChains')}</span>
-          <span className="text-[10px] font-semibold text-slate-500">{totalUsdt === null ? totalLabel : `${totalUsdt} USDT`}</span>
+          <span className="text-[10px] font-semibold text-ink-3">{totalUsdt === null ? totalLabel : `${totalUsdt} USDT`}</span>
         </div>
       </div>
 
@@ -377,7 +377,7 @@ export function Header() {
       {/* Export private key */}
       <button
         onClick={exportWallet}
-        className="flex w-full items-center gap-2 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-xs font-medium text-slate-500 transition-colors hover:border-slate-400 hover:text-slate-700"
+        className="flex w-full items-center gap-2 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-xs font-medium text-ink-3 transition-colors hover:border-slate-400 hover:text-slate-700"
       >
         <KeyRound className="h-3.5 w-3.5" />
         {t('wallet.exportKey')}

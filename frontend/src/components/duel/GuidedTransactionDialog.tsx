@@ -123,9 +123,9 @@ export function GuidedTransactionDialog({
                       'text-xs font-semibold tracking-wide',
                       step.status === 'active' && 'text-indigo-700',
                       step.status === 'completed' && 'text-emerald-700',
-                      step.status === 'skipped' && 'text-slate-500',
+                      step.status === 'skipped' && 'text-ink-3',
                       step.status === 'error' && 'text-red-700',
-                      step.status === 'upcoming' && 'text-slate-500'
+                      step.status === 'upcoming' && 'text-ink-3'
                     )}
                   >
                     {step.label}
@@ -231,7 +231,7 @@ export function GuidedTransactionDialog({
                     key={`${item.label}-${item.value}`}
                     className="flex items-start justify-between gap-4"
                   >
-                    <dt className="text-sm text-slate-500">{item.label}</dt>
+                    <dt className="text-sm text-ink-3">{item.label}</dt>
                     <dd
                       className={cn(
                         'max-w-[60%] text-right text-sm text-slate-700',

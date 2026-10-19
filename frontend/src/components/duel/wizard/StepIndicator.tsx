@@ -39,7 +39,7 @@ export function StepIndicator({ steps, currentIndex, onStepClick }: StepIndicato
       </div>
 
       <div className="flex items-center justify-between sm:hidden">
-        <div className="text-xs font-semibold text-slate-500">
+        <div className="text-xs font-semibold text-ink-3">
           {t('wizard.stepCounter', { current: currentIndex + 1, total: steps.length })}
         </div>
         <div className="text-sm font-semibold text-indigo-700">{currentLabel}</div>
@@ -108,7 +108,7 @@ function StepPill({
             ? 'bg-indigo-500 text-white'
             : step.isComplete
               ? 'bg-emerald-500 text-white'
-              : 'bg-slate-200 text-slate-500'
+              : 'bg-slate-200 text-ink-3'
         }`}
       >
         {step.isComplete ? <Check className="h-3 w-3" /> : index + 1}

@@ -108,7 +108,7 @@ export function TrustSection() {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70 motion-reduce:animate-none" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
               </span>
-              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-3">
                 {t('trust.contract.badge')}
               </span>
             </div>
@@ -142,7 +142,7 @@ export function TrustSection() {
                 </div>
                 <div className="min-w-0">
                   <div className="text-sm font-semibold text-slate-900">{t(titleKey)}</div>
-                  <div className="mt-1 text-[13px] leading-relaxed text-slate-500">
+                  <div className="mt-1 text-[13px] leading-relaxed text-ink-3">
                     {t(descKey)}
                   </div>
                 </div>
@@ -161,7 +161,7 @@ export function TrustSection() {
                 <Icon className="h-5 w-5" aria-hidden />
               </div>
               <h3 className="mt-4 text-base font-semibold text-slate-950">{t(titleKey)}</h3>
-              <p className="mt-2 text-[13px] leading-relaxed text-slate-500">{t(descKey)}</p>
+              <p className="mt-2 text-[13px] leading-relaxed text-ink-3">{t(descKey)}</p>
             </div>
           ))}
         </div>

@@ -13,7 +13,7 @@ export const DUEL_STATE_CONFIG: Record<DuelState, DuelStateConfig> = {
   // The readers drop `Nonexistent` records, so no screen renders one; the entry is here because
   // the record is exhaustive over the enum.
   [DuelState.Nonexistent]: {
-    colorClass: 'bg-slate-50 text-slate-500 border-slate-200',
+    colorClass: 'bg-slate-50 text-ink-3 border-slate-200',
     accentClass: 'border-t-slate-300',
   },
   [DuelState.Created]: {
@@ -37,7 +37,7 @@ export const DUEL_STATE_CONFIG: Record<DuelState, DuelStateConfig> = {
     accentClass: 'border-t-slate-300',
   },
   [DuelState.Cancelled]: {
-    colorClass: 'bg-slate-50 text-slate-500 border-slate-200',
+    colorClass: 'bg-slate-50 text-ink-3 border-slate-200',
     accentClass: 'border-t-slate-300',
   },
   [DuelState.Declined]: {

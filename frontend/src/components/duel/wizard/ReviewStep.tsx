@@ -36,7 +36,7 @@ export function ReviewStep({
         <h2 tabIndex={-1} className="text-xl font-bold text-slate-900 outline-none sm:text-2xl">
           {t('wizard.title.review')}
         </h2>
-        <p className="text-sm text-slate-500">{t('wizard.subtitle.review')}</p>
+        <p className="text-sm text-ink-3">{t('wizard.subtitle.review')}</p>
         <NetworkChip chainKey={chainKey} />
       </div>
 
@@ -48,7 +48,7 @@ export function ReviewStep({
             <span>
               <span className="font-semibold text-slate-900">{gameName}</span>
               {gameCategory && (
-                <span className="ml-2 text-xs text-slate-500">
+                <span className="ml-2 text-xs text-ink-3">
                   · {t(`category.${gameCategory}` as TranslationKey)}
                 </span>
               )}
@@ -63,7 +63,7 @@ export function ReviewStep({
           value={
             <span className="font-semibold text-slate-900">
               {numeric} USDT
-              <span className="ml-2 text-xs font-normal text-slate-500">
+              <span className="ml-2 text-xs font-normal text-ink-3">
                 · {t('wizard.review.pot', { pot })}
               </span>
             </span>
@@ -98,7 +98,7 @@ export function ReviewStep({
         />
       </div>
 
-      <p className="text-xs text-slate-500">{t('wizard.review.footer')}</p>
+      <p className="text-xs text-ink-3">{t('wizard.review.footer')}</p>
     </div>
   );
 }
@@ -125,7 +125,7 @@ function ReviewRow({
       }`}
     >
       <div className="flex min-w-0 flex-1 items-start gap-3">
-        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-ink-3">
           {icon}
         </div>
         <div className="min-w-0 flex-1">

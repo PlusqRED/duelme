@@ -17,7 +17,7 @@ export function PopularGamesSection() {
       <div className="mb-8 flex items-end justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">{t('popularGames.title')}</h2>
-          <p className="mt-1 text-slate-500">{t('popularGames.subtitle')}</p>
+          <p className="mt-1 text-ink-3">{t('popularGames.subtitle')}</p>
         </div>
         {!isLoading && featuredGames.length > 0 && (
           <Link

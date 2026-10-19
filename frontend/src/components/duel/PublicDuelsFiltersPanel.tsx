@@ -148,7 +148,7 @@ function SortButton({ active, children, onClick }: FilterButtonProps) {
         'rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors',
         active
           ? 'bg-slate-900 text-white'
-          : 'bg-slate-100 text-slate-500 hover:bg-slate-200',
+          : 'bg-slate-100 text-ink-3 hover:bg-slate-200',
       )}
     >
       {children}

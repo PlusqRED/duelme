@@ -136,7 +136,7 @@ export default function PublicDuelsPage() {
               <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
                 {t('publicDuels.title')}
               </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-500 sm:text-base">
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-3 sm:text-base">
                 {t('publicDuels.dedicatedSubtitle')}
               </p>
             </div>
@@ -191,7 +191,7 @@ export default function PublicDuelsPage() {
         ) : paginated.length === 0 ? (
           <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50/80 px-6 py-16 text-center">
             <Globe2 className="h-10 w-10 text-slate-300" />
-            <p className="max-w-md text-sm leading-relaxed text-slate-500">
+            <p className="max-w-md text-sm leading-relaxed text-ink-3">
               {hasActiveFilters ? t('dashboard.noMatches') : t('publicDuels.empty')}
             </p>
             {hasActiveFilters ? (

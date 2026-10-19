@@ -119,7 +119,7 @@ export default function MyProfilePage() {
     return (
       <div className="mx-auto max-w-2xl px-4 py-12 text-center">
         <User className="mx-auto mb-4 h-12 w-12 text-slate-300" />
-        <p className="text-sm text-slate-500">{t('profile.signInToEdit')}</p>
+        <p className="text-sm text-ink-3">{t('profile.signInToEdit')}</p>
         <Button className="mt-4" onClick={login}>
           {t('nav.connectWallet')}
         </Button>
@@ -221,7 +221,7 @@ export default function MyProfilePage() {
       </Suspense>
       <Link
         href="/dashboard"
-        className="mb-6 inline-flex items-center gap-1.5 text-sm text-slate-500 transition-colors hover:text-slate-900"
+        className="mb-6 inline-flex items-center gap-1.5 text-sm text-ink-3 transition-colors hover:text-slate-900"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         {t('nav.dashboard')}

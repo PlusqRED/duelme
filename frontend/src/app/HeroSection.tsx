@@ -122,7 +122,7 @@ export function HeroSection() {
               </a>
             </div>
 
-            <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-slate-500 [text-wrap:pretty]">
+            <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-ink-3 [text-wrap:pretty]">
               {t('hero.note')}
             </p>
 

@@ -125,7 +125,7 @@ export function DuelCard({
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-ink-3">
               <Chip>{duel.chainName}</Chip>
               {gameName && <GameBadge gameName={gameName} gameSlug={gameSlug} />}
               <span>

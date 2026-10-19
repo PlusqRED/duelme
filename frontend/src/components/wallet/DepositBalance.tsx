@@ -26,13 +26,13 @@ export function DepositBalance({ label, balance, onRetry }: DepositBalanceProps)
         </span>
       )}
       {balance.kind === 'checking' && (
-        <span className="inline-flex items-center gap-1.5 text-sm text-slate-500">
+        <span className="inline-flex items-center gap-1.5 text-sm text-ink-3">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
           {t('deposit.balance.checking')}
         </span>
       )}
       {balance.kind === 'no-wallet' && (
-        <span className="text-sm text-slate-500">{t('toast.walletNotReady')}</span>
+        <span className="text-sm text-ink-3">{t('toast.walletNotReady')}</span>
       )}
       {balance.kind === 'error' && (
         <span className="inline-flex flex-wrap items-center gap-2 text-sm font-medium text-red-600">

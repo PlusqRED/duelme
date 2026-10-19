@@ -21,7 +21,7 @@ export function GameStep({ selectedSlug, onSelect, chainKey }: GameStepProps) {
         <h2 tabIndex={-1} className="text-xl font-bold text-slate-900 outline-none sm:text-2xl">
           {t('wizard.title.game')}
         </h2>
-        <p className="text-sm text-slate-500">{t('wizard.subtitle.game')}</p>
+        <p className="text-sm text-ink-3">{t('wizard.subtitle.game')}</p>
         <NetworkChip chainKey={chainKey} />
       </div>
 
