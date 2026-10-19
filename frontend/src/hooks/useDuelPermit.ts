@@ -24,7 +24,11 @@ export function useDuelPermit(chainId: number) {
 
   return useCallback(
     async (value: bigint): Promise<PermitSignature> => {
-      if (!publicClient || !walletClient || !accountAddress || !usdtAddress || !duelMeAddress) {
+      if (!usdtAddress || !duelMeAddress) {
+        throw new Error(`No DuelMe or USDT address recorded for chain ${chainId}.`);
+      }
+
+      if (!publicClient || !walletClient || !accountAddress) {
         throw new WalletNotReadyError();
       }
 
