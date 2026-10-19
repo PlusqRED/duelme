@@ -207,22 +207,19 @@ export function Header() {
 
   const langToggle = (
     <div className="flex items-center rounded-lg border border-slate-200 p-0.5">
-      <button
-        onClick={() => setLanguage('en')}
-        className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
-          language === 'en' ? 'bg-indigo-600 text-white' : 'text-ink-3 hover:text-slate-900'
-        }`}
-      >
-        EN
-      </button>
-      <button
-        onClick={() => setLanguage('ru')}
-        className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
-          language === 'ru' ? 'bg-indigo-600 text-white' : 'text-ink-3 hover:text-slate-900'
-        }`}
-      >
-        RU
-      </button>
+      {(['en', 'ru'] as const).map((next) => (
+        <button
+          key={next}
+          onClick={() => {
+            if (!setLanguage(next)) appToast.error('toast.languageNotKept');
+          }}
+          className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
+            language === next ? 'bg-indigo-600 text-white' : 'text-ink-3 hover:text-slate-900'
+          }`}
+        >
+          {next.toUpperCase()}
+        </button>
+      ))}
     </div>
   );
 

@@ -28,6 +28,24 @@ test.describe('Language', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(GAMES_HEADING.ru);
   });
 
+  test('a switch holds when the reader follows a link before the new page arrives', async ({ page }) => {
+    await page.goto('/games');
+    // The server takes its time over the new language, so the link is followed first.
+    await page.route('**/*', async (route) => {
+      if (route.request().method() === 'POST' && route.request().headers()['next-action']) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
+      await route.continue();
+    });
+
+    await page.getByRole('button', { name: 'RU', exact: true }).first().click();
+    await page.locator('header a[href="/duels/public"]').first().click();
+
+    await expect(page).toHaveURL(/\/duels\/public$/);
+    await expect(page.locator('html')).toHaveAttribute('lang', 'ru');
+    await expect(page.getByRole('contentinfo')).toContainText('Все права защищены');
+  });
+
   test('another open tab follows the switch, so no tab mixes two languages', async ({ page, context }) => {
     const other = await context.newPage();
     await other.goto('/games');

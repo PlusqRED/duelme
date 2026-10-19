@@ -5,7 +5,7 @@ export const LANGUAGE_COOKIE = 'duelme-lang';
 
 export const DEFAULT_LANGUAGE: Language = 'en';
 
-const LANGUAGE_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
+export const LANGUAGE_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
 function isLanguage(value: string | undefined): value is Language {
   return value !== undefined && Object.hasOwn(translations, value);
