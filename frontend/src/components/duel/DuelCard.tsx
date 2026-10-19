@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
+import { Chip } from '@/components/ui/chip';
 import { Button } from '@/components/ui/button';
 import type { PlayerDuel } from '@/lib/duel';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -116,7 +116,7 @@ export function DuelCard({
                   <Link
                     href={`/profile/${opponentAddress}`}
                     onClick={(e) => e.stopPropagation()}
-                    className="font-mono font-medium text-slate-900 hover:text-indigo-600 transition-colors"
+                    className="tabular-nums font-medium text-slate-900 hover:text-indigo-600 transition-colors"
                   >
                     {resolveDisplay?.(opponentAddress) ?? truncateAddress(opponentAddress)}
                   </Link>
@@ -126,9 +126,7 @@ export function DuelCard({
             </div>
 
             <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-              <Badge variant="outline" className="shrink-0 text-xs">
-                {duel.chainName}
-              </Badge>
+              <Chip>{duel.chainName}</Chip>
               {gameName && <GameBadge gameName={gameName} gameSlug={gameSlug} />}
               <span>
                 {t('dashboard.lastUpdateLabel')}: {formatDateTime(getRelevantDuelTimestamp(duel), language)}
@@ -170,8 +168,9 @@ export function DuelCard({
 
           {hasClaimableAmount && onClaim && (
             <Button
+              variant="sun"
               size="lg"
-              className="w-full bg-gradient-to-r from-emerald-500 via-emerald-600 to-green-600 text-white shadow-sm shadow-emerald-200 hover:from-emerald-600 hover:via-emerald-700 hover:to-green-700 lg:w-auto"
+              className="w-full lg:w-auto"
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -201,7 +200,7 @@ export function DuelCard({
           {isRefundable && onRefundClaim && (
             <Button
               size="lg"
-              className="w-full bg-gradient-to-r from-red-500 via-red-600 to-rose-600 text-white shadow-sm shadow-red-200 hover:from-red-600 hover:via-red-700 hover:to-rose-700 lg:w-auto"
+              className="w-full lg:w-auto"
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();

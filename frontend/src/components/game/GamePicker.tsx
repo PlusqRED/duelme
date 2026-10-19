@@ -89,7 +89,7 @@ export function GamePicker({ selectedSlug, onSelect }: GamePickerProps) {
           onChange={(event) => handleQueryChange(event.target.value)}
           placeholder={t('gamePicker.searchPlaceholder')}
           maxLength={SEARCH_MAX_LENGTH}
-          className="h-12 border-slate-200 bg-white pl-10 text-base"
+          className="pl-10"
           aria-label={t('gamePicker.searchPlaceholder')}
         />
         {isLoading && (

@@ -88,15 +88,15 @@ export function GuidedTransactionDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="max-h-[calc(100dvh-1.5rem)] max-w-[calc(100%-1.5rem)] gap-0 overflow-y-auto border border-slate-200 bg-white/95 p-0 shadow-2xl backdrop-blur-sm sm:max-w-4xl"
+        className="gap-0 p-0 before:mt-2.5 before:mb-0 min-[860px]:w-[min(900px,calc(100vw-48px))]"
         showCloseButton={canClose}
       >
         <div className="border-b border-slate-200 bg-gradient-to-r from-indigo-50 via-white to-slate-50 px-6 py-5">
           <DialogHeader className="gap-1">
-            <DialogTitle className="text-xl font-semibold text-slate-900">
+            <DialogTitle>
               {title}
             </DialogTitle>
-            <DialogDescription className="text-sm text-slate-600">
+            <DialogDescription>
               {description}
             </DialogDescription>
           </DialogHeader>
@@ -189,10 +189,9 @@ export function GuidedTransactionDialog({
                     {secondaryAction && (
                       <Button
                         size="lg"
-                        variant={secondaryAction.variant ?? 'outline'}
+                        variant={secondaryAction.variant ?? 'paper'}
                         onClick={secondaryAction.onClick}
                         disabled={secondaryAction.disabled}
-                        className="h-11 transition-all duration-200 ease-out"
                       >
                         {secondaryAction.label}
                       </Button>
@@ -200,10 +199,10 @@ export function GuidedTransactionDialog({
                     {primaryAction && (
                       <Button
                         size="lg"
-                        variant={primaryAction.variant ?? 'default'}
+                        variant={primaryAction.variant ?? 'navy'}
                         onClick={primaryAction.onClick}
                         disabled={primaryAction.disabled}
-                        className="h-11 transition-all duration-200 ease-out sm:min-w-44"
+                        className="sm:min-w-44"
                       >
                         {primaryAction.loading && (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -263,7 +262,7 @@ export function GuidedTransactionDialog({
                       <dd
                         className={cn(
                           'text-sm text-slate-700 break-all',
-                          item.monospace && 'font-mono text-xs'
+                          item.monospace && 'tabular-nums text-xs'
                         )}
                       >
                         {item.value}

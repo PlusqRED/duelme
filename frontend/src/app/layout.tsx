@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Geologica } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/providers/Providers';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { JsonLd } from '@/components/seo/JsonLd';
+import { brandColors } from '@/lib/brandColors';
 import { getRelayerStatus } from '@/lib/relayerConfig';
 import { SITE_NAME, SITE_URL } from '@/lib/constants';
 import {
@@ -16,8 +17,8 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-const inter = Inter({
-  variable: '--font-sans',
+const geologica = Geologica({
+  variable: '--font-geologica',
   subsets: ['latin', 'cyrillic'],
   display: 'swap',
 });
@@ -82,7 +83,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#FAFAFA',
+  themeColor: brandColors.canvas,
 };
 
 export default function RootLayout({
@@ -91,15 +92,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${inter.variable} font-sans antialiased`}>
+    <html lang="en" className={geologica.variable}>
+      <body>
         {/* Organization + WebApplication are global brand identity — safe on every page. */}
         {/* FAQ is intentionally NOT here: it must live only on the page where the */}
         {/* matching content is visible (homepage). See `app/page.tsx`. */}
         <JsonLd type="organization" />
         <JsonLd type="webApplication" />
         <Providers relayerStatus={getRelayerStatus()}>
-          <div className="flex min-h-screen flex-col bg-[#FAFAFA]">
+          <div className="flex min-h-dvh flex-col">
             <Header />
             <main className="flex-1">{children}</main>
             <Footer />

@@ -9,9 +9,10 @@ import { wagmiConfig, supportedChains } from '@/lib/wagmi';
 import { selectWallet } from '@/lib/walletSelection';
 import { useContractConfig } from '@/hooks/useContractConfig';
 import { RelayerStatusContext } from '@/hooks/useRelayerStatus';
+import { brandColors } from '@/lib/brandColors';
 import type { RelayerStatus } from '@/lib/relayRequest';
 import { LanguageProvider } from '@/i18n/LanguageContext';
-import { Toaster } from '@/components/ui/sonner';
+import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 const queryClient = new QueryClient({
@@ -64,7 +65,7 @@ export function Providers({ children, relayerStatus }: ProvidersProps) {
       config={{
         appearance: {
           theme: 'light',
-          accentColor: '#4F46E5',
+          accentColor: brandColors.ink,
           logo: undefined,
         },
         loginMethods: ['google', 'email', 'wallet'],

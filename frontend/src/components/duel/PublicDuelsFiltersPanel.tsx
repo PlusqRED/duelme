@@ -52,7 +52,7 @@ export function PublicDuelsFiltersPanel({
           value={searchQuery}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder={t('publicDuels.searchPlaceholder')}
-          className="h-11 border-slate-200 bg-white pl-10"
+          className="pl-10"
         />
       </div>
 

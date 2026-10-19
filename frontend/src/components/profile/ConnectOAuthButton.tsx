@@ -46,11 +46,11 @@ export function ConnectOAuthButton({ platform }: ConnectOAuthButtonProps) {
   return (
     <Button
       type="button"
-      variant="outline"
+      variant="paper"
       onClick={handleClick}
       disabled={busy}
       aria-busy={busy}
-      className="h-11 w-full justify-center gap-2"
+      className="w-full"
     >
       {busy ? (
         <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />

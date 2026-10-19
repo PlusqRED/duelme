@@ -174,7 +174,7 @@ export default function RecentDuelsPage() {
           <Globe className="h-10 w-10 text-slate-300" />
           <p className="text-sm text-slate-500">{t('recent.noMatches')}</p>
           {hasActiveFilters && (
-            <Button variant="outline" size="sm" onClick={clearFilters}>
+            <Button variant="paper" size="sm" onClick={clearFilters}>
               {t('dashboard.clearSearch')}
             </Button>
           )}

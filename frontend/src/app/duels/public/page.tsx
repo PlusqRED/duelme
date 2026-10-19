@@ -195,15 +195,13 @@ export default function PublicDuelsPage() {
               {hasActiveFilters ? t('dashboard.noMatches') : t('publicDuels.empty')}
             </p>
             {hasActiveFilters ? (
-              <Button variant="outline" size="sm" onClick={resetFilters}>
+              <Button variant="paper" size="sm" onClick={resetFilters}>
                 {t('dashboard.clearSearch')}
               </Button>
             ) : (
               <Link
                 href="/duel/create"
-                className={buttonVariants({
-                  className: 'bg-slate-950 text-white hover:bg-slate-800',
-                })}
+                className={buttonVariants()}
               >
                 {t('hero.cta')}
               </Link>
@@ -229,7 +227,7 @@ export default function PublicDuelsPage() {
             <div className="flex items-center gap-2">
               <Button
                 type="button"
-                variant="outline"
+                variant="paper"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={safePage <= 1}
               >
@@ -237,7 +235,7 @@ export default function PublicDuelsPage() {
               </Button>
               <Button
                 type="button"
-                variant="outline"
+                variant="paper"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={safePage >= totalPages}
               >

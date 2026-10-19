@@ -9,6 +9,7 @@ import { landingTranslations } from './translations/landing';
 import { navigationTranslations } from './translations/navigation';
 import { profileGamesTranslations } from './translations/profileGames';
 import { socialLinksTranslations } from './translations/socialLinks';
+import { uiTranslations } from './translations/ui';
 
 export const translations = {
   en: {
@@ -23,6 +24,7 @@ export const translations = {
     ...depositTranslations.en,
     ...profileGamesTranslations.en,
     ...socialLinksTranslations.en,
+    ...uiTranslations.en,
   },
   ru: {
     ...navigationTranslations.ru,
@@ -36,6 +38,7 @@ export const translations = {
     ...depositTranslations.ru,
     ...profileGamesTranslations.ru,
     ...socialLinksTranslations.ru,
+    ...uiTranslations.ru,
   },
 } as const;
 

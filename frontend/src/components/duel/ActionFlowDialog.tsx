@@ -62,7 +62,7 @@ export function ActionFlowDialog({
   const secondaryAction: GuidedTransactionAction | undefined =
     flow.stage === 'success' || flow.actionState === 'awaiting-wallet' || flow.actionState === 'confirming'
       ? undefined
-      : { label: t('actionFlow.action.cancel'), onClick: () => onOpenChange(false), variant: 'outline' };
+      : { label: t('actionFlow.action.cancel'), onClick: () => onOpenChange(false), variant: 'paper' };
 
   return (
     <GuidedTransactionDialog

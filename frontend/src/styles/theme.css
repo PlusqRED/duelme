@@ -1,0 +1,62 @@
+/*
+ * The design's tokens: the one place a colour, a type size or an easing is written down.
+ * Components name the role (`bg-canvas`, `text-ink-3`, `bg-red-soft`), never a value.
+ *
+ * Colour says who or what and lives on objects, not on backgrounds: red is the player who created
+ * the duel, blue the one who joined, navy (`ink`) the contract and every action button, sun the
+ * winner and the payout, green what is good, orange what needs attention. Rules in full:
+ * "Design" in frontend/CLAUDE.md.
+ */
+@theme {
+  --color-canvas: #f1f4fb;
+  --color-canvas-deep: #e5eaf6;
+  --color-paper: #ffffff;
+  --color-ink: #121a3e;
+  --color-ink-edge: #04081f;
+  --color-ink-2: #454d70;
+  --color-ink-3: #626a88;
+  --color-line: #dde2ef;
+  --color-line-strong: #c3cadd;
+
+  --color-red: #dc3426;
+  --color-red-deep: #a8241a;
+  --color-red-soft: #fde4e1;
+  --color-blue: #2b64f5;
+  --color-blue-deep: #1d47c4;
+  --color-blue-soft: #e2eaff;
+  --color-sun: #ffc633;
+  --color-sun-edge: #cc9500;
+  --color-sun-soft: #fff2c7;
+  --color-sun-ink: #6e4a00;
+  --color-good: #19b37b;
+  --color-good-ink: #0b7a52;
+  --color-good-soft: #dcf5ea;
+  --color-orange: #f0642e;
+  --color-orange-ink: #b0400c;
+  --color-orange-soft: #ffe7dc;
+  --color-orange-wash: #fff4ee;
+  --color-orange-line: #ffd2bf;
+
+  --font-sans: var(--font-geologica), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-weight-label: 650;
+  --font-weight-strong: 750;
+
+  --text-note: 0.8125rem;
+  --text-note--line-height: 1.45;
+  --text-body: 1.0625rem;
+  --text-body--line-height: 1.55;
+  --text-lead: 1.375rem;
+  --text-lead--line-height: 1.2;
+  --text-h2: clamp(1.9rem, 1.3rem + 1.8vw, 2.75rem);
+  --text-h2--line-height: 1.04;
+  --text-h2--letter-spacing: -0.03em;
+  --text-h1: clamp(2.45rem, 1.35rem + 3.1vw, 3.5rem);
+  --text-h1--line-height: 0.98;
+  --text-h1--letter-spacing: -0.04em;
+
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-press: cubic-bezier(0.3, 0.7, 0.4, 1);
+
+  --shadow-window: 0 40px 80px -30px rgb(4 8 31 / 0.55);
+  --shadow-menu: 0 28px 56px -28px rgb(18 26 62 / 0.42);
+}

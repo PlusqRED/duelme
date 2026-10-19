@@ -86,7 +86,7 @@ export default function PublicProfilePage({
                   tone="dark"
                 />
               </div>
-              <p className="mt-1 font-mono text-xs text-white/60">{truncateAddress(walletAddress)}</p>
+              <p className="mt-1 tabular-nums text-xs text-white/60">{truncateAddress(walletAddress)}</p>
             </div>
           </div>
         </div>

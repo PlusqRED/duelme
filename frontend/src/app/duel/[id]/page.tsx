@@ -510,7 +510,7 @@ export default function DuelPage({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="self-center text-red-500 hover:bg-red-50 hover:text-red-600"
+                  className="self-center"
                   onClick={handleCancel}
                   disabled={txPending}
                 >
@@ -534,7 +534,7 @@ export default function DuelPage({
               <div className="flex flex-col gap-3">
                 <Button
                   size="lg"
-                  className="h-12 w-full bg-indigo-600 text-base font-semibold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700"
+                  className="w-full"
                   onClick={joinFlow.handleOpenJoinFlow}
                   disabled={txPending || joinFlow.flow !== null}
                 >
@@ -544,8 +544,8 @@ export default function DuelPage({
                 {isDeclinableDuel && (
                   <Button
                     size="lg"
-                    variant="outline"
-                    className="h-12 w-full border-slate-300 text-slate-700 hover:bg-slate-50"
+                    variant="paper"
+                    className="w-full"
                     onClick={handleDecline}
                     disabled={txPending}
                   >
@@ -568,7 +568,7 @@ export default function DuelPage({
             {canLoginToJoinWaitingDuel && (
               <Button
                 size="lg"
-                className="h-12 w-full bg-indigo-600 text-base font-semibold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700"
+                className="w-full"
                 onClick={login}
               >
                 <LogIn className="mr-2 h-4 w-4" />
@@ -710,8 +710,9 @@ export default function DuelPage({
 
                   {canManageParticipantDuel && hasClaimablePayout && (
                     <Button
+                      variant="sun"
                       size="lg"
-                      className="w-full bg-gradient-to-r from-emerald-500 via-emerald-600 to-green-600 text-white shadow-sm shadow-emerald-200 hover:from-emerald-600 hover:via-emerald-700 hover:to-green-700 sm:w-auto"
+                      className="w-full sm:w-auto"
                       onClick={openClaimPayout}
                       disabled={txPending || actionFlow.flow !== null}
                     >

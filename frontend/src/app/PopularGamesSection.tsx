@@ -59,10 +59,7 @@ export function PopularGamesSection() {
           <div className="mt-6">
             <Link
               href="/duel/create"
-              className={buttonVariants({
-                size: 'lg',
-                className: 'rounded-2xl bg-slate-950 px-8 text-white hover:bg-slate-900',
-              })}
+              className={buttonVariants({ size: 'lg' })}
             >
               {t('hero.cta')}
             </Link>

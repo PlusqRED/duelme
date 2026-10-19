@@ -28,13 +28,13 @@ export function DepositAddress({ address }: DepositAddressProps) {
         <span className="text-xs font-medium text-slate-500">{t('deposit.addressLabel')}</span>
         <p
           data-testid="deposit-address"
-          className="select-all break-all rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-sm leading-6 text-slate-900"
+          className="select-all break-all rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 tabular-nums text-sm leading-6 text-slate-900"
         >
           {address}
         </p>
         <Button
           type="button"
-          variant="outline"
+          variant="paper"
           onClick={() => void copy(address)}
           className="h-11 min-w-11 self-start px-4"
         >

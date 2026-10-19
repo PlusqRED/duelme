@@ -21,7 +21,7 @@ export function ClaimButtons({
     <div className="flex gap-3">
       <Button
         size="lg"
-        className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700"
+        className="flex-1"
         onClick={onClaimVictory}
         disabled={isPending}
       >
@@ -30,8 +30,8 @@ export function ClaimButtons({
       </Button>
       <Button
         size="lg"
-        variant="outline"
-        className="flex-1 border-slate-300 text-slate-600 hover:bg-slate-50"
+        variant="paper"
+        className="flex-1"
         onClick={onAdmitDefeat}
         disabled={isPending}
       >

@@ -1,7 +1,18 @@
 import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { extendTailwindMerge } from 'tailwind-merge';
 import { USDT_DECIMALS } from './constants';
 import type { Language } from '@/i18n/translations';
+
+// tailwind-merge reads the theme's own type sizes and weights (styles/theme.css) as colours and
+// font families, and would drop `text-body` from `text-body text-ink` as a clash.
+const twMerge = extendTailwindMerge({
+  extend: {
+    theme: {
+      text: ['note', 'body', 'lead', 'h1', 'h2'],
+      'font-weight': ['label', 'strong'],
+    },
+  },
+});
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

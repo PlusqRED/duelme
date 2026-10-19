@@ -44,7 +44,7 @@ export function DepositPanel({ chainId, requiredRaw, isJoining = false, onBack, 
   const retryBalance = flowBalance?.retry ?? ownRead.refetch;
 
   const backButton = onBack && (
-    <Button type="button" variant="outline" onClick={onBack} className="h-11 w-full sm:w-auto sm:self-start">
+    <Button type="button" variant="paper" onClick={onBack} className="w-full sm:w-auto sm:self-start">
       <ArrowLeft className="h-4 w-4" />
       {t('deposit.backToDuel')}
     </Button>
@@ -69,7 +69,7 @@ export function DepositPanel({ chainId, requiredRaw, isJoining = false, onBack, 
             {ready && authenticated ? t('toast.walletNotReady') : t('deposit.loginPrompt')}
           </p>
           {!authenticated && (
-            <Button type="button" onClick={login} disabled={!ready} className="h-11 px-4">
+            <Button type="button" onClick={login} disabled={!ready}>
               <LogIn className="h-4 w-4" />
               {t('nav.connectWallet')}
             </Button>

@@ -68,15 +68,12 @@ export function UnlinkConfirmDialog({ open, platform, onOpenChange }: UnlinkConf
             variant="ghost"
             onClick={() => onOpenChange(false)}
             disabled={unlink.isPending}
-            className="h-11"
           >
             {t('profile.socialLinks.cancel')}
           </Button>
           <Button
-            variant="destructive"
             onClick={handleConfirm}
             disabled={unlink.isPending || !platform}
-            className="h-11"
             aria-busy={unlink.isPending}
           >
             {unlink.isPending ? (

@@ -28,7 +28,7 @@ export function GamesClient() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t('games.searchPlaceholder')}
-            className="h-10 border-slate-200 bg-white pl-10"
+            className="pl-10"
           />
         </div>
         <div className="flex flex-wrap gap-1.5">

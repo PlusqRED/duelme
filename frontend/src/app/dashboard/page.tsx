@@ -178,8 +178,9 @@ export default function DashboardPage() {
             </div>
 
             <Button
+              variant="sun"
               size="lg"
-              className="w-full bg-gradient-to-r from-emerald-500 via-emerald-600 to-green-600 text-white shadow-sm shadow-emerald-200 hover:from-emerald-600 hover:via-emerald-700 hover:to-green-700 sm:w-auto"
+              className="w-full sm:w-auto"
               onClick={handleClaimAll}
               disabled={actionFlow.flow !== null}
             >
@@ -201,7 +202,7 @@ export default function DashboardPage() {
 
             <Button
               size="lg"
-              className="w-full bg-gradient-to-r from-red-500 via-red-600 to-rose-600 text-white shadow-sm shadow-red-200 hover:from-red-600 hover:via-red-700 hover:to-rose-700 sm:w-auto"
+              className="w-full sm:w-auto"
               onClick={handleRefundAndClaimAll}
               disabled={actionFlow.flow !== null}
             >
@@ -245,7 +246,7 @@ export default function DashboardPage() {
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder={t('dashboard.searchPlaceholder')}
-              className="h-11 border-slate-200 bg-white pl-10"
+              className="pl-10"
             />
           </div>
         </div>
@@ -266,9 +267,7 @@ export default function DashboardPage() {
             {!searchQuery && (
               <Link
                 href="/duel/create"
-                className={buttonVariants({
-                  className: 'bg-indigo-600 text-white hover:bg-indigo-700',
-                })}
+                className={buttonVariants()}
               >
                 {t('hero.cta')}
               </Link>
@@ -304,7 +303,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2">
             <Button
               type="button"
-              variant="outline"
+              variant="paper"
               onClick={() => (activeTab === 'active' ? setActivePage((page) => Math.max(1, page - 1)) : setHistoryPage((page) => Math.max(1, page - 1)))}
               disabled={currentPage <= 1}
             >
@@ -312,7 +311,7 @@ export default function DashboardPage() {
             </Button>
             <Button
               type="button"
-              variant="outline"
+              variant="paper"
               onClick={() => (activeTab === 'active'
                 ? setActivePage((page) => Math.min(activeTotalPages, page + 1))
                 : setHistoryPage((page) => Math.min(historyTotalPages, page + 1)))}

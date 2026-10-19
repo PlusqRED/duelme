@@ -60,7 +60,6 @@ export function CreateGameInline({ initialName, onCreated }: CreateGameInlinePro
           onChange={(event) => setName(event.target.value)}
           maxLength={50}
           placeholder={t('createGame.namePlaceholder')}
-          className="h-11 border-slate-200"
         />
       </div>
 

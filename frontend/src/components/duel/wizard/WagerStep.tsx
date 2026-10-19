@@ -53,7 +53,7 @@ export function WagerStep({ amount, onAmountChange, isValid }: WagerStepProps) {
             placeholder={t('create.amountPlaceholder')}
             value={amount}
             onChange={(event) => onAmountChange(event.target.value)}
-            className="h-14 border-slate-200 pl-10 pr-16 text-lg font-semibold focus:border-indigo-300 focus:ring-indigo-200"
+            className="pl-10 pr-16 text-lg font-semibold focus:border-indigo-300 focus:ring-indigo-200"
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">
             USDT

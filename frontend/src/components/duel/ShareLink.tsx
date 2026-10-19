@@ -45,12 +45,12 @@ export function ShareLink({ duelId, inviteHash, inviteSecret }: ShareLinkProps) 
         <Input
           readOnly
           value={canCopy ? url : t('duel.privateInviteUnavailable')}
-          className="h-10 flex-1 border-slate-300 bg-slate-50 font-mono text-sm"
+          className="flex-1 tabular-nums"
         />
         <Button
           size="lg"
-          variant="outline"
-          className="h-10 shrink-0 border-slate-300"
+          variant="paper"
+          className="shrink-0"
           onClick={handleCopy}
           disabled={!canCopy}
         >

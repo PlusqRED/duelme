@@ -118,7 +118,7 @@ export function TrustSection() {
           </div>
 
           <div className="mt-4 rounded-2xl bg-slate-900 px-4 py-3.5">
-            <div className="break-all font-mono text-[13px] leading-relaxed text-slate-100 sm:text-sm">
+            <div className="break-all tabular-nums text-[13px] leading-relaxed text-slate-100 sm:text-sm">
               {contractAddress}
             </div>
           </div>

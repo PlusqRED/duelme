@@ -159,7 +159,7 @@ export function PublicDuelCard({
                     href={`/profile/${duel.creator}`}
                     className={cn(
                       'block truncate text-sm font-semibold text-slate-900 transition-colors hover:text-indigo-600',
-                      duel.creatorName.startsWith('0x') && 'font-mono',
+                      duel.creatorName.startsWith('0x') && 'tabular-nums',
                     )}
                     title={duel.creator}
                     aria-label={t('publicDuels.profileAria', { player: duel.creatorName })}
@@ -201,11 +201,7 @@ export function PublicDuelCard({
         </div>
         <Link
           href={`/duel/${duel.id}`}
-          className={buttonVariants({
-            size: compact ? 'default' : 'lg',
-            className:
-              'w-full bg-slate-950 text-white hover:bg-slate-800',
-          })}
+          className={cn(buttonVariants({ size: compact ? 'md' : 'lg' }), 'w-full')}
         >
           {actionLabel}
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />

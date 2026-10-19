@@ -180,7 +180,7 @@ export default function GameDetailPage({
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder={t('game.searchPlaceholder')}
-                className="h-11 border-slate-200 bg-white pl-10"
+                className="pl-10"
               />
             </div>
           )}
@@ -220,7 +220,7 @@ export default function GameDetailPage({
               <div className="flex items-center gap-2">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="paper"
                   onClick={() =>
                     activeTab === 'active'
                       ? setActivePage((p) => Math.max(1, p - 1))
@@ -232,7 +232,7 @@ export default function GameDetailPage({
                 </Button>
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="paper"
                   onClick={() =>
                     activeTab === 'active'
                       ? setActivePage((p) => Math.min(activeTotalPages, p + 1))

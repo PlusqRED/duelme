@@ -37,7 +37,7 @@ export function DepositBalance({ label, balance, onRetry }: DepositBalanceProps)
       {balance.kind === 'error' && (
         <span className="inline-flex flex-wrap items-center gap-2 text-sm font-medium text-red-600">
           {t('deposit.balance.failed')}
-          <Button type="button" variant="outline" onClick={onRetry} className="h-11 px-3">
+          <Button type="button" variant="paper" size="sm" onClick={onRetry}>
             <RotateCw className="h-3.5 w-3.5" />
             {t('deposit.balance.retry')}
           </Button>

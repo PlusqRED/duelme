@@ -104,7 +104,7 @@ export function ConfirmResult({
               <UserRound className="h-3.5 w-3.5" />
               {t('duel.reportedBy')}
             </div>
-            <p className="font-mono text-sm font-semibold text-slate-900">
+            <p className="tabular-nums text-sm font-semibold text-slate-900">
               {formatParticipant(claimedBy)}
             </p>
           </div>
@@ -114,7 +114,7 @@ export function ConfirmResult({
               <Trophy className="h-3.5 w-3.5" />
               {t('duel.reportedWinner')}
             </div>
-            <p className="font-mono text-sm font-semibold text-emerald-900">
+            <p className="tabular-nums text-sm font-semibold text-emerald-900">
               {formatParticipant(claimedWinner)}
             </p>
           </div>
@@ -133,7 +133,7 @@ export function ConfirmResult({
           {canConfirm && !timedOut && (
             <Button
               size="lg"
-              className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700"
+              className="flex-1"
               onClick={onConfirm}
               disabled={isPending}
             >
@@ -144,8 +144,8 @@ export function ConfirmResult({
           {canDispute && !timedOut && (
             <Button
               size="lg"
-              variant="outline"
-              className="flex-1 border-amber-300 text-amber-800 hover:bg-amber-100"
+              variant="paper"
+              className="flex-1"
               onClick={onDispute}
               disabled={isPending}
             >
@@ -156,8 +156,8 @@ export function ConfirmResult({
           {canRefund && timedOut && (
             <Button
               size="lg"
-              variant="outline"
-              className="flex-1 border-slate-300"
+              variant="paper"
+              className="flex-1"
               onClick={onRefund}
               disabled={isPending}
             >

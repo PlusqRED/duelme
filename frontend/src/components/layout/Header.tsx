@@ -231,7 +231,7 @@ export function Header() {
     <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-lg">
       {/* Address */}
       <div className="flex items-center justify-between">
-        <span className="font-mono text-xs text-slate-500">{walletShort}</span>
+        <span className="tabular-nums text-xs text-slate-500">{walletShort}</span>
         <button onClick={handleCopy} className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-700">
           {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
           {copied ? t('wallet.copied') : t('wallet.copy')}
@@ -297,7 +297,7 @@ export function Header() {
           ) : (
             <span className="text-xs text-slate-500">{t('deposit.balance.checking')}</span>
           )}
-          <Button type="button" size="sm" onClick={openDeposit} className="h-11 shrink-0 bg-indigo-600 px-3 text-white hover:bg-indigo-700">
+          <Button type="button" size="sm" onClick={openDeposit} className="shrink-0">
             <Plus className="h-3.5 w-3.5" />
             {t('deposit.topUp')}
           </Button>
@@ -341,7 +341,7 @@ export function Header() {
           placeholder={t('wallet.recipientPlaceholder')}
           value={toAddress}
           onChange={(e) => setToAddress(e.target.value)}
-          className="h-9 border-slate-200 font-mono text-xs"
+          className="tabular-nums"
         />
         <div className="flex gap-2">
           <div className="relative flex-1">
@@ -350,7 +350,7 @@ export function Header() {
               placeholder={t('wallet.amountPlaceholder')}
               value={sendAmount}
               onChange={(e) => setSendAmount(e.target.value)}
-              className="h-9 border-slate-200 pr-14 text-sm"
+              className="pr-14"
             />
             <button
               onClick={() => setSendAmount(balance.toString())}
@@ -363,7 +363,7 @@ export function Header() {
             onClick={handleSend}
             disabled={isSending || !toAddress || !sendAmount}
             size="sm"
-            className="h-9 bg-indigo-600 px-3 text-white hover:bg-indigo-700"
+            
           >
             {isSending ? (
               <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -534,12 +534,12 @@ export function Header() {
                 )}
               </div>
 
-              <Button variant="ghost" size="sm" onClick={logout} className="text-slate-500 hover:text-slate-700">
+              <Button variant="ghost" size="sm" onClick={logout}>
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
           ) : (
-            <Button variant="default" size="sm" onClick={login} disabled={!ready}>
+            <Button size="sm" onClick={login} disabled={!ready}>
               {t('nav.connectWallet')}
             </Button>
           )}
@@ -640,12 +640,12 @@ export function Header() {
                     <span className="text-sm font-medium truncate">{displayName || t('nav.myProfile')}</span>
                   </div>
                 </Link>
-                <Button variant="ghost" size="sm" onClick={logout} className="text-slate-500 hover:text-slate-700">
+                <Button variant="ghost" size="sm" onClick={logout}>
                   <LogOut className="h-4 w-4" />
                 </Button>
               </div>
             ) : (
-              <Button variant="default" size="sm" className="flex-1" onClick={login} disabled={!ready}>
+              <Button size="sm" className="flex-1" onClick={login} disabled={!ready}>
                 {t('nav.connectWallet')}
               </Button>
             )}
