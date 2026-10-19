@@ -138,7 +138,7 @@ test.describe('Landing', () => {
     await page.goto('/');
     const safety = page.locator('#safety');
 
-    await safety.getByRole('button', { name: 'Copy address' }).click();
+    await safety.getByRole('button', { name: 'Copy the address' }).click();
 
     await expect(safety.getByText('Address copied')).toBeVisible();
   });

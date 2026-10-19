@@ -5,10 +5,17 @@ import {
   levelQuest,
   levelRank,
   questCells,
+  reputationLevels,
   type ReputationLevel,
 } from '@/lib/reputation';
 
 const LEVELS: ReputationLevel[] = ['new', 'unreliable', 'fair', 'honorable'];
+
+describe('reputationLevels', () => {
+  it('runs from New to Reliable, the way the scale lays its zones out', () => {
+    expect(reputationLevels).toEqual(LEVELS);
+  });
+});
 
 describe('levelRank', () => {
   it('orders the levels from New to Reliable', () => {

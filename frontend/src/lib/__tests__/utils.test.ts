@@ -87,12 +87,12 @@ describe('formatVolume', () => {
 describe('addressGroups', () => {
   it('splits the address after its 0x into groups of four, keeping its case', () => {
     expect(addressGroups('0x4BFa1486661d6FAa5300923bd684F261AE4776a5').join(' ')).toBe(
-      '0x 4BFa 1486 661d 6FAa 5300 923b d684 F261 AE47 76a5'
+      '4BFa 1486 661d 6FAa 5300 923b d684 F261 AE47 76a5'
     );
   });
 
   it('leaves a short last group as it is', () => {
-    expect(addressGroups('0x123456')).toEqual(['0x', '1234', '56']);
+    expect(addressGroups('0x123456')).toEqual(['1234', '56']);
   });
 });
 

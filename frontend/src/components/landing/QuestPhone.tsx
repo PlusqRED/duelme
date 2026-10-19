@@ -69,10 +69,10 @@ export function QuestPhone({ quest, isRelayEnabled, className }: QuestPhoneProps
           <Chip className="h-[26px] bg-sun-soft px-2.5 font-bold text-sun-ink @max-[275px]/phone:group-data-signed/bar:hidden">
             {t('sim.tag')}
           </Chip>
-          <span className="ml-auto inline-flex h-6 scale-50 items-center gap-1 rounded-full bg-good-soft pr-[9px] pl-[7px] text-[0.6875rem] font-extrabold whitespace-nowrap text-good-ink opacity-0 transition-[opacity,scale] duration-400 ease-spring group-data-signed/bar:scale-100 group-data-signed/bar:opacity-100">
+          <Chip className="ml-auto scale-50 bg-good-soft pl-[7px] text-micro font-extrabold text-good-ink opacity-0 transition-[opacity,scale] duration-400 ease-spring group-data-signed/bar:scale-100 group-data-signed/bar:opacity-100">
             <Icon name="check" className="size-3 stroke-3" />
             {t('start.mock.signedIn')}
-          </span>
+          </Chip>
         </div>
         <div className="relative h-[372px] overflow-hidden rounded-b-[28px] bg-canvas max-xs:h-[360px]">
           <QuestScreen

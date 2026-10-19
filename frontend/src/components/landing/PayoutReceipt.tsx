@@ -42,7 +42,7 @@ export function PayoutReceipt({ duel }: { duel: WonDuel }) {
           <span className="inline-flex h-[34px] animate-pop items-center gap-1.5 rounded-full bg-ink px-3 font-extrabold whitespace-nowrap text-paper tabular-nums [animation-delay:560ms]">
             <Icon name="lock" className="size-[15px]" />
             {pot}
-            <small className="text-[0.6875rem] font-label opacity-75">USDT</small>
+            <small className="text-micro font-label opacity-75">USDT</small>
           </span>
         </Step>
         <Arrow className="[animation-delay:760ms]" />
@@ -55,7 +55,7 @@ export function PayoutReceipt({ duel }: { duel: WonDuel }) {
               className="relative size-[22px] inset-shadow-none"
             />
             <span className="relative">+{pot}</span>
-            <small className="relative text-[0.6875rem] font-label opacity-75">USDT</small>
+            <small className="relative text-micro font-label opacity-75">USDT</small>
           </span>
         </Step>
       </div>

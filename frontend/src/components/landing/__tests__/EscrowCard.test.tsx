@@ -34,7 +34,7 @@ describe('EscrowCard', () => {
   it('copies the contract’s address', () => {
     render(<EscrowCard />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Copy address' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Copy the address' }));
 
     expect(clipboard.copy).toHaveBeenCalledWith(CONTRACT);
   });

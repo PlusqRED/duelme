@@ -16,15 +16,22 @@ export function useCountTo(target: number, isOn: boolean, { durationMs = 1400, d
     if (!isOn || reducedMotion) {
       return;
     }
-    const start = performance.now() + delayMs;
-    let frame = requestAnimationFrame(function step(now) {
-      const progress = Math.max(0, Math.min(1, (now - start) / durationMs));
-      setCounted(target * (1 - (1 - progress) ** 3));
-      if (progress < 1) {
-        frame = requestAnimationFrame(step);
-      }
-    });
-    return () => cancelAnimationFrame(frame);
+    let frame = 0;
+    const timer = setTimeout(() => {
+      const start = performance.now();
+      frame = requestAnimationFrame(function step(now) {
+        // A frame's time can be a hair before the moment it was asked for.
+        const progress = Math.max(0, Math.min(1, (now - start) / durationMs));
+        setCounted(target * (1 - (1 - progress) ** 3));
+        if (progress < 1) {
+          frame = requestAnimationFrame(step);
+        }
+      });
+    }, delayMs);
+    return () => {
+      clearTimeout(timer);
+      cancelAnimationFrame(frame);
+    };
   }, [isOn, reducedMotion, target, durationMs, delayMs]);
 
   if (!isOn) return 0;

@@ -13,7 +13,9 @@ function renderCount(isOn: boolean) {
 
 beforeEach(() => {
   motion.isReduced = false;
-  vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] });
+  vi.useFakeTimers({
+    toFake: ['setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame', 'performance'],
+  });
 });
 
 afterEach(() => {

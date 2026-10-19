@@ -47,7 +47,7 @@ export function Safe({ filled, slotRefs, stakeLabel, total, isLocked, name, stat
           ))}
         </span>
         <p className="text-center text-xl/none font-extrabold tracking-[-0.02em] text-paper tabular-nums max-xs:text-[1.0625rem]/none">
-          {total} <small className="text-[0.6875rem] font-semibold tracking-normal opacity-70">USDT</small>
+          {total} <small className="text-micro font-semibold tracking-normal opacity-70">USDT</small>
         </p>
       </div>
       <p className="mt-1.5 text-center text-sm/[1.2] font-bold whitespace-nowrap max-xs:text-note/[1.2]">{name}</p>

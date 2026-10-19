@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { levelRank, type ReputationLevel, type ReputationMark } from '@/lib/reputation';
+import { getReputationLevelFromStats, levelRank, type ReputationLevel, type ReputationMark } from '@/lib/reputation';
 import { gaugePoint } from '@/lib/reputationGauge';
 
 /** A record goes no higher than two digits: the lab is for trying the score, not filling it. */
@@ -35,7 +35,7 @@ export function useReputationSample() {
   const point = gaugePoint(sample.honored, sample.abandoned);
 
   function update(mark: SampleChange['mark'], honored: number, abandoned: number) {
-    const after = gaugePoint(honored, abandoned).level;
+    const after = getReputationLevelFromStats(honored, abandoned);
     setSample({
       honored,
       abandoned,

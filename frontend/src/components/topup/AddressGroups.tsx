@@ -22,7 +22,7 @@ export function AddressGroups({ address }: AddressGroupsProps) {
     <>
       <p className="text-note font-label text-ink-3">{t('topup.address')}</p>
       <p className="max-w-full text-base/[1.45] font-bold break-words tabular-nums [word-spacing:0.15em]">
-        {addressGroups(address).join(' ')}
+        0x {addressGroups(address).join(' ')}
       </p>
       <Button type="button" variant="paper" size="sm" onClick={() => void copy(address)}>
         <Icon name={copied ? 'check' : 'copy'} className="size-[18px]" />

@@ -11,7 +11,7 @@ import type { Language } from '@/i18n/translations';
 const twMerge = extendTailwindMerge({
   extend: {
     theme: {
-      text: ['note', 'body-sm', 'body', 'lead', 'figure', 'h1', 'h2'],
+      text: ['micro', 'note', 'body-sm', 'body', 'lead', 'figure', 'h1', 'h2'],
       'font-weight': ['label', 'strong'],
       shadow: ['window', 'menu', 'sheet', 'safe', 'stage', 'phone', 'pin', 'sticky', 'tape'],
       'inset-shadow': ['avatar', 'stake'],
@@ -27,9 +27,9 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-/** An address in groups of four after its `0x`, to check against another copy piece by piece. */
+/** An address's hex after its `0x`, in groups of four, to check against another copy piece by piece. */
 export function addressGroups(address: string): string[] {
-  return ['0x', ...(address.slice(2).match(/.{1,4}/g) ?? [])];
+  return address.slice(2).match(/.{1,4}/g) ?? [];
 }
 
 export function truncateAddress(address: string): string {

@@ -4,8 +4,8 @@ import { useLayoutEffect, useRef, useState, type ReactNode, type RefObject } fro
 import { Icon } from '@/components/ui/icon';
 import type { SampleChange } from '@/hooks/useReputationSample';
 import { useTranslation } from '@/i18n/useTranslation';
-import { getReputationLabelKey, type ReputationLevel } from '@/lib/reputation';
-import { gaugeLevels, type GaugePoint } from '@/lib/reputationGauge';
+import { getReputationLabelKey, reputationLevels, type ReputationLevel } from '@/lib/reputation';
+import type { GaugePoint } from '@/lib/reputationGauge';
 import { cn } from '@/lib/utils';
 
 const zoneLooks: Record<ReputationLevel, { bar: string; ink: string }> = {
@@ -57,16 +57,16 @@ interface ReputationGaugeProps {
 export function ReputationGauge({ point, change, face }: ReputationGaugeProps) {
   const { t } = useTranslation();
   const scaleRef = useRef<HTMLDivElement>(null);
-  const pinX = usePinX(scaleRef, gaugeLevels.indexOf(point.level), point.spot);
+  const pinX = usePinX(scaleRef, reputationLevels.indexOf(point.level), point.spot);
   const mark = change?.mark === 'reset' ? null : change?.mark;
 
   return (
     <div aria-hidden="true" className="relative">
       <div
         ref={scaleRef}
-        className="grid grid-cols-[0.6fr_1fr_1fr_1fr] items-center gap-x-1.5 gap-y-3 pt-[58px] text-center text-sm font-label text-ink-3 @max-[380px]/lab:text-xs @max-[300px]/lab:grid-cols-[minmax(0,0.6fr)_repeat(3,minmax(0,1fr))] @max-[300px]/lab:text-[0.6875rem]"
+        className="grid grid-cols-[0.6fr_1fr_1fr_1fr] items-center gap-x-1.5 gap-y-3 pt-[58px] text-center text-sm font-label text-ink-3 @max-[380px]/lab:text-xs @max-[300px]/lab:grid-cols-[minmax(0,0.6fr)_repeat(3,minmax(0,1fr))] @max-[300px]/lab:text-micro"
       >
-        {gaugeLevels.map((level) => (
+        {reputationLevels.map((level) => (
           <span
             key={level}
             data-on={level === point.level || undefined}
@@ -76,7 +76,7 @@ export function ReputationGauge({ point, change, face }: ReputationGaugeProps) {
             )}
           />
         ))}
-        {gaugeLevels.map((level) => (
+        {reputationLevels.map((level) => (
           <span
             key={level}
             className={cn(

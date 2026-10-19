@@ -5,7 +5,6 @@ import { FakeIntersectionObserver } from '@/lib/__tests__/helpers/intersectionOb
 
 const relayer = vi.hoisted(() => ({ isRelayEnabled: true }));
 vi.mock('@/hooks/useRelayerStatus', () => ({ useRelayerStatus: () => relayer }));
-vi.mock('@/hooks/useOpenDuels', () => ({ useOpenDuels: () => ({ duels: [] }) }));
 vi.mock('@/hooks/useReducedMotion', () => ({ useReducedMotion: () => true }));
 
 const { GettingStarted } = await import('@/components/landing/GettingStarted');

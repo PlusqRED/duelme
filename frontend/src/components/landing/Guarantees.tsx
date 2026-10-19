@@ -41,7 +41,6 @@ export function Guarantees({ className }: GuaranteesProps) {
   const listRef = useRef<HTMLUListElement>(null);
   const reducedMotion = useReducedMotion();
   const isUnlocked = useSeenOnce(listRef, 0.5) || reducedMotion;
-  const coverage = useCountTo(contractCoverage.percent, isUnlocked, { delayMs: RING_DELAY_MS });
   const tests = `${formatCount(CONTRACT_TESTS, language)} ${plural('trust.tests', CONTRACT_TESTS)}`;
 
   return (
@@ -56,37 +55,45 @@ export function Guarantees({ className }: GuaranteesProps) {
           <p className="text-sm text-paper/70">{t(desc)}</p>
         </Badge>
       ))}
-      <Badge
-        index={guarantees.length}
-        medalClassName="text-paper"
-        medal={
-          <>
-            <svg viewBox="0 0 56 56" aria-hidden="true" className="absolute inset-0 -rotate-90">
-              <circle cx="28" cy="28" r={RING_RADIUS} fill="none" strokeWidth={RING_STROKE} className="stroke-paper/16" />
-              <circle
-                cx="28"
-                cy="28"
-                r={RING_RADIUS}
-                fill="none"
-                strokeWidth={RING_STROKE}
-                pathLength={100}
-                strokeDasharray={100}
-                strokeDashoffset={100 - coverage}
-                className="stroke-sun"
-              />
-            </svg>
-            <b aria-hidden="true" className="relative text-xs font-extrabold tracking-[-0.02em] tabular-nums">
-              {formatPercent(coverage, language)}
-            </b>
-          </>
-        }
-      >
+      <Badge index={guarantees.length} medalClassName="text-paper" medal={<CoverageMedal isUnlocked={isUnlocked} />}>
         <h3 className="text-body/[1.25]">
           {t('trust.cred.tested.title', { tests, coverage: formatPercent(contractCoverage.percent, language) })}
         </h3>
         <p className="text-sm text-paper/70">{t('trust.cred.tested.desc')}</p>
       </Badge>
     </ul>
+  );
+}
+
+interface CoverageMedalProps {
+  isUnlocked: boolean;
+}
+
+/** The coverage ring, filling as its figure counts up: its own component, so the count redraws it alone. */
+function CoverageMedal({ isUnlocked }: CoverageMedalProps) {
+  const { language } = useTranslation();
+  const coverage = useCountTo(contractCoverage.percent, isUnlocked, { delayMs: RING_DELAY_MS });
+
+  return (
+    <>
+      <svg viewBox="0 0 56 56" aria-hidden="true" className="absolute inset-0 -rotate-90">
+        <circle cx="28" cy="28" r={RING_RADIUS} fill="none" strokeWidth={RING_STROKE} className="stroke-paper/16" />
+        <circle
+          cx="28"
+          cy="28"
+          r={RING_RADIUS}
+          fill="none"
+          strokeWidth={RING_STROKE}
+          pathLength={100}
+          strokeDasharray={100}
+          strokeDashoffset={100 - coverage}
+          className="stroke-sun"
+        />
+      </svg>
+      <b aria-hidden="true" className="relative text-xs font-extrabold tracking-[-0.02em] tabular-nums">
+        {formatPercent(coverage, language)}
+      </b>
+    </>
   );
 }
 

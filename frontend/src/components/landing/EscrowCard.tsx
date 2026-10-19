@@ -13,7 +13,7 @@ import { addressGroups, cn } from '@/lib/utils';
 
 const contractAddress = DUELME_ADDRESSES[DEFAULT_CHAIN_ID];
 /** The address after its `0x`, in the groups of four it is read out in; one array, so the reveal keeps it. */
-const addressHex = addressGroups(contractAddress).slice(1);
+const addressHex = addressGroups(contractAddress);
 const contractPage = `${DEFAULT_CHAIN.explorer}/address/${contractAddress}`;
 
 /** The three ways to check the contract on the explorer, each a tab of its page. */
@@ -26,17 +26,13 @@ const checks: readonly { icon: IconName; title: TranslationKey; hint: Translatio
 const PRESSED_EDGE = 'shadow-[0_3px_0_var(--color-ink-edge)] active:translate-y-0.5 active:shadow-[0_1px_0_var(--color-ink-edge)]';
 
 /**
- * The escrow contract itself: its address, which settles out of noise the first time it is seen,
- * a copy button, and three links that open it on the explorer, one line under them saying what
- * the link pointed at shows.
+ * The escrow contract itself: its address, a copy button, and three links that open it on the
+ * explorer, one line under them saying what the link pointed at shows. Pointing at a link or
+ * focusing it makes it the one described.
  */
 export function EscrowCard() {
   const { t } = useTranslation();
   const hintId = useId();
-  const addressRef = useRef<HTMLParagraphElement>(null);
-  const groupsRef = useRef<HTMLSpanElement>(null);
-  const isSeen = useSeenOnce(addressRef, 0.8);
-  const reveal = useScrambleReveal(addressHex, isSeen, groupsRef);
   const { copied, copy } = useCopyFeedback('wallet.copyFailed', 2200);
   const [hinted, setHinted] = useState(0);
 
@@ -54,26 +50,10 @@ export function EscrowCard() {
         {t('trust.contract.label')}
       </p>
       <div className="flex items-start gap-3.5">
-        <p
-          ref={addressRef}
-          className="flex flex-1 flex-wrap gap-x-2.5 gap-y-0.5 text-[clamp(1.0625rem,0.85rem+0.8vw,1.4375rem)] font-bold tracking-[0.01em] tabular-nums"
-        >
-          <span className="sr-only">{contractAddress}</span>
-          <span aria-hidden="true" className="text-paper/50">
-            0x
-          </span>
-          <span ref={groupsRef} aria-hidden="true" className="contents">
-            {reveal.groups.map((group, index) => (
-              // A group's place is its identity: the same four characters can stand at two places.
-              <span key={index} style={{ minWidth: reveal.widths[index] }} className="inline-block">
-                {group}
-              </span>
-            ))}
-          </span>
-        </p>
+        <AddressReveal />
         <button
           type="button"
-          aria-label={t('trust.contract.copy')}
+          aria-label={t('wallet.copyAddress')}
           data-done={copied || undefined}
           onClick={() => void copy(contractAddress)}
           className={cn(
@@ -101,7 +81,7 @@ export function EscrowCard() {
             onMouseEnter={() => setHinted(index)}
             onFocus={() => setHinted(index)}
             className={cn(
-              'mb-[3px] flex min-h-[52px] items-center gap-2 rounded-[14px] bg-paper/6 px-3 py-2 text-body-sm/[1.2] font-label text-paper no-underline inset-ring inset-ring-paper/12 transition-[background-color,box-shadow,translate] duration-200 hover:bg-paper/13 hover:inset-ring-[1.5px] hover:inset-ring-sun data-active:bg-paper/13 data-active:inset-ring-[1.5px] data-active:inset-ring-sun',
+              'mb-[3px] flex min-h-[52px] items-center gap-2 rounded-[14px] bg-paper/6 px-3 py-2 text-body-sm/[1.2] font-label text-paper no-underline inset-ring inset-ring-paper/12 transition-[background-color,box-shadow,translate] duration-200 data-active:bg-paper/13 data-active:inset-ring-[1.5px] data-active:inset-ring-sun',
               PRESSED_EDGE
             )}
           >
@@ -118,5 +98,36 @@ export function EscrowCard() {
         {t(checks[hinted].hint)}
       </p>
     </div>
+  );
+}
+
+/**
+ * The contract's address, settling out of noise the first time it is seen. Its own component, so
+ * the noise redraws the address alone on each frame, not the card around it.
+ */
+function AddressReveal() {
+  const addressRef = useRef<HTMLParagraphElement>(null);
+  const groupsRef = useRef<HTMLSpanElement>(null);
+  const isSeen = useSeenOnce(addressRef, 0.8);
+  const reveal = useScrambleReveal(addressHex, isSeen, groupsRef);
+
+  return (
+    <p
+      ref={addressRef}
+      className="flex flex-1 flex-wrap gap-x-2.5 gap-y-0.5 text-[clamp(1.0625rem,0.85rem+0.8vw,1.4375rem)] font-bold tracking-[0.01em] tabular-nums"
+    >
+      <span className="sr-only">{contractAddress}</span>
+      <span aria-hidden="true" className="text-paper/50">
+        0x
+      </span>
+      <span ref={groupsRef} aria-hidden="true" className="contents">
+        {reveal.groups.map((group, index) => (
+          // A group's place is its identity: the same four characters can stand at two places.
+          <span key={index} style={{ minWidth: reveal.widths[index] }} className="inline-block">
+            {group}
+          </span>
+        ))}
+      </span>
+    </p>
   );
 }

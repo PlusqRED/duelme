@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { GameTile } from '@/components/identity/GameTile';
+import { GainTag } from '@/components/landing/GainTag';
 import { MAIN_MOCK, MockButton, Part, ScreenNote, ScreenTitle, WalletCard } from '@/components/landing/QuestScreenParts';
 import { Sparks } from '@/components/landing/Sparks';
 import { Icon } from '@/components/ui/icon';
 import { useCountUp } from '@/hooks/useCountUp';
-import { useOpenDuels } from '@/hooks/useOpenDuels';
 import { QUEST_STEPS } from '@/hooks/useQuest';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -15,6 +15,8 @@ import { cn, formatUSDT } from '@/lib/utils';
 
 /** What the phone tops the made-up wallet up with. */
 const SAMPLE_TOP_UP = 50n * 10n ** BigInt(USDT_DECIMALS);
+/** The made-up open duel the last step offers: a picture, not one to join. */
+const sampleDuel = { game: 'Chess', category: 'STRATEGY', stake: 25n * 10n ** BigInt(USDT_DECIMALS) } as const;
 /** When the top-up lands on the third screen, after the screen itself is in. */
 const TOP_UP_MS = 700;
 
@@ -71,7 +73,7 @@ function SignInScreen({ isPlaying }: { isPlaying: boolean }) {
       <Part index={2} isPlaying={isPlaying}>
         <MockButton
           glyph={
-            <b className="grid size-5 place-items-center rounded-full border-2 border-blue text-[0.6875rem] font-extrabold text-blue">
+            <b className="grid size-5 place-items-center rounded-full border-2 border-blue text-micro font-extrabold text-blue">
               G
             </b>
           }
@@ -96,7 +98,7 @@ function WalletScreen({ isPlaying }: { isPlaying: boolean }) {
   return (
     <>
       <Part index={0} isPlaying={isPlaying}>
-        <ScreenTitle>{t('start.mock.yourWallet')}</ScreenTitle>
+        <ScreenTitle>{t('wallet.title')}</ScreenTitle>
       </Part>
       <Part index={1} isPlaying={isPlaying}>
         <div className={cn(isPlaying && 'animate-pop [animation-delay:0.28s]')}>
@@ -115,7 +117,7 @@ function WalletScreen({ isPlaying }: { isPlaying: boolean }) {
 }
 
 function FundScreen({ isPlaying, isRelayEnabled }: { isPlaying: boolean; isRelayEnabled: boolean }) {
-  const { t, language } = useTranslation();
+  const { t } = useTranslation();
   const reducedMotion = useReducedMotion();
   const isActedOut = isPlaying && !reducedMotion;
   const [hasLanded, setHasLanded] = useState(false);
@@ -134,11 +136,7 @@ function FundScreen({ isPlaying, isRelayEnabled }: { isPlaying: boolean; isRelay
       </Part>
       <Part index={1} isPlaying={isPlaying}>
         <WalletCard balance={balance} isNew={false} />
-        {hasLanded && (
-          <span className="absolute right-3 bottom-4 animate-float-up rounded-full bg-sun px-[9px] py-[3px] text-note font-extrabold whitespace-nowrap text-ink">
-            +{formatUSDT(SAMPLE_TOP_UP, language)}&nbsp;USDT
-          </span>
-        )}
+        {hasLanded && <GainTag amount={SAMPLE_TOP_UP} className="absolute right-3 bottom-4" />}
       </Part>
       <Part index={2} isPlaying={isPlaying}>
         <p
@@ -161,8 +159,6 @@ function FundScreen({ isPlaying, isRelayEnabled }: { isPlaying: boolean; isRelay
 
 function ReadyScreen({ isPlaying }: { isPlaying: boolean }) {
   const { t, language } = useTranslation();
-  const { duels } = useOpenDuels();
-  const open = duels.at(0);
   return (
     <>
       <Part index={0} isPlaying={isPlaying}>
@@ -174,23 +170,22 @@ function ReadyScreen({ isPlaying }: { isPlaying: boolean }) {
         </MockButton>
       </Part>
       <Part index={2} isPlaying={isPlaying}>
-        {open ? (
-          <div className="grid gap-2.5">
-            <ScreenNote>{t('start.mock.or')}</ScreenNote>
-            <span className="flex items-center gap-2.5 rounded-2xl border border-line bg-paper p-2.5">
-              <GameTile name={open.gameName} category={open.gameCategory} className="size-[38px] rounded-[11px] text-xs" />
-              <span className="grid min-w-0 flex-1 text-sm">
-                <b className="truncate">
-                  {open.gameName ?? t('publicDuels.noGame')} #{open.id}
-                </b>
-                <span className="text-ink-3">{formatUSDT(open.wagerAmount, language)}&nbsp;USDT</span>
-              </span>
-              <span className="rounded-full bg-ink px-3 py-[7px] text-note font-bold text-paper">{t('start.mock.join')}</span>
+        {/* On the narrowest phones the tile gives its room to the name, the stake and Join. */}
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-2.5">
+          <ScreenNote>{t('start.mock.or')}</ScreenNote>
+          <span className="flex items-center gap-2.5 rounded-2xl border border-line bg-paper p-2.5">
+            <GameTile
+              name={sampleDuel.game}
+              category={sampleDuel.category}
+              className="size-[38px] rounded-[11px] text-xs @max-[275px]/phone:hidden"
+            />
+            <span className="grid min-w-0 flex-1 text-sm">
+              <b className="truncate">{sampleDuel.game}</b>
+              <span className="truncate text-ink-3">{formatUSDT(sampleDuel.stake, language)}&nbsp;USDT</span>
             </span>
-          </div>
-        ) : (
-          <ScreenNote>{t('start.mock.noneOpen')}</ScreenNote>
-        )}
+            <span className="flex-none rounded-full bg-ink px-3 py-[7px] text-note font-bold text-paper">{t('start.mock.join')}</span>
+          </span>
+        </div>
       </Part>
     </>
   );

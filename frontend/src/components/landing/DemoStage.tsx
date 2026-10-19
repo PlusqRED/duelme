@@ -7,6 +7,7 @@ import { RepChip } from '@/components/arena/RepChip';
 import { Safe } from '@/components/arena/Safe';
 import { Seat } from '@/components/arena/Seat';
 import { Avatar } from '@/components/identity/Avatar';
+import { GainTag } from '@/components/landing/GainTag';
 import { Icon } from '@/components/ui/icon';
 import type { IconName } from '@/components/ui/iconPaths';
 import { useBalanceChange } from '@/hooks/useBalanceChange';
@@ -79,7 +80,7 @@ interface DemoSeatProps {
 }
 
 function DemoSeat({ side, stage, jump, timeout, walletRef }: DemoSeatProps) {
-  const { t, language } = useTranslation();
+  const { t } = useTranslation();
   const raw = stage.wallets[side];
   const change = useBalanceChange(raw, jump);
   const gain = change && change.delta > 0n ? change : null;
@@ -116,9 +117,7 @@ function DemoSeat({ side, stage, jump, timeout, walletRef }: DemoSeatProps) {
           {gain && (
             // The money that just came in rises off the face.
             <span key={gain.id} aria-hidden="true" className="pointer-events-none absolute inset-0 z-2 grid place-items-center">
-              <span className="animate-float-up rounded-full bg-sun px-[9px] py-[3px] text-note font-extrabold whitespace-nowrap text-ink">
-                +{formatUSDT(gain.delta, language)}&nbsp;USDT
-              </span>
+              <GainTag amount={gain.delta} />
             </span>
           )}
         </>

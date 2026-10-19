@@ -2,6 +2,15 @@ import type { TranslationKey } from '@/i18n/translations';
 
 export type ReputationLevel = 'new' | 'honorable' | 'fair' | 'unreliable';
 
+/** The levels from the bottom up, New to Reliable: the scale's order, and how a level gained is told from one lost. */
+export const reputationLevels: readonly ReputationLevel[] = ['new', 'unreliable', 'fair', 'honorable'];
+
+/** Honored duels that make a clean record, with nothing abandoned, Reliable. */
+export const CLEAN_RECORD_DUELS = 5;
+/** The lowest scores of Reliable and of Fair, once a duel was abandoned; below Fair is Risky. */
+export const HONORABLE_SCORE = 0.75;
+export const FAIR_SCORE = 0.4;
+
 /** What a finished duel adds to a player's record: a duel seen through, or one walked away from. */
 export type ReputationMark = 'honored' | 'abandoned';
 
@@ -38,11 +47,11 @@ export function getReputationLevel(
   if (total === 0) return 'new';
 
   if (abandoned === 0) {
-    return honored >= 5 ? 'honorable' : 'fair';
+    return honored >= CLEAN_RECORD_DUELS ? 'honorable' : 'fair';
   }
 
-  if (score >= 0.75) return 'honorable';
-  if (score >= 0.4) return 'fair';
+  if (score >= HONORABLE_SCORE) return 'honorable';
+  if (score >= FAIR_SCORE) return 'fair';
   return 'unreliable';
 }
 
@@ -104,11 +113,9 @@ export interface LevelQuest {
   need: number;
 }
 
-const levelRanks: Record<ReputationLevel, number> = { new: 0, unreliable: 1, fair: 2, honorable: 3 };
-
 /** How far up the levels one is, New to Reliable: to tell a level gained from a level lost. */
 export function levelRank(level: ReputationLevel): number {
-  return levelRanks[level];
+  return reputationLevels.indexOf(level);
 }
 
 /**

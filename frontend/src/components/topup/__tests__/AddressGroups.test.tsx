@@ -16,6 +16,12 @@ afterEach(() => {
 });
 
 describe('AddressGroups', () => {
+  it('shows the address after its 0x in groups of four', () => {
+    render(<AddressGroups address={ADDRESS} />);
+
+    expect(screen.getByText('0x 4BFa 1486 661d 6FAa 5300 923b d684 F261 AE47 76a5')).toBeTruthy();
+  });
+
   it('copies the address whole, without the spaces it is shown with', () => {
     render(<AddressGroups address={ADDRESS} />);
 

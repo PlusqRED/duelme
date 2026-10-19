@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { levelRank } from '@/lib/reputation';
-import { gaugeLevels, gaugePoint } from '@/lib/reputationGauge';
+import { gaugePoint } from '@/lib/reputationGauge';
 
 describe('gaugePoint', () => {
   it('stands a player with no duels in the middle of New', () => {
@@ -30,11 +29,5 @@ describe('gaugePoint', () => {
       expect(spot).toBeGreaterThan(0);
       expect(spot).toBeLessThan(1);
     }
-  });
-});
-
-describe('gaugeLevels', () => {
-  it('lays the zones out from the lowest level to the highest', () => {
-    expect(gaugeLevels.map(levelRank)).toEqual([0, 1, 2, 3]);
   });
 });

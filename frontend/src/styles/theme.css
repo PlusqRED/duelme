@@ -74,6 +74,8 @@
   --font-weight-label: 650;
   --font-weight-strong: 750;
 
+  /* The smallest type: a unit beside a figure, a tag on a phone's bar. */
+  --text-micro: 0.6875rem;
   --text-note: 0.8125rem;
   --text-note--line-height: 1.45;
   --text-body-sm: 0.9375rem;
