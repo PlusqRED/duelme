@@ -161,7 +161,7 @@ export function DuelCard({
                 {t('dashboard.claimReady')}
               </div>
               <div className="mt-1 text-lg font-bold text-emerald-900">
-                {formatUSDT(claimableAmount)} USDT
+                {formatUSDT(claimableAmount, language)} USDT
               </div>
             </div>
           )}
@@ -192,7 +192,7 @@ export function DuelCard({
                 {t('dashboard.refundAvailable')}
               </div>
               <div className="mt-1 text-lg font-bold text-red-900">
-                {formatUSDT(duel.wagerAmount)} USDT
+                {formatUSDT(duel.wagerAmount, language)} USDT
               </div>
             </div>
           )}

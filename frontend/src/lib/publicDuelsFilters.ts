@@ -1,5 +1,7 @@
 import type { DuelMeta, GameCategory } from './game';
 import type { ReputationLevel, ReputationSummary } from './reputation';
+import { intlLocales } from '@/i18n/intlLocales';
+import type { Language } from '@/i18n/translations';
 
 export type SortBy = 'newest' | 'highest' | 'lowest';
 export type WagerRange = 'all' | 'under10' | '10to50' | '50to100' | 'over100';
@@ -80,8 +82,8 @@ export const WAGER_LABELS: Record<WagerRange, string> = {
   over100: '100+',
 };
 
-export function formatPublicDuelAmount(value: number, language: 'en' | 'ru'): string {
-  return new Intl.NumberFormat(language === 'ru' ? 'ru-RU' : 'en-US', {
+export function formatPublicDuelAmount(value: number, language: Language): string {
+  return new Intl.NumberFormat(intlLocales[language], {
     maximumFractionDigits: 2,
   }).format(value);
 }

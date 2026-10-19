@@ -15,14 +15,14 @@ interface DepositBalanceProps {
 
 /** One balance line with its three distinct states: checking, an amount (0.00 included), failed. */
 export function DepositBalance({ label, balance, onRetry }: DepositBalanceProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1" aria-live="polite">
       <span className="text-sm text-slate-600">{label}</span>
       {balance.kind === 'ready' && (
         <span data-testid="deposit-balance" className="text-base font-semibold text-slate-900">
-          {formatUSDT(balance.raw)} USDT
+          {formatUSDT(balance.raw, language)} USDT
         </span>
       )}
       {balance.kind === 'checking' && (

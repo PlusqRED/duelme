@@ -31,7 +31,7 @@ interface DepositPanelProps {
 }
 
 export function DepositPanel({ chainId, requiredRaw, isJoining = false, onBack, flowBalance }: DepositPanelProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { ready, authenticated, login } = usePrivy();
   const { activeWallet, walletAddress } = useActiveWallet();
   const chain = AVAILABLE_CHAINS.find((candidate) => candidate.id === chainId);
@@ -122,10 +122,10 @@ export function DepositPanel({ chainId, requiredRaw, isJoining = false, onBack, 
         <p className="text-xs text-ink-3">{t('deposit.balance.autoUpdate')}</p>
         {requiredRaw !== undefined && (
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-slate-100 pt-2 text-sm">
-            <span className="text-slate-600">{t('deposit.required', { amount: formatUSDT(requiredRaw) })}</span>
+            <span className="text-slate-600">{t('deposit.required', { amount: formatUSDT(requiredRaw, language) })}</span>
             {funding?.kind === 'short' && (
               <span className="font-semibold text-amber-700">
-                {t('deposit.short', { amount: formatUSDT(funding.shortfallRaw) })}
+                {t('deposit.short', { amount: formatUSDT(funding.shortfallRaw, language) })}
               </span>
             )}
             {funding?.kind === 'enough' && (

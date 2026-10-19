@@ -143,8 +143,8 @@ and controls; the guard tests below list it.
   another player by name («Ответа от {other} не было»). Role nouns (игрок, соперник, создатель)
   keep their grammatical gender. `i18n/__tests__/translationsGuard.test.ts` fails on «вы» outside
   `stillFormalKeys.ts`, a list that only shrinks, and on a key nothing uses.
-- **Amounts** show up to USDT's 6 decimals, and an amount never parts from its unit at a line break
-  (`{amount} USDT`).
+- **Amounts** show up to USDT's 6 decimals in the reader's number format (`formatUSDT(amount,
+  language)`), and an amount never parts from its unit at a line break (`{amount} USDT`).
 - **Anything a contract setting decides is read from it**: the time to answer a reported win is
   `claimTimeout` in words, never a fixed "1 hour".
 
@@ -171,6 +171,7 @@ and controls; the guard tests below list it.
 | `frontend/src/lib/ogImage.tsx` | The share image; carries Geologica as WOFF (`src/assets/fonts/`, OFL), since `ImageResponse` cannot read WOFF2 |
 | `frontend/src/components/identity/Avatar.tsx` | A player's face: the address's identicon (`lib/identicon.ts`) on their seat's colour |
 | `frontend/src/components/identity/ReputationPill.tsx` | A reputation level as a pill with its three-bar meter; `ReputationBadge` reads a player's level and draws it |
+| `frontend/src/i18n/intlLocales.ts` | The locale `Intl` formats each language's numbers and dates in |
 | `frontend/src/styles/__tests__/designGuard.test.ts` | Fails on palette classes and variables, colour values, `dark:`, `font-mono` and unused legacy classes outside what `notYetPorted.ts` lists |
 | `frontend/src/i18n/__tests__/translationsGuard.test.ts` | Fails on a translation key nothing uses and on Russian «вы» outside `stillFormalKeys.ts` |
 | `frontend/src/lib/__tests__/helpers/sourceFiles.ts` | What the guards read: the shipped source files, the theme's tokens, and `shrinkingList` for lists that may only shrink |

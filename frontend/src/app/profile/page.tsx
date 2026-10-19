@@ -11,6 +11,7 @@ import { SocialLinksSection } from '@/components/profile/SocialLinksSection';
 import { useMyProfile } from '@/hooks/useMyProfile';
 import { useAppToast } from '@/hooks/useAppToast';
 import { useTranslation } from '@/i18n/useTranslation';
+import { intlLocales } from '@/i18n/intlLocales';
 import { PROFILE_LIMITS } from '@/lib/profile';
 import type { ProfileRequest } from '@/lib/profile';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
@@ -24,7 +25,6 @@ type EditingField = 'nickname' | 'status' | 'aboutMe' | 'games' | null;
 export default function MyProfilePage() {
   const { t, language } = useTranslation();
   const appToast = useAppToast();
-  const dateLocale = language === 'ru' ? 'ru-RU' : 'en-US';
   const { authenticated, login } = usePrivy();
   const { activeWallet, walletAddress } = useActiveWallet();
   const displayAddress = activeWallet?.address ?? '';
@@ -355,7 +355,7 @@ export default function MyProfilePage() {
                   {t('profile.memberSince')}
                 </div>
                 <p className="text-sm text-slate-900">
-                  {new Date(profile.createdAt).toLocaleDateString(dateLocale, { dateStyle: 'medium' })}
+                  {new Date(profile.createdAt).toLocaleDateString(intlLocales[language], { dateStyle: 'medium' })}
                 </p>
               </div>
             )}
@@ -365,7 +365,7 @@ export default function MyProfilePage() {
                   {t('profile.lastUpdated')}
                 </div>
                 <p className="text-sm text-slate-900">
-                  {new Date(profile.updatedAt).toLocaleDateString(dateLocale, { dateStyle: 'medium' })}
+                  {new Date(profile.updatedAt).toLocaleDateString(intlLocales[language], { dateStyle: 'medium' })}
                 </p>
               </div>
             )}

@@ -1,6 +1,8 @@
 import { clsx, type ClassValue } from 'clsx';
 import { extendTailwindMerge } from 'tailwind-merge';
+import { formatUnits } from 'viem';
 import { USDT_DECIMALS } from './constants';
+import { intlLocales } from '@/i18n/intlLocales';
 import type { Language } from '@/i18n/translations';
 
 // tailwind-merge does not read styles/theme.css: it takes the theme's own type sizes, weights and
@@ -27,14 +29,19 @@ export function truncateAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-export function formatUSDT(amount: bigint): string {
-  const divisor = BigInt(10 ** USDT_DECIMALS);
-  const whole = amount / divisor;
-  const fraction = amount % divisor;
-  const fractionStr = fraction.toString().padStart(USDT_DECIMALS, '0');
-  // Trim trailing zeros but keep at least 2 decimal places
-  const trimmed = fractionStr.replace(/0+$/, '').padEnd(2, '0');
-  return `${whole}.${trimmed}`;
+function isDecimal(text: string): text is `${number}` {
+  return /^-?\d+(?:\.\d+)?$/.test(text);
+}
+
+/**
+ * A USDT amount the way the language writes numbers, with up to the token's 6 decimals, so 4.123456
+ * is not shown as 4.12, and no trailing zeros: `20`, `0.5`, `1,234.5`, in Russian `1 234,5`.
+ */
+export function formatUSDT(amount: bigint, language: Language): string {
+  // A decimal string, not a float, so Intl formats the exact amount.
+  const decimal = formatUnits(amount, USDT_DECIMALS);
+  if (!isDecimal(decimal)) throw new Error(`Not a decimal amount: ${decimal}`);
+  return new Intl.NumberFormat(intlLocales[language], { maximumFractionDigits: USDT_DECIMALS }).format(decimal);
 }
 
 export function parseUSDT(amount: number): bigint {
@@ -57,8 +64,7 @@ export function formatDateTime(timestamp: bigint | number, language: Language): 
   const seconds = typeof timestamp === 'bigint' ? Number(timestamp) : timestamp;
   if (!seconds) return '—';
 
-  const locale = language === 'ru' ? 'ru-RU' : 'en-US';
-  return new Intl.DateTimeFormat(locale, {
+  return new Intl.DateTimeFormat(intlLocales[language], {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(seconds * 1000));

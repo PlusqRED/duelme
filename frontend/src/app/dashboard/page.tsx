@@ -142,7 +142,7 @@ export default function DashboardPage() {
           <CardContent className="flex flex-col items-center gap-1 py-4">
             <Wallet className="h-5 w-5 text-teal-500" />
             <span className="text-2xl font-bold text-slate-900">
-              {formatUSDT(totalWithdrawn)} USDT
+              {formatUSDT(totalWithdrawn, language)} USDT
             </span>
             <span className="text-xs font-medium text-ink-3">
               {t('dashboard.totalWithdrawn')}
@@ -172,7 +172,7 @@ export default function DashboardPage() {
           <CardContent className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
               <p className="text-2xl font-bold text-emerald-950 sm:text-3xl">
-                {formatUSDT(totalClaimable)} USDT
+                {formatUSDT(totalClaimable, language)} USDT
               </p>
               <p className="text-sm text-emerald-800">{t('dashboard.claimAllHint')}</p>
             </div>
@@ -195,7 +195,7 @@ export default function DashboardPage() {
           <CardContent className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
               <p className="text-2xl font-bold text-red-950 sm:text-3xl">
-                {formatUSDT(totalRefundable)} USDT
+                {formatUSDT(totalRefundable, language)} USDT
               </p>
               <p className="text-sm text-red-800">{t('dashboard.refundAllHint')}</p>
             </div>
@@ -336,7 +336,7 @@ export default function DashboardPage() {
           chainName: DASHBOARD_CHAIN.name,
           opponentDisplay: '',
           claimedWinnerDisplay: '',
-          claimableDisplay: claimSummary.claimableDisplay || `${formatUSDT(totalClaimable)} USDT`,
+          claimableDisplay: claimSummary.claimableDisplay || `${formatUSDT(totalClaimable, language)} USDT`,
           t,
         }}
         onOpenChange={actionFlow.handleFlowOpenChange}

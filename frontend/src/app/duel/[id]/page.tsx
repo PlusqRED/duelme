@@ -353,7 +353,7 @@ export default function DuelPage({
     chainName: chainConfig.name,
     opponentDisplay: resolveDisplay(opponentAddr),
     claimedWinnerDisplay: duel.claimedWinner !== ZERO_ADDRESS ? resolveDisplay(duel.claimedWinner) : '',
-    claimableDisplay: hasClaimablePayout ? `${formatUSDT(claimableAmount)} USDT` : '',
+    claimableDisplay: hasClaimablePayout ? `${formatUSDT(claimableAmount, language)} USDT` : '',
     t,
   };
 
@@ -702,7 +702,7 @@ export default function DuelPage({
                   <div className="space-y-1">
                     {canManageParticipantDuel && hasClaimablePayout && (
                       <p className="text-lg font-bold text-slate-900">
-                        {formatUSDT(claimableAmount)} USDT
+                        {formatUSDT(claimableAmount, language)} USDT
                       </p>
                     )}
                     <p className="text-sm text-slate-600">{t(claimHintKey)}</p>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cn } from '@/lib/utils';
+import { cn, formatUSDT } from '@/lib/utils';
 import { themeTokens } from '@/lib/__tests__/helpers/sourceFiles';
 
 describe('cn', () => {
@@ -33,5 +33,26 @@ describe('cn', () => {
 
   it('lets a later colour replace an earlier one', () => {
     expect(cn('bg-ink text-paper', 'bg-sun text-ink')).toBe('bg-sun text-ink');
+  });
+});
+
+describe('formatUSDT', () => {
+  it.each([
+    [20_000_000n, '20'],
+    [500_000n, '0.5'],
+    [4_123_456n, '4.123456'],
+    [1n, '0.000001'],
+    [1_234_500_000n, '1,234.5'],
+    [0n, '0'],
+  ])('writes %s base units as %s in English', (amount, text) => {
+    expect(formatUSDT(amount, 'en')).toBe(text);
+  });
+
+  it('writes Russian with its own separators', () => {
+    expect(formatUSDT(1_234_500_000n, 'ru')).toBe('1\u00a0234,5');
+  });
+
+  it('keeps every digit of an amount past what a float holds', () => {
+    expect(formatUSDT(123_456_789_012_345_678n, 'en')).toBe('123,456,789,012.345678');
   });
 });

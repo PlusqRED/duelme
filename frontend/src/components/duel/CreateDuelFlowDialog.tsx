@@ -61,14 +61,14 @@ export function CreateDuelFlowDialog({
   onCreateDuel,
   onBackToForm,
 }: CreateDuelFlowDialogProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
 
   if (!draft) {
     return null;
   }
 
-  const formattedAmount = `${formatUSDT(draft.rawAmount)} USDT`;
-  const formattedPot = `${formatUSDT(draft.rawAmount * 2n)} USDT`;
+  const formattedAmount = `${formatUSDT(draft.rawAmount, language)} USDT`;
+  const formattedPot = `${formatUSDT(draft.rawAmount * 2n, language)} USDT`;
   const walletConfirmationCount =
     1 + Number(needsNetworkSwitch) + Number(needsApproval);
 

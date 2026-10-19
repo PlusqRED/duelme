@@ -8,6 +8,7 @@ import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { SocialLinksDisplay } from '@/components/profile/SocialLinksDisplay';
 import { useProfile } from '@/hooks/useProfile';
 import { useTranslation } from '@/i18n/useTranslation';
+import { intlLocales } from '@/i18n/intlLocales';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
 import { truncateAddress } from '@/lib/utils';
 import { usePrivy } from '@privy-io/react-auth';
@@ -23,7 +24,6 @@ export default function PublicProfilePage({
   const walletAddress = rawAddress.toLowerCase();
   const isValidAddress = /^0x[a-f0-9]{40}$/.test(walletAddress);
   const { t, language } = useTranslation();
-  const dateLocale = language === 'ru' ? 'ru-RU' : 'en-US';
   const { authenticated } = usePrivy();
   const { walletAddress: viewerAddress } = useActiveWallet();
   const isOwnProfile = viewerAddress === walletAddress;
@@ -158,7 +158,7 @@ export default function PublicProfilePage({
                     {t('profile.memberSince')}
                   </div>
                   <p className="text-sm text-slate-900">
-                    {new Date(profile.createdAt).toLocaleDateString(dateLocale, { dateStyle: 'medium' })}
+                    {new Date(profile.createdAt).toLocaleDateString(intlLocales[language], { dateStyle: 'medium' })}
                   </p>
                 </div>
               )}
@@ -168,7 +168,7 @@ export default function PublicProfilePage({
                     {t('profile.lastUpdated')}
                   </div>
                   <p className="text-sm text-slate-900">
-                    {new Date(profile.updatedAt).toLocaleDateString(dateLocale, { dateStyle: 'medium' })}
+                    {new Date(profile.updatedAt).toLocaleDateString(intlLocales[language], { dateStyle: 'medium' })}
                   </p>
                 </div>
               )}

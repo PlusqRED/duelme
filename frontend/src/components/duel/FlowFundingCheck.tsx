@@ -17,7 +17,7 @@ interface FlowFundingCheckProps {
  * network, and — only once a fresh read shows it is short — how much is missing and a way to top up.
  */
 export function FlowFundingCheck({ review, chainName }: FlowFundingCheckProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { funding, blockedReason } = review;
   const { status } = funding;
 
@@ -32,7 +32,7 @@ export function FlowFundingCheck({ review, chainName }: FlowFundingCheckProps) {
       {status.kind === 'short' && !blockedReason && (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-sm font-semibold text-amber-700">
-            {t('deposit.short', { amount: formatUSDT(status.shortfallRaw) })}
+            {t('deposit.short', { amount: formatUSDT(status.shortfallRaw, language) })}
           </span>
           <Button type="button" onClick={funding.showDeposit}>
             <Plus className="h-4 w-4" />
