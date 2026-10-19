@@ -17,13 +17,7 @@ export const duelTranslations = defineSection({
     'duel.pot': 'Total Pot',
     'duel.creator': 'Creator',
     'duel.opponent': 'Opponent',
-    'duel.winner': 'Winner',
     'duel.timeLeft': 'Time left to confirm',
-    'duel.resultSubmitted':
-      'submitted the result. Confirm it if you agree, or dispute it to refund both players immediately.',
-    'duel.timeoutReached': 'Timeout reached. Both players can refund now.',
-    'duel.timeoutHint':
-      'If no one responds within 1 hour, both players can refund. A timeout counts against the non-responder.',
     'duel.timeoutReputationHint':
       'The non-responding player receives +1 abandoned. The reporting player receives +1 honored.',
     'duel.timeoutReputationClaimer':
@@ -34,7 +28,6 @@ export const duelTranslations = defineSection({
     'duel.private': 'Private',
     'duel.sharePublic': 'Share this link — anyone can join',
     'duel.sharePrivate': 'Share this private link — only someone with this link can join',
-    'duel.createdBy': 'by',
     'duel.privateInviteRequired':
       'This duel uses a private invite link. Only someone with the full link can accept or decline it.',
     'duel.privateInviteMissing':
@@ -114,16 +107,13 @@ export const duelTranslations = defineSection({
     'action.iWon': 'I Won',
     'action.iLost': 'I Lost',
     'action.confirm': 'Confirm Result',
-    'action.deny': 'Deny',
     'action.dispute': 'Dispute Result',
-    'action.claimPrize': 'Claim Prize',
     'action.cancel': 'Cancel Duel',
     'action.decline': 'Decline Duel',
     'action.refund': 'Refund',
     'action.share': 'Share Link',
     'action.copied': 'Link copied!',
     'action.join': 'Join Duel',
-    'action.joinDesc': 'Match the wager to accept the challenge. Winner takes the full pot.',
     'action.loginToJoin': 'Connect wallet to respond to this invite',
     'action.viewDuel': 'View Duel',
     'action.requestCancellation': 'Request Cancellation',
@@ -151,12 +141,7 @@ export const duelTranslations = defineSection({
     'duel.pot': 'Общий банк',
     'duel.creator': 'Создатель',
     'duel.opponent': 'Соперник',
-    'duel.winner': 'Победитель',
     'duel.timeLeft': 'Осталось времени на подтверждение',
-    'duel.resultSubmitted': 'отправил результат. Подтверди, если согласен, или оспорь, чтобы сразу вернуть средства обоим.',
-    'duel.timeoutReached': 'Время вышло. Теперь оба игрока могут оформить возврат.',
-    'duel.timeoutHint':
-      'Если никто не ответит в течение 1 часа, оба игрока смогут вернуть средства. Таймаут портит репутацию не ответившему игроку.',
     'duel.timeoutReputationHint': 'Не ответивший игрок получит +1 к брошенным. Заявитель получит +1 к выполненным.',
     'duel.timeoutReputationClaimer':
       'Вы отправили результат вовремя. Вы получите +1 к выполненным после обработки возврата.',
@@ -166,7 +151,6 @@ export const duelTranslations = defineSection({
     'duel.private': 'Приватная',
     'duel.sharePublic': 'Поделитесь ссылкой — присоединиться может любой',
     'duel.sharePrivate': 'Поделитесь приватной ссылкой — присоединиться сможет только тот, у кого она есть',
-    'duel.createdBy': 'от',
     'duel.privateInviteRequired':
       'Эта дуэль работает по приватной ссылке. Принять или отклонить её можно только по полной ссылке от создателя.',
     'duel.privateInviteMissing':
@@ -246,16 +230,13 @@ export const duelTranslations = defineSection({
     'action.iWon': 'Я победил',
     'action.iLost': 'Я проиграл',
     'action.confirm': 'Подтвердить результат',
-    'action.deny': 'Оспорить',
     'action.dispute': 'Оспорить результат',
-    'action.claimPrize': 'Забрать выигрыш',
     'action.cancel': 'Отменить дуэль',
     'action.decline': 'Отказаться от дуэли',
     'action.refund': 'Возврат',
     'action.share': 'Поделиться ссылкой',
     'action.copied': 'Ссылка скопирована!',
     'action.join': 'Присоединиться',
-    'action.joinDesc': 'Уравняйте ставку, чтобы принять вызов. Победитель забирает весь банк.',
     'action.loginToJoin': 'Подключите кошелёк, чтобы ответить на это приглашение',
     'action.viewDuel': 'Открыть дуэль',
     'action.requestCancellation': 'Запросить отмену',

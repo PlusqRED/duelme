@@ -24,7 +24,6 @@ export const landingTranslations = defineSection({
     'publicDuels.viewAll': 'View all public duels',
     'publicDuels.dedicatedSubtitle':
       'Browse public challenges waiting for an opponent. Check the creator, honor, game, note, and stake before joining.',
-    'publicDuels.openChallenge': 'Open challenge',
     'publicDuels.challengeNote': 'Challenge note',
     'publicDuels.fallbackNote': 'This public duel is waiting for the first opponent to accept the challenge.',
     'publicDuels.openSlot': 'Open opponent slot',
@@ -186,7 +185,6 @@ export const landingTranslations = defineSection({
     'publicDuels.viewAll': 'Все публичные дуэли',
     'publicDuels.dedicatedSubtitle':
       'Публичные вызовы, которые ждут соперника. Перед входом видно создателя, честь, игру, сообщение и ставку.',
-    'publicDuels.openChallenge': 'Открытый вызов',
     'publicDuels.challengeNote': 'Сообщение вызова',
     'publicDuels.fallbackNote': 'Эта публичная дуэль ждёт первого соперника, который примет вызов.',
     'publicDuels.openSlot': 'Открытое место соперника',

@@ -3,7 +3,6 @@ import { defineSection } from './defineSection';
 export const navigationTranslations = defineSection({
   en: {
     'nav.dashboard': 'My Duels',
-    'nav.createDuel': 'Create Duel',
     'nav.publicDuels': 'Public Duels',
     'nav.recentDuels': 'Recent Duels',
     'nav.connectWallet': 'Sign In',
@@ -20,13 +19,9 @@ export const navigationTranslations = defineSection({
     'footer.tagline': 'Fair PvP duels. Zero fees. Powered by smart contracts.',
     'footer.rights': 'All rights reserved.',
     'footer.developer': 'Developer & contact',
-    'seo.title': 'DuelMe — P2P Gaming Duels for USDT',
-    'seo.description':
-      'Challenge anyone to a PvP gaming duel for USDT. Create a duel, share the link, play your game, and claim your winnings. Powered by smart contracts on Arbitrum & Polygon.',
   },
   ru: {
     'nav.dashboard': 'Мои дуэли',
-    'nav.createDuel': 'Создать дуэль',
     'nav.publicDuels': 'Публичные дуэли',
     'nav.recentDuels': 'Недавние дуэли',
     'nav.connectWallet': 'Войти',
@@ -43,8 +38,5 @@ export const navigationTranslations = defineSection({
     'footer.tagline': 'Честные PvP дуэли. 0% комиссия. На смарт-контрактах.',
     'footer.rights': 'Все права защищены.',
     'footer.developer': 'Разработчик и связь',
-    'seo.title': 'DuelMe — P2P игровые дуэли за USDT',
-    'seo.description':
-      'Вызови любого на PvP дуэль за USDT. Создай дуэль, отправь ссылку, сыграй и забери выигрыш.',
   },
 });
