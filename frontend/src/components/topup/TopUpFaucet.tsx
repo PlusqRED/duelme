@@ -6,7 +6,7 @@ import { Icon } from '@/components/ui/icon';
 import { Spinner } from '@/components/ui/spinner';
 import { useFaucetClaim } from '@/hooks/useFaucetClaim';
 import { useTranslation } from '@/i18n/useTranslation';
-import { formatEth, formatUSDT } from '@/lib/utils';
+import { faucetAmounts } from '@/lib/faucetApi';
 
 interface TopUpFaucetProps {
   chainId: number;
@@ -25,7 +25,7 @@ export function TopUpFaucet({ chainId }: TopUpFaucetProps) {
   if (offer.kind === 'none') {
     return null;
   }
-  const amounts = { usdt: formatUSDT(offer.usdtAmountRaw, language), eth: formatEth(offer.ethAmountWei, language) };
+  const amounts = faucetAmounts(offer, language);
 
   if (offer.kind === 'claimed' || isSent) {
     return (

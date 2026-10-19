@@ -4,9 +4,9 @@ import { useId } from 'react';
 import { Icon } from '@/components/ui/icon';
 import type { TranslationKey } from '@/i18n/translations';
 import { useTranslation } from '@/i18n/useTranslation';
-import type { FaucetOffer } from '@/lib/faucetApi';
+import { faucetAmounts, type FaucetOffer } from '@/lib/faucetApi';
 import type { FlaskPhase } from '@/lib/faucetFlask';
-import { cn, formatEth, formatUSDT } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 /** The phases the flask is a button in: before the claim, and while it is answered and on its way. */
 type ClaimPhase = Extract<FlaskPhase, 'ready' | 'asking' | 'sent'>;
@@ -35,7 +35,7 @@ export function FaucetFlask({ phase, offer, onClaim, onPoured }: FaucetFlaskProp
   if (phase === 'hidden' || offer.kind === 'none') {
     return null;
   }
-  const amounts = { usdt: formatUSDT(offer.usdtAmountRaw, language), eth: formatEth(offer.ethAmountWei, language) };
+  const amounts = faucetAmounts(offer, language);
 
   if (phase === 'landed' || phase === 'claimed') {
     const isPouring = phase === 'landed';

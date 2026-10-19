@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   type BalanceRead,
+  resolveBalanceReading,
   resolveBalanceStatus,
   resolveFunding,
-} from '../deposit';
+} from '@/lib/balanceStatus';
 
 const WALLET = '0x1111111111111111111111111111111111111111';
 const OTHER_WALLET = '0x2222222222222222222222222222222222222222';
@@ -86,6 +87,14 @@ describe('resolveBalanceStatus', () => {
 
   it('is checking while a retry after an error is in flight', () => {
     expect(resolveBalanceStatus(read({ status: 'error', isFetching: true }), EXPECTED, OPENED_AT)).toEqual({ kind: 'checking' });
+  });
+});
+
+describe('resolveBalanceReading', () => {
+  it('reads a wallet\'s balance by the same rules, with no fresh answer still checking', () => {
+    expect(resolveBalanceReading(read(), EXPECTED, OPENED_AT)).toEqual({ kind: 'ready', raw: 5_000_000n });
+    expect(resolveBalanceReading(read({ dataUpdatedAt: OPENED_AT - 1 }), EXPECTED, OPENED_AT)).toEqual({ kind: 'checking' });
+    expect(resolveBalanceReading(null, EXPECTED)).toEqual({ kind: 'checking' });
   });
 });
 

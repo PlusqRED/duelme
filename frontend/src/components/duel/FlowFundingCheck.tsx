@@ -7,7 +7,7 @@ import { BalanceReadFailed } from '@/components/wallet/BalanceReadFailed';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import type { FlowReviewGate } from '@/hooks/useFlowFunding';
 import { useTranslation } from '@/i18n/useTranslation';
-import type { BalanceStatus } from '@/lib/deposit';
+import type { BalanceStatus } from '@/lib/balanceStatus';
 import { formatUSDT } from '@/lib/utils';
 
 interface FlowFundingCheckProps {
@@ -28,22 +28,22 @@ export function FlowFundingCheck({ review, chainId, chainName, neededRaw, isJoin
   const { t, language } = useTranslation();
   const { activeWallet, walletAddress } = useActiveWallet();
   const { funding, blockedReason } = review;
-  const { status } = funding;
+  const { balance, status } = funding;
 
   return (
     <div className="mt-4 grid gap-2 rounded-tile bg-canvas px-4 py-3">
       <p aria-live="polite" className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-sm">
         <span className="text-ink-2">{t('topup.yours', { network: chainName })}</span>
-        <BalanceValue balance={funding.balance} />
+        <BalanceValue balance={balance} />
       </p>
-      {funding.balance.kind === 'error' && <BalanceReadFailed onRetry={funding.retry} />}
+      {balance.kind === 'error' && <BalanceReadFailed onRetry={funding.retry} />}
       {/* A duel this player can no longer join is no reason to top up. */}
       {status.kind === 'short' && !blockedReason && (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-sm font-strong text-orange-ink">
             {t('topup.short', { amount: formatUSDT(status.shortfallRaw, language) })}
           </span>
-          <Button type="button" size="sm" onClick={funding.showDeposit}>
+          <Button type="button" size="sm" onClick={funding.openTopUp}>
             <Icon name="plus" className="size-[18px]" />
             {t('topup.action')}
           </Button>
@@ -54,15 +54,13 @@ export function FlowFundingCheck({ review, chainId, chainName, neededRaw, isJoin
           {t(blockedReason)}
         </p>
       )}
-      {activeWallet && walletAddress && (
+      {activeWallet && walletAddress && balance.kind !== 'no-wallet' && (
         <TopUpWindow
           address={activeWallet.address}
           walletAddress={walletAddress}
-          chainId={funding.view === 'deposit' ? chainId : null}
-          neededRaw={neededRaw}
-          isJoining={isJoining}
-          flowBalance={funding}
-          onClose={funding.showReview}
+          chainId={funding.isTopUpOpen ? chainId : null}
+          duel={{ neededRaw, isJoining, funding: { balance, retry: funding.retry } }}
+          onClose={funding.closeTopUp}
         />
       )}
     </div>

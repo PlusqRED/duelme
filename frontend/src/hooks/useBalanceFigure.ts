@@ -4,7 +4,8 @@ import { useBalanceChange } from '@/hooks/useBalanceChange';
 import { useCountUp } from '@/hooks/useCountUp';
 import { useTranslation } from '@/i18n/useTranslation';
 import { formatUSDT } from '@/lib/utils';
-import { readingFigure, readingRaw, type BalanceReading } from '@/lib/walletBalances';
+import type { BalanceReading } from '@/lib/balanceStatus';
+import { readingFigure, readingRaw } from '@/lib/walletBalances';
 
 /**
  * A USDT balance as it moves on screen: the amount once known, the figure counting to it (an

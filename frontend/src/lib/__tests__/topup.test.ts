@@ -18,7 +18,7 @@ describe('topUpCopy', () => {
     expect(topUpCopy({ testnet: true, isDuelNetwork: true, isRelayEnabled: true })).toEqual({
       send: 'topup.send.testnet',
       warnings: ['topup.testnet'],
-      gas: 'topup.gas',
+      notes: ['topup.gas'],
     });
   });
 
@@ -26,11 +26,23 @@ describe('topUpCopy', () => {
     expect(topUpCopy({ testnet: false, isDuelNetwork: false, isRelayEnabled: true })).toEqual({
       send: 'topup.send.mainnet',
       warnings: ['topup.mainnet', 'topup.notDuels'],
-      gas: null,
+      notes: [],
     });
   });
 
   it('says duel actions take ETH from the wallet when DuelMe does not pay their fee', () => {
-    expect(topUpCopy({ testnet: false, isDuelNetwork: true, isRelayEnabled: false }).gas).toBe('topup.gas.self');
+    expect(topUpCopy({ testnet: false, isDuelNetwork: true, isRelayEnabled: false }).notes).toEqual(['topup.gas.self']);
+  });
+
+  it('tells a player creating a duel that its settings stay', () => {
+    const copy = topUpCopy({ testnet: true, isDuelNetwork: true, isRelayEnabled: true, duel: { isJoining: false } });
+
+    expect(copy.notes).toEqual(['topup.gas', 'topup.kept']);
+  });
+
+  it('tells a player joining a duel that topping up holds no seat', () => {
+    const copy = topUpCopy({ testnet: true, isDuelNetwork: true, isRelayEnabled: true, duel: { isJoining: true } });
+
+    expect(copy.notes).toEqual(['topup.gas', 'topup.notHeld']);
   });
 });

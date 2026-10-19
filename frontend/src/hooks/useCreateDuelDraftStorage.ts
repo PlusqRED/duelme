@@ -10,7 +10,7 @@ import {
 
 /**
  * Keeps the create-duel form across a trip to top up. `keepDraft` runs when the player opens the
- * top-up panel; on the next mount in this tab the draft comes back as `restoredDraft`. While the
+ * top-up window; on the next mount in this tab the draft comes back as `restoredDraft`. While the
  * create call is in flight the stored copy is cleared and not written; a refused call resumes it. sessionStorage, so it never outlives the tab and never reaches
  * a server.
  */
@@ -28,7 +28,7 @@ export function useCreateDuelDraftStorage(form: CreateDuelDraft, isCreateInFligh
 
   useEffect(() => {
     // The stored copy follows every edit after Top up, so a reload brings back the form as last
-    // typed rather than as it was when the panel opened. A refused write (quota, storage disabled)
+    // typed rather than as it was when the window opened. A refused write (quota, storage disabled)
     // only loses the restore after a reload; the form itself is still in memory.
     if (isKept && !isCreateInFlight) {
       saveCreateDuelDraft(window.sessionStorage, form);

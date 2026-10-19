@@ -109,7 +109,7 @@ export function CreateDuelWizard() {
     selectedChain: chainKey,
     isValidAmount: isValidWager,
     isValidMessage,
-    onOpenDeposit: keepDraft,
+    onOpenTopUp: keepDraft,
   });
 
   // The draft goes once the create call is with the wallet, not when its receipt lands: a reload

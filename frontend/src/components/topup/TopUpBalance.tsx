@@ -4,13 +4,13 @@ import { Icon } from '@/components/ui/icon';
 import { BalanceReadFailed } from '@/components/wallet/BalanceReadFailed';
 import { useBalanceFigure } from '@/hooks/useBalanceFigure';
 import { useTranslation } from '@/i18n/useTranslation';
-import { resolveFunding, type BalanceStatus } from '@/lib/deposit';
+import { resolveFunding, type BalanceReading } from '@/lib/balanceStatus';
 import { cn, formatUSDT } from '@/lib/utils';
-import type { BalanceReading } from '@/lib/walletBalances';
+import { readingFigure } from '@/lib/walletBalances';
 
 interface TopUpBalanceProps {
   networkName: string;
-  balance: BalanceStatus;
+  balance: BalanceReading;
   /** Reads the balance again. Never a signature or a transaction. */
   onRetry: () => void;
   /** What the duel being set up or joined takes, in USDT's smallest unit. */
@@ -23,9 +23,8 @@ interface TopUpBalanceProps {
  */
 export function TopUpBalance({ networkName, balance, onRetry, neededRaw }: TopUpBalanceProps) {
   const { t, language } = useTranslation();
-  // The window opens only for a signed-in wallet: a read without one is still to come.
-  const reading: BalanceReading = balance.kind === 'no-wallet' ? { kind: 'checking' } : balance;
-  const { figure, change } = useBalanceFigure(reading);
+  const { figure, change } = useBalanceFigure(balance);
+  const withUnit = (value: string) => (balance.kind === 'ready' ? `${value} USDT` : value);
   const funding = neededRaw === undefined ? null : resolveFunding(balance, neededRaw);
 
   return (
@@ -37,14 +36,15 @@ export function TopUpBalance({ networkName, balance, onRetry, neededRaw }: TopUp
       )}
     >
       <p className="text-note font-label text-ink-3">{t('topup.balance', { network: networkName })}</p>
-      <b className="relative isolate -mx-1.5 my-0.5 justify-self-start px-1.5 text-figure font-extrabold tabular-nums">
+      {/* The count is for the eye: a screen reader hears the balance it ends on, not every step. */}
+      <b aria-hidden="true" className="relative isolate -mx-1.5 my-0.5 justify-self-start px-1.5 text-figure font-extrabold tabular-nums">
         {change && change.delta > 0n && (
-          <span key={change.id} aria-hidden="true" className="absolute inset-0 -z-1 animate-gain-ring rounded-lg bg-good-soft opacity-0" />
+          <span key={change.id} className="absolute inset-0 -z-1 animate-gain-ring rounded-lg bg-good-soft opacity-0" />
         )}
-        {figure}
-        {reading.kind === 'ready' && ' USDT'}
+        {withUnit(figure)}
       </b>
-      {reading.kind === 'error' && <BalanceReadFailed onRetry={onRetry} />}
+      <span className="sr-only">{withUnit(readingFigure(balance, (raw) => formatUSDT(raw, language)))}</span>
+      {balance.kind === 'error' && <BalanceReadFailed onRetry={onRetry} />}
       {neededRaw !== undefined && (
         <p className="text-body-sm text-ink-2">{t('topup.needed', { amount: formatUSDT(neededRaw, language) })}</p>
       )}

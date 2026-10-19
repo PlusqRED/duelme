@@ -126,7 +126,7 @@ export function useJoinDuelFlow({
     chainId: flow?.draft.chainId ?? chainConfig.id,
     requiredRaw: flow?.draft.rawAmount ?? null,
     isReviewing: flow?.stage === 'review',
-    onShowReview: recheckDuel,
+    onCloseTopUp: recheckDuel,
   });
   const review: FlowReviewGate = {
     funding,

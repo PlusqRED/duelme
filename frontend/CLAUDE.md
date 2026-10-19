@@ -169,14 +169,14 @@ and controls; the guard tests below list it.
 | `frontend/src/styles/base.css` | Element defaults (font, headings, focus ring), the `keycap` utility every button's press comes from, and `link` for a link that reads as one |
 | `frontend/src/components/ui/button.tsx` | Keycap buttons (navy, paper, sun, ghost); `buttonVariants` gives a link the same face |
 | `frontend/src/components/ui/iconPaths.ts` | The design's icons as shapes, drawn by `ui/icon.tsx` |
-| `frontend/src/components/ui/dialog.tsx` | The one window: a card from a fixed top on a wide screen, a sheet below 560px; `--dialog-width` widens it |
+| `frontend/src/components/ui/dialog.tsx` | The one window: a card from a fixed top on a wide screen, a sheet below 560px; `--dialog-width` widens it; `DialogFooter isPinned` keeps a long sheet's last action on screen on a phone |
 | `frontend/src/components/ui/popover.tsx` | The menus: a panel under its button on a wide screen, a modal sheet below 560px, with a title the sheet shows and a panel only reads out |
 | `frontend/src/components/header/Header.tsx` | The top bar on every page: the brand, the sections (`lib/navigation.ts`) from 980px, the language, the wallet menu or Sign in, and the navigation menu below 980px |
 | `frontend/src/components/header/WalletMenu.tsx` | The wallet button (the duel network's USDT, never a sum across networks) and its menu: player card, a balance tile per network, Top up, Send, the faucet flask, key export and sign out |
 | `frontend/src/hooks/useWalletBalances.ts` | The wallet's USDT and ETH on each network the build lists, read apart (USDT on `useUsdtBalance`'s query): the button's balance polled always, the rest while the menu is open, all again on the balance bus |
 | `frontend/src/hooks/useSendUsdt.ts` | Sends USDT on the network picked: moves the wallet there, then `writeWithGas` |
 | `frontend/src/lib/sendUsdt.ts` | The send form's rules: the typed amount, the transfer it asks for, what stops it, and where a sent one is |
-| `frontend/src/lib/faucetApi.ts` | Faucet claim and status (`/faucet/status`), and what it offers on a network |
+| `frontend/src/lib/faucetApi.ts` | Faucet claim and status (`/faucet/status`), what it offers on a network, and its amounts for the copy (`faucetAmounts`) |
 | `frontend/src/lib/faucetFlask.ts` | The wallet menu's faucet flask: its phase from the offer, the claim, and the balance a sent claim waits to land in |
 | `frontend/src/lib/parsing.ts` | `isRecord`, `parseUintString`: the checks a value read from outside (a response, storage, a request) passes before it is trusted |
 | `frontend/src/components/ui/toaster.tsx` | Toasts as paper cards with the design's icons, and what sonner's `unstyled` drops put back |
@@ -218,9 +218,9 @@ and controls; the guard tests below list it.
 | `frontend/src/lib/duelSearch.ts` | Shared visible-field search indexing |
 | `frontend/src/lib/actionFlowConfigs.ts` | Guided transaction flow configs for duel actions |
 | `frontend/src/lib/balanceRefresh.ts` | Shared client-side balance refresh event bus |
-| `frontend/src/components/topup/TopUpWindow.tsx` | The site's one top-up window, for the `chainId` it is given: QR and grouped address, what to send and not to, the faucet, the balance there; for a duel, what it needs |
+| `frontend/src/components/topup/TopUpWindow.tsx` | The site's one top-up window, for the `chainId` it is given: QR and grouped address, what to send and not to, the faucet, the balance there; for a duel (`duel`), what it needs, from the flow's own balance read |
 | `frontend/src/lib/topup.ts` | The top-up window's words for a network (`topUpCopy`) and the address in groups of four |
-| `frontend/src/lib/deposit.ts` | Balance freshness / sufficiency rule (`resolveBalanceStatus`, `resolveFunding`) |
+| `frontend/src/lib/balanceStatus.ts` | Balance freshness / sufficiency rule: `resolveBalanceReading` for a wallet, `resolveBalanceStatus` where there may be none, `resolveFunding` |
 | `frontend/src/hooks/useFlowFunding.ts` | Balance gate on the create and join review steps, and whether the top-up window is open over them |
 | `frontend/src/lib/createDuelDraft.ts` | Versioned `sessionStorage` draft of the create form, kept across a top-up (no invite secret) |
 | `frontend/src/lib/clipboard.ts` | `copyText` — the one clipboard write; confirm "Copied" only when it returns `true` |

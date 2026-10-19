@@ -7,7 +7,8 @@ import { getBalanceQueryOptions, readContractQueryOptions } from 'wagmi/query';
 import { AVAILABLE_CHAINS, DEFAULT_CHAIN_ID } from '@/lib/constants';
 import { balanceOfAbi } from '@/lib/contracts';
 import { subscribeToBalanceRefresh } from '@/lib/balanceRefresh';
-import { balanceReading, type BalanceReading } from '@/lib/walletBalances';
+import type { BalanceReading } from '@/lib/balanceStatus';
+import { balanceReading } from '@/lib/walletBalances';
 
 const BALANCE_POLL_INTERVAL = 30_000;
 

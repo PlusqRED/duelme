@@ -1,7 +1,4 @@
-import type { BalanceStatus } from '@/lib/deposit';
-
-/** One balance on one network: still being read, failed, or known. Never a guessed zero. */
-export type BalanceReading = Exclude<BalanceStatus, { kind: 'no-wallet' }>;
+import type { BalanceReading } from '@/lib/balanceStatus';
 
 interface BalanceQuery {
   status: 'pending' | 'error' | 'success';

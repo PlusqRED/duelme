@@ -1,4 +1,6 @@
+import type { Language } from '@/i18n/translations';
 import { isRecord, parseUintString } from '@/lib/parsing';
+import { formatEth, formatUSDT } from '@/lib/utils';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '/api/v1';
 
@@ -113,4 +115,12 @@ export function faucetOffer(status: FaucetStatus | undefined, chainId: number): 
     usdtAmountRaw: status.usdtAmountRaw,
     ethAmountWei: status.ethAmountWei,
   };
+}
+
+/** What a faucet that gives sends, for the copy that names it: `{usdt}` and `{eth}`. */
+export function faucetAmounts(
+  offer: Exclude<FaucetOffer, { kind: 'none' }>,
+  language: Language
+): { usdt: string; eth: string } {
+  return { usdt: formatUSDT(offer.usdtAmountRaw, language), eth: formatEth(offer.ethAmountWei, language) };
 }

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { faucetOffer, getFaucetStatus, parseFaucetStatus, type FaucetStatus } from '@/lib/faucetApi';
+import { faucetAmounts, faucetOffer, getFaucetStatus, parseFaucetStatus, type FaucetStatus } from '@/lib/faucetApi';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -84,5 +84,14 @@ describe('faucetOffer', () => {
     expect(faucetOffer(running, 42161)).toEqual({ kind: 'none' });
     expect(faucetOffer({ enabled: false }, 421614)).toEqual({ kind: 'none' });
     expect(faucetOffer(undefined, 421614)).toEqual({ kind: 'none' });
+  });
+});
+
+describe('faucetAmounts', () => {
+  const offer = { kind: 'ready', usdtAmountRaw: 100_000_000n, ethAmountWei: 1_000_000_000_000_000n } as const;
+
+  it('names what the faucet sends in the reader’s language', () => {
+    expect(faucetAmounts(offer, 'en')).toEqual({ usdt: '100', eth: '0.001' });
+    expect(faucetAmounts({ ...offer, usdtAmountRaw: 1_500_000_000n }, 'ru')).toEqual({ usdt: '1\u00a0500', eth: '0,001' });
   });
 });

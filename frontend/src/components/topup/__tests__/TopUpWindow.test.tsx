@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { FlowBalance } from '@/components/topup/TopUpWindow';
+import type { TopUpDuel } from '@/components/topup/TopUpWindow';
 import { DEFAULT_CHAIN, SUPPORTED_CHAINS } from '@/lib/constants';
 import type { FaucetOffer } from '@/lib/faucetApi';
 
@@ -15,6 +15,7 @@ const reads = vi.hoisted(() => ({
   useUsdtBalance: vi.fn(),
   offer: { kind: 'none' } as FaucetOffer,
   isRelayEnabled: true,
+  reducedMotion: true,
 }));
 
 vi.mock('@/hooks/useUsdtBalance', () => ({
@@ -38,7 +39,7 @@ vi.mock('@/hooks/useRelayerStatus', () => ({ useRelayerStatus: () => ({ isRelayE
 vi.mock('@/hooks/useFaucetClaim', () => ({
   useFaucetClaim: () => ({ offer: reads.offer, isClaiming: false, claim: vi.fn(async () => true) }),
 }));
-vi.mock('@/hooks/useReducedMotion', () => ({ useReducedMotion: () => true }));
+vi.mock('@/hooks/useReducedMotion', () => ({ useReducedMotion: () => reads.reducedMotion }));
 
 const { TopUpWindow } = await import('@/components/topup/TopUpWindow');
 
@@ -46,6 +47,7 @@ beforeEach(() => {
   reads.ownBalance = { status: 'success', data: 46_700_000n };
   reads.offer = { kind: 'none' };
   reads.isRelayEnabled = true;
+  reads.reducedMotion = true;
 });
 
 afterEach(() => {
@@ -53,9 +55,17 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-function renderWindow(props: { chainId?: number | null; neededRaw?: bigint; isJoining?: boolean; flowBalance?: FlowBalance; onClose?: () => void } = {}) {
-  const { chainId = SEPOLIA.id, onClose = vi.fn(), ...rest } = props;
-  return render(<TopUpWindow address={ADDRESS} walletAddress={WALLET} chainId={chainId} onClose={onClose} {...rest} />);
+/** Matches an amount only with no line break allowed before its unit. */
+const exactly = { normalizer: (text: string) => text };
+
+function renderWindow(props: { chainId?: number | null; duel?: TopUpDuel; onClose?: () => void } = {}) {
+  const { chainId = SEPOLIA.id, duel, onClose = vi.fn() } = props;
+  return render(<TopUpWindow address={ADDRESS} walletAddress={WALLET} chainId={chainId} duel={duel} onClose={onClose} />);
+}
+
+/** A flow opening the window for a 50 USDT duel, with its own read of 46.7 USDT. */
+function forDuel({ raw = 46_700_000n, neededRaw = 50_000_000n, isJoining = false } = {}): TopUpDuel {
+  return { neededRaw, isJoining, funding: { balance: { kind: 'ready', raw }, retry: vi.fn() } };
 }
 
 describe('TopUpWindow', () => {
@@ -87,32 +97,54 @@ describe('TopUpWindow', () => {
     renderWindow();
 
     expect(reads.useUsdtBalance).toHaveBeenCalledWith(SEPOLIA.id, WALLET, true);
-    expect(screen.getByText('46.7 USDT', { normalizer: (text) => text })).toBeTruthy();
+    expect(screen.getAllByText('46.7 USDT', exactly)).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Done' })).toBeTruthy();
     expect(screen.queryByText('Your duel settings stay as they are.')).toBeNull();
   });
 
+  it('counts a balance that rose for the eye, and gives a screen reader only where it ends', () => {
+    reads.reducedMotion = false;
+    const { rerender } = renderWindow();
+    reads.ownBalance = { status: 'success', data: 96_700_000n };
+
+    rerender(<TopUpWindow address={ADDRESS} walletAddress={WALLET} chainId={SEPOLIA.id} onClose={vi.fn()} />);
+
+    expect(screen.getByText('46.7 USDT', exactly).getAttribute('aria-hidden')).toBe('true');
+    expect(screen.getByText('96.7 USDT', exactly).getAttribute('aria-hidden')).toBeNull();
+  });
+
   it('opened for a duel, shows the flow\'s own balance read, what is missing and the way back', () => {
-    const flowBalance: FlowBalance = { balance: { kind: 'ready', raw: 46_700_000n }, retry: vi.fn() };
-    renderWindow({ neededRaw: 50_000_000n, flowBalance });
+    renderWindow({ duel: forDuel({ raw: 20_000_000n }) });
 
     expect(reads.useUsdtBalance).toHaveBeenCalledWith(SEPOLIA.id, WALLET, false);
+    expect(screen.getAllByText('20 USDT', exactly)).toHaveLength(2);
     expect(screen.getByText('Needed for this duel: 50 USDT')).toBeTruthy();
-    expect(screen.getByText('3.3 USDT short')).toBeTruthy();
+    expect(screen.getByText('30 USDT short')).toBeTruthy();
     expect(screen.getByText('Your duel settings stay as they are.')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Back to the duel' })).toBeTruthy();
   });
 
+  it('reads the balance again through the flow when the flow\'s read failed', () => {
+    const duel = forDuel();
+    duel.funding.balance = { kind: 'error' };
+    renderWindow({ duel });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(duel.funding.retry).toHaveBeenCalledOnce();
+  });
+
   it('says a balance that covers the duel covers it', () => {
-    renderWindow({ neededRaw: 40_000_000n });
+    renderWindow({ duel: forDuel({ neededRaw: 40_000_000n }) });
 
     expect(screen.getByText('Enough for this duel')).toBeTruthy();
   });
 
-  it('tells a player joining that topping up holds no seat', () => {
-    renderWindow({ neededRaw: 50_000_000n, isJoining: true });
+  it('tells a player joining that topping up holds no seat, and keeps no settings', () => {
+    renderWindow({ duel: forDuel({ isJoining: true }) });
 
     expect(screen.getByText('Topping up doesn’t hold your place: someone else can still join first.')).toBeTruthy();
+    expect(screen.queryByText('Your duel settings stay as they are.')).toBeNull();
   });
 
   it('says duel actions take ETH when DuelMe does not pay their fee', () => {
@@ -126,7 +158,7 @@ describe('TopUpWindow', () => {
     reads.ownBalance = { status: 'error' };
     renderWindow();
 
-    expect(screen.getByText('—')).toBeTruthy();
+    expect(screen.getAllByText('—')).toHaveLength(2);
     expect(screen.getByText('Couldn’t read the balance.')).toBeTruthy();
   });
 

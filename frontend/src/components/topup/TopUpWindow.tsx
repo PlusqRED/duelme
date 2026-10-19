@@ -6,23 +6,26 @@ import { AddressQr } from '@/components/topup/AddressQr';
 import { TopUpBalance } from '@/components/topup/TopUpBalance';
 import { TopUpFaucet } from '@/components/topup/TopUpFaucet';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Icon } from '@/components/ui/icon';
 import { Note } from '@/components/ui/note';
 import { useLastNonNull } from '@/hooks/useLastNonNull';
 import { useRelayerStatus } from '@/hooks/useRelayerStatus';
 import { useUsdtBalance } from '@/hooks/useUsdtBalance';
 import type { WalletNetwork } from '@/hooks/useWalletBalances';
-import type { TranslationKey } from '@/i18n/translations';
 import { useTranslation } from '@/i18n/useTranslation';
+import { resolveBalanceReading, type BalanceReading } from '@/lib/balanceStatus';
 import { AVAILABLE_CHAINS, DEFAULT_CHAIN } from '@/lib/constants';
-import { resolveBalanceStatus, type BalanceStatus } from '@/lib/deposit';
 import { topUpCopy } from '@/lib/topup';
 
-/** A duel flow's own balance read, so the window and the flow show one answer from one poll. */
-export interface FlowBalance {
-  balance: BalanceStatus;
-  retry: () => void;
+/** A duel flow opening the window: what the duel takes, and the flow's own balance read. */
+export interface TopUpDuel {
+  /** In USDT's smallest unit. */
+  neededRaw: bigint;
+  /** Joining: topping up holds no seat, so the window says so. */
+  isJoining: boolean;
+  /** The flow's read, so the window and the flow show one answer from one poll. */
+  funding: { balance: BalanceReading; retry: () => void };
 }
 
 interface TopUpWindowProps {
@@ -31,11 +34,7 @@ interface TopUpWindowProps {
   walletAddress: `0x${string}`;
   /** The network to top up on; null keeps the window closed. */
   chainId: number | null;
-  /** Opened for a duel: what it takes, in USDT's smallest unit. */
-  neededRaw?: bigint;
-  /** Joining: topping up holds no seat, so the window says so. */
-  isJoining?: boolean;
-  flowBalance?: FlowBalance;
+  duel?: TopUpDuel;
   onClose: () => void;
 }
 
@@ -76,16 +75,12 @@ interface TopUpBodyProps extends Omit<TopUpWindowProps, 'chainId'> {
   network: WalletNetwork;
 }
 
-function TopUpBody({ address, walletAddress, network, neededRaw, isJoining = false, flowBalance, onClose }: TopUpBodyProps) {
+function TopUpBody({ address, walletAddress, network, duel, onClose }: TopUpBodyProps) {
   const { t } = useTranslation();
   const { isRelayEnabled } = useRelayerStatus(network.id);
-  const ownRead = useUsdtBalance(network.id, walletAddress, !flowBalance);
-  const balance = flowBalance?.balance ?? resolveBalanceStatus(ownRead.read, { chainId: network.id, walletAddress });
-  const copy = topUpCopy({ testnet: network.testnet, isDuelNetwork: network.id === DEFAULT_CHAIN.id, isRelayEnabled });
-  const isForDuel = neededRaw !== undefined;
-  const notes = [copy.gas, isForDuel && 'topup.kept', isJoining && 'topup.notHeld'].filter(
-    (key): key is TranslationKey => !!key
-  );
+  const ownRead = useUsdtBalance(network.id, walletAddress, !duel);
+  const balance = duel?.funding.balance ?? resolveBalanceReading(ownRead.read, { chainId: network.id, walletAddress });
+  const copy = topUpCopy({ testnet: network.testnet, isDuelNetwork: network.id === DEFAULT_CHAIN.id, isRelayEnabled, duel });
 
   return (
     <>
@@ -116,25 +111,23 @@ function TopUpBody({ address, walletAddress, network, neededRaw, isJoining = fal
       <TopUpBalance
         networkName={network.name}
         balance={balance}
-        onRetry={flowBalance?.retry ?? ownRead.refetch}
-        neededRaw={neededRaw}
+        onRetry={duel?.funding.retry ?? ownRead.refetch}
+        neededRaw={duel?.neededRaw}
       />
-      {notes.length > 0 && (
+      {copy.notes.length > 0 && (
         <div className="grid gap-1">
-          {notes.map((key) => (
+          {copy.notes.map((key) => (
             <p key={key} className="text-sm text-ink-3">
               {t(key, { network: network.name })}
             </p>
           ))}
         </div>
       )}
-      {/* On a phone the way back stays in reach at the bottom of the sheet, however long it is. A
-          sticky box stops short of its scroller's padding, so it reaches past the sheet's 22px. */}
-      <div className="max-xs:sticky max-xs:-bottom-[22px] max-xs:z-5 max-xs:-mx-1 max-xs:-mb-[22px] max-xs:bg-linear-to-b max-xs:from-paper/0 max-xs:to-paper max-xs:to-[22%] max-xs:px-1 max-xs:pt-3.5 max-xs:pb-[calc(18px+env(safe-area-inset-bottom))]">
+      <DialogFooter isPinned>
         <Button type="button" size="lg" onClick={onClose} data-initial-focus className="w-full">
-          {t(isForDuel ? 'topup.back' : 'topup.done')}
+          {t(duel ? 'topup.back' : 'topup.done')}
         </Button>
-      </div>
+      </DialogFooter>
     </>
   );
 }

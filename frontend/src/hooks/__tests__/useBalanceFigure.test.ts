@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { cleanup, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { BalanceReading } from '@/lib/walletBalances';
+import type { BalanceReading } from '@/lib/balanceStatus';
 
 vi.mock('@/hooks/useReducedMotion', () => ({ useReducedMotion: () => true }));
 

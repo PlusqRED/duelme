@@ -24,7 +24,7 @@ interface UseCreateDuelFlowArgs {
   isValidAmount: boolean;
   isValidMessage: boolean;
   /** Called as the player opens the top-up window, so the form can be kept for the way back. */
-  onOpenDeposit?: () => void;
+  onOpenTopUp?: () => void;
 }
 
 export function useCreateDuelFlow({
@@ -35,7 +35,7 @@ export function useCreateDuelFlow({
   selectedChain,
   isValidAmount,
   isValidMessage,
-  onOpenDeposit,
+  onOpenTopUp,
 }: UseCreateDuelFlowArgs) {
   const { t } = useTranslation();
   const appToast = useAppToast();
@@ -109,7 +109,7 @@ export function useCreateDuelFlow({
     chainId: flow?.draft.chainId ?? chainConfig.id,
     requiredRaw: flow?.draft.rawAmount ?? null,
     isReviewing: flow?.stage === 'review',
-    onShowDeposit: onOpenDeposit,
+    onOpenTopUp,
   });
   const review: FlowReviewGate = {
     funding,

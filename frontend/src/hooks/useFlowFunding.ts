@@ -9,18 +9,17 @@ import {
   type FundingStatus,
   resolveBalanceStatus,
   resolveFunding,
-} from '@/lib/deposit';
-
-export type FlowFundingView = 'review' | 'deposit';
+} from '@/lib/balanceStatus';
 
 export interface FlowFunding {
   balance: BalanceStatus;
   /** `enough` only when a fresh balance covers the wager. The flow's Continue handler checks it again. */
   status: FundingStatus;
-  view: FlowFundingView;
+  /** The top-up window is open over the review step. */
+  isTopUpOpen: boolean;
   retry: () => void;
-  showDeposit: () => void;
-  showReview: () => void;
+  openTopUp: () => void;
+  closeTopUp: () => void;
 }
 
 /** What the review step of a create or join flow needs to decide whether Continue is open. */
@@ -38,25 +37,25 @@ interface UseFlowFundingArgs {
   requiredRaw: bigint | null;
   /** Read the balance only while the flow sits on its review step. */
   isReviewing: boolean;
-  onShowDeposit?: () => void;
-  onShowReview?: () => void;
+  onOpenTopUp?: () => void;
+  onCloseTopUp?: () => void;
 }
 
 /**
  * The balance gate on the create and join review steps, and whether the top-up window is open over
- * the review (`view: 'deposit'`). `markOpened` records when the flow opened: an answer older
- * than that — or from before the wallet last changed — never counts as enough.
+ * it. `markOpened` records when the flow opened: an answer older than that — or from before the
+ * wallet last changed — never counts as enough.
  */
 export function useFlowFunding({
   chainId,
   requiredRaw,
   isReviewing,
-  onShowDeposit,
-  onShowReview,
+  onOpenTopUp,
+  onCloseTopUp,
 }: UseFlowFundingArgs) {
   const { walletAddress } = useActiveWallet();
   const [openedAt, setOpenedAt] = useState(0);
-  const [view, setView] = useState<FlowFundingView>('review');
+  const [isTopUpOpen, setIsTopUpOpen] = useState(false);
   const { read, refetch } = useUsdtBalance(chainId, walletAddress, isReviewing);
 
   const balance = resolveBalanceStatus(
@@ -68,26 +67,26 @@ export function useFlowFunding({
 
   const markOpened = useCallback(() => {
     setOpenedAt(Date.now());
-    setView('review');
+    setIsTopUpOpen(false);
   }, []);
 
-  const showDeposit = useCallback(() => {
-    onShowDeposit?.();
-    setView('deposit');
-  }, [onShowDeposit]);
+  const openTopUp = useCallback(() => {
+    onOpenTopUp?.();
+    setIsTopUpOpen(true);
+  }, [onOpenTopUp]);
 
-  const showReview = useCallback(() => {
-    setView('review');
-    onShowReview?.();
-  }, [onShowReview]);
+  const closeTopUp = useCallback(() => {
+    setIsTopUpOpen(false);
+    onCloseTopUp?.();
+  }, [onCloseTopUp]);
 
   const funding: FlowFunding = {
     balance,
     status,
-    view: isReviewing ? view : 'review',
+    isTopUpOpen: isReviewing && isTopUpOpen,
     retry: refetch,
-    showDeposit,
-    showReview,
+    openTopUp,
+    closeTopUp,
   };
 
   return { funding, markOpened };
