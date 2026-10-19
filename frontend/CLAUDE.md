@@ -277,6 +277,10 @@ has not reached yet still looks old, and the guard tests below list it.
   probe once did this job: a flow opened before it answered planned the self-paid path, approve
   included, for a player the relayer would carry, and every fix for that (gates, retries,
   timeouts, writes waiting for the answer) added a failure of its own.
+- **The image build copies root config files by name.** `Dockerfile` lists them in a `COPY`, and a
+  pull request's CI does not build the image, so deleting one of them (as with shadcn's
+  `components.json`) passes every check and breaks the deploy only after the merge.
+  `lib/__tests__/dockerfile.test.ts` fails on a `COPY` whose source is gone.
 - **A window that closes because what it shows turned null empties before it is gone.** The window
   plays its closing animation after the value it was opened with (a network, a platform) is already
   null, so its title and body change or vanish on the way out. Show `useLastNonNull(value)` from

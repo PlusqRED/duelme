@@ -12,7 +12,7 @@ RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefer-offline --no-audit --no-fund
 
 # Layer 2: Config files (rarely change independently from source)
-COPY next.config.ts tsconfig.json postcss.config.mjs components.json ./
+COPY next.config.ts tsconfig.json postcss.config.mjs ./
 
 # Layer 3: Source code (changes frequently → layers above stay cached)
 COPY src src
