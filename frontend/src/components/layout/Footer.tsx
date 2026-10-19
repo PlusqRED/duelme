@@ -1,8 +1,6 @@
-'use client';
-
 import Link from 'next/link';
 import { BrandMark } from '@/components/identity/BrandMark';
-import { useTranslation } from '@/i18n/useTranslation';
+import { getTranslation } from '@/i18n/serverTranslation';
 import { DEVELOPER_EMAIL, INSTAGRAM_URL, SITE_NAME, TELEGRAM_URL } from '@/lib/constants';
 
 const socialLinks = [
@@ -10,8 +8,8 @@ const socialLinks = [
   { name: 'Instagram', href: INSTAGRAM_URL },
 ];
 
-export function Footer() {
-  const { t } = useTranslation();
+export async function Footer() {
+  const { t } = await getTranslation();
 
   return (
     <footer className="border-t border-line">

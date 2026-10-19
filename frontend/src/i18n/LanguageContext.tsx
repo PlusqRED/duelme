@@ -1,73 +1,45 @@
 'use client';
 
-import {
-  createContext,
-  useCallback,
-  useState,
-  type ReactNode,
-} from 'react';
-import {
-  translations,
-  type Language,
-  type PluralKey,
-  type TranslationKey,
-  type TranslationParams,
-} from './translations';
-import { pluralize } from './pluralize';
+import { createContext, useCallback, useMemo, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import { languageCookie } from './language';
+import { translator, type Translator } from './translate';
+import type { Language } from './translations';
 
-interface LanguageContextValue {
+interface LanguageContextValue extends Translator {
   language: Language;
-  setLanguage: (lang: Language) => void;
-  t: (key: TranslationKey, params?: TranslationParams) => string;
-  plural: (key: PluralKey, count: number) => string;
+  setLanguage: (language: Language) => void;
 }
 
 export const LanguageContext = createContext<LanguageContextValue>({
   language: 'en',
   setLanguage: () => {},
-  t: (key: TranslationKey, params?: TranslationParams) => {
-    const template = translations.en[key] ?? key;
-    return params
-      ? template.replace(/\{(\w+)\}/g, (_, token: string) => String(params[token] ?? `{${token}}`))
-      : template;
-  },
-  plural: (key: PluralKey, count: number) => pluralize('en', key, count),
+  ...translator('en'),
 });
 
-const STORAGE_KEY = 'duelme-lang';
-
-function getStoredLanguage(): Language {
-  if (typeof window === 'undefined') return 'en';
-  const stored = localStorage.getItem(STORAGE_KEY);
-  return stored === 'en' || stored === 'ru' ? stored : 'en';
+interface LanguageProviderProps {
+  /** Read by the root layout from the request's cookie, so the server renders the page in it. */
+  language: Language;
+  children: ReactNode;
 }
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>(getStoredLanguage);
+export function LanguageProvider({ language, children }: LanguageProviderProps) {
+  const router = useRouter();
 
-  const setLanguage = useCallback((lang: Language) => {
-    setLanguageState(lang);
-    localStorage.setItem(STORAGE_KEY, lang);
-  }, []);
-
-  const t = useCallback(
-    (key: TranslationKey, params?: TranslationParams): string => {
-      const template = translations[language][key] ?? translations.en[key] ?? key;
-      return params
-        ? template.replace(/\{(\w+)\}/g, (_, token: string) => String(params[token] ?? `{${token}}`))
-        : template;
+  // The new language comes back from the server with the refreshed page, so the server's parts and
+  // the browser's switch together and the cookie stays the only place the language is kept.
+  const setLanguage = useCallback(
+    (next: Language) => {
+      document.cookie = languageCookie(next);
+      router.refresh();
     },
-    [language]
+    [router]
   );
 
-  const plural = useCallback(
-    (key: PluralKey, count: number) => pluralize(language, key, count),
-    [language]
+  const value = useMemo(
+    () => ({ language, setLanguage, ...translator(language) }),
+    [language, setLanguage]
   );
 
-  return (
-    <LanguageContext.Provider value={{ language, setLanguage, t, plural }}>
-      {children}
-    </LanguageContext.Provider>
-  );
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }
