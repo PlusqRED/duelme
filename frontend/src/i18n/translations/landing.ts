@@ -32,37 +32,6 @@ export const landingTranslations = defineSection({
     'timeAgo.minutes': '{n}m ago',
     'timeAgo.hours': '{n}h ago',
     'timeAgo.days': '{n}d ago',
-    'onboarding.eyebrow': 'Getting started',
-    'onboarding.title': 'You can start without setting up a wallet by hand',
-    'onboarding.subtitle':
-      'If crypto is new, the first steps are simpler here: after sign-in, a wallet is created for you, and you can switch to your own later.',
-    'onboarding.stepsTitle': 'Your first duel in four simple steps',
-    'onboarding.stepsSubtitle': 'Sign in, fund the balance once, and you are ready to play.',
-    'onboarding.step1.title': 'Quick sign-in',
-    'onboarding.step1.desc': 'Start without manual wallet setup, or connect your own wallet right away if you already have one.',
-    'onboarding.step2.title': 'A wallet is created automatically',
-    'onboarding.step2.desc': 'No extension install or separate setup is required to get started.',
-    'onboarding.step3.title': 'Fund it once',
-    'onboarding.step3.desc': 'Add USDT for wagers. Duel actions handle network fees for you.',
-    'onboarding.step4.title': 'Create or join a duel',
-    'onboarding.step4.desc': 'Once funded, you can open a duel, share a link, or accept someone else\'s challenge in a few clicks.',
-    'onboarding.sideTitle': 'What stays under your control',
-    'onboarding.fact1': 'You can switch to your own wallet at any time.',
-    'onboarding.fact2': 'Winnings can be withdrawn, and wallet access can later move fully under your control.',
-    'onboarding.fact3': 'The easy start is there to simplify onboarding, not to trap funds inside DuelMe.',
-    'onboarding.gasTitle': 'Just USDT — no ETH for gas',
-    'onboarding.gasNote':
-      'Every wallet here needs only USDT — DuelMe covers the network fee for creating, joining, claiming and refunding duels, whether you signed in with email, Google, or connected MetaMask. ETH is only needed to move funds back out to another wallet.',
-    'rep.eyebrow': 'Player trust',
-    'rep.howTitle': 'The smart contract protects the money. Reputation helps you judge the person.',
-    'rep.howDesc':
-      'Before accepting a duel, you can see whether a player usually closes matches cleanly or disappears when it is time to confirm results.',
-    'rep.howHonored':
-      'Completed duels improve a player\'s standing. When both sides confirm results, that history becomes a positive signal for future opponents.',
-    'rep.howAbandoned':
-      'Ignored or abandoned duels hurt trust. If someone often leaves results hanging, other players will see it before they accept.',
-    'rep.howFormula':
-      'The score is conservative: a tiny perfect sample counts less than a long reliable history. Consistency matters more than lucky first impressions.',
     'rep.tooltip': 'Based on duel history: more completed duels and fewer ignored results lead to a higher rating.',
     'recent.title': 'Recent duels',
     'recent.subtitle': 'Live activity from the DuelMe arena.',
@@ -88,30 +57,6 @@ export const landingTranslations = defineSection({
     'recent.sort.oldest': 'Oldest first',
     'recent.sort.highestWager': 'Highest wager',
     'recent.sort.lowestWager': 'Lowest wager',
-    'trust.eyebrow': "Verify, don't trust",
-    'trust.title': 'Every dollar moves on-chain. Check it yourself.',
-    'trust.subtitle':
-      'The escrow is a public, verified smart contract — not a black box. Anyone can inspect exactly how every dollar moves, line by line.',
-    'trust.contract.badge': 'Live escrow contract',
-    'trust.contract.cta': 'View on Arbiscan',
-    'trust.contract.ctaAria': 'View the DuelMe escrow contract source code on Arbiscan',
-    'trust.contract.verify1.title': 'Every transaction',
-    'trust.contract.verify1.desc': 'Watch each wager get funded, claimed, and refunded in real time.',
-    'trust.contract.verify2.title': 'Every function',
-    'trust.contract.verify2.desc': 'Inspect exactly what each contract call can — and cannot — do.',
-    'trust.contract.verify3.title': 'Full source code',
-    'trust.contract.verify3.desc': 'Read the verified, MIT-licensed code that moves the money.',
-    'trust.cred.noncustodial.title': 'Non-custodial',
-    'trust.cred.noncustodial.desc':
-      "DuelMe can't pick the winner or manually move your money. Every payout follows the contract's own rules.",
-    'trust.cred.verified.title': 'Open-source & verified',
-    'trust.cred.verified.desc':
-      'The full source is published and verified on Arbiscan under the MIT license.',
-    'trust.cred.oz.title': 'OpenZeppelin v5',
-    'trust.cred.oz.desc':
-      'Built on the audited, industry-standard security primitives trusted across DeFi.',
-    'trust.cred.tested.title': '157 tests · 92.8% coverage',
-    'trust.cred.tested.desc': 'The full duel lifecycle is locked down by an automated test suite.',
   },
   ru: {
     'publicDuels.title': 'Публичные дуэли',
@@ -143,37 +88,6 @@ export const landingTranslations = defineSection({
     'timeAgo.minutes': '{n} мин назад',
     'timeAgo.hours': '{n} ч назад',
     'timeAgo.days': '{n} д назад',
-    'onboarding.eyebrow': 'Старт для новичка',
-    'onboarding.title': 'Можно начать без ручной настройки кошелька',
-    'onboarding.subtitle':
-      'Если крипта для тебя новая, старт здесь проще: после входа кошелёк создастся сам, а позже можно перейти на свой.',
-    'onboarding.stepsTitle': 'Первая дуэль в четыре простых шага',
-    'onboarding.stepsSubtitle': 'Нужно только войти, один раз пополнить баланс и выбрать матч.',
-    'onboarding.step1.title': 'Простой вход',
-    'onboarding.step1.desc': 'Без ручной настройки кошелька. Если свой уже есть, подключи его сразу.',
-    'onboarding.step2.title': 'Кошелёк создаётся автоматически',
-    'onboarding.step2.desc': 'Ничего не нужно устанавливать или настраивать отдельно, чтобы начать.',
-    'onboarding.step3.title': 'Пополнить нужно один раз',
-    'onboarding.step3.desc': 'Добавь USDT для ставок. Комиссии для действий с дуэлями обрабатываются за тебя.',
-    'onboarding.step4.title': 'Создай или прими дуэль',
-    'onboarding.step4.desc': 'После пополнения можно открыть дуэль, скинуть ссылку или принять чужой вызов в пару кликов.',
-    'onboarding.sideTitle': 'Что остаётся под твоим контролем',
-    'onboarding.fact1': 'На свой кошелёк можно переключиться в любой момент.',
-    'onboarding.fact2': 'Выигрыш можно вывести, а доступ к кошельку позже полностью забрать под свой контроль.',
-    'onboarding.fact3': 'Простой старт нужен для удобства, а не для того, чтобы запирать деньги внутри DuelMe.',
-    'onboarding.gasTitle': 'Только USDT — без ETH на газ',
-    'onboarding.gasNote':
-      'Любому кошельку здесь нужен только USDT — сетевую комиссию за создание, вход, выплаты и возвраты по дуэлям DuelMe берёт на себя, независимо от того, вошли вы через email, Google или подключили MetaMask. ETH понадобится только чтобы вывести средства на другой кошелёк.',
-    'rep.eyebrow': 'Доверие к игрокам',
-    'rep.howTitle': 'Смарт-контракт защищает деньги. Репутация помогает понять человека.',
-    'rep.howDesc':
-      'Перед тем как принять дуэль, можно увидеть, обычно игрок честно закрывает матчи или исчезает в момент подтверждения результата.',
-    'rep.howHonored':
-      'Завершённые дуэли улучшают репутацию. Когда обе стороны подтверждают результат, это становится хорошим сигналом для следующих соперников.',
-    'rep.howAbandoned':
-      'Игнор и брошенные дуэли бьют по доверию. Если игрок часто оставляет результаты висеть, это будет видно до принятия вызова.',
-    'rep.howFormula':
-      'Оценка специально консервативная: короткая идеальная серия значит меньше, чем длинная надёжная история. Постоянство важнее первого впечатления.',
     'rep.tooltip': 'Основано на истории дуэлей: чем больше честно завершённых матчей и чем меньше игнора, тем выше рейтинг.',
     'recent.title': 'Недавние дуэли',
     'recent.subtitle': 'Свежая активность арены DuelMe.',
@@ -199,32 +113,5 @@ export const landingTranslations = defineSection({
     'recent.sort.oldest': 'Сначала старые',
     'recent.sort.highestWager': 'Крупные ставки',
     'recent.sort.lowestWager': 'Мелкие ставки',
-    'trust.eyebrow': 'Не верь — проверь',
-    'trust.title': 'Каждый доллар движется в блокчейне. Проверь сам.',
-    'trust.subtitle':
-      'Эскроу — это публичный проверенный смарт-контракт, а не чёрный ящик. Любой может построчно проверить, как именно движется каждый доллар.',
-    'trust.contract.badge': 'Действующий эскроу-контракт',
-    'trust.contract.cta': 'Открыть в Arbiscan',
-    'trust.contract.ctaAria': 'Открыть исходный код эскроу-контракта DuelMe в Arbiscan',
-    'trust.contract.verify1.title': 'Каждая транзакция',
-    'trust.contract.verify1.desc':
-      'Видно, как каждая ставка вносится, забирается и возвращается — в реальном времени.',
-    'trust.contract.verify2.title': 'Каждая функция',
-    'trust.contract.verify2.desc':
-      'Можно проверить, что именно может и чего не может сделать каждый вызов контракта.',
-    'trust.contract.verify3.title': 'Весь исходный код',
-    'trust.contract.verify3.desc':
-      'Читай проверенный код под лицензией MIT, который двигает деньги.',
-    'trust.cred.noncustodial.title': 'Non-custodial',
-    'trust.cred.noncustodial.desc':
-      'DuelMe не может выбрать победителя или вручную двигать твои деньги. Каждая выплата идёт по правилам контракта.',
-    'trust.cred.verified.title': 'Открытый код и верификация',
-    'trust.cred.verified.desc':
-      'Полный исходный код опубликован и верифицирован на Arbiscan под лицензией MIT.',
-    'trust.cred.oz.title': 'OpenZeppelin v5',
-    'trust.cred.oz.desc':
-      'Построен на проверенных индустриальных примитивах безопасности, которым доверяет весь DeFi.',
-    'trust.cred.tested.title': '157 тестов · покрытие 92.8%',
-    'trust.cred.tested.desc': 'Весь жизненный цикл дуэли закрыт автоматическими тестами.',
   },
 });

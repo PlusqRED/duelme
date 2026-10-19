@@ -31,6 +31,8 @@
   --color-good: #19b37b;
   --color-good-ink: #0b7a52;
   --color-good-soft: #dcf5ea;
+  /* A good keycap's edge: the landing's "+1 honored". */
+  --color-good-edge: #065a3b;
   --color-orange: #f0642e;
   --color-orange-ink: #b0400c;
   --color-orange-soft: #ffe7dc;
@@ -38,6 +40,8 @@
   --color-orange-line: #ffd2bf;
   /* The edge of a paper mark for a duel a player walked away from. */
   --color-orange-edge: #eab498;
+  /* A card raised on a navy field: the contract's card in the landing's safety band. */
+  --color-ink-raised: #1c2553;
   /* The developer's sticky note on the landing, warm against the cool page. */
   --color-sticky: #fff0b8;
 
@@ -100,6 +104,10 @@
   --shadow-safe: 0 5px 0 var(--color-ink-edge);
   /* The landing's demo duel, a card laid on the page. */
   --shadow-stage: 0 32px 64px -40px rgb(18 26 62 / 0.5);
+  /* The landing's quest phone, held up a little off the page. */
+  --shadow-phone: 0 30px 50px -30px rgb(18 26 62 / 0.6);
+  /* The sample player standing on the reputation scale, like a pin on a map. */
+  --shadow-pin: 0 6px 12px -6px rgb(18 26 62 / 0.5);
   /* The sticky note lifting off the page at its lower edge, and the tape that holds it. */
   --shadow-sticky: 0 1px 0 rgb(110 74 0 / 0.1), 0 22px 30px -22px rgb(110 74 0 / 0.6);
   --shadow-tape: 0 1px 2px rgb(18 26 62 / 0.14);

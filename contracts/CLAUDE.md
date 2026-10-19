@@ -206,6 +206,11 @@ against.
   USDT than it holds, but every handler action swallows its own revert — so without that lifecycle
   test the whole run can go green over duels that never got past `Created`. Payouts stay derived
   (see "Smart Contract"); a stored payout field would give the invariant something new to catch.
+- **The landing quotes this suite's size and coverage** (`frontend/src/lib/contractFacts.ts`).
+  `contractFacts.test.ts` counts the `test*` and `invariant*` functions in `contracts/test/*.t.sol`,
+  so adding or removing a test fails the frontend suite until `CONTRACT_TESTS` is updated; when the
+  tests change much, measure `forge coverage --profile coverage` again and update the coverage and
+  its date beside it.
 - Three contract-side rules live in `frontend/CLAUDE.md`, beside the code that depends on them:
   `ForwarderConfig.NAME` has a copy there (the `FORWARDER_NAME` pitfall); `MockUSDT` keeps USD₮0's
   permit quirks so dev catches mainnet permit bugs (the USD₮0 pitfalls); a new player-facing

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cn, formatCount, formatDate, formatEth, formatUSDT, formatVolume } from '@/lib/utils';
+import { addressGroups, cn, formatCount, formatDate, formatEth, formatPercent, formatUSDT, formatVolume } from '@/lib/utils';
 import { themeTokens } from '@/lib/__tests__/helpers/sourceFiles';
 
 describe('cn', () => {
@@ -81,6 +81,28 @@ describe('formatVolume', () => {
 
   it('writes Russian with its own separators', () => {
     expect(formatVolume(61_800_000n, 'ru')).toBe('61,80');
+  });
+});
+
+describe('addressGroups', () => {
+  it('splits the address after its 0x into groups of four, keeping its case', () => {
+    expect(addressGroups('0x4BFa1486661d6FAa5300923bd684F261AE4776a5').join(' ')).toBe(
+      '0x 4BFa 1486 661d 6FAa 5300 923b d684 F261 AE47 76a5'
+    );
+  });
+
+  it('leaves a short last group as it is', () => {
+    expect(addressGroups('0x123456')).toEqual(['0x', '1234', '56']);
+  });
+});
+
+describe('formatPercent', () => {
+  it('writes a share to one decimal the way each language does', () => {
+    expect([formatPercent(94.9, 'en'), formatPercent(94.9, 'ru')]).toEqual(['94.9%', '94,9\u00a0%']);
+  });
+
+  it('keeps the decimal of a whole share', () => {
+    expect(formatPercent(90, 'en')).toBe('90.0%');
   });
 });
 

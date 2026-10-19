@@ -8,6 +8,7 @@ import { homeTranslations } from './translations/home';
 import { joinDuelFlowTranslations } from './translations/joinDuelFlow';
 import { landingTranslations } from './translations/landing';
 import { landingListsTranslations } from './translations/landingLists';
+import { landingTrustTranslations } from './translations/landingTrust';
 import { navigationTranslations } from './translations/navigation';
 import { profileGamesTranslations } from './translations/profileGames';
 import { socialLinksTranslations } from './translations/socialLinks';
@@ -22,6 +23,7 @@ export const translations = {
     ...demoDuelTranslations.en,
     ...landingTranslations.en,
     ...landingListsTranslations.en,
+    ...landingTrustTranslations.en,
     ...createDuelTranslations.en,
     ...joinDuelFlowTranslations.en,
     ...actionFlowResultsTranslations.en,
@@ -40,6 +42,7 @@ export const translations = {
     ...demoDuelTranslations.ru,
     ...landingTranslations.ru,
     ...landingListsTranslations.ru,
+    ...landingTrustTranslations.ru,
     ...createDuelTranslations.ru,
     ...joinDuelFlowTranslations.ru,
     ...actionFlowResultsTranslations.ru,

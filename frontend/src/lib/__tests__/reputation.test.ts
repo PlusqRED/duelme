@@ -1,5 +1,31 @@
 import { describe, expect, it } from 'vitest';
-import { getReputationLevelFromStats, levelQuest, questCells } from '@/lib/reputation';
+import {
+  getReputationDescriptionKey,
+  getReputationLevelFromStats,
+  levelQuest,
+  levelRank,
+  questCells,
+  type ReputationLevel,
+} from '@/lib/reputation';
+
+const LEVELS: ReputationLevel[] = ['new', 'unreliable', 'fair', 'honorable'];
+
+describe('levelRank', () => {
+  it('orders the levels from New to Reliable', () => {
+    expect(LEVELS.map(levelRank)).toEqual([0, 1, 2, 3]);
+  });
+});
+
+describe('getReputationDescriptionKey', () => {
+  it('gives each level its own sentence', () => {
+    expect(LEVELS.map(getReputationDescriptionKey)).toEqual([
+      'rep.levelNew',
+      'rep.levelUnreliable',
+      'rep.levelFair',
+      'rep.levelHonorable',
+    ]);
+  });
+});
 
 describe('levelQuest', () => {
   it('asks a new player for one honored duel to become Mixed', () => {

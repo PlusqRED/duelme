@@ -118,4 +118,40 @@ test.describe('Landing', () => {
     await recent.getByRole('button', { name: /^Only Chess/ }).click();
     await expect(rows.first()).toBeVisible();
   });
+
+  test('walks the first-duel quest to its end, and on to a duel to create', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/');
+    const start = page.locator('#getting-started');
+
+    for (let move = 0; move < 3; move++) {
+      await start.getByRole('button', { name: 'Next step' }).click();
+    }
+    await start.getByRole('button', { name: 'Finish' }).click();
+
+    await expect(start.getByText('All 4 steps done')).toBeVisible();
+    await expect(start.getByRole('link', { name: 'Create a duel' })).toBeFocused();
+  });
+
+  test('copies the escrow contract’s address', async ({ page, context }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.goto('/');
+    const safety = page.locator('#safety');
+
+    await safety.getByRole('button', { name: 'Copy address' }).click();
+
+    await expect(safety.getByText('Address copied')).toBeVisible();
+  });
+
+  test('moves the sample player along the reputation scale', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/');
+    const lab = page.locator('#player-trust');
+
+    await lab.getByRole('button', { name: '+1 honored' }).click();
+    await expect(lab.getByText(/^Some useful history/)).toBeVisible();
+    await lab.getByRole('button', { name: '+1 abandoned' }).click();
+
+    await expect(lab.getByText(/^Too many ignored/)).toBeVisible();
+  });
 });

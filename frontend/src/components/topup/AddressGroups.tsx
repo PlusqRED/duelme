@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { useCopyFeedback } from '@/hooks/useCopyFeedback';
 import { useTranslation } from '@/i18n/useTranslation';
-import { groupAddress } from '@/lib/topup';
+import { addressGroups } from '@/lib/utils';
 
 interface AddressGroupsProps {
   address: string;
@@ -22,7 +22,7 @@ export function AddressGroups({ address }: AddressGroupsProps) {
     <>
       <p className="text-note font-label text-ink-3">{t('topup.address')}</p>
       <p className="max-w-full text-base/[1.45] font-bold break-words tabular-nums [word-spacing:0.15em]">
-        {groupAddress(address)}
+        {addressGroups(address).join(' ')}
       </p>
       <Button type="button" variant="paper" size="sm" onClick={() => void copy(address)}>
         <Icon name={copied ? 'check' : 'copy'} className="size-[18px]" />

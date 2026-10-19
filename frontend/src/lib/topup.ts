@@ -1,10 +1,5 @@
 import type { TranslationKey } from '@/i18n/translations';
 
-/** The address in groups of four after its 0x, to check against the wallet's own piece by piece. */
-export function groupAddress(address: string): string {
-  return ['0x', ...(address.slice(2).match(/.{1,4}/g) ?? [])].join(' ');
-}
-
 export interface TopUpCopy {
   /** What to send, on which network. */
   send: TranslationKey;

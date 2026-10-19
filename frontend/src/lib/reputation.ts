@@ -67,6 +67,20 @@ export function getReputationSummaryFromStats(
   };
 }
 
+/** What a level tells someone about to accept a duel from the player, in a sentence. */
+export function getReputationDescriptionKey(level: ReputationLevel): TranslationKey {
+  switch (level) {
+    case 'new':
+      return 'rep.levelNew';
+    case 'honorable':
+      return 'rep.levelHonorable';
+    case 'fair':
+      return 'rep.levelFair';
+    case 'unreliable':
+      return 'rep.levelUnreliable';
+  }
+}
+
 export function getReputationLabelKey(level: ReputationLevel): TranslationKey {
   switch (level) {
     case 'new':
@@ -90,7 +104,12 @@ export interface LevelQuest {
   need: number;
 }
 
-const LEVEL_RANK: Record<ReputationLevel, number> = { new: 0, unreliable: 1, fair: 2, honorable: 3 };
+const levelRanks: Record<ReputationLevel, number> = { new: 0, unreliable: 1, fair: 2, honorable: 3 };
+
+/** How far up the levels one is, New to Reliable: to tell a level gained from a level lost. */
+export function levelRank(level: ReputationLevel): number {
+  return levelRanks[level];
+}
 
 /**
  * The fewest more honored duels that lift the level, by the rule `getReputationLevel` applies: a
@@ -103,7 +122,7 @@ export function levelQuest(honored: number, abandoned: number): LevelQuest {
     return { level, next: null, have: 1, need: 1 };
   }
   const lifts = (more: number) =>
-    LEVEL_RANK[getReputationLevelFromStats(honored + more, abandoned)] > LEVEL_RANK[level];
+    levelRank(getReputationLevelFromStats(honored + more, abandoned)) > levelRank(level);
 
   let high = 1;
   while (!lifts(high)) {

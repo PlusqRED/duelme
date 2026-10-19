@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import { TrustSection } from './TrustSection';
-import { OnboardingSection } from './OnboardingSection';
-import { ReputationSection } from './ReputationSection';
 import { Closing } from '@/components/landing/Closing';
+import { GettingStarted } from '@/components/landing/GettingStarted';
 import { Hero } from '@/components/landing/Hero';
 import { OpenDuels } from '@/components/landing/OpenDuels';
 import { RecentDuels } from '@/components/landing/RecentDuels';
+import { ReputationLab } from '@/components/landing/ReputationLab';
+import { Safety } from '@/components/landing/Safety';
 import { JsonLd } from '@/components/seo/JsonLd';
 
 export const metadata: Metadata = {
@@ -28,9 +28,9 @@ export default function HomePage() {
       <Hero />
       <OpenDuels />
       <RecentDuels />
-      <OnboardingSection />
-      <TrustSection />
-      <ReputationSection />
+      <GettingStarted />
+      <Safety />
+      <ReputationLab />
       <Closing />
     </>
   );

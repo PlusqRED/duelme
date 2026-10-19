@@ -141,8 +141,9 @@ and controls; the guard tests below list it.
   (a player's level, read), `LevelBadge` (a level as the badge a player earns, or still locked) and
   `QuestLine` (the honored duels to the next level, from `levelQuest`), `BrandMark`, `BrandLink`.
 - **Motion** either explains something once or answers a click, and moves only transform and
-  opacity. The two exceptions are the keycap's edge, a shadow that shortens as the button goes
-  down, and a player's clock (`arena/CountdownRing`), an SVG ring whose dash offset drains.
+  opacity. The exceptions are the keycap's edge, a shadow that shortens as the button goes down,
+  and two SVG rings whose dash offset moves: a player's clock (`arena/CountdownRing`), which
+  drains, and the landing's test coverage (`landing/Guarantees`), which fills as its figure counts.
   The moves are `animate-*` utilities from the `@theme` in `styles/motion.css`, the landing's own
   in `styles/landingMotion.css`; a colour that should flash or a glow that should breathe is an
   overlay whose opacity moves (the green ring when money arrives, the safe's seal, an open seat, a
@@ -221,6 +222,10 @@ and controls; the guard tests below list it.
 | `frontend/src/components/landing/Hero.tsx` | The landing's first screen: the motto, the two ways in, the developer's note (`DevNote`; its last update is the build's time, which `next.config.ts` writes in as `DUELME_BUILT_AT`), the platform's figures and the demo duel |
 | `frontend/src/components/landing/DemoDuel.tsx` | The demo duel: stills of a 10 USDT duel from `lib/demoDuel.ts`, moved between by `useDemoDuel` (steps, three endings, one play by itself once in view), stakes flown by `useStakeFlights` |
 | `frontend/src/components/landing/OpenDuels.tsx` | The landing's open public duels (`useOpenDuels`): one as a wide card, two or more as a lobby that is a strip to swipe below the `wide:` breakpoint, none as the invitation to make one; the count is every open duel |
+| `frontend/src/components/landing/GettingStarted.tsx` | The landing's first-duel quest (`useQuest`): the steps written down (`QuestLog`) beside a phone that acts each out (`QuestPhone`, its screens `QuestScreens` built from `QuestScreenParts`), and what a made wallet leaves in the player's hands (`ControlFacts`); step 3 and the gas line follow `useRelayerStatus` |
+| `frontend/src/components/landing/Safety.tsx` | The landing's navy band: the escrow contract to check (`EscrowCard`: its address settling out of noise via `useScrambleReveal`, copy, three explorer tabs) and the four guarantees as badges that unlock (`Guarantees`; the test count and coverage are `lib/contractFacts.ts`) |
+| `frontend/src/components/landing/ReputationLab.tsx` | How reputation works, by hand: a sample player (`useReputationSample`) marked honored or abandoned walks the scale (`ReputationGauge`; where on it from `lib/reputationGauge.ts`), with the level reached and what it tells an opponent |
+| `frontend/src/lib/contractFacts.ts` | The contract's test count, which a test keeps equal to the `test*`/`invariant*` functions in `contracts/test`, and its measured line coverage with the date: measure again (`forge coverage --profile coverage`) when the tests change much |
 | `frontend/src/components/landing/RecentDuels.tsx` | The landing's finished duels (`useWonDuels`, won duels only) beside the popular games that filter them (`useGameFilter`: rows step out, then `useListReflow` slides the rest; a picked game's duels come from that game's own, `useDuelsByGame`); a row opens into its `PayoutReceipt`. The sizes and the pure rules are `lib/landingDuels.ts` |
 | `frontend/src/components/arena/` | The table a duel is drawn on: `Seat`, `Safe`, `Stake`, `Bubble`, `CountdownRing`, `OpenSeat`, `RepChip`; `SafeLock`, the padlock the safe and the wallet menu's `SafeMini` share |
 | `frontend/src/lib/timeWords.ts` | A contract's duration in words (`durationWords`) and a past day as today, yesterday or days ago |

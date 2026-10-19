@@ -13,7 +13,7 @@ const twMerge = extendTailwindMerge({
     theme: {
       text: ['note', 'body-sm', 'body', 'lead', 'figure', 'h1', 'h2'],
       'font-weight': ['label', 'strong'],
-      shadow: ['window', 'menu', 'sheet', 'safe', 'stage', 'sticky', 'tape'],
+      shadow: ['window', 'menu', 'sheet', 'safe', 'stage', 'phone', 'pin', 'sticky', 'tape'],
       'inset-shadow': ['avatar', 'stake'],
       ease: ['spring', 'press', 'sheet'],
       spacing: ['gutter', 'section'],
@@ -25,6 +25,11 @@ const twMerge = extendTailwindMerge({
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+/** An address in groups of four after its `0x`, to check against another copy piece by piece. */
+export function addressGroups(address: string): string[] {
+  return ['0x', ...(address.slice(2).match(/.{1,4}/g) ?? [])];
 }
 
 export function truncateAddress(address: string): string {
@@ -48,6 +53,9 @@ const smallVolumeFormats = perLanguage(
   (locale) => new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 );
 const countFormats = perLanguage((locale) => new Intl.NumberFormat(locale));
+const percentFormats = perLanguage(
+  (locale) => new Intl.NumberFormat(locale, { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 })
+);
 const dateTimeFormats = perLanguage(
   (locale) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' })
 );
@@ -81,6 +89,11 @@ export function formatVolume(amount: bigint, language: Language): string {
 /** A count the way the language groups digits: `1,234`, in Russian `1 234`. */
 export function formatCount(count: number, language: Language): string {
   return countFormats[language].format(count);
+}
+
+/** A share given in percent, to one decimal, the way the language writes it: `94.9%`, `94,9 %`. */
+export function formatPercent(percent: number, language: Language): string {
+  return percentFormats[language].format(percent / 100);
 }
 
 /** The least ETH written out; anything above zero but below it shows as `<0.0001`, never as 0. */
