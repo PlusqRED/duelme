@@ -18,14 +18,14 @@ const RELAY_ENDPOINT = '/api/relay';
 const RELAY_TIMEOUT_MS = 120_000;
 
 /**
- * Posts of one signed request, all within that one deadline, while its answer keeps getting lost
- * on the way back. Posting the same body again is safe: the relayer gives every copy of a signed request the first one's
- * outcome (relayerDedup), so a repeat joins a relay still under way or gets the hash of one
- * already done, and never sends it twice. A request signed afresh would be a new one, and a
- * second duel if the first post went through.
+ * Pauses before each repost of one signed request, all within that one deadline, while its answer
+ * keeps getting lost on the way back. They grow so that the later posts outlast a phone switching
+ * networks. Posting the same body again is safe: the relayer gives every copy of a signed request
+ * the first one's outcome (relayerDedup), so a repeat joins a relay still under way or gets the
+ * hash of one already done, and never sends it twice. A request signed afresh would be a new one,
+ * and a second duel if the first post went through.
  */
-const RELAY_POST_ATTEMPTS = 3;
-const RELAY_REPOST_DELAY_MS = 2_000;
+const RELAY_REPOST_DELAYS_MS = [2_000, 10_000, 30_000];
 
 export class RelayRequestError extends Error {
   readonly code: RelayErrorCode;
@@ -74,21 +74,20 @@ interface RelayAnswer {
 async function postUntilAnswered(body: string): Promise<RelayAnswer> {
   const deadline = AbortSignal.timeout(RELAY_TIMEOUT_MS);
 
-  for (let attempt = 1; ; attempt++) {
+  for (let repost = 0; ; repost++) {
     try {
       return await post(body, deadline);
     } catch (error) {
-      const timedOut = error instanceof DOMException && error.name === 'TimeoutError';
-      if (timedOut || attempt === RELAY_POST_ATTEMPTS) {
+      if (deadline.aborted || repost === RELAY_REPOST_DELAYS_MS.length) {
         throw new RelayRequestError(
           'RELAYER_UNAVAILABLE',
-          timedOut ? 'The relayer did not answer in time.' : 'Could not reach the relayer.',
+          deadline.aborted ? 'The relayer did not answer in time.' : 'No answer came back from the relayer.',
           { cause: error }
         );
       }
     }
 
-    await new Promise((resolve) => setTimeout(resolve, RELAY_REPOST_DELAY_MS));
+    await new Promise((resolve) => setTimeout(resolve, RELAY_REPOST_DELAYS_MS[repost]));
   }
 }
 
