@@ -1,13 +1,7 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
+import { collectPageErrors } from './helpers/pageErrors';
 
 const GAMES_HEADING = { en: 'Game Catalog', ru: 'Каталог игр' };
-
-// React reports a page whose first render in the browser differs from the server's as a page error.
-function collectPageErrors(page: Page): string[] {
-  const errors: string[] = [];
-  page.on('pageerror', (error) => errors.push(error.message));
-  return errors;
-}
 
 test.describe('Language', () => {
   test('a page arrives from the server in the language its cookie names', async ({ page, context, baseURL }) => {

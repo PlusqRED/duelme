@@ -3,7 +3,7 @@ import { translations, type Language } from './translations';
 /** Keeps the reader's language. The server reads it, so a page arrives already in that language. */
 export const LANGUAGE_COOKIE = 'duelme-lang';
 
-const DEFAULT_LANGUAGE: Language = 'en';
+export const DEFAULT_LANGUAGE: Language = 'en';
 
 const LANGUAGE_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 

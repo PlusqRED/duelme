@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { LANGUAGE_COOKIE } from '@/i18n/language';
 import { translations } from '@/i18n/translations';
 
 const requestCookies = new Map<string, string>();
@@ -15,7 +16,7 @@ afterEach(() => requestCookies.clear());
 
 describe('getLanguage', () => {
   it('reads the language from the cookie', async () => {
-    requestCookies.set('duelme-lang', 'ru');
+    requestCookies.set(LANGUAGE_COOKIE, 'ru');
 
     expect(await getLanguage()).toBe('ru');
   });
@@ -25,7 +26,7 @@ describe('getLanguage', () => {
   });
 
   it('is English for a value it does not know', async () => {
-    requestCookies.set('duelme-lang', 'xx');
+    requestCookies.set(LANGUAGE_COOKIE, 'xx');
 
     expect(await getLanguage()).toBe('en');
   });
@@ -33,11 +34,10 @@ describe('getLanguage', () => {
 
 describe('getTranslation', () => {
   it('speaks the cookie\'s language', async () => {
-    requestCookies.set('duelme-lang', 'ru');
+    requestCookies.set(LANGUAGE_COOKIE, 'ru');
 
-    const { language, t } = await getTranslation();
+    const { t } = await getTranslation();
 
-    expect(language).toBe('ru');
     expect(t('footer.rights')).toBe(translations.ru['footer.rights']);
   });
 });

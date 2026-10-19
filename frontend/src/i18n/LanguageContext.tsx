@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useMemo, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { languageCookie } from './language';
+import { DEFAULT_LANGUAGE, languageCookie } from './language';
 import { translator, type Translator } from './translate';
 import type { Language } from './translations';
 
@@ -12,9 +12,9 @@ interface LanguageContextValue extends Translator {
 }
 
 export const LanguageContext = createContext<LanguageContextValue>({
-  language: 'en',
+  language: DEFAULT_LANGUAGE,
   setLanguage: () => {},
-  ...translator('en'),
+  ...translator(DEFAULT_LANGUAGE),
 });
 
 interface LanguageProviderProps {
@@ -30,10 +30,11 @@ export function LanguageProvider({ language, children }: LanguageProviderProps) 
   // the browser's switch together and the cookie stays the only place the language is kept.
   const setLanguage = useCallback(
     (next: Language) => {
+      if (next === language) return;
       document.cookie = languageCookie(next);
       router.refresh();
     },
-    [router]
+    [language, router]
   );
 
   const value = useMemo(

@@ -9,8 +9,7 @@ export async function getLanguage(): Promise<Language> {
   return parseLanguage(cookieStore.get(LANGUAGE_COOKIE)?.value);
 }
 
-/** What `useTranslation()` gives a client component, for a server component. */
-export async function getTranslation(): Promise<Translator & { language: Language }> {
-  const language = await getLanguage();
-  return { language, ...translator(language) };
+/** The reader's words for a server component, as `useTranslation()` gives them to a client one. */
+export async function getTranslation(): Promise<Translator> {
+  return translator(await getLanguage());
 }

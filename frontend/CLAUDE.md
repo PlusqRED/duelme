@@ -92,7 +92,7 @@ address, no relayer key — is the case the self-paid path still covers.
 
 **Performance:** `next/dynamic` + `{ ssr: false }` for wallet-dependent UI. `useMemo` for derived lists. Don't create objects/arrays in render. `next/image` with explicit width/height + `loading="lazy"` for below-fold.
 
-**i18n:** All visible strings via `useTranslation()` in a client component, or `await getTranslation()` (`i18n/serverTranslation.ts`) in a server one. The language is the `duelme-lang` cookie: the root layout reads it, sets `<html lang>` and hands it to `LanguageProvider`, so the server renders the page in it; the switch writes the cookie and refreshes the route. A part that needs no browser API reads the language on the server and stays a server component. Add the key to the matching section file under `frontend/src/i18n/translations/` — with **both** `en` and `ru`; `defineSection` makes a missing `ru` a type error. `translations.ts` only merges the sections. Interpolation is `{token}` placeholders filled from the second argument (`t('dashboard.pageSummary', { current, total })`); there is no ICU, so an ICU `plural` block would render literally. A word that agrees with a number goes through `plural(key, count)` from `useTranslation()` (`i18n/pluralize.ts`): give the base key `.one`, `.few`, `.many` and `.other` in both languages: Russian picks among the first three for whole numbers, and `.other` is the fallback a key needs to count as a `PluralKey` at all. It returns the word alone and the caller places the number: `{game.duelCount} {plural('games.duelsCount', game.duelCount)}`.
+**i18n:** All visible strings via `useTranslation()` in a client component, or `await getTranslation()` (`i18n/serverTranslation.ts`) in a server one. The language is the `duelme-lang` cookie: the root layout reads it, sets `<html lang>` and hands it to `LanguageProvider`, so the server renders the page in it; the switch writes the cookie and refreshes the route. A part that needs no browser API reads the language on the server and stays a server component. Add the key to the matching section file under `frontend/src/i18n/translations/` — with **both** `en` and `ru`; `defineSection` makes a missing `ru` a type error. `translations.ts` only merges the sections. Interpolation is `{token}` placeholders filled from the second argument (`t('dashboard.pageSummary', { current, total })`); there is no ICU, so an ICU `plural` block would render literally. A word that agrees with a number goes through `plural(key, count)` from `useTranslation()` (`i18n/translate.ts`): give the base key `.one`, `.few`, `.many` and `.other` in both languages: Russian picks among the first three for whole numbers, and `.other` is the fallback a key needs to count as a `PluralKey` at all. It returns the word alone and the caller places the number: `{game.duelCount} {plural('games.duelsCount', game.duelCount)}`.
 
 **Naming:** Components `PascalCase.tsx`, hooks `camelCase.ts` prefixed `use`, utils `camelCase.ts`, primitive constants `UPPER_SNAKE_CASE`, object constants `camelCase`, types `PascalCase` (prefer `interface` for object shapes).
 
@@ -287,11 +287,10 @@ and controls; the guard tests below list it.
   probe once did this job: a flow opened before it answered planned the self-paid path, approve
   included, for a player the relayer would carry, and every fix for that (gates, retries,
   timeouts, writes waiting for the answer) added a failure of its own.
-- **Nothing in the browser may pick the language before hydration.** The server renders the
-  cookie's language, so a first render in the browser that reads `localStorage` or
-  `navigator.language` instead draws different words and React reports a hydration mismatch on
-  every page — which is why the language moved from `localStorage` to the cookie. It changes only
-  through `setLanguage`, which writes the cookie and refreshes the route.
+- **Nothing in the browser may pick the language before hydration.** A first render that reads
+  `localStorage` or `navigator.language` draws other words than the server did from the cookie
+  ("i18n" under Standards), and React reports a hydration mismatch on every page; that is why the
+  language left `localStorage`.
 - **The image build copies root config files by name.** `Dockerfile` lists them in a `COPY`, and a
   pull request's CI does not build the image, so deleting one of them (as with shadcn's
   `components.json`) passes every check and breaks the deploy only after the merge.
