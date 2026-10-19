@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bestErrorDetail, collectErrorDetails } from '@/lib/errorDetails';
+import { bestErrorDetail, collectErrorDetails, isWalletRefusal } from '@/lib/errorDetails';
 
 describe('collectErrorDetails', () => {
   it('normalizes whitespace and case', () => {
@@ -50,6 +50,24 @@ describe('collectErrorDetails', () => {
     expect(collectErrorDetails(undefined)).toEqual([]);
     expect(collectErrorDetails(null)).toEqual([]);
     expect(collectErrorDetails({})).toEqual([]);
+  });
+});
+
+describe('isWalletRefusal', () => {
+  it.each([
+    ['User rejected the request.'],
+    ['MetaMask Tx Signature: User denied transaction signature.'],
+    ['The user cancelled the request'],
+  ])('reads "%s" as the owner turning the request down', (message) => {
+    expect(isWalletRefusal(new Error(message))).toBe(true);
+  });
+
+  it('finds the refusal however deep the wallet nests it', () => {
+    expect(isWalletRefusal(new Error('Transaction failed', { cause: { shortMessage: 'User rejected the request.' } }))).toBe(true);
+  });
+
+  it('does not read a failure as a refusal', () => {
+    expect(isWalletRefusal(new Error('insufficient funds for gas * price + value'))).toBe(false);
   });
 });
 

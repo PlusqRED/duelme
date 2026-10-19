@@ -3,6 +3,7 @@
 import { useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useTranslation } from '@/i18n/useTranslation';
+import { isWalletRefusal } from '@/lib/errorDetails';
 import type { TranslationKey, TranslationParams } from '@/i18n/translations';
 
 export function useAppToast() {
@@ -21,8 +22,7 @@ export function useAppToast() {
   }, [t]);
 
   const transactionError = useCallback((err: unknown, fallbackKey: TranslationKey = 'toast.transactionFailed') => {
-    const message = err instanceof Error ? err.message : '';
-    if (message.includes('reject') || message.includes('denied')) {
+    if (isWalletRefusal(err)) {
       error('toast.transactionRejected');
       return;
     }

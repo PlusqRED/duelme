@@ -56,7 +56,6 @@ export const STILL_ON_PALETTE: readonly string[] = [
   'components/game/GameSearchEmptyState.tsx',
   'components/game/GameSearchResultRow.tsx',
   'components/game/GameSelect.tsx',
-  'components/layout/Header.tsx',
   'components/profile/InstagramHandleDialog.tsx',
   'components/profile/ProfileAvatar.tsx',
   'components/profile/SocialLinkCard.tsx',

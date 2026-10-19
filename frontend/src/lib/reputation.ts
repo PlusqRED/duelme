@@ -76,3 +76,55 @@ export function getReputationLabelKey(level: ReputationLevel): TranslationKey {
       return 'rep.unreliable';
   }
 }
+
+/** The way to the next level, as the wallet menu and the dashboard draw it. */
+export interface LevelQuest {
+  level: ReputationLevel;
+  /** The level the next honored duels lead to, or null at the top. */
+  next: ReputationLevel | null;
+  /** Honored duels so far, and how many the next level needs. At the top both are 1. */
+  have: number;
+  need: number;
+}
+
+const LEVEL_RANK: Record<ReputationLevel, number> = { new: 0, unreliable: 1, fair: 2, honorable: 3 };
+
+/**
+ * The fewest more honored duels that lift the level, by the rule `getReputationLevel` applies: a
+ * new player needs one, a clean record five, and an abandoned duel more the more of them there are.
+ * The level only rises with honored duels, so the answer is found by doubling and then halving.
+ */
+export function levelQuest(honored: number, abandoned: number): LevelQuest {
+  const level = getReputationLevelFromStats(honored, abandoned);
+  if (level === 'honorable') {
+    return { level, next: null, have: 1, need: 1 };
+  }
+  const lifts = (more: number) =>
+    LEVEL_RANK[getReputationLevelFromStats(honored + more, abandoned)] > LEVEL_RANK[level];
+
+  let high = 1;
+  while (!lifts(high)) {
+    high *= 2;
+  }
+  let low = high / 2;
+  while (high - low > 1) {
+    const middle = Math.floor((low + high) / 2);
+    if (lifts(middle)) {
+      high = middle;
+    } else {
+      low = middle;
+    }
+  }
+  return {
+    level,
+    next: getReputationLevelFromStats(honored + high, abandoned),
+    have: honored,
+    need: honored + high,
+  };
+}
+
+/** The quest's cells: one per duel it needs, up to `max`, and how many of them are lit. */
+export function questCells(quest: LevelQuest, max = 12): { count: number; lit: number } {
+  const count = Math.min(quest.need, max);
+  return { count, lit: Math.round((quest.have / quest.need) * count) };
+}

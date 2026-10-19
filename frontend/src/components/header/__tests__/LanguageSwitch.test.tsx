@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LanguageToggle } from '@/components/layout/LanguageToggle';
+import { LanguageSwitch } from '@/components/header/LanguageSwitch';
 import { LanguageContext } from '@/i18n/LanguageContext';
 import { LANGUAGE_COOKIE } from '@/i18n/language';
 import { translator } from '@/i18n/translate';
@@ -29,7 +29,7 @@ function setCookie(language: Language) {
 function renderIn(language: Language) {
   render(
     <LanguageContext.Provider value={{ language, ...translator(language) }}>
-      <LanguageToggle />
+      <LanguageSwitch />
     </LanguageContext.Provider>
   );
 }
@@ -56,7 +56,26 @@ afterEach(() => {
   toastError.mockClear();
 });
 
-describe('LanguageToggle', () => {
+describe('LanguageSwitch', () => {
+  it('slides the pill to the language pressed at once, while the post is out', async () => {
+    fetchMock.mockImplementation(() => new Promise(() => undefined));
+    renderIn('en');
+
+    await press('RU');
+
+    expect(screen.getByRole('button', { name: 'RU' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('group').style.getPropertyValue('--pick')).toBe('1');
+  });
+
+  it('slides the pill back when the language did not change', async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 500 }));
+    renderIn('en');
+
+    await press('RU');
+
+    expect(screen.getByRole('button', { name: 'EN' }).getAttribute('aria-pressed')).toBe('true');
+  });
+
   it('names the choice it offers', () => {
     renderIn('ru');
 

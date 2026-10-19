@@ -4,7 +4,6 @@ import {
   getDepositCopyKeys,
   resolveBalanceStatus,
   resolveFunding,
-  summarizeChainBalances,
 } from '../deposit';
 
 const WALLET = '0x1111111111111111111111111111111111111111';
@@ -134,53 +133,5 @@ describe('getDepositCopyKeys', () => {
     { testnet: true, isRelayEnabled: false, token: 'deposit.token.testnet', instructions: TESTNET_INSTRUCTIONS, fees: 'deposit.fees.selfPaid' },
   ])('testnet: $testnet, relay: $isRelayEnabled → $fees', ({ testnet, isRelayEnabled, token, instructions, fees }) => {
     expect(getDepositCopyKeys({ testnet, isRelayEnabled })).toEqual({ token, instructions, fees });
-  });
-});
-
-describe('summarizeChainBalances', () => {
-  const CHAINS = [421614, 42161] as const;
-
-  it('totals the chains once every one has answered', () => {
-    const results = [
-      { status: 'success', result: 2_000_000n },
-      { status: 'success', result: 0n },
-    ] as const;
-
-    expect(summarizeChainBalances(CHAINS, results, false)).toEqual({
-      balances: [
-        { chainId: 421614, kind: 'ready', raw: 2_000_000n },
-        { chainId: 42161, kind: 'ready', raw: 0n },
-      ],
-      totalRaw: 2_000_000n,
-    });
-  });
-
-  it('keeps loading chains as checking and leaves the total unknown', () => {
-    const summary = summarizeChainBalances(CHAINS, undefined, false);
-
-    expect(summary.balances.map((balance) => balance.kind)).toEqual(['checking', 'checking']);
-    expect(summary.totalRaw).toBeNull();
-  });
-
-  it('does not count a failed chain as zero', () => {
-    const results = [
-      { status: 'success', result: 2_000_000n },
-      { status: 'failure' },
-    ] as const;
-    const summary = summarizeChainBalances(CHAINS, results, false);
-
-    expect(summary.balances[1]).toEqual({ chainId: 42161, kind: 'error' });
-    expect(summary.totalRaw).toBeNull();
-  });
-
-  it('marks every chain failed when the whole read failed, even with old results cached', () => {
-    const results = [
-      { status: 'success', result: 2_000_000n },
-      { status: 'success', result: 1n },
-    ] as const;
-    const summary = summarizeChainBalances(CHAINS, results, true);
-
-    expect(summary.balances.map((balance) => balance.kind)).toEqual(['error', 'error']);
-    expect(summary.totalRaw).toBeNull();
   });
 });

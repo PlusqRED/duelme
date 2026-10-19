@@ -10,6 +10,7 @@ import { navigationTranslations } from './translations/navigation';
 import { profileGamesTranslations } from './translations/profileGames';
 import { socialLinksTranslations } from './translations/socialLinks';
 import { uiTranslations } from './translations/ui';
+import { walletTranslations } from './translations/wallet';
 
 export const translations = {
   en: {
@@ -21,6 +22,7 @@ export const translations = {
     ...actionFlowClaimsTranslations.en,
     ...duelTranslations.en,
     ...dashboardWalletTranslations.en,
+    ...walletTranslations.en,
     ...depositTranslations.en,
     ...profileGamesTranslations.en,
     ...socialLinksTranslations.en,
@@ -35,6 +37,7 @@ export const translations = {
     ...actionFlowClaimsTranslations.ru,
     ...duelTranslations.ru,
     ...dashboardWalletTranslations.ru,
+    ...walletTranslations.ru,
     ...depositTranslations.ru,
     ...profileGamesTranslations.ru,
     ...socialLinksTranslations.ru,

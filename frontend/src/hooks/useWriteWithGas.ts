@@ -39,11 +39,16 @@ type EstimateContractGasConfig = Parameters<DuelPublicClient['estimateContractGa
  * functions on top and decides when a write needs an EIP-2612 permit.
  */
 export function useWriteWithGas(chainId: number) {
-  const { address: accountAddress } = useAccount();
+  const { address: accountAddress, chainId: walletChainId } = useAccount();
   const publicClient = usePublicClient({ chainId });
-  const { data: walletClient } = useWalletClient({ chainId });
+  // A wallet client for `chainId` fails to load while the wallet is on another network, and the
+  // query's key does not change when the wallet moves, so the failure would outlast the switch.
+  // Keyed by the wallet's network too, the client is read again once the wallet is there.
+  const { data: walletClient } = useWalletClient({ chainId, scopeKey: String(walletChainId) });
   const { activeWallet } = useActiveWallet();
   const isPrivyEmbedded = activeWallet?.walletClientType === EMBEDDED_WALLET_CLIENT_TYPE;
+  // What writeWithGas's guards need: a write now reaches the wallet instead of failing at once.
+  const canWrite = !!publicClient && !!accountAddress && (!isPrivyEmbedded || !!walletClient);
   const { isRelayEnabled, forwarderAddress } = useRelayerStatus(chainId);
 
   const {
@@ -265,6 +270,7 @@ export function useWriteWithGas(chainId: number) {
       writeWithGas,
       relayWrite,
       isRelayEnabled,
+      canWrite,
       hash,
       isPending,
       isConfirming,
@@ -277,6 +283,7 @@ export function useWriteWithGas(chainId: number) {
       writeWithGas,
       relayWrite,
       isRelayEnabled,
+      canWrite,
       hash,
       isPending,
       isConfirming,

@@ -92,7 +92,7 @@ address, no relayer key — is the case the self-paid path still covers.
 
 **Performance:** `next/dynamic` + `{ ssr: false }` for wallet-dependent UI. `useMemo` for derived lists. Don't create objects/arrays in render. `next/image` with explicit width/height + `loading="lazy"` for below-fold.
 
-**i18n:** All visible strings via `useTranslation()` in a client component, or `await getTranslation()` (`i18n/serverTranslation.ts`) in a server one. The language is the `duelme-lang` cookie: the root layout reads it, sets `<html lang>` and hands it to `LanguageProvider`, so the server renders the page in it. The switch (`components/layout/LanguageToggle.tsx`) posts the choice as JSON to `/api/language`, which sets the cookie in its response (a cookie the server sets is one Safari keeps for the year; one written by `document.cookie` it drops after a week), and then reloads the page: a full load at the same address, so no part of the page is left in the old language, the hash with a private duel's invite secret never leaves the browser, and the history gains no entry. It was a Server Action with an optimistic switch first, then a form with a redirect back; five review rounds kept finding races and lost hashes, so keep it a post and a reload. The route takes only JSON, which another site's page cannot send without the browser asking first, so it needs no check of where a request came from beyond `Sec-Fetch-Site`. Until the page's script has loaded a press does nothing; a press while a post is still out cancels it, so the last press wins. Another open tab catches up from the cookie, once per language, when it is shown again or focused, comes back from the back/forward cache, or finished loading after the switch. A part that needs no browser API reads the language on the server and stays a server component. Add the key to the matching section file under `frontend/src/i18n/translations/` — with **both** `en` and `ru`; `defineSection` makes a missing `ru` a type error. `translations.ts` only merges the sections. Interpolation is `{token}` placeholders filled from the second argument (`t('dashboard.pageSummary', { current, total })`); there is no ICU, so an ICU `plural` block would render literally. A word that agrees with a number goes through `plural(key, count)` from `useTranslation()` (`i18n/translate.ts`): give the base key `.one`, `.few`, `.many` and `.other` in both languages: Russian picks among the first three for whole numbers, and `.other` is the fallback a key needs to count as a `PluralKey` at all. It returns the word alone and the caller places the number: `{game.duelCount} {plural('games.duelsCount', game.duelCount)}`.
+**i18n:** All visible strings via `useTranslation()` in a client component, or `await getTranslation()` (`i18n/serverTranslation.ts`) in a server one. The language is the `duelme-lang` cookie: the root layout reads it, sets `<html lang>` and hands it to `LanguageProvider`, so the server renders the page in it. The switch (`components/header/LanguageSwitch.tsx`, in the top bar and in the phone menu) slides its pill at once, posts the choice as JSON to `/api/language`, which sets the cookie in its response (a cookie the server sets is one Safari keeps for the year; one written by `document.cookie` it drops after a week), and then reloads the page: a full load at the same address, so no part of the page is left in the old language, the hash with a private duel's invite secret never leaves the browser, and the history gains no entry. It was a Server Action with an optimistic switch first, then a form with a redirect back; five review rounds kept finding races and lost hashes, so keep it a post and a reload. The route takes only JSON, which another site's page cannot send without the browser asking first, so it needs no check of where a request came from beyond `Sec-Fetch-Site`. Until the page's script has loaded a press does nothing; a press while a post is still out cancels it, so the last press wins. Another open tab catches up from the cookie, once per language, when it is shown again or focused, comes back from the back/forward cache, or finished loading after the switch. A part that needs no browser API reads the language on the server and stays a server component. Add the key to the matching section file under `frontend/src/i18n/translations/` — with **both** `en` and `ru`; `defineSection` makes a missing `ru` a type error. `translations.ts` only merges the sections. Interpolation is `{token}` placeholders filled from the second argument (`t('dashboard.pageSummary', { current, total })`); there is no ICU, so an ICU `plural` block would render literally. A word that agrees with a number goes through `plural(key, count)` from `useTranslation()` (`i18n/translate.ts`): give the base key `.one`, `.few`, `.many` and `.other` in both languages: Russian picks among the first three for whole numbers, and `.other` is the fallback a key needs to count as a `PluralKey` at all. It returns the word alone and the caller places the number: `{game.duelCount} {plural('games.duelsCount', game.duelCount)}`.
 
 **Naming:** Components `PascalCase.tsx`, hooks `camelCase.ts` prefixed `use`, utils `camelCase.ts`, primitive constants `UPPER_SNAKE_CASE`, object constants `camelCase`, types `PascalCase` (prefer `interface` for object shapes).
 
@@ -113,7 +113,7 @@ and controls; the guard tests below list it.
 - **Tokens only.** Every colour, easing and shadow, and every type size, weight or breakpoint
   Tailwind's own scale lacks, is a token in `src/styles/theme.css`, used by its role: `bg-canvas`,
   `text-ink-3`, `bg-red-soft`, `text-body-sm`, `ease-press`, `xs:` (560px, where a window stops
-  being a sheet). Tailwind's
+  being a sheet), `max-w-page px-gutter` (a page's column and the room beside it). Tailwind's
   own palette (`bg-slate-50`, `text-white`), a colour value in a component, and `dark:` (there is
   no dark theme) fail `styles/__tests__/designGuard.test.ts`. The files the port has not reached are
   listed in `styles/__tests__/notYetPorted.ts`; a screen's port takes its files off, and the list
@@ -130,13 +130,18 @@ and controls; the guard tests below list it.
 - **Primitives** in `components/ui/`: keycap buttons (navy for every action, paper beside it, sun
   only to take a payout, ghost for what should not compete), `Chip`, `Icon` (the design's icons;
   `lucide-react` stays only on screens not ported yet), `Dialog` (a card on a wide screen, a sheet
-  from the bottom of a phone), `Input`, `Toaster`. Who and what in `components/identity/`: `Avatar`
-  (a player's identicon on their seat's colour; the pattern is `lib/identicon.ts`, the same for an
-  address everywhere), `GameTile` (initials on the category's colour), `ReputationPill` (a level)
-  and `ReputationBadge` (a player's level, read), `BrandMark`.
+  from the bottom of a phone), `Popover` (a menu: a panel under its button, a sheet on a phone),
+  `Input`, `Toaster`. Who and what in `components/identity/`: `Avatar` (a player's identicon on
+  their seat's colour; the pattern is `lib/identicon.ts`, the same for an address everywhere),
+  `GameTile` (initials on the category's colour), `ReputationPill` (a level) and `ReputationBadge`
+  (a player's level, read), `LevelBadge` (a level as the badge a player earns, or still locked) and
+  `QuestLine` (the honored duels to the next level, from `levelQuest`), `BrandMark`, `BrandLink`.
 - **Motion** either explains something once or answers a click, and moves only transform and
   opacity. The one exception is the keycap's edge, a shadow that shortens as the button goes down.
-  With `prefers-reduced-motion` everything is in its final place at once (`styles/motion.css`).
+  The moves are `animate-*` utilities from the `@theme` in `styles/motion.css`; a colour that should
+  flash is an overlay whose opacity moves (the green ring when money arrives). With
+  `prefers-reduced-motion` everything is in its final place at once, and a figure that counts
+  (`useCountUp`) shows its value.
 - **Russian says «ты» and is gender-neutral**: nothing about a person in a past tense or a gendered
   adjective, and no slashes («победил(а)»). What you do is a noun or the present tense («Победа за
   мной», «Ты заявляешь победу»); what happened is the thing, not who did it («Победа заявлена»);
@@ -165,6 +170,13 @@ and controls; the guard tests below list it.
 | `frontend/src/components/ui/button.tsx` | Keycap buttons (navy, paper, sun, ghost); `buttonVariants` gives a link the same face |
 | `frontend/src/components/ui/iconPaths.ts` | The design's icons as shapes, drawn by `ui/icon.tsx` |
 | `frontend/src/components/ui/dialog.tsx` | The one window: a card from a fixed top on a wide screen, a sheet below 560px; `--dialog-width` widens it |
+| `frontend/src/components/ui/popover.tsx` | The menus: a panel under its button on a wide screen, a modal sheet below 560px, with a title the sheet shows and a panel only reads out |
+| `frontend/src/components/header/Header.tsx` | The top bar on every page: the brand, the sections (`lib/navigation.ts`) from 980px, the language, the wallet menu or Sign in, and the navigation menu below 980px |
+| `frontend/src/components/header/WalletMenu.tsx` | The wallet button (the duel network's USDT, never a sum across networks) and its menu: player card, a balance tile per network, Top up, Send, the faucet flask, key export and sign out |
+| `frontend/src/hooks/useWalletBalances.ts` | The wallet's USDT and ETH on each network the build lists, read apart and polled, again on the balance bus |
+| `frontend/src/hooks/useSendUsdt.ts` | Sends USDT on the network picked: moves the wallet there, waits until a write can reach it (`canWrite`), then `writeWithGas` |
+| `frontend/src/lib/sendUsdt.ts` | The send form's rules: the typed amount, the transfer it asks for, what stops it, and where a sent one is |
+| `frontend/src/lib/faucetApi.ts` | Faucet claim and status (`/faucet/status`), what it offers on a network, and the flask's phase while a claim lands |
 | `frontend/src/components/ui/toaster.tsx` | Toasts as paper cards with the design's icons, and what sonner's `unstyled` drops put back |
 | `frontend/src/lib/brandColors.ts` | Theme colours as hex for what CSS cannot reach (theme colour, Privy's window, the images `ImageResponse` draws) |
 | `frontend/src/lib/brandImage.tsx` | The brand mark for `ImageResponse`: the favicon, the home-screen icon and `/logo.png` |
@@ -177,7 +189,7 @@ and controls; the guard tests below list it.
 | `frontend/src/i18n/translate.ts` | One cached `t` and `plural` per language, the same for server components and the browser's context |
 | `frontend/src/i18n/LanguageContext.tsx` | The language in the browser: the layout's, and a refresh when another tab chose another |
 | `frontend/src/app/api/language/route.ts` | Sets the language cookie from the switch's JSON post |
-| `frontend/src/components/layout/LanguageToggle.tsx` | The language switch: posts the choice, then reloads the page at the same address |
+| `frontend/src/components/header/LanguageSwitch.tsx` | The language switch: slides its pill, posts the choice, then reloads the page at the same address |
 | `frontend/src/styles/__tests__/designGuard.test.ts` | Fails on palette classes and variables, colour values, `dark:`, `font-mono` and unused legacy classes outside what `notYetPorted.ts` lists |
 | `frontend/src/i18n/__tests__/translationsGuard.test.ts` | Fails on a translation key nothing uses and on Russian «вы» outside `stillFormalKeys.ts` |
 | `frontend/src/lib/__tests__/helpers/sourceFiles.ts` | What the guards read: the shipped source files, the theme's tokens, and `shrinkingList` for lists that may only shrink |
@@ -205,16 +217,16 @@ and controls; the guard tests below list it.
 | `frontend/src/lib/actionFlowConfigs.ts` | Guided transaction flow configs for duel actions |
 | `frontend/src/lib/balanceRefresh.ts` | Shared client-side balance refresh event bus |
 | `frontend/src/components/wallet/DepositPanel.tsx` | Top-up panel: full address, QR, balance, fee note, faucet — for the `chainId` it is given |
-| `frontend/src/lib/deposit.ts` | Balance freshness / sufficiency rule (`resolveBalanceStatus`, `resolveFunding`), top-up copy, wallet-menu per-chain balances |
+| `frontend/src/lib/deposit.ts` | Balance freshness / sufficiency rule (`resolveBalanceStatus`, `resolveFunding`), top-up copy |
 | `frontend/src/hooks/useFlowFunding.ts` | Balance gate and review ↔ top-up switch on the create and join review steps |
 | `frontend/src/lib/createDuelDraft.ts` | Versioned `sessionStorage` draft of the create form, kept across a top-up (no invite secret) |
 | `frontend/src/lib/clipboard.ts` | `copyText` — the one clipboard write; confirm "Copied" only when it returns `true` |
 | `frontend/src/hooks/useCopyFeedback.ts` | Copy-button state on top of `copyText`: "Copied" only for a write that landed, a toast otherwise |
 | `frontend/src/lib/addressQr.ts` | QR of a bare string as an SVG path, rendered as plain React markup |
-| `frontend/src/hooks/useFaucetClaim.ts` | Testnet faucet claim shared by the wallet menu and the top-up panel |
+| `frontend/src/hooks/useFaucetClaim.ts` | Testnet faucet claim where the backend's status (`useFaucetStatus`) offers one, shared by the wallet menu (`useFaucetFlask`) and the top-up panel |
 | `frontend/src/lib/buildTransactionParams.ts` | Builds explicit `gas`/`maxFeePerGas`/`maxPriorityFeePerGas`/`nonce` to bypass Privy auto-populate (see Common Pitfalls) |
 | `frontend/src/lib/resilientBroadcast.ts` | Splits writes into sign + broadcast so wagmi fallback transport handles RPC retries; asks the network for a transaction whose broadcast failed |
-| `frontend/src/lib/errorDetails.ts` | Flattens an error graph into lowercase detail strings for failure classification; `bestErrorDetail` picks the one worth showing |
+| `frontend/src/lib/errorDetails.ts` | Flattens an error graph into lowercase detail strings for failure classification; `bestErrorDetail` picks the one worth showing, `isWalletRefusal` tells a request turned down in the wallet |
 | `frontend/src/app/api/relay/route.ts` | Gas relayer: admits a signed ERC-2771 request, then signs and sends `ERC2771Forwarder.execute` under the lock (order: "Gasless Duel Actions") |
 | `frontend/src/lib/relayRequest.ts` | Relay wire types and error codes, relayable-function allowlist, payload validation, outer gas-limit rule |
 | `frontend/src/lib/relayerConfig.ts` | Server-only relayer wiring (key, RPC, budget, viem clients) |
@@ -300,11 +312,17 @@ and controls; the guard tests below list it.
   pull request's CI does not build the image, so deleting one of them (as with shadcn's
   `components.json`) passes every check and breaks the deploy only after the merge.
   `lib/__tests__/dockerfile.test.ts` fails on a `COPY` whose source is gone.
+- **A write right after a network switch has the old wallet in its hands.** `useWalletClient({ chainId })`
+  fails while the wallet sits on another network, and its query key does not change when the
+  wallet moves, so `useWriteWithGas` keys it by the wallet's network too (`scopeKey`); and a write
+  called in the same callback as `switchChainAsync` still holds the client from before the switch.
+  Queue the write and send it once the wallet is there and `canWrite` says a write reaches it, as
+  `useSendUsdt` does, or make the switch a step of its own, as the guided flows do.
 - **A window that closes because what it shows turned null empties before it is gone.** The window
   plays its closing animation after the value it was opened with (a network, a platform) is already
   null, so its title and body change or vanish on the way out. Show `useLastNonNull(value)` from
   `hooks/` instead, as `DepositDialog` and `UnlinkConfirmDialog` do.
-- **tailwind-merge does not know the theme's own tokens, and a type size clears the line height before it.** Left alone it reads `text-body` as a colour and `font-label` as a font family, so `cn('text-body', 'text-ink')` silently drops the size, and a later shadow or easing does not replace `shadow-menu` or `ease-spring`. `cn()` in `lib/utils.ts` registers the type sizes, weights, shadows, inset shadows and easings; a new `--text-*`, `--font-weight-*`, `--shadow-*`, `--inset-shadow-*` or `--ease-*` token goes there too (`utils.test.ts` fails until it does). A `text-*` size also drops any `leading-*` that comes before it, so where a variant or a caller sets the size, the line height rides on it: `text-body-sm/[1.1]`, `text-lg/snug`.
+- **tailwind-merge does not know the theme's own tokens, and a type size clears the line height before it.** Left alone it reads `text-body` as a colour and `font-label` as a font family, so `cn('text-body', 'text-ink')` silently drops the size, and a later shadow or easing does not replace `shadow-menu` or `ease-spring`. `cn()` in `lib/utils.ts` registers the type sizes, weights, shadows, inset shadows, easings, spacing and widths; a new `--text-*`, `--font-weight-*`, `--shadow-*`, `--inset-shadow-*`, `--ease-*`, `--spacing-*` or `--container-*` token goes there too (`utils.test.ts` fails until it does). A `text-*` size also drops any `leading-*` that comes before it, so where a variant or a caller sets the size, the line height rides on it: `text-body-sm/[1.1]`, `text-lg/snug`.
 - **`collectErrorDetails` returns viem's multi-line dump first.** An error's own `message` is visited before its `shortMessage` / `reason`, so the first entry is the whole "Contract Call / Request Arguments / Version" blob. Use `bestErrorDetail` (shortest non-placeholder detail) whenever the string reaches a person.
 - **`fundsViaPermit` has to gate every allowance check, not just the last one.** `handleContinueFlow`, `handleSwitchNetwork` and `handleCreateTransaction` / `handleJoinTransaction` all decide the approve step; a relayed flow that reads the allowance in any of them routes a zero-ETH player into a self-paid `approve`. They share `resolveNeedsApproval` from `guidedFlowSteps.ts`.
 - **`FORWARDER_NAME` must match on both sides.** `frontend/src/lib/forwardRequest.ts` and `contracts/script/ForwarderConfig.sol` (which both deploy scripts read) both spell `"DuelMe Forwarder"`; it is the EIP-712 domain name, so a mismatch makes every signature fail `verify` with no other symptom.
@@ -316,7 +334,7 @@ and controls; the guard tests below list it.
 - Use shared constants from `constants.ts` (`ZERO_ADDRESS`, `CHAIN_NAMES`) and `contracts.ts` (`ACTIVE_STATES`, `balanceOfAbi`, `transferAbi`, `getUsdtAddress`) — never redefine locally.
 - **The CI `next build` has no Privy app id.** The `frontend` job builds without secrets, so `NEXT_PUBLIC_PRIVY_APP_ID` is undefined there, and that works only because the root layout is `force-dynamic` and nothing under it is prerendered. Remove `force-dynamic` and the job fails with `Cannot initialize the Privy provider with an invalid Privy app ID`, while the image build, which gets the real id, passes.
 - Frontend npm pinned to `^11.12.1` via `frontend/package.json` `engines` + `frontend/.npmrc` `engine-strict=true`. CI and `frontend/Dockerfile` both pin it with `corepack enable npm && corepack prepare npm@11.12.1 --activate` — `corepack enable` alone does **not** shim npm (npm ships with Node), so npm has to be named explicitly or the `packageManager` field is ignored. A mismatch caused `EUSAGE` / `EBADENGINE` in `npm ci`.
-- `overrides.eslint-plugin-react-hooks: 7.0.1` is a temporary pin — `7.1.x` adds `react-hooks/set-state-in-effect`, which flags existing patterns in `dashboard/page.tsx`, `duel/[id]/page.tsx`, `Header.tsx`, `useCreateDuelFlow.ts`, `useJoinDuelFlow.ts`. Lift only after refactoring those files.
+- `overrides.eslint-plugin-react-hooks: 7.0.1` is a temporary pin — `7.1.x` adds `react-hooks/set-state-in-effect`, which flags existing patterns in `dashboard/page.tsx`, `duel/[id]/page.tsx`, `useCreateDuelFlow.ts`, `useJoinDuelFlow.ts`. Lift only after refactoring those files.
 - **CSP `connect-src` must allowlist every external host the frontend calls** — otherwise the browser silently blocks the `fetch` ("Refused to connect ... Content Security Policy"). Set in the `Content-Security-Policy` header in `ops/caddy/{dev.duelme.pro,duelme.pro}.Caddyfile`. Must include the RPC fallback chain from `wagmi.ts` (`https://gateway.tenderly.co`, `https://*.drpc.org`, `arb1.arbitrum.io`, `sepolia-rollup.arbitrum.io`) — plus any custom `NEXT_PUBLIC_*_RPC_URL` host. The Privy wallet-login UI (`loginMethods` includes `'wallet'`) also needs the WalletConnect/Privy set per [Privy's CSP guide](https://docs.privy.io/security/implementation-guide/content-security-policy): `connect-src` += `https://explorer-api.walletconnect.com wss://relay.walletconnect.com wss://relay.walletconnect.org wss://www.walletlink.org https://*.rpc.privy.systems`; `frame-src` += `https://verify.walletconnect.com https://verify.walletconnect.org https://challenges.cloudflare.com`; `script-src` += `https://challenges.cloudflare.com` (Privy Turnstile). The **live** `/etc/caddy/Caddyfile` is a hand-maintained combined file (other sites too) and is **NOT** auto-deployed by CI — edit it on the host and `sudo systemctl reload caddy` (the repo `ops/caddy/*` files are the reference copy).
 - Four frontend rules live in `contracts/CLAUDE.md`, beside the contract they mirror: `duelMeAbi` /
   `DuelState` in `lib/contracts.ts` and the invite-hash formula in `lib/invite.ts` ("ABI sync",

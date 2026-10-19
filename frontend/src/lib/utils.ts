@@ -1,21 +1,23 @@
 import { clsx, type ClassValue } from 'clsx';
 import { extendTailwindMerge } from 'tailwind-merge';
-import { formatUnits } from 'viem';
+import { formatUnits, parseEther } from 'viem';
 import { USDT_DECIMALS } from './constants';
 import { intlLocales } from '@/i18n/intlLocales';
 import type { Language } from '@/i18n/translations';
 
 // tailwind-merge does not read styles/theme.css: it takes the theme's own type sizes, weights and
 // (inset) shadows for colours or font families (dropping `text-body` from `text-body text-ink`),
-// and does not know its easings at all.
+// and does not know its easings, spacing or widths at all.
 const twMerge = extendTailwindMerge({
   extend: {
     theme: {
       text: ['note', 'body-sm', 'body', 'lead', 'h1', 'h2'],
       'font-weight': ['label', 'strong'],
-      shadow: ['window', 'menu'],
+      shadow: ['window', 'menu', 'sheet'],
       'inset-shadow': ['avatar'],
       ease: ['spring', 'press', 'sheet'],
+      spacing: ['gutter'],
+      container: ['page'],
     },
   },
 });
@@ -39,6 +41,7 @@ export function perLanguage<T>(make: (locale: string) => T): Record<Language, T>
 }
 
 const usdtFormats = perLanguage((locale) => new Intl.NumberFormat(locale, { maximumFractionDigits: USDT_DECIMALS }));
+const ethFormats = perLanguage((locale) => new Intl.NumberFormat(locale, { maximumFractionDigits: 4 }));
 const dateTimeFormats = perLanguage(
   (locale) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' })
 );
@@ -53,6 +56,23 @@ export function formatUSDT(amount: bigint, language: Language): string {
   const decimal = formatUnits(amount, USDT_DECIMALS);
   if (!isDecimal(decimal)) throw new Error(`Not a decimal amount: ${decimal}`);
   return usdtFormats[language].format(decimal);
+}
+
+/** The least ETH written out; anything above zero but below it shows as `<0.0001`, never as 0. */
+const SMALLEST_ETH_SHOWN = '0.0001';
+
+/**
+ * An ETH amount to 4 decimals, enough to tell whether a network fee is covered: `0.0077`, in
+ * Russian `0,0077`. A wallet with dust in it does not read as empty.
+ */
+export function formatEth(wei: bigint, language: Language): string {
+  const format = ethFormats[language];
+  if (wei > 0n && wei < parseEther(SMALLEST_ETH_SHOWN)) {
+    return `<${format.format(SMALLEST_ETH_SHOWN)}`;
+  }
+  const decimal = formatUnits(wei, 18);
+  if (!isDecimal(decimal)) throw new Error(`Not a decimal amount: ${decimal}`);
+  return format.format(decimal);
 }
 
 export function parseUSDT(amount: number): bigint {

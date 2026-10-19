@@ -1,5 +1,5 @@
 import type { TranslationKey, TranslationParams } from '@/i18n/translations';
-import { collectErrorDetails } from '@/lib/errorDetails';
+import { collectErrorDetails, isWalletRefusal } from '@/lib/errorDetails';
 import { RelayRequestError } from '@/lib/relayApi';
 import { PermitDomainMismatchError } from '@/lib/permitSignature';
 import { TransactionReplacedError, TransactionRevertedError, WalletNotReadyError } from '@/lib/writeErrors';
@@ -41,13 +41,7 @@ export function getGuidedFlowErrorMessage(
     });
   }
 
-  if (
-    details.some((detail) =>
-      ['reject', 'denied', 'cancelled', 'canceled'].some((pattern) =>
-        detail.includes(pattern)
-      )
-    )
-  ) {
+  if (isWalletRefusal(error)) {
     return t('create.flow.error.rejected');
   }
 

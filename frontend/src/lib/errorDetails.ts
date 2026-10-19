@@ -47,6 +47,14 @@ export function collectErrorDetails(error: unknown): string[] {
   return Array.from(details);
 }
 
+/** Words a wallet uses when its owner turns a request down. */
+const REFUSAL_WORDS = ['reject', 'denied', 'cancelled', 'canceled'];
+
+/** Whether the wallet's owner turned the request down, so nothing was signed or sent. */
+export function isWalletRefusal(error: unknown): boolean {
+  return collectErrorDetails(error).some((detail) => REFUSAL_WORDS.some((word) => detail.includes(word)));
+}
+
 /**
  * The one detail worth showing a person, or undefined when the graph carries nothing but
  * noise.

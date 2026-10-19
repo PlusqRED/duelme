@@ -1,5 +1,4 @@
-import Link from 'next/link';
-import { BrandMark } from '@/components/identity/BrandMark';
+import { BrandLink } from '@/components/identity/BrandLink';
 import { getTranslation } from '@/i18n/serverTranslation';
 import { DEVELOPER_EMAIL, INSTAGRAM_URL, SITE_NAME, TELEGRAM_URL } from '@/lib/constants';
 
@@ -13,14 +12,8 @@ export async function Footer() {
 
   return (
     <footer className="border-t border-line">
-      <div className="mx-auto grid w-full max-w-[1240px] gap-2 px-[clamp(16px,4vw,40px)] pt-7 pb-10 text-body-sm text-ink-3">
-        <Link
-          href="/"
-          className="inline-flex min-h-11 w-fit items-center gap-2.5 text-xl font-extrabold tracking-[-0.03em] text-ink"
-        >
-          <BrandMark />
-          {SITE_NAME}
-        </Link>
+      <div className="mx-auto grid w-full max-w-page gap-2 px-gutter pt-7 pb-10 text-body-sm text-ink-3">
+        <BrandLink className="w-fit" />
         <p>{t('footer.tagline')}</p>
         <p>
           {t('footer.developer')}:{' '}

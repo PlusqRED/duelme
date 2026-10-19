@@ -7,9 +7,3 @@ export type { ChainKey };
 export function getDefaultChainKey(): ChainKey {
   return DEFAULT_CHAIN_KEY;
 }
-
-// Mirrors getDefaultChainKey — anything that gates testnet-only UI (faucet button,
-// MockUSDT helpers) reads this. True when the build targets a non-prod chain.
-export function isNonProductionHost(): boolean {
-  return DEFAULT_CHAIN_KEY !== 'arbitrum';
-}

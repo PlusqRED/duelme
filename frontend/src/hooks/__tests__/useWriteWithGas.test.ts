@@ -14,13 +14,20 @@ const CHAIN_CLIENT = { chain: 'the write\'s chain' };
 const wagmi = vi.hoisted(() => ({
   publicClient: {} as object | undefined,
   writeHash: undefined as `0x${string}` | undefined,
+  walletChainId: 421614,
+  walletClient: undefined as object | undefined,
+  walletClientType: 'metamask',
+  useWalletClient: vi.fn(),
 }));
 const waitForWriteReceipt = vi.hoisted(() => vi.fn<(client: object, hash: string) => Promise<TransactionReceipt>>());
 
 vi.mock('wagmi', () => ({
-  useAccount: () => ({ address: '0x1111111111111111111111111111111111111111' }),
+  useAccount: () => ({ address: '0x1111111111111111111111111111111111111111', chainId: wagmi.walletChainId }),
   usePublicClient: ({ chainId }: { chainId: number }) => (chainId === DEFAULT_CHAIN.id ? wagmi.publicClient : undefined),
-  useWalletClient: () => ({ data: undefined }),
+  useWalletClient: (parameters: object) => {
+    wagmi.useWalletClient(parameters);
+    return { data: wagmi.walletClient };
+  },
   useWriteContract: () => ({
     writeContract: vi.fn(),
     data: wagmi.writeHash,
@@ -36,7 +43,7 @@ vi.mock('@/lib/writeReceipt', async (importOriginal) => ({
 }));
 
 vi.mock('@/hooks/useActiveWallet', () => ({
-  useActiveWallet: () => ({ activeWallet: { walletClientType: 'metamask' } }),
+  useActiveWallet: () => ({ activeWallet: { walletClientType: wagmi.walletClientType } }),
 }));
 
 const { useWriteWithGas } = await import('@/hooks/useWriteWithGas');
@@ -60,6 +67,9 @@ beforeEach(() => {
   vi.clearAllMocks();
   wagmi.publicClient = CHAIN_CLIENT;
   wagmi.writeHash = undefined;
+  wagmi.walletChainId = DEFAULT_CHAIN.id;
+  wagmi.walletClient = undefined;
+  wagmi.walletClientType = 'metamask';
 });
 
 afterEach(cleanup);
@@ -138,5 +148,41 @@ describe('useWriteWithGas — an injected wallet whose clients are not ready', (
     await act(() => result.current.writeWithGas(CONFIG));
 
     expect(result.current.error?.message).toBe('Wallet or RPC client not ready');
+  });
+});
+
+describe('useWriteWithGas — the wallet client', () => {
+  it('reads the client again once the wallet has moved to another network', () => {
+    const { rerender } = renderWrite();
+    wagmi.walletChainId = 42161;
+
+    rerender();
+
+    expect(wagmi.useWalletClient).toHaveBeenNthCalledWith(1, { chainId: DEFAULT_CHAIN.id, scopeKey: String(DEFAULT_CHAIN.id) });
+    expect(wagmi.useWalletClient).toHaveBeenLastCalledWith({ chainId: DEFAULT_CHAIN.id, scopeKey: '42161' });
+  });
+
+  it('can write from an injected wallet without a client of its own', () => {
+    const { result } = renderWrite();
+
+    expect(result.current.canWrite).toBe(true);
+  });
+
+  it('cannot write from the embedded wallet until its client is there', () => {
+    wagmi.walletClientType = 'privy';
+    const { result, rerender } = renderWrite();
+    expect(result.current.canWrite).toBe(false);
+
+    wagmi.walletClient = {};
+    rerender();
+
+    expect(result.current.canWrite).toBe(true);
+  });
+
+  it('cannot write before the chain can be read', () => {
+    wagmi.publicClient = undefined;
+    const { result } = renderWrite();
+
+    expect(result.current.canWrite).toBe(false);
   });
 });

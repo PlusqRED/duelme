@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cn, formatDate, formatUSDT } from '@/lib/utils';
+import { cn, formatDate, formatEth, formatUSDT } from '@/lib/utils';
 import { themeTokens } from '@/lib/__tests__/helpers/sourceFiles';
 
 describe('cn', () => {
@@ -25,6 +25,14 @@ describe('cn', () => {
 
   it.each([...themeTokens('ease').keys()])('lets a later easing replace ease-%s', (ease) => {
     expect(cn(`ease-${ease}`, 'ease-in')).toBe('ease-in');
+  });
+
+  it.each([...themeTokens('spacing').keys()])('lets a later padding replace px-%s', (spacing) => {
+    expect(cn(`px-${spacing}`, 'px-4')).toBe('px-4');
+  });
+
+  it.each([...themeTokens('container').keys()])('lets a later width replace max-w-%s', (container) => {
+    expect(cn(`max-w-${container}`, 'max-w-sm')).toBe('max-w-sm');
   });
 
   it('lets a later type size replace an earlier one', () => {
@@ -54,6 +62,30 @@ describe('formatUSDT', () => {
 
   it('keeps every digit of an amount past what a float holds', () => {
     expect(formatUSDT(123_456_789_012_345_678n, 'en')).toBe('123,456,789,012.345678');
+  });
+});
+
+describe('formatEth', () => {
+  it.each([
+    [7_736_000_000_000_000n, '0.0077'],
+    [1_000_000_000_000_000_000n, '1'],
+    [364_715_000_000_000_000n, '0.3647'],
+    [0n, '0'],
+  ])('writes %s wei as %s in English', (wei, text) => {
+    expect(formatEth(wei, 'en')).toBe(text);
+  });
+
+  it('writes Russian with its own decimal comma', () => {
+    expect(formatEth(7_736_000_000_000_000n, 'ru')).toBe('0,0077');
+  });
+
+  it('never writes dust as an empty wallet', () => {
+    expect(formatEth(1n, 'en')).toBe('<0.0001');
+    expect(formatEth(99_999_999_999_999n, 'ru')).toBe('<0,0001');
+  });
+
+  it('writes the smallest amount it shows as itself', () => {
+    expect(formatEth(100_000_000_000_000n, 'en')).toBe('0.0001');
   });
 });
 

@@ -40,6 +40,7 @@
   /* Reputation levels: Reliable is good, Risky orange, Mixed the sun and New grey. The sun is too
      pale for a bar on paper, so Mixed's bars take a deeper one. */
   --color-sun-bar: #e0a100;
+  --color-level-new: #b8c0d8;
   --color-level-new-ink: #4c5577;
   --color-level-new-soft: #eceff7;
 
@@ -86,10 +87,18 @@
 
   --shadow-window: 0 40px 80px -30px rgb(4 8 31 / 0.55);
   --shadow-menu: 0 28px 56px -28px rgb(18 26 62 / 0.42);
+  --shadow-sheet: 0 -18px 40px -24px rgb(18 26 62 / 0.4);
   /* An avatar's lower rim, so a round face reads as a token on the table. */
   --inset-shadow-avatar: inset 0 -4px 0 rgb(0 0 0 / 0.16);
 
-  /* Wider than a phone: a window stops being a sheet. Wide enough for a window's two columns. */
+  /* A page's content column, and the room either side of it that shrinks on a phone. */
+  --container-page: 77.5rem;
+  --spacing-gutter: clamp(1rem, 4vw, 2.5rem);
+
+  /* Room for the wallet button's chevron. Wider than a phone: a window stops being a sheet. Wide
+     enough for a window's two columns. Wide enough for the navigation in the top bar. */
+  --breakpoint-2xs: 25rem;
   --breakpoint-xs: 35rem;
   --breakpoint-split: 53.75rem;
+  --breakpoint-nav: 61.25rem;
 }

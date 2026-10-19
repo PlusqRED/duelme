@@ -72,11 +72,6 @@ export const MAX_WAGER_SLIDER = 500; // upper bound of the create-duel wager sli
 // How often live on-chain data is re-read (frontend/CLAUDE.md, "Data Fetching"), with staleTime 0.
 export const LIVE_DATA_POLL_INTERVAL = 10_000;
 
-// Chain ids where the backend-signed testnet faucet can operate.
-// Used to gate the faucet button in the UI.
-export const TESTNET_CHAIN_IDS: ReadonlySet<number> = new Set(
-  ALL_CHAINS.filter((chain) => chain.testnet).map((chain) => chain.id)
-);
 // Fallback defaults for the owner-adjustable on-chain claimTimeout(),
 // maxMessageCodepoints() and maxMessageBytes() — same rule as MIN_WAGER above.
 export const CLAIM_TIMEOUT = 3600; // 1 hour in seconds

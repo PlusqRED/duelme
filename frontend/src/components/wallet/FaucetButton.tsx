@@ -8,12 +8,12 @@ interface FaucetButtonProps {
   chainId: number;
 }
 
-/** The testnet faucet button; renders nothing where the faucet does not operate. */
+/** The testnet faucet button; renders nothing where the faucet has nothing to give. */
 export function FaucetButton({ chainId }: FaucetButtonProps) {
   const { t } = useTranslation();
-  const { canClaim, isClaiming, claim } = useFaucetClaim(chainId);
+  const { offer, isClaiming, claim } = useFaucetClaim(chainId);
 
-  if (!canClaim) {
+  if (offer.kind !== 'ready') {
     return null;
   }
 
