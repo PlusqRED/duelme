@@ -1,6 +1,14 @@
 import {
+  BaseError,
   encodeFunctionData,
+  FeeCapTooHighError,
+  InsufficientFundsError,
+  IntrinsicGasTooHighError,
+  IntrinsicGasTooLowError,
   keccak256,
+  NonceMaxValueError,
+  TipAboveFeeCapError,
+  TransactionTypeNotSupportedError,
   type Abi,
   type Account,
   type Chain,
@@ -9,6 +17,7 @@ import {
   type Transport,
   type WalletClient,
 } from 'viem';
+import { getNodeError } from 'viem/utils';
 
 export interface ResilientBroadcastArgs {
   walletClient: WalletClient<Transport, Chain, Account>;
@@ -75,6 +84,10 @@ export async function broadcastWithFallback(params: ResilientBroadcastArgs): Pro
     // forwards it and times out, and the next answers "already known" or "nonce too low". The
     // error alone would read as a write that never went out, and "Try again" would send it a
     // second time with a new nonce. Ask the network for the transaction itself before saying so.
+    if (isRefusedOutright(broadcastError)) {
+      throw broadcastError;
+    }
+
     const hash = keccak256(signedTx);
 
     if (await isKnownToNetwork(params.publicClient, hash)) {
@@ -83,6 +96,31 @@ export async function broadcastWithFallback(params: ResilientBroadcastArgs): Pro
 
     throw broadcastError;
   }
+}
+
+/**
+ * Refusals of the signed transaction's own fields: its sender's funds, its gas, its fee caps, its
+ * type. A node checks the nonce before any of them, so a copy the network already took reads as
+ * "already known" or "nonce too low" instead, and these never follow one. A fee cap under the base
+ * fee is not among them: the base fee moves, so a copy may have gone in before it rose.
+ */
+const OUTRIGHT_REFUSALS = [
+  InsufficientFundsError,
+  IntrinsicGasTooHighError,
+  IntrinsicGasTooLowError,
+  FeeCapTooHighError,
+  TipAboveFeeCapError,
+  TransactionTypeNotSupportedError,
+  NonceMaxValueError,
+];
+
+function isRefusedOutright(broadcastError: unknown): boolean {
+  if (!(broadcastError instanceof BaseError)) {
+    return false;
+  }
+
+  const nodeError = getNodeError(broadcastError, {});
+  return OUTRIGHT_REFUSALS.some((refusal) => nodeError instanceof refusal);
 }
 
 /** Lookups after a failed broadcast, spaced out because a provider can lag the sequencer briefly. */

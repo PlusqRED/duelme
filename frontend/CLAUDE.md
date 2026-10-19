@@ -138,7 +138,7 @@ address, no relayer key — is the case the self-paid path still covers.
 | `frontend/src/lib/addressQr.ts` | QR of a bare string as an SVG path, rendered as plain React markup |
 | `frontend/src/hooks/useFaucetClaim.ts` | Testnet faucet claim shared by the wallet menu and the top-up panel |
 | `frontend/src/lib/buildTransactionParams.ts` | Builds explicit `gas`/`maxFeePerGas`/`maxPriorityFeePerGas`/`nonce` to bypass Privy auto-populate (see Common Pitfalls) |
-| `frontend/src/lib/resilientBroadcast.ts` | Splits writes into sign + broadcast so wagmi fallback transport handles RPC retries |
+| `frontend/src/lib/resilientBroadcast.ts` | Splits writes into sign + broadcast so wagmi fallback transport handles RPC retries; asks the network for a transaction whose broadcast failed |
 | `frontend/src/lib/errorDetails.ts` | Flattens an error graph into lowercase detail strings for failure classification; `bestErrorDetail` picks the one worth showing |
 | `frontend/src/app/api/relay/route.ts` | Gas relayer: admits a signed ERC-2771 request, then signs and sends `ERC2771Forwarder.execute` under the lock (order: "Gasless Duel Actions") |
 | `frontend/src/lib/relayRequest.ts` | Relay wire types and error codes, relayable-function allowlist, payload validation, outer gas-limit rule |
@@ -208,7 +208,8 @@ address, no relayer key — is the case the self-paid path still covers.
   for as long as it lasts, and the write counts as confirming until the receipt decides, offline
   included: a write reported as failed that went through is one "Try again" away from a second
   duel and a second wager. For the same reason a Privy broadcast that fails asks the network for
-  the transaction before calling the write failed (`lib/resilientBroadcast.ts`).
+  the transaction before calling the write failed (`lib/resilientBroadcast.ts`), unless the node
+  refused the transaction's own funds, gas or fee fields.
 - **Whether relaying is on comes with the page, never from a request.** The root layout reads
   `getRelayerStatus()` from the server's relayer config and hands it to `useRelayerStatus` through
   context, so every flow plans and every write routes from the first render. An asynchronous
