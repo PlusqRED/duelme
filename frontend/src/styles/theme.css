@@ -96,6 +96,8 @@
   --shadow-window: 0 40px 80px -30px rgb(4 8 31 / 0.55);
   --shadow-menu: 0 28px 56px -28px rgb(18 26 62 / 0.42);
   --shadow-sheet: 0 -18px 40px -24px rgb(18 26 62 / 0.4);
+  /* The contract's navy safe standing on its edge, like a keycap. */
+  --shadow-safe: 0 5px 0 var(--color-ink-edge);
   /* The landing's demo duel, a card laid on the page. */
   --shadow-stage: 0 32px 64px -40px rgb(18 26 62 / 0.5);
   /* The sticky note lifting off the page at its lower edge, and the tape that holds it. */
@@ -113,9 +115,11 @@
   --radius-tile: 18px;
 
   /* Room for the wallet button's chevron. Wider than a phone: a window stops being a sheet. Wide
-     enough for a window's two columns. Wide enough for the navigation in the top bar. */
+     enough for a window's two columns. Wide enough for the navigation in the top bar. Wide enough
+     for the landing's words and its demo duel side by side. */
   --breakpoint-2xs: 25rem;
   --breakpoint-xs: 35rem;
   --breakpoint-split: 53.75rem;
   --breakpoint-nav: 61.25rem;
+  --breakpoint-hero: 67.5rem;
 }

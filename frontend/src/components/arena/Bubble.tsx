@@ -23,7 +23,6 @@ export function Bubble({ side, kind, icon, children }: BubbleProps) {
   return (
     <p
       data-side={side}
-      data-kind={kind}
       className={cn(
         'absolute bottom-[calc(100%+14px)] left-1/2 z-2 inline-flex origin-bottom -translate-x-1/2 animate-pop items-center gap-1.5 rounded-[14px] px-3 py-[7px] text-sm font-bold whitespace-nowrap',
         'max-xs:gap-1 max-xs:px-[9px] max-xs:py-1.5 max-xs:text-xs',

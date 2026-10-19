@@ -28,8 +28,9 @@ function holdAnimations() {
   vi.spyOn(Element.prototype, 'getAnimations').mockImplementation(() => animations.map(({ cancel }) => ({ cancel }) as unknown as Animation));
 }
 
-function box(left: number, top: number, size = 40): HTMLElement {
+function box(left: number, top: number, size = 40, text = ''): HTMLElement {
   const node = document.createElement('span');
+  node.textContent = text;
   node.getBoundingClientRect = () => DOMRect.fromRect({ x: left, y: top, width: size, height: size });
   return node;
 }
@@ -40,7 +41,7 @@ function anchors(): FlightAnchors {
   return {
     stage: { current: stage },
     wallets: { creator: { current: box(0, 200) }, opponent: { current: box(360, 200) } },
-    slots: { creator: { current: box(160, 100) }, opponent: { current: box(200, 100) } },
+    slots: { creator: { current: box(160, 100, 40, '10') }, opponent: { current: box(200, 100, 40, '10') } },
   };
 }
 
@@ -60,11 +61,11 @@ afterEach(() => {
 });
 
 describe('useStakeFlights', () => {
-  it('draws a stake in its seat’s colour over the stage while it flies, hidden from readers', () => {
+  it('draws a copy of the slot’s stake in its seat’s colour over the stage while it flies, hidden from readers', () => {
     const where = anchors();
-    const { result } = renderHook(() => useStakeFlights(where, '10'));
+    const { result } = renderHook(() => useStakeFlights(where));
 
-    void result.current.fly('opponent', 'in', 'opponent', 120);
+    void result.current.fly('opponent', 'in', 120);
 
     const [token] = tokens(where);
     expect(token.textContent).toBe('10');
@@ -75,9 +76,9 @@ describe('useStakeFlights', () => {
 
   it('flies from the wallet to the slot on the way in', () => {
     const where = anchors();
-    const { result } = renderHook(() => useStakeFlights(where, '10'));
+    const { result } = renderHook(() => useStakeFlights(where));
 
-    void result.current.fly('creator', 'in', 'creator', 0);
+    void result.current.fly('creator', 'in', 0);
 
     const { keyframes } = animations[0];
     expect(keyframes[0].transform).toBe('translate(0px, 200px) scale(0.4)');
@@ -86,9 +87,9 @@ describe('useStakeFlights', () => {
 
   it('flies from the slot to the winner’s wallet on the way out, shrinking as it lands', () => {
     const where = anchors();
-    const { result } = renderHook(() => useStakeFlights(where, '10'));
+    const { result } = renderHook(() => useStakeFlights(where));
 
-    void result.current.fly('opponent', 'out', 'creator', 0);
+    void result.current.fly('opponent', 'out', 0, 'creator');
 
     const { keyframes } = animations[0];
     expect(keyframes[0].transform).toBe('translate(200px, 100px) scale(1)');
@@ -97,8 +98,8 @@ describe('useStakeFlights', () => {
 
   it('takes the stake away and says it landed once the flight is over', async () => {
     const where = anchors();
-    const { result } = renderHook(() => useStakeFlights(where, '10'));
-    const landed = result.current.fly('creator', 'in', 'creator', 0);
+    const { result } = renderHook(() => useStakeFlights(where));
+    const landed = result.current.fly('creator', 'in', 0);
 
     animations[0].land();
 
@@ -108,9 +109,9 @@ describe('useStakeFlights', () => {
 
   it('drops every stake in flight on cancel, and says none of them landed', async () => {
     const where = anchors();
-    const { result } = renderHook(() => useStakeFlights(where, '10'));
-    const first = result.current.fly('creator', 'in', 'creator', 0);
-    const second = result.current.fly('opponent', 'in', 'opponent', 120);
+    const { result } = renderHook(() => useStakeFlights(where));
+    const first = result.current.fly('creator', 'in', 0);
+    const second = result.current.fly('opponent', 'in', 120);
 
     result.current.cancel();
 
@@ -120,9 +121,9 @@ describe('useStakeFlights', () => {
 
   it('does not fly when the stage is not drawn', async () => {
     const where = { ...anchors(), stage: { current: null } };
-    const { result } = renderHook(() => useStakeFlights(where, '10'));
+    const { result } = renderHook(() => useStakeFlights(where));
 
-    await expect(result.current.fly('creator', 'in', 'creator', 0)).resolves.toBe(false);
+    await expect(result.current.fly('creator', 'in', 0)).resolves.toBe(false);
     expect(animations).toEqual([]);
   });
 });

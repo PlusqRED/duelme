@@ -2,13 +2,14 @@
 
 import { useTranslation } from '@/i18n/useTranslation';
 import { RecentDuelsTeaser } from '@/components/duel/recent/RecentDuelsTeaser';
+import { LANDING_SECTION_IDS } from '@/lib/navigation';
 
 export function RecentDuelsSection() {
   const { t } = useTranslation();
 
   return (
     <section
-      id="recent-duels"
+      id={LANDING_SECTION_IDS.recentDuels}
       className="relative bg-slate-50 bg-dots py-16 sm:py-24"
     >
       <div className="mx-auto max-w-6xl px-4 sm:px-6">

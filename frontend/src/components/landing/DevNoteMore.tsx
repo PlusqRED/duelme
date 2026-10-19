@@ -3,7 +3,7 @@
 import { useId, useState } from 'react';
 import { Icon } from '@/components/ui/icon';
 import { useTranslation } from '@/i18n/useTranslation';
-import { DEVLOG_URL } from '@/lib/constants';
+import { DEVLOG_HANDLE, DEVLOG_URL } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
 /** The rest of the developer's note, opened on request, and the way to the devlog. */
@@ -26,7 +26,7 @@ export function DevNoteMore() {
           className="link inline-flex min-h-11 items-center gap-[7px] text-body-sm max-xs:text-sm"
         >
           <Icon name="send" className="size-[18px]" />
-          {t('indie.blogHandle')}
+          {DEVLOG_HANDLE}
         </a>
         <button
           type="button"

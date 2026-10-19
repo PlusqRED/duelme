@@ -13,9 +13,9 @@ import { DEMO_DWELL_MS, useDemoDuel } from '@/hooks/useDemoDuel';
 import { useStakeFlights } from '@/hooks/useStakeFlights';
 import type { TranslationKey } from '@/i18n/translations';
 import { useTranslation } from '@/i18n/useTranslation';
-import { DEMO_LAST_STEP, DEMO_STAKE_RAW, demoStatus } from '@/lib/demoDuel';
+import { DEMO_LAST_STEP, demoStatus } from '@/lib/demoDuel';
+import { LANDING_SECTION_IDS } from '@/lib/navigation';
 import { durationWords } from '@/lib/timeWords';
-import { formatUSDT } from '@/lib/utils';
 
 type PlayMode = 'play' | 'pause' | 'replay';
 
@@ -31,7 +31,7 @@ const PLAY_MODES: Record<PlayMode, { icon: IconName; key: TranslationKey }> = {
  * into view; the steps and the three endings show any moment of it.
  */
 export function DemoDuel() {
-  const { t, plural, language } = useTranslation();
+  const { t, plural } = useTranslation();
   const { claimTimeout } = useContractConfig();
   const titleId = useId();
   const rootRef = useRef<HTMLElement>(null);
@@ -48,7 +48,7 @@ export function DemoDuel() {
     }),
     []
   );
-  const flights = useStakeFlights(anchors, formatUSDT(DEMO_STAKE_RAW, language));
+  const flights = useStakeFlights(anchors);
   const demo = useDemoDuel({ root: rootRef, fly: flights.fly, cancelFlights: flights.cancel });
   const timeout = durationWords(claimTimeout, plural);
   const status = demoStatus(demo.step, demo.outcome);
@@ -56,7 +56,7 @@ export function DemoDuel() {
 
   return (
     <section
-      id="demo"
+      id={LANDING_SECTION_IDS.demo}
       ref={rootRef}
       aria-labelledby={titleId}
       style={{ '--dwell': `${DEMO_DWELL_MS}ms` }}

@@ -14,6 +14,7 @@ import {
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/translations';
 import { DEFAULT_CHAIN, DEFAULT_CHAIN_ID, DUELME_ADDRESSES } from '@/lib/constants';
+import { LANDING_SECTION_IDS } from '@/lib/navigation';
 
 const contractAddress = DUELME_ADDRESSES[DEFAULT_CHAIN_ID];
 const contractUrl = `${DEFAULT_CHAIN.explorer}/address/${contractAddress}#code`;
@@ -85,7 +86,7 @@ export function TrustSection() {
   const { t } = useTranslation();
 
   return (
-    <section id="safety" className="relative bg-white py-16 sm:py-24">
+    <section id={LANDING_SECTION_IDS.safety} className="relative bg-white py-16 sm:py-24">
       <div className="section-divider absolute inset-x-0 top-0" />
 
       <div className="mx-auto max-w-6xl px-4 sm:px-6">

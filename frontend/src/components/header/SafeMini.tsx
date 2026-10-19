@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useState } from 'react';
 import Link from 'next/link';
+import { SafeLock } from '@/components/arena/SafeLock';
 import { GainRing } from '@/components/header/GainRing';
 import { buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -41,17 +42,9 @@ export function SafeMini({ owed, isEntering, onLeave }: SafeMiniProps) {
     <div
       role="group"
       aria-labelledby={titleId}
-      className="mb-1 grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-[20px] bg-ink p-3.5 text-paper shadow-[0_5px_0_var(--color-ink-edge)] [grid-template-areas:'lock_title_sum'_'bars_bars_take'] max-2xs:gap-y-1 max-2xs:[grid-template-areas:'lock_title_title'_'lock_sum_sum'_'bars_bars_bars'_'take_take_take']"
+      className="mb-1 grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-[20px] bg-ink p-3.5 text-paper shadow-safe [grid-template-areas:'lock_title_sum'_'bars_bars_take'] max-2xs:gap-y-1 max-2xs:[grid-template-areas:'lock_title_title'_'lock_sum_sum'_'bars_bars_bars'_'take_take_take']"
     >
-      <span aria-hidden="true" className="grid size-10 place-items-center rounded-full bg-paper text-ink [grid-area:lock]">
-        <Icon
-          name="safe"
-          className={cn(
-            'size-[22px] overflow-visible stroke-[2.2] [&>path:first-of-type]:-translate-y-[3.5px]',
-            isEntering && '[&>path:first-of-type]:animate-unlock'
-          )}
-        />
-      </span>
+      <SafeLock isOpening={isEntering} className="[grid-area:lock]" />
       <h3 id={titleId} className="text-body-sm/[1.25] font-bold text-paper/86 [grid-area:title]">
         {t('wallet.waiting')}
       </h3>

@@ -1,16 +1,14 @@
 // @vitest-environment happy-dom
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Fly } from '@/hooks/useStakeFlights';
 import { FakeIntersectionObserver } from '@/lib/__tests__/helpers/intersectionObserver';
 import { demoStage } from '@/lib/demoDuel';
-import type { SeatSide } from '@/lib/duel';
 
 const motion = vi.hoisted(() => ({ reduced: false }));
 vi.mock('@/hooks/useReducedMotion', () => ({ useReducedMotion: () => motion.reduced }));
 
 const { DEMO_DWELL_MS, useDemoDuel } = await import('@/hooks/useDemoDuel');
-
-type Fly = (side: SeatSide, direction: 'in' | 'out', home: SeatSide, delay: number) => Promise<boolean>;
 
 /** A flight that lands when the test says so. */
 function heldFlights() {
@@ -90,7 +88,7 @@ describe('useDemoDuel', () => {
     act(() => result.current.pickStep(1));
     await wait(0);
 
-    expect(fly).toHaveBeenCalledWith('creator', 'in', 'creator', 0);
+    expect(fly).toHaveBeenCalledWith('creator', 'in', 0);
     expect(result.current.stage.wallets.creator).toBe(40_000_000n);
     expect(result.current.stage.staked.creator).toBe(false);
     await landAll();
@@ -110,7 +108,7 @@ describe('useDemoDuel', () => {
     expect(result.current.stage.wallets.opponent).toBe(50_000_000n);
     expect(fly).toHaveBeenCalledTimes(1);
     await wait(700);
-    expect(fly).toHaveBeenLastCalledWith('opponent', 'in', 'opponent', 120);
+    expect(fly).toHaveBeenLastCalledWith('opponent', 'in', 120);
   });
 
   it('unlocks the safe before the payout, then sends both stakes to the winner', async () => {
@@ -126,8 +124,8 @@ describe('useDemoDuel', () => {
     expect(fly).not.toHaveBeenCalled();
     await wait(420);
     expect(fly.mock.calls).toEqual([
-      ['creator', 'out', 'creator', 0],
-      ['opponent', 'out', 'creator', 140],
+      ['creator', 'out', 0, 'creator'],
+      ['opponent', 'out', 140, 'creator'],
     ]);
     await landAll();
     expect(result.current.stage).toEqual(demoStage(5, 'confirm'));
@@ -142,7 +140,7 @@ describe('useDemoDuel', () => {
     act(() => result.current.pickOutcome('dispute'));
     await wait(2000);
 
-    expect(fly.mock.calls.map(([side, , home]) => [side, home])).toEqual([
+    expect(fly.mock.calls.map(([side, , , home]) => [side, home])).toEqual([
       ['creator', 'creator'],
       ['opponent', 'opponent'],
     ]);

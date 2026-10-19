@@ -1,4 +1,4 @@
-export type CountdownTimer = 'running' | 'up' | null;
+import type { CountdownTimer } from '@/lib/duel';
 
 /**
  * A player's time to answer, as a sun ring around their avatar: it drains while the clock runs and

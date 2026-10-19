@@ -13,7 +13,7 @@ import { useBalanceChange } from '@/hooks/useBalanceChange';
 import { useCountUp } from '@/hooks/useCountUp';
 import type { TranslationKey } from '@/i18n/translations';
 import { useTranslation } from '@/i18n/useTranslation';
-import { DEMO_STAKE_RAW, vaultTotal, type DemoSay, type DemoStage as DemoStill } from '@/lib/demoDuel';
+import { DEMO_STAKE_RAW, vaultTotal, type DemoSay, type DemoStill } from '@/lib/demoDuel';
 import type { SafeTone, SeatSide } from '@/lib/duel';
 import { cn, formatUSDT } from '@/lib/utils';
 
@@ -48,7 +48,6 @@ interface DemoStageProps {
 /** The demo's table: you on the left, the opponent's seat on the right, the contract's safe between. */
 export function DemoStage({ stage, jump, timeout, flightsRef, walletRefs, slotRefs }: DemoStageProps) {
   const { t, language } = useTranslation();
-  const total = useCountUp(vaultTotal(stage), jump) ?? 0n;
 
   return (
     <div className="relative grid grid-cols-[minmax(0,1fr)_minmax(12px,0.6fr)_var(--vault-w)_minmax(12px,0.6fr)_minmax(0,1fr)] items-start pt-[66px] [--av:76px] [--box:112px] [--vault-w:128px] max-xs:grid-cols-[minmax(0,1fr)_8px_var(--vault-w)_8px_minmax(0,1fr)] max-xs:pt-[62px] max-xs:[--av:56px] max-xs:[--box:100px] max-xs:[--vault-w:96px]">
@@ -58,7 +57,7 @@ export function DemoStage({ stage, jump, timeout, flightsRef, walletRefs, slotRe
         filled={stage.staked}
         slotRefs={slotRefs}
         stakeLabel={formatUSDT(DEMO_STAKE_RAW, language)}
-        total={formatUSDT(total, language)}
+        total={<CountedUsdt raw={vaultTotal(stage)} epoch={jump} />}
         isLocked={stage.isLocked}
         name={t('sim.contract')}
         state={{ label: t(VAULT_LABELS[stage.vault]), tone: stage.vault }}
@@ -82,7 +81,6 @@ interface DemoSeatProps {
 function DemoSeat({ side, stage, jump, timeout, walletRef }: DemoSeatProps) {
   const { t, language } = useTranslation();
   const raw = stage.wallets[side];
-  const shown = useCountUp(raw, jump) ?? raw;
   const change = useBalanceChange(raw, jump);
   const gain = change && change.delta > 0n ? change : null;
   const say = stage.says[side];
@@ -137,7 +135,9 @@ function DemoSeat({ side, stage, jump, timeout, walletRef }: DemoSeatProps) {
         {gain && <span key={gain.id} aria-hidden="true" className="absolute inset-0 animate-gain-ring rounded-[inherit] bg-sun opacity-0" />}
         <Icon name="wallet" className="relative size-3.5 text-ink-3 max-xs:hidden" />
         <span className="sr-only">{t('sim.wallet')}</span>
-        <b className="relative text-body-sm font-strong text-ink tabular-nums">{formatUSDT(shown, language)}</b>
+        <b className="relative text-body-sm font-strong text-ink tabular-nums">
+          <CountedUsdt raw={raw} epoch={jump} />
+        </b>
         <small className="relative">USDT</small>
       </p>
       <p className="flex min-h-7 flex-col items-center gap-1">
@@ -147,6 +147,15 @@ function DemoSeat({ side, stage, jump, timeout, walletRef }: DemoSeatProps) {
       </p>
     </Seat>
   );
+}
+
+/**
+ * An amount counting to each new value, on its own so that each frame of the count redraws the
+ * figure alone, not the seat or the stage around it.
+ */
+function CountedUsdt({ raw, epoch }: { raw: bigint; epoch: number }) {
+  const { language } = useTranslation();
+  return formatUSDT(useCountUp(raw, epoch) ?? raw, language);
 }
 
 /** The way between a seat and the safe, lit in the seat's colour once its stake is inside. */

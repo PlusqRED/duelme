@@ -15,17 +15,15 @@ export interface BalanceChange {
  * `epoch` (a screen shown anew, not moved to) is where it is, with no move behind it.
  */
 export function useBalanceChange(value: bigint | null, epoch = 0): BalanceChange | null {
-  const [last, setLast] = useState(value);
-  const [lastEpoch, setLastEpoch] = useState(epoch);
+  const [last, setLast] = useState({ value, epoch });
   const [change, setChange] = useState<BalanceChange | null>(null);
 
-  if (value !== last || epoch !== lastEpoch) {
-    setLast(value);
-    setLastEpoch(epoch);
-    if (epoch !== lastEpoch) {
+  if (value !== last.value || epoch !== last.epoch) {
+    setLast({ value, epoch });
+    if (epoch !== last.epoch) {
       setChange(null);
-    } else if (value !== null && last !== null) {
-      setChange({ id: (change?.id ?? 0) + 1, delta: value - last });
+    } else if (value !== null && last.value !== null) {
+      setChange({ id: (change?.id ?? 0) + 1, delta: value - last.value });
     }
   }
 

@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 import { cleanup, render } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
-import { CountdownRing, type CountdownTimer } from '@/components/arena/CountdownRing';
+import { CountdownRing } from '@/components/arena/CountdownRing';
+import type { CountdownTimer } from '@/lib/duel';
 
 afterEach(cleanup);
 

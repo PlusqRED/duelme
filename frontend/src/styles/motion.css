@@ -21,7 +21,7 @@
 /* The design's moves, as `animate-*` utilities. */
 @theme {
   --animate-cell-in: cell-in 0.4s var(--ease-spring) both;
-  --animate-next-cell: next-cell 1.6s ease-in-out infinite;
+  --animate-next-cell: breathe 1.6s ease-in-out infinite;
   --animate-gain-ring: gain-ring 1.4s ease-out;
   --animate-float-up: float-up 1.5s var(--ease-press) both;
   --animate-pop: pop 0.45s var(--ease-spring) both;
@@ -55,8 +55,9 @@
     }
   }
 
-  /* The next cell to light breathes in its level's colour. */
-  @keyframes next-cell {
+  /* What waits its turn breathes: the next cell of a quest to light, in its level's colour, or a
+     seat nobody has taken yet. */
+  @keyframes breathe {
     50% {
       opacity: 1;
     }
@@ -268,13 +269,6 @@
     }
     to {
       translate: 190% 0;
-    }
-  }
-
-  /* An open seat breathes while it waits for a player. */
-  @keyframes breathe {
-    50% {
-      opacity: 1;
     }
   }
 

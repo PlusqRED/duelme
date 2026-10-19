@@ -22,12 +22,20 @@ export interface SectionLink {
   labelKey: TranslationKey;
 }
 
+/** The ids of the landing's sections the top bar links to: each section takes its id from here. */
+export const LANDING_SECTION_IDS = {
+  publicDuels: 'public-duels',
+  recentDuels: 'recent-duels',
+  demo: 'demo',
+  safety: 'safety',
+} as const;
+
 /** The landing's sections, in the order the page has them. */
 export const LANDING_SECTIONS: readonly SectionLink[] = [
-  { section: 'public-duels', labelKey: 'nav.publicDuels' },
-  { section: 'recent-duels', labelKey: 'nav.recentDuels' },
-  { section: 'demo', labelKey: 'nav.howItWorks' },
-  { section: 'safety', labelKey: 'nav.safety' },
+  { section: LANDING_SECTION_IDS.publicDuels, labelKey: 'nav.publicDuels' },
+  { section: LANDING_SECTION_IDS.recentDuels, labelKey: 'nav.recentDuels' },
+  { section: LANDING_SECTION_IDS.demo, labelKey: 'nav.howItWorks' },
+  { section: LANDING_SECTION_IDS.safety, labelKey: 'nav.safety' },
 ];
 
 /** Whether the page at `pathname` belongs to the section at `href`: its own page or one under it. */

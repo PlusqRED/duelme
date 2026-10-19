@@ -16,7 +16,7 @@ const ENDINGS: Record<DemoOutcome, { icon: IconName; key: TranslationKey }> = {
 };
 
 interface DemoEndingsProps {
-  /** The ending on screen, pressed in navy; none before the last step. */
+  /** The ending on screen, pressed: navy, like the action it is; none before the last step. */
   picked: DemoOutcome | null;
   /** A play just ended: the other endings nudge, to say there is more than one. */
   isInviting: boolean;
@@ -40,8 +40,8 @@ export function DemoEndings({ picked, isInviting, onPick }: DemoEndingsProps) {
           aria-pressed={picked === outcome}
           onClick={() => onPick(outcome)}
           className={cn(
-            buttonVariants({ variant: 'paper', size: 'sm' }),
-            'flex-[1_1_0] px-3.5 font-label aria-pressed:bg-ink aria-pressed:text-paper aria-pressed:[--keycap-edge:var(--color-ink-edge)] aria-pressed:[--keycap-ring:transparent]',
+            buttonVariants({ variant: picked === outcome ? 'navy' : 'paper', size: 'sm' }),
+            'flex-[1_1_0] px-3.5',
             isInviting && picked !== outcome && 'animate-nudge'
           )}
         >

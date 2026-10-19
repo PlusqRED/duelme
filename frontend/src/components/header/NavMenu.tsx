@@ -14,7 +14,6 @@ import { useTranslation } from '@/i18n/useTranslation';
  */
 export function NavMenu() {
   const { t } = useTranslation();
-  const links = useNavLinks();
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -26,25 +25,34 @@ export function NavMenu() {
         <Icon name="menu" />
       </PopoverTrigger>
       <PopoverContent title={t('nav.menu')} className="[--panel-width:320px]">
-        <nav aria-label={t('nav.main')} className="grid gap-0.5">
-          {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              aria-current={link.current}
-              data-current={link.current ? '' : undefined}
-              onClick={() => setIsOpen(false)}
-              className="flex min-h-12 items-center rounded-[14px] px-3 text-body font-label text-ink-2 transition-colors hover:bg-canvas hover:text-ink data-current:bg-canvas data-current:text-ink data-current:shadow-[inset_3px_0_0_var(--color-ink)]"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+        <MenuLinks onFollow={() => setIsOpen(false)} />
         <div className="flex items-center justify-between gap-3 border-t border-line px-3 pt-3 font-label text-ink-2 xs:hidden">
           <span aria-hidden="true">{t('nav.language')}</span>
           <LanguageSwitch />
         </div>
       </PopoverContent>
     </Popover>
+  );
+}
+
+/** The menu's links, there only while it is open, so a closed menu watches none of the landing's sections. */
+function MenuLinks({ onFollow }: { onFollow: () => void }) {
+  const { t } = useTranslation();
+  const links = useNavLinks();
+
+  return (
+    <nav aria-label={t('nav.main')} className="grid gap-0.5">
+      {links.map((link) => (
+        <Link
+          key={link.href}
+          href={link.href}
+          aria-current={link.current}
+          onClick={onFollow}
+          className="flex min-h-12 items-center rounded-[14px] px-3 text-body font-label text-ink-2 transition-colors hover:bg-canvas hover:text-ink [&[aria-current]]:bg-canvas [&[aria-current]]:text-ink [&[aria-current]]:shadow-[inset_3px_0_0_var(--color-ink)]"
+        >
+          {link.label}
+        </Link>
+      ))}
+    </nav>
   );
 }

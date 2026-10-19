@@ -104,5 +104,6 @@ export const SITE_NAME = 'DuelMe';
 export const DEVELOPER_EMAIL = 'rickes.oleg@gmail.com';
 export const TELEGRAM_URL = 'https://t.me/grapexel';
 export const INSTAGRAM_URL = 'https://www.instagram.com/rickes.oleg';
-/** The project's open devlog. */
-export const DEVLOG_URL = 'https://t.me/duelme_info';
+/** The project's open devlog, and how its address is written out. */
+export const DEVLOG_HANDLE = 't.me/duelme_info';
+export const DEVLOG_URL = `https://${DEVLOG_HANDLE}`;

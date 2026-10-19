@@ -1,5 +1,5 @@
 import type { TranslationKey } from '@/i18n/translations';
-import type { SafeTone, SeatSide } from '@/lib/duel';
+import type { CountdownTimer, SafeTone, SeatSide } from '@/lib/duel';
 import type { ReputationMark } from '@/lib/reputation';
 
 /**
@@ -14,11 +14,13 @@ export type DemoSay = 'won' | 'confirm' | 'dispute';
 /** In USDT's smallest unit, like every amount in the app. */
 export const DEMO_STAKE_RAW = 10_000_000n;
 const START_RAW = 50_000_000n;
-export const DEMO_LAST_STEP = 5;
 export const DEMO_STEPS = [1, 2, 3, 4, 5] as const;
+export const DEMO_LAST_STEP = DEMO_STEPS.length;
 export const DEMO_OUTCOMES: readonly DemoOutcome[] = ['confirm', 'dispute', 'timeout'];
+/** How the duel ends unless the visitor picks another ending: the opponent confirms. */
+export const DEMO_DEFAULT_OUTCOME: DemoOutcome = 'confirm';
 
-export interface DemoStage {
+export interface DemoStill {
   wallets: Record<SeatSide, bigint>;
   /** That side's stake sits in the safe. */
   staked: Record<SeatSide, boolean>;
@@ -29,22 +31,22 @@ export interface DemoStage {
   vault: SafeTone;
   isPlaying: boolean;
   says: Record<SeatSide, DemoSay | null>;
-  /** The opponent's time to answer a reported win: running, or run out. */
-  timer: 'running' | 'up' | null;
+  /** The opponent's time to answer a reported win. */
+  timer: CountdownTimer;
   marks: Record<SeatSide, ReputationMark[]>;
   /** The creator, the visitor's seat, won the pot. */
   hasWinner: boolean;
 }
 
-export interface DemoStatus {
+interface DemoStatus {
   state: TranslationKey;
   tone: 'idle' | 'waiting' | 'locked' | 'confirm' | 'paid';
   desc: TranslationKey;
 }
 
 /** The stage at `step` (0 is before anything happens), ending as `outcome` at the last step. */
-export function demoStage(step: number, outcome: DemoOutcome | null): DemoStage {
-  const stage: DemoStage = {
+export function demoStage(step: number, outcome: DemoOutcome | null): DemoStill {
+  const stage: DemoStill = {
     wallets: { creator: START_RAW, opponent: START_RAW },
     staked: { creator: false, opponent: false },
     isJoined: false,
@@ -72,12 +74,12 @@ export function demoStage(step: number, outcome: DemoOutcome | null): DemoStage 
     stage.says.creator = 'won';
     stage.timer = 'running';
   }
-  return step === DEMO_LAST_STEP ? settle(stage, outcome ?? 'confirm') : stage;
+  return step === DEMO_LAST_STEP ? settle(stage, outcome ?? DEMO_DEFAULT_OUTCOME) : stage;
 }
 
 /** The contract settles: the money leaves the safe, to the winner or back to each side. */
-function settle(stage: DemoStage, outcome: DemoOutcome): DemoStage {
-  const settled: DemoStage = {
+function settle(stage: DemoStill, outcome: DemoOutcome): DemoStill {
+  const settled: DemoStill = {
     ...stage,
     wallets: { creator: START_RAW, opponent: START_RAW },
     staked: { creator: false, opponent: false },
@@ -106,7 +108,7 @@ function settle(stage: DemoStage, outcome: DemoOutcome): DemoStage {
  * The first beat of a move: the players act — someone joins, speaks or plays, or the time runs out —
  * while the money, the lock and the marks stay where they were until the contract moves them.
  */
-export function actorsFirst(from: DemoStage, to: DemoStage): DemoStage {
+export function actorsFirst(from: DemoStill, to: DemoStill): DemoStill {
   return {
     ...to,
     wallets: from.wallets,
@@ -119,7 +121,7 @@ export function actorsFirst(from: DemoStage, to: DemoStage): DemoStage {
 }
 
 /** Whether a player does something visible in this move, which the money then waits for. */
-export function hasActed(from: DemoStage, to: DemoStage): boolean {
+export function hasActed(from: DemoStill, to: DemoStill): boolean {
   return (
     from.isJoined !== to.isJoined ||
     from.says.creator !== to.says.creator ||
@@ -130,7 +132,7 @@ export function hasActed(from: DemoStage, to: DemoStage): boolean {
 }
 
 /** The USDT in the safe. */
-export function vaultTotal(stage: DemoStage): bigint {
+export function vaultTotal(stage: DemoStill): bigint {
   return (stage.staked.creator ? DEMO_STAKE_RAW : 0n) + (stage.staked.opponent ? DEMO_STAKE_RAW : 0n);
 }
 
@@ -150,5 +152,5 @@ const OUTCOME_STATUS: Record<DemoOutcome, DemoStatus> = {
 
 /** What the status line says about the stage: the duel's state, the same words the app uses for it. */
 export function demoStatus(step: number, outcome: DemoOutcome | null): DemoStatus {
-  return step === DEMO_LAST_STEP ? OUTCOME_STATUS[outcome ?? 'confirm'] : STEP_STATUS[step];
+  return step === DEMO_LAST_STEP ? OUTCOME_STATUS[outcome ?? DEMO_DEFAULT_OUTCOME] : STEP_STATUS[step];
 }

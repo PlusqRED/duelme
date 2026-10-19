@@ -15,13 +15,19 @@ export interface FlightAnchors {
 }
 
 /**
- * A stake flying between a seat's wallet and its slot in the safe, on a short arc: into the safe as
- * it is staked, and out to `home` — the winner's wallet, or its own — as the contract pays out.
- * Each flight is a token drawn over the stage for as long as it flies; `cancel` drops them all.
+ * Flies `side`'s stake between a wallet and its slot in the safe after `delay` ms: in from its own
+ * wallet, or out to `home`'s, the winner's or its own. Says whether it landed.
  */
-export function useStakeFlights({ stage, wallets, slots }: FlightAnchors, label: string) {
-  const fly = useCallback(
-    (side: SeatSide, direction: 'in' | 'out', home: SeatSide, delay: number): Promise<boolean> => {
+export type Fly = (side: SeatSide, direction: 'in' | 'out', delay: number, home?: SeatSide) => Promise<boolean>;
+
+/**
+ * A stake flying between a seat's wallet and its slot in the safe, on a short arc: into the safe as
+ * it is staked, and out as the contract pays. Each flight is a copy of the slot's stake drawn over
+ * the stage for as long as it flies; `cancel` drops them all.
+ */
+export function useStakeFlights({ stage, wallets, slots }: FlightAnchors) {
+  const fly = useCallback<Fly>(
+    (side, direction, delay, home = side) => {
       const box = stage.current;
       const wallet = wallets[direction === 'in' ? side : home].current;
       const slot = slots[side].current;
@@ -47,7 +53,7 @@ export function useStakeFlights({ stage, wallets, slots }: FlightAnchors, label:
       token.className = cn(stakeClassName(side), 'pointer-events-none absolute top-0 left-0 z-3');
       token.style.width = `${size.width}px`;
       token.style.height = `${size.height}px`;
-      token.textContent = label;
+      token.textContent = slot.textContent;
       box.append(token);
 
       const animation = token.animate(
@@ -70,7 +76,7 @@ export function useStakeFlights({ stage, wallets, slots }: FlightAnchors, label:
         }
       );
     },
-    [stage, wallets, slots, label]
+    [stage, wallets, slots]
   );
 
   const cancel = useCallback(() => {

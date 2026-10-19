@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
-import { CountdownRing, type CountdownTimer } from '@/components/arena/CountdownRing';
+import { CountdownRing } from '@/components/arena/CountdownRing';
 import { Icon } from '@/components/ui/icon';
+import type { CountdownTimer } from '@/lib/duel';
 import { cn } from '@/lib/utils';
 
 interface SeatProps {

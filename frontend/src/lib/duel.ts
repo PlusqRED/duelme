@@ -17,6 +17,9 @@ export const SEAT_SIDES: readonly SeatSide[] = ['creator', 'opponent'];
 /** What the contract's safe, drawn between the seats, says it is doing with the money. */
 export type SafeTone = 'open' | 'locked' | 'paid' | 'refunded';
 
+/** A player's time to answer a reported win: running, run out, or not asked for. */
+export type CountdownTimer = 'running' | 'up' | null;
+
 /** A duel as the screens render it: the contract's fields, plus what display needs. */
 export interface PlayerDuel extends DuelRecord {
   /** The wager as a display number. `wagerAmount` keeps the exact on-chain value. */

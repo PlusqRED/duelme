@@ -5,7 +5,7 @@ export const homeTranslations = defineSection({
   en: {
     'motto.1': 'Skill should pay you.',
     'motto.2': 'Not the platform.',
-    'hero.lead1': 'Play 1v1 for USDT.',
+    'hero.lede1': 'Play 1v1 for USDT.',
     'hero.lede2':
       'You and your opponent put in the same stake, a smart contract holds it, and the winner gets the whole pot. DuelMe takes 0% and can’t pick the winner.',
     'hero.cta': 'Create a duel',
@@ -28,7 +28,6 @@ export const homeTranslations = defineSection({
       'No investors, no salary, no plans to ever take a cut. The contract is open and verified on-chain; the core duel flow works today, everything else is still actively shipping. A donation link may appear here someday — if the project earns it.',
     'indie.blogText':
       'Like the concept? I share devlogs and decisions out in the open — drop ideas, help shape what ships next, or just follow along:',
-    'indie.blogHandle': 't.me/duelme_info',
     'indie.more': 'Read the note',
     'indie.less': 'Hide the note',
     'cta.title': 'Pick a game, set a stake, send the link.',
@@ -38,7 +37,7 @@ export const homeTranslations = defineSection({
   ru: {
     'motto.1': 'Скилл должен платить тебе.',
     'motto.2': 'Не платформе.',
-    'hero.lead1': 'Дуэли 1 на 1 на USDT.',
+    'hero.lede1': 'Дуэли 1 на 1 на USDT.',
     'hero.lede2':
       'Ставка у тебя и соперника одна и та же, её хранит смарт-контракт, а победитель получает весь банк. DuelMe берёт 0% и не может выбрать победителя.',
     'hero.cta': 'Создать дуэль',
@@ -61,7 +60,6 @@ export const homeTranslations = defineSection({
       'Без инвесторов, без зарплаты, без планов когда-либо брать комиссию. Контракт открыт и проверен в блокчейне; основной флоу уже работает, всё остальное ещё в активной разработке. Когда-нибудь здесь может появиться ссылка на донат — если проект её заслужит.',
     'indie.blogText':
       'Понравилась концепция? Веду блог разработки открыто — подкидывай идеи, влияй на то, что появится дальше, или просто следи за прогрессом:',
-    'indie.blogHandle': 't.me/duelme_info',
     'indie.more': 'Читать целиком',
     'indie.less': 'Свернуть',
     'cta.title': 'Выбери игру, поставь сумму, отправь ссылку.',

@@ -217,7 +217,7 @@ and controls; the guard tests below list it.
 | `frontend/src/lib/owed.ts` | What the contract keeps for a player — wins, stakes coming back, timed-out claims — and the safe's bars; `useOwed` reads it from the shared `useDuelRange` history and looks again when a claim runs out of time |
 | `frontend/src/components/landing/Hero.tsx` | The landing's first screen: the motto, the two ways in, the developer's note (`DevNote`; its last update is the build's time, which `next.config.ts` writes in as `DUELME_BUILT_AT`), the platform's figures and the demo duel |
 | `frontend/src/components/landing/DemoDuel.tsx` | The demo duel: stills of a 10 USDT duel from `lib/demoDuel.ts`, moved between by `useDemoDuel` (steps, three endings, one play by itself once in view), stakes flown by `useStakeFlights` |
-| `frontend/src/components/arena/` | The table a duel is drawn on: `Seat`, `Safe`, `Stake`, `Bubble`, `CountdownRing`, `OpenSeat`, `RepChip` |
+| `frontend/src/components/arena/` | The table a duel is drawn on: `Seat`, `Safe`, `Stake`, `Bubble`, `CountdownRing`, `OpenSeat`, `RepChip`; `SafeLock`, the padlock the safe and the wallet menu's `SafeMini` share |
 | `frontend/src/lib/timeWords.ts` | A contract's duration in words (`durationWords`) and a past day as today, yesterday or days ago |
 | `frontend/src/hooks/usePlatformStats.ts` | Landing-page Total Volume / Duels Played stats |
 | `frontend/src/hooks/useRecentDuels.ts` | Landing-page duel feed (newest-first) |

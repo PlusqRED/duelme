@@ -13,7 +13,7 @@ const twMerge = extendTailwindMerge({
     theme: {
       text: ['note', 'body-sm', 'body', 'lead', 'figure', 'h1', 'h2'],
       'font-weight': ['label', 'strong'],
-      shadow: ['window', 'menu', 'sheet', 'stage', 'sticky', 'tape'],
+      shadow: ['window', 'menu', 'sheet', 'safe', 'stage', 'sticky', 'tape'],
       'inset-shadow': ['avatar', 'stake'],
       ease: ['spring', 'press', 'sheet'],
       spacing: ['gutter'],

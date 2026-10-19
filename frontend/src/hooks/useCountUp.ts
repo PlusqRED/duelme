@@ -22,18 +22,16 @@ interface Count {
  */
 export function useCountUp(value: bigint | null, epoch = 0): bigint | null {
   const reducedMotion = useReducedMotion();
-  const [target, setTarget] = useState(value);
-  const [targetEpoch, setTargetEpoch] = useState(epoch);
+  const [target, setTarget] = useState({ value, epoch });
   const [shown, setShown] = useState(value);
   const [count, setCount] = useState<Count | null>(null);
 
   // Whether a new value counts is decided while rendering, so one that shows at once is there in
   // the same render; a count starts from wherever the last one had got to.
-  if (value !== target || epoch !== targetEpoch) {
-    setTarget(value);
-    setTargetEpoch(epoch);
+  if (value !== target.value || epoch !== target.epoch) {
+    setTarget({ value, epoch });
     const counts =
-      epoch === targetEpoch && value !== null && shown !== null && value !== shown && !reducedMotion;
+      epoch === target.epoch && value !== null && shown !== null && value !== shown && !reducedMotion;
     setCount(counts ? { from: shown, to: value } : null);
     if (!counts) {
       setShown(value);

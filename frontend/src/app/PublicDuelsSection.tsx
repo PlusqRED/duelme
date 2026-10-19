@@ -16,6 +16,7 @@ import { enrichPublicDuel, type EnrichedDuel } from '@/lib/publicDuelsFilters';
 import { usePrivy } from '@privy-io/react-auth';
 import { ArrowRight } from 'lucide-react';
 import { useMemo } from 'react';
+import { LANDING_SECTION_IDS } from '@/lib/navigation';
 
 export function PublicDuelsSection() {
   const { t } = useTranslation();
@@ -44,7 +45,7 @@ export function PublicDuelsSection() {
   );
 
   return (
-    <section id="public-duels" className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+    <section id={LANDING_SECTION_IDS.publicDuels} className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
       <PartialDataNotice when={isError} onRetry={retry} />
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
