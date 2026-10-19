@@ -27,7 +27,8 @@ describe('gameInitials', () => {
   });
 
   it('still draws initials in a browser without Intl.Segmenter', async () => {
-    vi.stubGlobal('Intl', { ...Intl, Segmenter: undefined });
+    // Intl's members are not enumerable, so a spread would drop them all: inherit them instead.
+    vi.stubGlobal('Intl', Object.assign(Object.create(Intl), { Segmenter: undefined }));
     vi.resetModules();
     try {
       const { gameInitials: initialsWithout } = await import('@/lib/gameTile');

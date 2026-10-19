@@ -27,7 +27,8 @@ export function GameTile({ name, category, className }: GameTileProps) {
       aria-hidden="true"
       className={cn(
         'grid size-11 shrink-0 place-items-center rounded-[13px] text-sm font-extrabold tracking-[-0.02em]',
-        category ? tones[category] : 'bg-canvas-deep text-ink',
+        // A category the backend has and this list does not yet stays neutral too.
+        (category && tones[category]) || 'bg-canvas-deep text-ink',
         className
       )}
     >

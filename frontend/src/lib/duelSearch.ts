@@ -2,8 +2,9 @@ import type { PlayerDuel } from '@/lib/duel';
 import type { RecentDuel } from '@/hooks/useRecentDuels';
 import type { Language, TranslationKey, TranslationParams } from '@/i18n/translations';
 import { formatUnits } from 'viem';
-import { USDT_DECIMALS } from '@/lib/constants';
+import { USDT_DECIMALS, ZERO_ADDRESS } from '@/lib/constants';
 import { DuelState } from '@/lib/contracts';
+import { getCategoryLabelKey } from '@/lib/game';
 import { formatPublicDuelAmount, type EnrichedDuel } from '@/lib/publicDuelsFilters';
 import { formatDateTime, formatUSDT } from '@/lib/utils';
 import {
@@ -49,25 +50,24 @@ function foldedComma(language: Language): string {
 
 /**
  * Search text as it is matched: lower case, ё as е the way it is often typed, any run of spaces (a
- * non-breaking one in a Russian amount too) as one space, and a comma between digits read the way
+ * non-breaking one in a Russian amount too) as one space, and a comma beside a digit read the way
  * the language writes numbers. In Russian it is the decimal point, so `1 234,5` typed matches
  * `1 234,5` shown and `1234,5` matches `1234.5`; in English it groups thousands and is dropped, so
- * `1,234.5` matches `1234.5` while `1.5` does not match `1,500`.
+ * `1,234.5` matches `1234.5` while `1.5` does not match `1,500`. A comma with a digit on one side
+ * only folds as well, in the text and in a query alike, so `1 234,` typed on the way to `1 234,5`
+ * keeps matching, and so does `до 3,` typed against «до 3, без».
  */
 function foldSearchText(text: string, language: Language): string {
   return text
     .toLowerCase()
     .replace(/ё/g, 'е')
     .replace(/\s+/g, ' ')
-    .replace(/(?<=\d),(?=\d)/g, foldedComma(language));
+    .replace(/(?<=\d),|,(?=\d)/g, foldedComma(language));
 }
 
-/**
- * A search box's query, folded the way the search text is. A comma after its last digit or before
- * its first is a number still being typed (`1 234,` on the way to `1 234,5`), so it folds too.
- */
+/** A search box's query, folded the way the search text is. */
 export function normalizeSearchQuery(query: string, language: Language): string {
-  return foldSearchText(query.trim(), language).replace(/(?<=\d),$|^,(?=\d)/g, foldedComma(language));
+  return foldSearchText(query.trim(), language);
 }
 
 function normalizeSearchParts(parts: Array<string | number | undefined | null | false>, language: Language) {
@@ -115,8 +115,8 @@ export function buildDashboardDuelSearchText(
     ...CANONICAL_STATE_TERMS[duel.state],
     isTimedOut ? 'timed out' : '',
     isTimedOut ? 'response timed out' : '',
-    t('dashboard.opponentLabel'),
-    t('dashboard.waitingOpponent'),
+    // Only for a duel still waiting: a label every duel carried would match every duel.
+    duel.opponent === ZERO_ADDRESS ? t('dashboard.waitingOpponent') : '',
     counterparty,
     duel.creator,
     duel.opponent,
@@ -128,7 +128,6 @@ export function buildDashboardDuelSearchText(
     nicknameByAddress?.[duel.opponent.toLowerCase()] ?? '',
     duel.chainName,
     formatDateTime(getRelevantDuelTimestamp(duel), language),
-    t('dashboard.lastUpdateLabel'),
     ...(CANONICAL_OUTCOME_TERMS[outcome.key] ?? []),
     claimed ? t('dashboard.claimed') : '',
     claimed ? 'claimed' : '',
@@ -170,7 +169,6 @@ export function buildRecentDuelSearchText(
     duel.state === DuelState.Resolved ? 'won' : '',
     duel.state === DuelState.Resolved ? 'winner' : '',
     formatDateTime(duel.lastEventAt, language),
-    t('recent.updated'),
     getReputationLabel(reputationByAddress, duel.player1, t),
     getReputationLabel(reputationByAddress, duel.player2, t),
     nicknameByAddress?.[duel.player1.toLowerCase()] ?? '',
@@ -180,8 +178,9 @@ export function buildRecentDuelSearchText(
 }
 
 /**
- * An open duel's search text: its creator and their level as the card names it, its stake and pot
- * as the card writes them and as typed, its game and the game's category.
+ * An open duel's search text: its creator and their level as the card names it, its stake raw, with
+ * its currency and as the card writes it, the pot as the card writes it, its game and the game's
+ * category.
  */
 export function buildPublicDuelSearchText(duel: EnrichedDuel, t: Translate, language: Language) {
   const stats = duel.reputationStats;
@@ -195,7 +194,7 @@ export function buildPublicDuelSearchText(duel: EnrichedDuel, t: Translate, lang
     formatPublicDuelAmount(duel.wager * 2, language),
     duel.message,
     duel.gameName,
-    duel.gameCategory && t(`category.${duel.gameCategory}` as const),
+    duel.gameCategory && t(getCategoryLabelKey(duel.gameCategory)),
     stats && t(getReputationLabelKey(stats.level)),
     stats?.honored,
     stats?.total,

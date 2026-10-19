@@ -8,7 +8,7 @@ interface PlatformStats {
   duelsPlayed: number;
   totalVolumeRaw: bigint;
   isLoading: boolean;
-  /** True when a page of the history failed to load, so these totals understate reality. */
+  /** True when a page of the history, or the last read of it, failed: these totals may understate or lag. */
   isError: boolean;
 }
 

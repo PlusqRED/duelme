@@ -2,6 +2,7 @@
 import { cleanup, render } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { GameTile } from '@/components/identity/GameTile';
+import type { GameCategory } from '@/lib/game';
 
 afterEach(cleanup);
 
@@ -12,6 +13,13 @@ describe('GameTile', () => {
 
     expect(tile?.textContent).toBe('D2');
     expect(tile?.className.split(' ')).toContain('bg-game-moba');
+  });
+
+  it('stays neutral for a category it does not know yet', () => {
+    // The backend's list of categories can run ahead of this union.
+    const { container } = render(<GameTile name="Puzzle Arena" category={'PUZZLE' as GameCategory} />);
+
+    expect(container.firstElementChild?.className.split(' ')).toContain('bg-canvas-deep');
   });
 
   it('stays neutral without a category', () => {

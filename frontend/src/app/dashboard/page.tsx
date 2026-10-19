@@ -36,8 +36,8 @@ export default function DashboardPage() {
   const [activePage, setActivePage] = useState(1);
   const [historyPage, setHistoryPage] = useState(1);
 
-  // `isError` means a page of the history failed to load: duels — including ones with an
-  // unclaimed payout — are missing from these lists and from the claim totals below.
+  // `isError` means a page of the history, or the last read of it, failed: duels — including ones
+  // with an unclaimed payout — may be missing from these lists and the claim totals below, or stale.
   const { wins, losses, totalWagered, totalWithdrawn, activeDuels, historyDuels, isLoading, isError, refetch, retry } =
     usePlayerDuels(walletAddress, DASHBOARD_CHAIN.id);
   const actionFlow = useActionFlow({ duelId: 0, refetchDuel: refetch });

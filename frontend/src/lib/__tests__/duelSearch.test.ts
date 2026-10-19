@@ -17,7 +17,7 @@ const won = toPlayerDuel(
       finalizedAt: 1n,
       wagerAmount: 2_345_600_000n,
       creatorPayout: 1_234_500_000n,
-      message: 'score 1,2,3',
+      message: 'score 1,2,3, до 3, без читов',
     }),
     id: 7,
   },
@@ -53,6 +53,14 @@ describe('buildDashboardDuelSearchText', () => {
 
   it('folds every comma in a run of digits, not every other one', () => {
     expect(finds('ru', '2,3')).toBe(true);
+  });
+
+  it('finds a number typed up to the comma after it, as the text folds that comma too', () => {
+    expect(finds('ru', 'до 3,')).toBe(true);
+  });
+
+  it('does not find a finished duel by the words of one still waiting', () => {
+    expect(finds('en', 'waiting for opponent')).toBe(false);
   });
 });
 

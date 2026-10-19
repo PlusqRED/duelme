@@ -1,3 +1,4 @@
+import { normalizeSearchQuery } from '@/lib/duelSearch';
 import { describe, it, expect } from 'vitest';
 import type { RecentDuel } from '@/hooks/useRecentDuels';
 import { ZERO_ADDRESS } from '@/lib/constants';
@@ -156,6 +157,21 @@ describe('applyRecentFilters - search', () => {
       normalizedQuery: 'bob',
       buildSearchIndex: (d) => indexes[d.id],
     });
+    expect(result.map((d) => d.id)).toEqual([2]);
+  });
+});
+
+describe('applyRecentFilters - a query folded as the search text is', () => {
+  it('matches a query normalizeSearchQuery folded against text folded the same way', () => {
+    const duels: RecentDuel[] = [makeDuel({ id: 1 }), makeDuel({ id: 2 })];
+
+    const result = applyRecentFilters(duels, {
+      stateFilter: 'all',
+      sort: 'newest',
+      normalizedQuery: normalizeSearchQuery('  Best  of 3,4 ', 'ru'),
+      buildSearchIndex: (d) => (d.id === 2 ? 'best of 3.4 maps' : 'alice'),
+    });
+
     expect(result.map((d) => d.id)).toEqual([2]);
   });
 });

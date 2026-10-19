@@ -5,15 +5,15 @@ import { Icon } from '@/components/ui/icon';
 import { useTranslation } from '@/i18n/useTranslation';
 
 interface PartialDataNoticeProps {
-  /** `isError` from a paged duel reader: true when a page of the list is missing. */
+  /** `isError` from a paged duel reader: a page of the list is missing, or the last read of it failed. */
   when: boolean;
-  /** Reads the missing pages again. */
+  /** Reads the list again. */
   onRetry: () => void;
 }
 
 /**
- * Says out loud that a list is short, rather than letting an incomplete history render as a
- * complete one, and offers to read it again. One component so the six screens that disclose this
+ * Says out loud that a list may be short or out of date, rather than letting it render as complete
+ * and current, and offers to read it again. One component so the six screens that disclose this
  * cannot drift into six different warnings, and the seventh gets it by calling one thing.
  */
 export function PartialDataNotice({ when, onRetry }: PartialDataNoticeProps) {

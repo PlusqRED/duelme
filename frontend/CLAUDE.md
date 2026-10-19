@@ -180,7 +180,7 @@ and controls; the guard tests below list it.
 | `frontend/src/hooks/useDuel.ts` | Read single duel, polled until it is over and paid out; a failed poll keeps the last duel |
 | `frontend/src/hooks/useDuelReads.ts` | Paged `getDuels` / `getDuelsByIds` readers shared by every listing screen |
 | `frontend/src/lib/duel.ts` | `DuelRecord` / `PlayerDuel` shapes, `toPlayerDuel`, claimable-amount and outcome helpers |
-| `frontend/src/components/duel/PartialDataNotice.tsx` | The one banner saying a duel list is short because a page failed to load, with Try again |
+| `frontend/src/components/duel/PartialDataNotice.tsx` | The one banner saying a duel list may be short or out of date because a page, or the last read of it, failed to load, with Try again |
 | `frontend/src/hooks/useContractConfig.ts` | Reads owner-adjustable on-chain params (minWager, claimTimeout, maxMessageCodepoints, maxMessageBytes), syncs contractConfig store |
 | `frontend/src/lib/contractConfig.ts` | Module-level cache of on-chain params for non-hook helpers (fallbacks from constants.ts) |
 | `frontend/src/hooks/useDuelActions.ts` | Write actions (join, cancel, claim, refundAndClaim, etc.) |

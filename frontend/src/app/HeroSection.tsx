@@ -18,7 +18,8 @@ const sectionLinks = [
 
 export function HeroSection() {
   const { t, language } = useTranslation();
-  // `isError` means a page of the history failed to load, so both totals below are undercounts.
+  // `isError` means a page of the history failed to load, or the last read of it did, so both
+  // totals below may be undercounts or out of date.
   // A headline number nobody can qualify is better withheld than quietly wrong, so it reads `—`.
   const { duelsPlayed, totalVolumeRaw, isLoading, isError } = usePlatformStats();
   const isStatsUnavailable = isLoading || isError;

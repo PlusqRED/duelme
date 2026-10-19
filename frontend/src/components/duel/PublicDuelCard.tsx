@@ -13,8 +13,8 @@ import { buttonVariants } from '@/components/ui/button';
 import { GameBadge } from '@/components/game/GameBadge';
 import { ReputationPill } from '@/components/identity/ReputationPill';
 import { useTranslation } from '@/i18n/useTranslation';
-import type { TranslationKey } from '@/i18n/translations';
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
+import { getCategoryLabelKey } from '@/lib/game';
 import { truncateUnicode } from '@/lib/duel';
 import { formatPublicDuelAmount, type EnrichedDuel } from '@/lib/publicDuelsFilters';
 import { cn, formatDateTime } from '@/lib/utils';
@@ -44,7 +44,7 @@ export function PublicDuelCard({
     ? t('action.viewDuel')
     : t('action.join');
   const gameCategoryLabel = duel.gameCategory
-    ? t(`category.${duel.gameCategory}` as TranslationKey)
+    ? t(getCategoryLabelKey(duel.gameCategory))
     : null;
   const wager = formatPublicDuelAmount(duel.wager, language);
   const pot = formatPublicDuelAmount(duel.wager * 2, language);

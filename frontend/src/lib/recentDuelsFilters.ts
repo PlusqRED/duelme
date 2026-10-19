@@ -61,7 +61,6 @@ export function applyRecentFilters(
   duels: RecentDuel[],
   { stateFilter, sort, normalizedQuery, buildSearchIndex }: ApplyRecentFiltersOptions
 ): RecentDuel[] {
-
   const filtered = duels.filter((duel) => {
     if (!isStateInFilter(duel.state, stateFilter)) return false;
     if (!normalizedQuery) return true;
