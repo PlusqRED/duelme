@@ -27,4 +27,11 @@ describe('GameTile', () => {
 
     expect(container.firstElementChild?.className.split(' ')).toContain('bg-canvas-deep');
   });
+
+  it('shows a gamepad instead of initials for a duel without a game', () => {
+    const { container } = render(<GameTile name={null} />);
+
+    expect(container.firstElementChild?.textContent).toBe('');
+    expect(container.querySelector('svg')).not.toBeNull();
+  });
 });

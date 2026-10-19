@@ -1,12 +1,11 @@
 import type { Metadata } from 'next';
 import { TrustSection } from './TrustSection';
 import { OnboardingSection } from './OnboardingSection';
-import { RecentDuelsSection } from './RecentDuelsSection';
-import { PublicDuelsSection } from './PublicDuelsSection';
-import { PopularGamesSection } from './PopularGamesSection';
 import { ReputationSection } from './ReputationSection';
 import { Closing } from '@/components/landing/Closing';
 import { Hero } from '@/components/landing/Hero';
+import { OpenDuels } from '@/components/landing/OpenDuels';
+import { RecentDuels } from '@/components/landing/RecentDuels';
 import { JsonLd } from '@/components/seo/JsonLd';
 
 export const metadata: Metadata = {
@@ -27,9 +26,8 @@ export default function HomePage() {
       {/* page that's expected to carry FAQ content per Google's policy. */}
       <JsonLd type="faq" />
       <Hero />
-      <PublicDuelsSection />
-      <RecentDuelsSection />
-      <PopularGamesSection />
+      <OpenDuels />
+      <RecentDuels />
       <OnboardingSection />
       <TrustSection />
       <ReputationSection />

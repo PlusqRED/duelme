@@ -11,6 +11,8 @@ export interface PublicDuel {
   id: number;
   creator: `0x${string}`;
   wager: number;
+  /** The stake in USDT's base units, for an amount written exactly. */
+  wagerAmount: bigint;
   message: string;
   inviteHash: `0x${string}`;
   createdAt: bigint;
@@ -34,6 +36,7 @@ export function usePublicDuels() {
         id: d.id,
         creator: d.creator,
         wager: parseFloat(formatUnits(d.wagerAmount, USDT_DECIMALS)),
+        wagerAmount: d.wagerAmount,
         message: d.message,
         inviteHash: d.inviteHash,
         createdAt: d.createdAt,

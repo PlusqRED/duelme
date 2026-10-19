@@ -15,6 +15,7 @@ function makeDuel(overrides: Partial<RecentDuel> = {}): RecentDuel {
     player1: '0x1111111111111111111111111111111111111111' as const,
     player2: '0x2222222222222222222222222222222222222222' as const,
     wager: 10,
+    wagerAmount: 10_000_000n,
     message: '',
     winner: ZERO_ADDRESS,
     lastEventAt: 1_700_000_000n,

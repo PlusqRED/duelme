@@ -12,6 +12,8 @@ export interface RecentDuel {
   player1: `0x${string}`;
   player2: `0x${string}`;
   wager: number;
+  /** The stake in USDT's base units, for an amount written exactly. */
+  wagerAmount: bigint;
   message: string;
   winner: `0x${string}`;
   lastEventAt: bigint;
@@ -41,6 +43,7 @@ export function useRecentDuels() {
         player1: d.creator,
         player2: d.opponent,
         wager: parseFloat(formatUnits(d.wagerAmount, USDT_DECIMALS)),
+        wagerAmount: d.wagerAmount,
         message: d.message,
         winner: d.claimedWinner,
         lastEventAt,

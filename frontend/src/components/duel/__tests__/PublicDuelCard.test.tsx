@@ -12,7 +12,7 @@ afterEach(cleanup);
 
 function renderCard(stats: ReputationSummary | undefined) {
   const duel = enrichPublicDuel({
-    duel: { id: 4, creator: CREATOR, wager: 5, message: '', createdAt: 1n, chainId: DEFAULT_CHAIN_ID },
+    duel: { id: 4, creator: CREATOR, wager: 5, wagerAmount: 5_000_000n, message: '', createdAt: 1n, chainId: DEFAULT_CHAIN_ID },
     meta: undefined,
     resolveDisplay: () => 'alice',
     reputationStatsByAddress: stats ? { [CREATOR]: stats } : {},

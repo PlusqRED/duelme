@@ -1,3 +1,4 @@
+import { Icon } from '@/components/ui/icon';
 import type { GameCategory } from '@/lib/game';
 import { gameInitials } from '@/lib/gameTile';
 import { cn } from '@/lib/utils';
@@ -14,7 +15,8 @@ const tones: Record<GameCategory, string> = {
 };
 
 interface GameTileProps {
-  name: string;
+  /** Null for a duel created without a game: a gamepad stands in for the initials. */
+  name: string | null;
   /** Without one the tile stays neutral. */
   category?: GameCategory | null;
   className?: string;
@@ -32,7 +34,7 @@ export function GameTile({ name, category, className }: GameTileProps) {
         className
       )}
     >
-      {gameInitials(name)}
+      {name === null ? <Icon name="gamepad" className="size-[45%]" /> : gameInitials(name)}
     </span>
   );
 }

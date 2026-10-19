@@ -16,7 +16,7 @@ const twMerge = extendTailwindMerge({
       shadow: ['window', 'menu', 'sheet', 'safe', 'stage', 'sticky', 'tape'],
       'inset-shadow': ['avatar', 'stake'],
       ease: ['spring', 'press', 'sheet'],
-      spacing: ['gutter'],
+      spacing: ['gutter', 'section'],
       container: ['page'],
       radius: ['tile'],
     },

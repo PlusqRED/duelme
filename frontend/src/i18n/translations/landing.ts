@@ -2,8 +2,9 @@ import { defineSection } from './defineSection';
 
 export const landingTranslations = defineSection({
   en: {
-    'publicDuels.title': 'Public Duels',
-    'publicDuels.subtitle': 'Open challenges with the stake, creator honor, game, and note visible before you join.',
+    'publicDuels.title': 'Public duels',
+    'publicDuels.subtitle':
+      'Open challenges: the stake, the creator’s reputation, the game and the note, all visible before you join.',
     'publicDuels.empty': 'No public duels right now. Create one!',
     'publicDuels.viewAll': 'View all public duels',
     'publicDuels.dedicatedSubtitle':
@@ -63,7 +64,7 @@ export const landingTranslations = defineSection({
     'rep.howFormula':
       'The score is conservative: a tiny perfect sample counts less than a long reliable history. Consistency matters more than lucky first impressions.',
     'rep.tooltip': 'Based on duel history: more completed duels and fewer ignored results lead to a higher rating.',
-    'recent.title': 'Recent Duels',
+    'recent.title': 'Recent duels',
     'recent.subtitle': 'Live activity from the DuelMe arena.',
     'recent.dedicatedSubtitle': 'Browse the full history of duels played on DuelMe.',
     'recent.won': 'won',
@@ -114,7 +115,7 @@ export const landingTranslations = defineSection({
   },
   ru: {
     'publicDuels.title': 'Публичные дуэли',
-    'publicDuels.subtitle': 'Открытые вызовы со ставкой, честью создателя, игрой и сообщением до входа.',
+    'publicDuels.subtitle': 'Открытые вызовы: ставка, репутация создателя, игра и сообщение видны ещё до входа.',
     'publicDuels.empty': 'Публичных дуэлей пока нет. Создай первую!',
     'publicDuels.viewAll': 'Все публичные дуэли',
     'publicDuels.dedicatedSubtitle':
@@ -122,7 +123,7 @@ export const landingTranslations = defineSection({
     'publicDuels.challengeNote': 'Сообщение вызова',
     'publicDuels.fallbackNote': 'Эта публичная дуэль ждёт первого соперника, который примет вызов.',
     'publicDuels.openSlot': 'Открытое место соперника',
-    'publicDuels.openSlotHint': 'Первый вошедший вносит такую же ставку',
+    'publicDuels.openSlotHint': 'Кто примет первым, вносит такую же ставку',
     'publicDuels.requiredStake': 'Ставка для входа',
     'publicDuels.potentialPot': 'Банк после входа',
     'publicDuels.profileAria': 'Открыть профиль игрока {player}',
@@ -177,7 +178,7 @@ export const landingTranslations = defineSection({
     'recent.title': 'Недавние дуэли',
     'recent.subtitle': 'Свежая активность арены DuelMe.',
     'recent.dedicatedSubtitle': 'История всех дуэлей, сыгранных на DuelMe.',
-    'recent.won': 'победил',
+    'recent.won': 'победа',
     'recent.noActivity': 'Пока нет недавней активности по дуэлям.',
     'recent.noMatches': 'По вашим фильтрам пока ничего не найдено.',
     'recent.count': 'Всего дуэлей: {count}',

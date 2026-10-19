@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { gameInitials } from '@/lib/gameTile';
+import { gameInitials, gameInk } from '@/lib/gameTile';
 
 describe('gameInitials', () => {
   it.each([
@@ -41,5 +41,15 @@ describe('gameInitials', () => {
 
   it('shows nothing for a name of blanks', () => {
     expect(gameInitials('   ')).toBe('');
+  });
+});
+
+describe('gameInk', () => {
+  it('reads the ink of the category’s tile from the theme', () => {
+    expect(gameInk('FIGHTING')).toBe('var(--color-game-fighting-ink)');
+  });
+
+  it('falls back to the page’s ink without a category', () => {
+    expect([gameInk(null), gameInk(undefined)]).toEqual(['var(--color-ink)', 'var(--color-ink)']);
   });
 });

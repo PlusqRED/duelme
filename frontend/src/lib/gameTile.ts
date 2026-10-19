@@ -1,3 +1,5 @@
+import type { GameCategory } from '@/lib/game';
+
 /**
  * What a game's tile shows: the acronym a name starts with («CS2», «PUBG Mobile» → «PUBG» is four
  * letters, so «PM»), else the first two letters of a one-word name, else the first letters of its
@@ -24,4 +26,12 @@ function lettersOf(word: string): string[] {
 function capital(letter: string): string {
   const upper = letter.toUpperCase();
   return upper.length === letter.length ? upper : letter;
+}
+
+/**
+ * The ink of a category's tile, as a colour for what a game marks beyond its tile: a picked game's
+ * edge, the bar of its share. Ink, the page's own, without a category.
+ */
+export function gameInk(category: GameCategory | null | undefined): string {
+  return category ? `var(--color-game-${category.toLowerCase()}-ink)` : 'var(--color-ink)';
 }

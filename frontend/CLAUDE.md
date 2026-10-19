@@ -142,11 +142,12 @@ and controls; the guard tests below list it.
 - **Motion** either explains something once or answers a click, and moves only transform and
   opacity. The two exceptions are the keycap's edge, a shadow that shortens as the button goes
   down, and a player's clock (`arena/CountdownRing`), an SVG ring whose dash offset drains.
-  The moves are `animate-*` utilities from the `@theme` in `styles/motion.css`; a colour that should
-  flash or a glow that should breathe is an overlay whose opacity moves (the green ring when money
-  arrives, the safe's seal, an open seat). With `prefers-reduced-motion` everything is in its final
-  place at once, and a figure that counts (`useCountUp`) shows its value, as it does when a screen
-  is shown anew rather than moved to (a new `epoch`).
+  The moves are `animate-*` utilities from the `@theme` in `styles/motion.css`, the landing's own
+  in `styles/landingMotion.css`; a colour that should flash or a glow that should breathe is an
+  overlay whose opacity moves (the green ring when money arrives, the safe's seal, an open seat, a
+  payout in a receipt). With `prefers-reduced-motion` everything is in its final place at once, and
+  a figure that counts (`useCountUp`) shows its value, as it does when a screen is shown anew rather
+  than moved to (a new `epoch`).
 - **Russian says «ты» and is gender-neutral**: nothing about a person in a past tense or a gendered
   adjective, and no slashes («победил(а)»). What you do is a noun or the present tense («Победа за
   мной», «Ты заявляешь победу»); what happened is the thing, not who did it («Победа заявлена»);
@@ -217,10 +218,12 @@ and controls; the guard tests below list it.
 | `frontend/src/lib/owed.ts` | What the contract keeps for a player — wins, stakes coming back, timed-out claims — and the safe's bars; `useOwed` reads it from the shared `useDuelRange` history and looks again when a claim runs out of time |
 | `frontend/src/components/landing/Hero.tsx` | The landing's first screen: the motto, the two ways in, the developer's note (`DevNote`; its last update is the build's time, which `next.config.ts` writes in as `DUELME_BUILT_AT`), the platform's figures and the demo duel |
 | `frontend/src/components/landing/DemoDuel.tsx` | The demo duel: stills of a 10 USDT duel from `lib/demoDuel.ts`, moved between by `useDemoDuel` (steps, three endings, one play by itself once in view), stakes flown by `useStakeFlights` |
+| `frontend/src/components/landing/OpenDuels.tsx` | The landing's open public duels (`useOpenDuels`): one as a wide card, two or more as a lobby that is a strip to swipe below the `wide:` breakpoint, none as the invitation to make one; the count is every open duel |
+| `frontend/src/components/landing/RecentDuels.tsx` | The landing's finished duels (`useWonDuels`, won duels only) beside the popular games that filter them (`useGameFilter`: rows step out, then `useListReflow` slides the rest); a row opens into its `PayoutReceipt`. The sizes and the pure rules are `lib/landingDuels.ts` |
 | `frontend/src/components/arena/` | The table a duel is drawn on: `Seat`, `Safe`, `Stake`, `Bubble`, `CountdownRing`, `OpenSeat`, `RepChip`; `SafeLock`, the padlock the safe and the wallet menu's `SafeMini` share |
 | `frontend/src/lib/timeWords.ts` | A contract's duration in words (`durationWords`) and a past day as today, yesterday or days ago |
 | `frontend/src/hooks/usePlatformStats.ts` | Landing-page Total Volume / Duels Played stats |
-| `frontend/src/hooks/useRecentDuels.ts` | Landing-page duel feed (newest-first) |
+| `frontend/src/hooks/useRecentDuels.ts` | Duels someone joined, newest event first: the recent duels page, and the landing's finished ones |
 | `frontend/src/hooks/useReputation.ts` | Wilson Score reputation calculation |
 | `frontend/src/hooks/useReputationLevels.ts` | Batch reputation reads for feed/search |
 | `frontend/src/lib/invite.ts` | Secure invite-secret generation/storage |

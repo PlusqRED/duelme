@@ -6,9 +6,6 @@
 /** Files still coloured from Tailwind's own palette (`bg-slate-50`, `text-white`) instead of the theme. */
 export const STILL_ON_PALETTE: readonly string[] = [
   'app/OnboardingSection.tsx',
-  'app/PopularGamesSection.tsx',
-  'app/PublicDuelsSection.tsx',
-  'app/RecentDuelsSection.tsx',
   'app/ReputationSection.tsx',
   'app/TrustSection.tsx',
   'app/dashboard/page.tsx',
@@ -33,7 +30,6 @@ export const STILL_ON_PALETTE: readonly string[] = [
   'components/duel/recent/RecentDuelCard.tsx',
   'components/duel/recent/RecentDuelsFilters.tsx',
   'components/duel/recent/RecentDuelsGrid.tsx',
-  'components/duel/recent/RecentDuelsTeaser.tsx',
   'components/duel/recent/StateFilterChips.tsx',
   'components/duel/wizard/CreateDuelWizard.tsx',
   'components/duel/wizard/GameStep.tsx',

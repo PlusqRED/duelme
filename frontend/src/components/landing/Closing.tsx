@@ -10,7 +10,7 @@ export async function Closing() {
   const { t } = await getTranslation();
 
   return (
-    <section aria-labelledby={TITLE_ID} className="mx-auto w-full max-w-page px-gutter pb-[clamp(64px,8vw,112px)]">
+    <section aria-labelledby={TITLE_ID} className="mx-auto w-full max-w-page px-gutter pb-section">
       <div className="grid justify-items-start gap-4 rounded-[28px] border border-line bg-paper p-[clamp(28px,4vw,52px)]">
         <BrandMark size="lg" />
         <h2 id={TITLE_ID} className="text-h2">

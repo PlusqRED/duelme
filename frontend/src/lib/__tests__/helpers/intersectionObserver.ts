@@ -5,13 +5,14 @@
 export class FakeIntersectionObserver implements IntersectionObserver {
   static instances: FakeIntersectionObserver[] = [];
   readonly observed = new Set<Element>();
-  readonly root = null;
+  readonly root: Element | Document | null;
   readonly rootMargin: string;
   readonly thresholds: readonly number[];
   private readonly callback: IntersectionObserverCallback;
 
   constructor(callback: IntersectionObserverCallback, options: IntersectionObserverInit = {}) {
     this.callback = callback;
+    this.root = options.root ?? null;
     this.rootMargin = options.rootMargin ?? '0px';
     this.thresholds = [options.threshold ?? 0].flat();
     FakeIntersectionObserver.instances.push(this);

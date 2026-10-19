@@ -67,7 +67,7 @@ describe('buildDashboardDuelSearchText', () => {
 describe('buildPublicDuelSearchText', () => {
   // Abandoned more than honored: the card calls this creator Risky.
   const open = enrichPublicDuel({
-    duel: { id: 1, creator: WINNER, wager: 0.5, message: '', createdAt: 1n, chainId: DEFAULT_CHAIN_ID },
+    duel: { id: 1, creator: WINNER, wager: 0.5, wagerAmount: 500_000n, message: '', createdAt: 1n, chainId: DEFAULT_CHAIN_ID },
     meta: undefined,
     resolveDisplay: () => 'alice',
     reputationStatsByAddress: { [WINNER.toLowerCase()]: getReputationSummaryFromStats(1, 4) },

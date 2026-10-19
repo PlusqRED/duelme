@@ -63,7 +63,7 @@ export const profileGamesTranslations = defineSection({
     'category.RACING': 'Racing',
     'category.CARD': 'Card',
     'category.OTHER': 'Other',
-    'popularGames.title': 'Popular Games',
+    'popularGames.title': 'Popular games',
     'popularGames.subtitle': 'Games players are already wagering on',
     'popularGames.empty': 'No games yet. Create the first duel to add one.',
     'popularGames.viewAll': 'View all games',

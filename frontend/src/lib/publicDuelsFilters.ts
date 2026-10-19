@@ -12,6 +12,7 @@ export interface EnrichedDuel {
   id: number;
   creator: `0x${string}`;
   wager: number;
+  wagerAmount: bigint;
   message: string;
   createdAt: bigint;
   chainId: number;
@@ -24,7 +25,7 @@ export interface EnrichedDuel {
 
 type PublicDuelInput = Pick<
   EnrichedDuel,
-  'id' | 'creator' | 'wager' | 'message' | 'createdAt' | 'chainId'
+  'id' | 'creator' | 'wager' | 'wagerAmount' | 'message' | 'createdAt' | 'chainId'
 >;
 
 interface EnrichPublicDuelOptions {
@@ -46,6 +47,7 @@ export function enrichPublicDuel({
     id: duel.id,
     creator: duel.creator,
     wager: duel.wager,
+    wagerAmount: duel.wagerAmount,
     message: duel.message,
     createdAt: duel.createdAt,
     chainId: duel.chainId,
