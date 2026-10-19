@@ -11,7 +11,7 @@ import type { Language } from '@/i18n/translations';
 const twMerge = extendTailwindMerge({
   extend: {
     theme: {
-      text: ['note', 'body-sm', 'body', 'lead', 'h1', 'h2'],
+      text: ['note', 'body-sm', 'body', 'lead', 'figure', 'h1', 'h2'],
       'font-weight': ['label', 'strong'],
       shadow: ['window', 'menu', 'sheet'],
       'inset-shadow': ['avatar'],

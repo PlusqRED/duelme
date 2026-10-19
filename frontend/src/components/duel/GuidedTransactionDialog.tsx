@@ -42,8 +42,6 @@ interface GuidedTransactionDialogProps {
   footerContent?: ReactNode;
   /** Shown inside the step card, above its actions — the review step's balance check. */
   stepExtra?: ReactNode;
-  /** Replaces the step card and footer, e.g. the top-up panel opened from the review step. */
-  stepPanel?: ReactNode;
 }
 
 export function GuidedTransactionDialog({
@@ -68,7 +66,6 @@ export function GuidedTransactionDialog({
   success = false,
   footerContent,
   stepExtra,
-  stepPanel,
 }: GuidedTransactionDialogProps) {
   const stepAnimationKey = [
     currentStepLabel,
@@ -138,86 +135,75 @@ export function GuidedTransactionDialog({
 
         <div className="grid gap-6 p-6 split:grid-cols-[minmax(0,1.45fr)_minmax(300px,1fr)]">
           <div className="space-y-4">
-            {stepPanel ? (
-              <section
-                ref={scrollIntoViewOnMount}
-                className="animate-soft-in scroll-mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-              >
-                {stepPanel}
-              </section>
-            ) : (
-              <>
-                <section
-                  key={stepAnimationKey}
-                  className="animate-soft-in rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+            <section
+              key={stepAnimationKey}
+              className="animate-soft-in rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+            >
+              <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600 transition-colors duration-300">
+                {currentStepLabel}
+              </span>
+              <div className="mt-4 flex items-start gap-4">
+                <div
+                  className={cn(
+                    'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl shadow-sm transition-all duration-300 ease-out',
+                    success
+                      ? 'bg-emerald-100 text-emerald-600'
+                      : 'bg-indigo-100 text-indigo-600'
+                  )}
                 >
-                  <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600 transition-colors duration-300">
-                    {currentStepLabel}
-                  </span>
-                  <div className="mt-4 flex items-start gap-4">
-                    <div
-                      className={cn(
-                        'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl shadow-sm transition-all duration-300 ease-out',
-                        success
-                          ? 'bg-emerald-100 text-emerald-600'
-                          : 'bg-indigo-100 text-indigo-600'
-                      )}
-                    >
-                      <CurrentIcon className="h-6 w-6" />
-                    </div>
-                    <div className="space-y-2">
-                      <h3 className="text-xl font-semibold text-slate-900">
-                        {currentStepTitle}
-                      </h3>
-                      <p className="text-sm leading-6 text-slate-600">
-                        {currentStepDescription}
-                      </p>
-                    </div>
-                  </div>
-                  {errorMessage && (
-                    <div className="animate-soft-in-fast mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                      {errorMessage}
-                    </div>
-                  )}
-                  {currentStepHint && (
-                    <div className="animate-soft-in-fast mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                      {currentStepHint}
-                    </div>
-                  )}
-                  {stepExtra}
-                  <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
-                    {secondaryAction && (
-                      <Button
-                        size="lg"
-                        variant="paper"
-                        onClick={secondaryAction.onClick}
-                        disabled={secondaryAction.disabled}
-                      >
-                        {secondaryAction.label}
-                      </Button>
-                    )}
-                    {primaryAction && (
-                      <Button
-                        size="lg"
-                        onClick={primaryAction.onClick}
-                        disabled={primaryAction.disabled}
-                        className="sm:min-w-44"
-                      >
-                        {primaryAction.loading && (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        )}
-                        {primaryAction.label}
-                      </Button>
-                    )}
-                  </div>
-                </section>
-
-                {footerContent && (
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                    {footerContent}
-                  </div>
+                  <CurrentIcon className="h-6 w-6" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-semibold text-slate-900">
+                    {currentStepTitle}
+                  </h3>
+                  <p className="text-sm leading-6 text-slate-600">
+                    {currentStepDescription}
+                  </p>
+                </div>
+              </div>
+              {errorMessage && (
+                <div className="animate-soft-in-fast mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {errorMessage}
+                </div>
+              )}
+              {currentStepHint && (
+                <div className="animate-soft-in-fast mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                  {currentStepHint}
+                </div>
+              )}
+              {stepExtra}
+              <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
+                {secondaryAction && (
+                  <Button
+                    size="lg"
+                    variant="paper"
+                    onClick={secondaryAction.onClick}
+                    disabled={secondaryAction.disabled}
+                  >
+                    {secondaryAction.label}
+                  </Button>
                 )}
-              </>
+                {primaryAction && (
+                  <Button
+                    size="lg"
+                    onClick={primaryAction.onClick}
+                    disabled={primaryAction.disabled}
+                    className="sm:min-w-44"
+                  >
+                    {primaryAction.loading && (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    )}
+                    {primaryAction.label}
+                  </Button>
+                )}
+              </div>
+            </section>
+
+            {footerContent && (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                {footerContent}
+              </div>
             )}
           </div>
 
@@ -276,9 +262,4 @@ export function GuidedTransactionDialog({
       </DialogContent>
     </Dialog>
   );
-}
-
-/** A panel swapped in from mid-dialog on a phone starts above the fold; bring its top into view. */
-function scrollIntoViewOnMount(element: HTMLElement | null) {
-  element?.scrollIntoView({ block: 'start' });
 }

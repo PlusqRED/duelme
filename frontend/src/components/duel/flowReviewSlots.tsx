@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { FlowFundingCheck } from '@/components/duel/FlowFundingCheck';
-import { DepositPanel } from '@/components/wallet/DepositPanel';
 import type { FlowReviewGate } from '@/hooks/useFlowFunding';
 import type { GuidedTransactionAction } from '@/lib/guidedTransaction';
 
@@ -15,13 +14,12 @@ interface FlowReviewSlotsArgs {
 interface FlowReviewSlots {
   primaryAction: GuidedTransactionAction | undefined;
   stepExtra: ReactNode;
-  stepPanel: ReactNode;
 }
 
 /**
  * The balance gate's share of a create or join dialog on its review step: Continue stays closed
- * until the gate opens, the balance line sits in the step card, and the top-up panel replaces the
- * step while the player tops up. The panel reads the flow's balance, so both show one answer.
+ * until the gate opens, and the balance line sits in the step card, with the top-up window it
+ * opens over the dialog. The window reads the flow's balance, so both show one answer.
  */
 export function getFlowReviewSlots({
   isReview,
@@ -31,24 +29,22 @@ export function getFlowReviewSlots({
   isJoining = false,
 }: FlowReviewSlotsArgs): FlowReviewSlots {
   if (!isReview) {
-    return { primaryAction, stepExtra: undefined, stepPanel: undefined };
+    return { primaryAction, stepExtra: undefined };
   }
 
-  const { funding } = review;
   return {
     primaryAction: primaryAction && {
       ...primaryAction,
       disabled: primaryAction.disabled || !review.canContinue,
     },
-    stepExtra: <FlowFundingCheck review={review} chainName={draft.chainName} />,
-    stepPanel: funding.view === 'deposit' ? (
-      <DepositPanel
+    stepExtra: (
+      <FlowFundingCheck
+        review={review}
         chainId={draft.chainId}
-        requiredRaw={draft.rawAmount}
+        chainName={draft.chainName}
+        neededRaw={draft.rawAmount}
         isJoining={isJoining}
-        onBack={funding.showReview}
-        flowBalance={funding}
       />
-    ) : undefined,
+    ),
   };
 }

@@ -43,8 +43,8 @@ interface UseFlowFundingArgs {
 }
 
 /**
- * The balance gate on the create and join review steps, and the switch between the review and the
- * top-up panel inside the same dialog. `markOpened` records when the flow opened: an answer older
+ * The balance gate on the create and join review steps, and whether the top-up window is open over
+ * the review (`view: 'deposit'`). `markOpened` records when the flow opened: an answer older
  * than that — or from before the wallet last changed — never counts as enough.
  */
 export function useFlowFunding({

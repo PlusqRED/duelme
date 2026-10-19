@@ -131,7 +131,7 @@ and controls; the guard tests below list it.
   only to take a payout, ghost for what should not compete), `Chip`, `Icon` (the design's icons;
   `lucide-react` stays only on screens not ported yet), `Dialog` (a card on a wide screen, a sheet
   from the bottom of a phone), `Popover` (a menu: a panel under its button, a sheet on a phone),
-  `Input`, `Note` (a line of small print after an icon), `Toaster`. Who and what in `components/identity/`: `Avatar` (a player's identicon on
+  `Input`, `Note` (a line of small print after an icon), `Spinner`, `Toaster`. Who and what in `components/identity/`: `Avatar` (a player's identicon on
   their seat's colour; the pattern is `lib/identicon.ts`, the same for an address everywhere),
   `GameTile` (initials on the category's colour), `ReputationPill` (a level) and `ReputationBadge`
   (a player's level, read), `LevelBadge` (a level as the badge a player earns, or still locked) and
@@ -218,14 +218,15 @@ and controls; the guard tests below list it.
 | `frontend/src/lib/duelSearch.ts` | Shared visible-field search indexing |
 | `frontend/src/lib/actionFlowConfigs.ts` | Guided transaction flow configs for duel actions |
 | `frontend/src/lib/balanceRefresh.ts` | Shared client-side balance refresh event bus |
-| `frontend/src/components/wallet/DepositPanel.tsx` | Top-up panel: full address, QR, balance, fee note, faucet — for the `chainId` it is given |
-| `frontend/src/lib/deposit.ts` | Balance freshness / sufficiency rule (`resolveBalanceStatus`, `resolveFunding`), top-up copy |
-| `frontend/src/hooks/useFlowFunding.ts` | Balance gate and review ↔ top-up switch on the create and join review steps |
+| `frontend/src/components/topup/TopUpWindow.tsx` | The site's one top-up window, for the `chainId` it is given: QR and grouped address, what to send and not to, the faucet, the balance there; for a duel, what it needs |
+| `frontend/src/lib/topup.ts` | The top-up window's words for a network (`topUpCopy`) and the address in groups of four |
+| `frontend/src/lib/deposit.ts` | Balance freshness / sufficiency rule (`resolveBalanceStatus`, `resolveFunding`) |
+| `frontend/src/hooks/useFlowFunding.ts` | Balance gate on the create and join review steps, and whether the top-up window is open over them |
 | `frontend/src/lib/createDuelDraft.ts` | Versioned `sessionStorage` draft of the create form, kept across a top-up (no invite secret) |
 | `frontend/src/lib/clipboard.ts` | `copyText` — the one clipboard write; confirm "Copied" only when it returns `true` |
 | `frontend/src/hooks/useCopyFeedback.ts` | Copy-button state on top of `copyText`: "Copied" only for a write that landed, a toast otherwise |
 | `frontend/src/lib/addressQr.ts` | QR of a bare string as an SVG path, rendered as plain React markup |
-| `frontend/src/hooks/useFaucetClaim.ts` | Testnet faucet claim where the backend's status (`useFaucetStatus`) offers one, shared by the wallet menu (`useFaucetFlask`) and the top-up panel |
+| `frontend/src/hooks/useFaucetClaim.ts` | Testnet faucet claim where the backend's status (`useFaucetStatus`) offers one, shared by the wallet menu (`useFaucetFlask`) and the top-up window |
 | `frontend/src/lib/buildTransactionParams.ts` | Builds explicit `gas`/`maxFeePerGas`/`maxPriorityFeePerGas`/`nonce` to bypass Privy auto-populate (see Common Pitfalls) |
 | `frontend/src/lib/resilientBroadcast.ts` | Splits writes into sign + broadcast so wagmi fallback transport handles RPC retries; asks the network for a transaction whose broadcast failed |
 | `frontend/src/lib/errorDetails.ts` | Flattens an error graph into lowercase detail strings for failure classification; `bestErrorDetail` picks the one worth showing, `isWalletRefusal` tells a request turned down in the wallet |
@@ -277,7 +278,7 @@ and controls; the guard tests below list it.
 - `createConfig` from `wagmi` instead of `@privy-io/wagmi` silently breaks wallet routing.
 - `useSetActiveWallet` in `useEffect` is too late — use `setActiveWalletForWagmi` sync callback.
 - Invite-only duels rely on the full private link (URL fragment) — never fall back to plain `/duel/{id}`.
-- **Top-up details belong to the duel's network, not the wallet's.** `DepositPanel` takes `chainId` from its caller (the flow's `draft.chainId`, the network picked in the wallet menu), never from `useChainId()` or the connected wallet — a player connected to another network would otherwise be told to send USDT where the duel cannot use it. Its QR encodes the bare address only: no `ethereum:` URI, amount, token or invite secret.
+- **Top-up details belong to the duel's network, not the wallet's.** `TopUpWindow` takes `chainId` from its caller (the flow's `draft.chainId`, the network picked in the wallet menu), never from `useChainId()` or the connected wallet — a player connected to another network would otherwise be told to send USDT where the duel cannot use it. Its QR encodes the bare address only: no `ethereum:` URI, amount, token or invite secret.
 - Wilson Score gives low scores for small samples — players with 0 abandoned duels are never "unreliable".
 - **Do NOT use `arbitrum-one-rpc.publicnode.com`** — exposes legacy `eth_fillTransaction`, which viem 2.47+ calls during `prepareTransactionRequest` and gets `gasPrice: "0x0"`, producing signed txs with all-zero gas/fees. Privy surfaces as "HTTP request failed". See [viem#4323](https://github.com/wevm/viem/issues/4323) (open as of May 2026). Use Tenderly/drpc/arb1.arbitrum.io, or an authenticated provider you have verified.
 - **Privy embedded wallets** sign with all-zero gas/nonce when SDK auto-populates — bypass by passing `gas` / `maxFeePerGas` / `maxPriorityFeePerGas` / `nonce` explicitly in every `writeContract` call. Centralized in `useWriteWithGas` (used by `useDuelActions`; uses `buildTransactionParams` + `resilientBroadcast`) — never call `writeContract` directly from action functions.
@@ -325,7 +326,7 @@ and controls; the guard tests below list it.
 - **A window that closes because what it shows turned null empties before it is gone.** The window
   plays its closing animation after the value it was opened with (a network, a platform) is already
   null, so its title and body change or vanish on the way out. Show `useLastNonNull(value)` from
-  `hooks/` instead, as `DepositDialog` and `UnlinkConfirmDialog` do.
+  `hooks/` instead, as `TopUpWindow` and `UnlinkConfirmDialog` do.
 - **tailwind-merge does not know the theme's own tokens, and a type size clears the line height before it.** Left alone it reads `text-body` as a colour and `font-label` as a font family, so `cn('text-body', 'text-ink')` silently drops the size, and a later shadow or easing does not replace `shadow-menu` or `ease-spring`. `cn()` in `lib/utils.ts` registers the type sizes, weights, shadows, inset shadows, easings, spacing, widths and radii; a new `--text-*`, `--font-weight-*`, `--shadow-*`, `--inset-shadow-*`, `--ease-*`, `--spacing-*`, `--container-*` or `--radius-*` token goes there too (`utils.test.ts` fails until it does). A `text-*` size also drops any `leading-*` that comes before it, so where a variant or a caller sets the size, the line height rides on it: `text-body-sm/[1.1]`, `text-lg/snug`.
 - **`collectErrorDetails` returns viem's multi-line dump first.** An error's own `message` is visited before its `shortMessage` / `reason`, so the first entry is the whole "Contract Call / Request Arguments / Version" blob. Use `bestErrorDetail` (shortest non-placeholder detail) whenever the string reaches a person.
 - **`fundsViaPermit` has to gate every allowance check, not just the last one.** `handleContinueFlow`, `handleSwitchNetwork` and `handleCreateTransaction` / `handleJoinTransaction` all decide the approve step; a relayed flow that reads the allowance in any of them routes a zero-ETH player into a self-paid `approve`. They share `resolveNeedsApproval` from `guidedFlowSteps.ts`.

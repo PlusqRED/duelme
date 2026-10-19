@@ -3,6 +3,7 @@
 import { Avatar } from '@/components/identity/Avatar';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { Spinner } from '@/components/ui/spinner';
 import type { WalletNetwork } from '@/hooks/useWalletBalances';
 import { useTranslation } from '@/i18n/useTranslation';
 import { bestErrorDetail } from '@/lib/errorDetails';
@@ -36,7 +37,7 @@ export function SendProgress({ stage, from, transfer, network, hash, error, onDo
       <div aria-live="polite" className="grid gap-3">
         {!isOver && (
           <p className="flex items-center gap-2.5 text-body-sm font-label text-ink-2">
-            <span aria-hidden="true" className="size-[18px] animate-spin rounded-full border-[2.5px] border-current border-t-transparent" />
+            <Spinner />
             {stage === 'confirm' ? t('send.confirm') : t('send.sending', { network: network.name })}
           </p>
         )}

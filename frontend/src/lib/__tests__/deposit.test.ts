@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   type BalanceRead,
-  getDepositCopyKeys,
   resolveBalanceStatus,
   resolveFunding,
 } from '../deposit';
@@ -115,23 +114,5 @@ describe('resolveFunding', () => {
     const stale = resolveBalanceStatus(read({ data: 10n ** 18n, dataUpdatedAt: 0 }), EXPECTED, OPENED_AT);
 
     expect(resolveFunding(stale, 1n)).toEqual({ kind: 'unknown' });
-  });
-});
-
-describe('getDepositCopyKeys', () => {
-  const MAINNET_INSTRUCTIONS = [
-    { key: 'deposit.mainnet.send', warning: false },
-    { key: 'deposit.mainnet.exact', warning: false },
-    { key: 'deposit.mainnet.otherNetwork', warning: true },
-  ];
-  const TESTNET_INSTRUCTIONS = [{ key: 'deposit.testnet.warning', warning: true }];
-
-  it.each([
-    { testnet: false, isRelayEnabled: true, token: 'deposit.token.mainnet', instructions: MAINNET_INSTRUCTIONS, fees: 'deposit.fees.relayed' },
-    { testnet: false, isRelayEnabled: false, token: 'deposit.token.mainnet', instructions: MAINNET_INSTRUCTIONS, fees: 'deposit.fees.selfPaid' },
-    { testnet: true, isRelayEnabled: true, token: 'deposit.token.testnet', instructions: TESTNET_INSTRUCTIONS, fees: 'deposit.fees.relayed' },
-    { testnet: true, isRelayEnabled: false, token: 'deposit.token.testnet', instructions: TESTNET_INSTRUCTIONS, fees: 'deposit.fees.selfPaid' },
-  ])('testnet: $testnet, relay: $isRelayEnabled → $fees', ({ testnet, isRelayEnabled, token, instructions, fees }) => {
-    expect(getDepositCopyKeys({ testnet, isRelayEnabled })).toEqual({ token, instructions, fees });
   });
 });

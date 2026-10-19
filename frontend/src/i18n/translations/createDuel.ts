@@ -3,6 +3,7 @@ import { defineSection } from './defineSection';
 export const createDuelTranslations = defineSection({
   en: {
     'create.title': 'Create a Duel',
+    'create.draftRestored': 'Your duel settings are restored',
     'create.amount': 'Wager Amount',
     'create.amountPlaceholder': 'Enter amount',
     'create.chain': 'Network',
@@ -140,6 +141,7 @@ export const createDuelTranslations = defineSection({
   },
   ru: {
     'create.title': 'Создать дуэль',
+    'create.draftRestored': 'Условия дуэли восстановлены',
     'create.amount': 'Сумма ставки',
     'create.amountPlaceholder': 'Введите сумму',
     'create.chain': 'Сеть',

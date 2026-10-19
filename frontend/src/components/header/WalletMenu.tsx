@@ -8,7 +8,7 @@ import { SendView } from '@/components/header/SendView';
 import { WalletButton } from '@/components/header/WalletButton';
 import { WalletMoney } from '@/components/header/WalletMoney';
 import { Popover, PopoverContent } from '@/components/ui/popover';
-import { DepositDialog } from '@/components/wallet/DepositDialog';
+import { TopUpWindow } from '@/components/topup/TopUpWindow';
 import { useFaucetFlask } from '@/hooks/useFaucetFlask';
 import { useWalletBalances } from '@/hooks/useWalletBalances';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -108,7 +108,7 @@ export function WalletMenu({ address, walletAddress, walletClientType }: WalletM
           )}
         </PopoverContent>
       </Popover>
-      <DepositDialog chainId={topUpChainId} onClose={() => setTopUpChainId(null)} />
+      <TopUpWindow address={address} walletAddress={walletAddress} chainId={topUpChainId} onClose={() => setTopUpChainId(null)} />
     </>
   );
 }

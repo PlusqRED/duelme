@@ -171,7 +171,7 @@ export function CreateDuelFlowDialog({
     t,
   });
 
-  const { primaryAction, stepExtra, stepPanel } = getFlowReviewSlots({
+  const { primaryAction, stepExtra } = getFlowReviewSlots({
     isReview: stage === 'review',
     review,
     draft,
@@ -201,7 +201,6 @@ export function CreateDuelFlowDialog({
       success={stage === 'success'}
       footerContent={t('create.flow.footer')}
       stepExtra={stepExtra}
-      stepPanel={stepPanel}
     />
   );
 }

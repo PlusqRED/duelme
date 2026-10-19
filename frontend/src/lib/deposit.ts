@@ -1,5 +1,3 @@
-import type { TranslationKey } from '@/i18n/translations';
-
 /** Which balance a read answers: one wallet's USDT on one chain. */
 export interface BalanceKey {
   chainId: number;
@@ -72,40 +70,4 @@ export function resolveFunding(balance: BalanceStatus, requiredRaw: bigint): Fun
   return balance.raw >= requiredRaw
     ? { kind: 'enough' }
     : { kind: 'short', shortfallRaw: requiredRaw - balance.raw };
-}
-
-export interface DepositInstruction {
-  key: TranslationKey;
-  /** Shown as a warning: the line that keeps real money off the wrong network. */
-  warning: boolean;
-}
-
-export interface DepositCopyKeys {
-  token: TranslationKey;
-  instructions: DepositInstruction[];
-  fees: TranslationKey;
-}
-
-/**
- * The deposit panel's wording. Mainnet names the token and network and leaves fees, minimums and
- * network support to the sender — no exchange names, no promise to recover a transfer, no "pick
- * another network". Testnet says plainly that real USDT does not belong there. The fee sentence
- * separates relayed duel actions and payouts from sending USDT out, which always takes ETH, and
- * never promises that the relayer is always up.
- */
-export function getDepositCopyKeys(options: {
-  testnet: boolean;
-  isRelayEnabled: boolean;
-}): DepositCopyKeys {
-  return {
-    token: options.testnet ? 'deposit.token.testnet' : 'deposit.token.mainnet',
-    instructions: options.testnet
-      ? [{ key: 'deposit.testnet.warning', warning: true }]
-      : [
-          { key: 'deposit.mainnet.send', warning: false },
-          { key: 'deposit.mainnet.exact', warning: false },
-          { key: 'deposit.mainnet.otherNetwork', warning: true },
-        ],
-    fees: options.isRelayEnabled ? 'deposit.fees.relayed' : 'deposit.fees.selfPaid',
-  };
 }

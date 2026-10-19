@@ -162,7 +162,7 @@ export function JoinDuelFlowDialog({
     t,
   });
 
-  const { primaryAction, stepExtra, stepPanel } = getFlowReviewSlots({
+  const { primaryAction, stepExtra } = getFlowReviewSlots({
     isReview: stage === 'review',
     review,
     draft,
@@ -193,7 +193,6 @@ export function JoinDuelFlowDialog({
       success={stage === 'success'}
       footerContent={t('join.flow.footer')}
       stepExtra={stepExtra}
-      stepPanel={stepPanel}
     />
   );
 }

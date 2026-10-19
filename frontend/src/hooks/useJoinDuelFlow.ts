@@ -133,7 +133,7 @@ export function useJoinDuelFlow({
     canContinue: funding.status.kind === 'enough' && canJoin && !isRecheckingDuel,
     // Only once the wallet is known: while it resolves, canJoin is false for no reason the duel gave.
     blockedReason:
-      !canJoin && !isRecheckingDuel && !!walletAddress ? 'deposit.joinUnavailable' : null,
+      !canJoin && !isRecheckingDuel && !!walletAddress ? 'join.flow.unavailable' : null,
   };
 
   const actions = joinDuelFlowActions({

@@ -21,7 +21,7 @@ export function RestoredDraftNotice({ isValidWager, isValidMessage }: RestoredDr
     <div role="status" className="mb-4 flex flex-col gap-1 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm">
       <span className="flex items-center gap-1.5 font-medium text-indigo-800">
         <RotateCcw className="h-4 w-4 shrink-0" />
-        {t('deposit.restored')}
+        {t('create.draftRestored')}
       </span>
       {!isValidWager && <span className="text-red-700">{t('create.min', { min: minWager })}</span>}
       {!isValidMessage && <span className="text-red-700">{t('create.messageTooLong', { max: maxMessageCharacters })}</span>}

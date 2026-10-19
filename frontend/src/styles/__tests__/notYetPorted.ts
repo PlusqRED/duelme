@@ -27,7 +27,6 @@ export const STILL_ON_PALETTE: readonly string[] = [
   'components/duel/ConfirmResult.tsx',
   'components/duel/CopyableAddress.tsx',
   'components/duel/DuelCard.tsx',
-  'components/duel/FlowFundingCheck.tsx',
   'components/duel/GuidedTransactionDialog.tsx',
   'components/duel/GuidedTransactionStepIndicator.tsx',
   'components/duel/MutualCancellationCard.tsx',
@@ -61,10 +60,6 @@ export const STILL_ON_PALETTE: readonly string[] = [
   'components/profile/SocialLinkCard.tsx',
   'components/profile/SocialLinkPill.tsx',
   'components/profile/SocialLinksSection.tsx',
-  'components/wallet/DepositAddress.tsx',
-  'components/wallet/DepositBalance.tsx',
-  'components/wallet/DepositPanel.tsx',
-  'components/wallet/FaucetButton.tsx',
   'lib/duelStateColors.ts',
 ];
 

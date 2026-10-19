@@ -6,6 +6,7 @@ import { NetworkTiles } from '@/components/header/NetworkTiles';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Note } from '@/components/ui/note';
+import { BalanceReadFailed } from '@/components/wallet/BalanceReadFailed';
 import type { FaucetFlaskState } from '@/hooks/useFaucetFlask';
 import { useRelayerStatus } from '@/hooks/useRelayerStatus';
 import type { NetworkBalances } from '@/hooks/useWalletBalances';
@@ -41,19 +42,11 @@ export function WalletMoney({ networks, pickedId, onPick, faucet, onRetry, onTop
         {t('wallet.balances')}
       </h3>
       <NetworkTiles networks={networks} pickedId={pickedId} onPick={onPick} />
-      {hasFailedRead && (
-        <p className="flex flex-wrap items-center gap-x-2 text-sm font-label text-orange-ink">
-          <Icon name="alert" className="size-4" />
-          {t('wallet.balanceFailed')}
-          <button type="button" onClick={onRetry} className="min-h-11 cursor-pointer underline underline-offset-4">
-            {t('action.tryAgain')}
-          </button>
-        </p>
-      )}
+      {hasFailedRead && <BalanceReadFailed onRetry={onRetry} />}
       <div className="flex gap-2">
         <Button size="sm" onClick={onTopUp} className="flex-1 px-3">
           <Icon name="plus" className="size-[18px]" />
-          {t('deposit.topUp')}
+          {t('topup.action')}
         </Button>
         <Button size="sm" variant="paper" onClick={onSend} autoFocus={isBackFromSend} className="flex-1 px-3">
           <Icon name="send" className="size-[18px]" />

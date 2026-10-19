@@ -23,7 +23,7 @@ interface UseCreateDuelFlowArgs {
   selectedChain: keyof typeof SUPPORTED_CHAINS;
   isValidAmount: boolean;
   isValidMessage: boolean;
-  /** Called as the player opens the top-up panel, so the form can be kept for the way back. */
+  /** Called as the player opens the top-up window, so the form can be kept for the way back. */
   onOpenDeposit?: () => void;
 }
 

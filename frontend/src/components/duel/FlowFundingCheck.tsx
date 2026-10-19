@@ -1,48 +1,85 @@
 'use client';
 
-import { Plus } from 'lucide-react';
+import { TopUpWindow } from '@/components/topup/TopUpWindow';
 import { Button } from '@/components/ui/button';
-import { DepositBalance } from '@/components/wallet/DepositBalance';
+import { Icon } from '@/components/ui/icon';
+import { BalanceReadFailed } from '@/components/wallet/BalanceReadFailed';
+import { useActiveWallet } from '@/hooks/useActiveWallet';
 import type { FlowReviewGate } from '@/hooks/useFlowFunding';
 import { useTranslation } from '@/i18n/useTranslation';
+import type { BalanceStatus } from '@/lib/deposit';
 import { formatUSDT } from '@/lib/utils';
 
 interface FlowFundingCheckProps {
   review: FlowReviewGate;
+  chainId: number;
   chainName: string;
+  /** What the duel takes, in USDT's smallest unit. */
+  neededRaw: bigint;
+  isJoining: boolean;
 }
 
 /**
  * The balance line on the create and join review steps: the player's balance on the duel's
- * network, and — only once a fresh read shows it is short — how much is missing and a way to top up.
+ * network, and — only once a fresh read shows it is short — how much is missing and Top up, which
+ * opens the top-up window over the flow, told what the duel needs.
  */
-export function FlowFundingCheck({ review, chainName }: FlowFundingCheckProps) {
+export function FlowFundingCheck({ review, chainId, chainName, neededRaw, isJoining }: FlowFundingCheckProps) {
   const { t, language } = useTranslation();
+  const { activeWallet, walletAddress } = useActiveWallet();
   const { funding, blockedReason } = review;
   const { status } = funding;
 
   return (
-    <div className="mt-4 flex flex-col gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-      <DepositBalance
-        label={t('deposit.balance.yours', { chain: chainName })}
-        balance={funding.balance}
-        onRetry={funding.retry}
-      />
-      {/* A duel this player can no longer join is no reason to deposit. */}
+    <div className="mt-4 grid gap-2 rounded-tile bg-canvas px-4 py-3">
+      <p aria-live="polite" className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-sm">
+        <span className="text-ink-2">{t('topup.yours', { network: chainName })}</span>
+        <BalanceValue balance={funding.balance} />
+      </p>
+      {funding.balance.kind === 'error' && <BalanceReadFailed onRetry={funding.retry} />}
+      {/* A duel this player can no longer join is no reason to top up. */}
       {status.kind === 'short' && !blockedReason && (
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-sm font-semibold text-amber-700">
-            {t('deposit.short', { amount: formatUSDT(status.shortfallRaw, language) })}
+          <span className="text-sm font-strong text-orange-ink">
+            {t('topup.short', { amount: formatUSDT(status.shortfallRaw, language) })}
           </span>
-          <Button type="button" onClick={funding.showDeposit}>
-            <Plus className="h-4 w-4" />
-            {t('deposit.topUp')}
+          <Button type="button" size="sm" onClick={funding.showDeposit}>
+            <Icon name="plus" className="size-[18px]" />
+            {t('topup.action')}
           </Button>
         </div>
       )}
       {blockedReason && (
-        <p role="alert" className="text-sm font-medium text-red-700">{t(blockedReason)}</p>
+        <p role="alert" className="text-sm font-label text-orange-ink">
+          {t(blockedReason)}
+        </p>
+      )}
+      {activeWallet && walletAddress && (
+        <TopUpWindow
+          address={activeWallet.address}
+          walletAddress={walletAddress}
+          chainId={funding.view === 'deposit' ? chainId : null}
+          neededRaw={neededRaw}
+          isJoining={isJoining}
+          flowBalance={funding}
+          onClose={funding.showReview}
+        />
       )}
     </div>
   );
+}
+
+function BalanceValue({ balance }: { balance: BalanceStatus }) {
+  const { t, language } = useTranslation();
+
+  switch (balance.kind) {
+    case 'ready':
+      return <b className="font-strong tabular-nums">{formatUSDT(balance.raw, language)}&nbsp;USDT</b>;
+    case 'checking':
+      return <span className="text-ink-3">{t('topup.checking')}</span>;
+    case 'no-wallet':
+      return <span className="text-ink-3">{t('toast.walletNotReady')}</span>;
+    case 'error':
+      return <span className="text-ink-3">—</span>;
+  }
 }

@@ -2,13 +2,13 @@ import { actionFlowClaimsTranslations } from './translations/actionFlowClaims';
 import { actionFlowResultsTranslations } from './translations/actionFlowResults';
 import { createDuelTranslations } from './translations/createDuel';
 import { dashboardWalletTranslations } from './translations/dashboardWallet';
-import { depositTranslations } from './translations/deposit';
 import { duelTranslations } from './translations/duel';
 import { joinDuelFlowTranslations } from './translations/joinDuelFlow';
 import { landingTranslations } from './translations/landing';
 import { navigationTranslations } from './translations/navigation';
 import { profileGamesTranslations } from './translations/profileGames';
 import { socialLinksTranslations } from './translations/socialLinks';
+import { topupTranslations } from './translations/topup';
 import { uiTranslations } from './translations/ui';
 import { walletTranslations } from './translations/wallet';
 
@@ -23,7 +23,7 @@ export const translations = {
     ...duelTranslations.en,
     ...dashboardWalletTranslations.en,
     ...walletTranslations.en,
-    ...depositTranslations.en,
+    ...topupTranslations.en,
     ...profileGamesTranslations.en,
     ...socialLinksTranslations.en,
     ...uiTranslations.en,
@@ -38,7 +38,7 @@ export const translations = {
     ...duelTranslations.ru,
     ...dashboardWalletTranslations.ru,
     ...walletTranslations.ru,
-    ...depositTranslations.ru,
+    ...topupTranslations.ru,
     ...profileGamesTranslations.ru,
     ...socialLinksTranslations.ru,
     ...uiTranslations.ru,
