@@ -1,7 +1,18 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { collectPageErrors } from './helpers/pageErrors';
 
 const GAMES_HEADING = { en: 'Game Catalog', ru: 'Каталог игр' };
+
+/**
+ * Picks Russian on the switch. A click that lands before React has hydrated the header does
+ * nothing, so it clicks again until the header's own words turn Russian, which they do at once.
+ */
+async function switchToRussian(page: Page) {
+  await expect(async () => {
+    await page.getByRole('button', { name: 'RU', exact: true }).first().click();
+    await expect(page.getByRole('link', { name: 'Публичные дуэли' }).first()).toBeAttached({ timeout: 1000 });
+  }).toPass();
+}
 
 test.describe('Language', () => {
   test('a page arrives from the server in the language its cookie names', async ({ page, context, baseURL }) => {
@@ -20,7 +31,7 @@ test.describe('Language', () => {
     await page.goto('/games');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(GAMES_HEADING.en);
 
-    await page.getByRole('button', { name: 'RU', exact: true }).first().click();
+    await switchToRussian(page);
 
     await expect(page.locator('html')).toHaveAttribute('lang', 'ru');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(GAMES_HEADING.ru);
@@ -38,7 +49,7 @@ test.describe('Language', () => {
       await route.continue();
     });
 
-    await page.getByRole('button', { name: 'RU', exact: true }).first().click();
+    await switchToRussian(page);
     await page.locator('header a[href="/duels/public"]').first().click();
 
     await expect(page).toHaveURL(/\/duels\/public$/);
@@ -51,7 +62,7 @@ test.describe('Language', () => {
     await other.goto('/games');
     await page.goto('/games');
 
-    await page.getByRole('button', { name: 'RU', exact: true }).first().click();
+    await switchToRussian(page);
 
     await expect(other.locator('html')).toHaveAttribute('lang', 'ru');
     await expect(other.getByRole('heading', { level: 1 })).toHaveText(GAMES_HEADING.ru);

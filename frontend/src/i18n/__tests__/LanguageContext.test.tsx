@@ -179,17 +179,25 @@ describe('LanguageProvider', () => {
     expect(saveLanguage).not.toHaveBeenCalled();
   });
 
-  it('tells the site’s other tabs about a new choice', () => {
+  it('tells the site’s other tabs about a new choice once the server kept it', async () => {
     renderIn('en');
 
-    fireEvent.click(screen.getByRole('button', { name: 'ru' }));
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'ru' })));
 
     expect(FakeChannel.open[0].sent).toEqual(['ru']);
   });
 
-  it('fetches its page again in the language another tab chose', () => {
+  it('tells the other tabs nothing while the server has not kept the choice yet', () => {
+    holdTheServer();
     renderIn('en');
-    chooseInAnotherTab('ru');
+
+    fireEvent.click(screen.getByRole('button', { name: 'ru' }));
+
+    expect(FakeChannel.open[0].sent).toEqual([]);
+  });
+
+  it('fetches its page again in the language another tab chose, before its own cookie shows it', () => {
+    renderIn('en');
 
     act(() => FakeChannel.open[0].onmessage?.(new MessageEvent('message', { data: 'ru' })));
 
@@ -198,7 +206,6 @@ describe('LanguageProvider', () => {
 
   it('fetches nothing when another tab chose the language already shown', () => {
     renderIn('ru');
-    chooseInAnotherTab('ru');
 
     act(() => FakeChannel.open[0].onmessage?.(new MessageEvent('message', { data: 'ru' })));
 

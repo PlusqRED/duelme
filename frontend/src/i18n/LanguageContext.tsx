@@ -44,19 +44,24 @@ export function LanguageProvider({ language, children }: LanguageProviderProps) 
     shownNow.current = shown;
   }, [shown]);
 
+  const follow = useCallback(
+    (next: Language) => {
+      if (next === shownNow.current) return;
+      startTransition(() => {
+        showLanguage(next);
+        router.refresh();
+      });
+    },
+    [router, showLanguage]
+  );
+
   // The cookie holds the reader's choice. A tab that missed a switch made in another one, because it
   // was still loading, sat in the back/forward cache, or lost its refresh to a navigation, fetches
   // its page again in that language.
   const followCookie = useCallback(() => {
     const chosen = readLanguageCookie(document.cookie);
-    if (chosen === undefined) return;
-    const next = parseLanguage(chosen);
-    if (next === shownNow.current) return;
-    startTransition(() => {
-      showLanguage(next);
-      router.refresh();
-    });
-  }, [router, showLanguage]);
+    if (chosen !== undefined) follow(parseLanguage(chosen));
+  }, [follow]);
 
   useEffect(() => {
     const followWhenSeen = () => {
@@ -66,7 +71,13 @@ export function LanguageProvider({ language, children }: LanguageProviderProps) 
     window.addEventListener('pageshow', followCookie);
     document.addEventListener('visibilitychange', followWhenSeen);
     const tabs = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel(LANGUAGE_CHANNEL);
-    if (tabs) tabs.onmessage = followCookie;
+    if (tabs) {
+      // The language comes with the message: a cookie another tab just set can take a moment to
+      // reach this one's `document.cookie`.
+      tabs.onmessage = (event: MessageEvent<unknown>) => {
+        if (typeof event.data === 'string') follow(parseLanguage(event.data));
+      };
+    }
     channel.current = tabs;
     return () => {
       window.removeEventListener('pageshow', followCookie);
@@ -74,16 +85,15 @@ export function LanguageProvider({ language, children }: LanguageProviderProps) 
       tabs?.close();
       channel.current = null;
     };
-  }, [followCookie]);
+  }, [follow, followCookie]);
 
   const setLanguage = useCallback(
     (next: Language) => {
       if (next === shownNow.current) return true;
-      // Written here as well as by the server: it shows whether the browser keeps the site's
-      // cookies at all, and the other tabs read it as soon as they hear of the switch.
+      // Written here as well as by the server: it shows whether the browser keeps the site's cookies
+      // at all, and a reload after a failed action finds it.
       document.cookie = languageCookie(next);
       if (readLanguageCookie(document.cookie) !== next) return false;
-      channel.current?.postMessage(next);
       startTransition(async () => {
         showLanguage(next);
         try {
@@ -92,7 +102,10 @@ export function LanguageProvider({ language, children }: LanguageProviderProps) 
           // A page open across a deploy calls an action the new server no longer has; the cookie
           // is already written, and the new build needs a new page anyway.
           window.location.reload();
+          return;
         }
+        // Only now: the server has set the cookie, so the other tabs' requests carry it.
+        channel.current?.postMessage(next);
       });
       return true;
     },
