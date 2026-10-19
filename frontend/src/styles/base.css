@@ -74,6 +74,26 @@
   }
 }
 
+/*
+ * A row of cards to swipe sideways, running to the screen's edges while its first card keeps to the
+ * page's column; each card snaps into place. The caller sets the gap and each card's width.
+ */
+@utility swipe-strip {
+  display: flex;
+  margin-inline: calc(-1 * var(--spacing-gutter));
+  padding-inline: var(--spacing-gutter);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: var(--spacing-gutter);
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+
+  & > * {
+    flex-shrink: 0;
+    scroll-snap-align: start;
+  }
+}
+
 /* A link that reads as one: blue and bold, its underline faint until the pointer is on it. */
 @utility link {
   @apply font-bold text-blue-deep underline decoration-blue-deep/30 decoration-[1.5px] underline-offset-4 hover:decoration-current;

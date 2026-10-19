@@ -4,7 +4,9 @@ import { useId } from 'react';
 import { Avatar } from '@/components/identity/Avatar';
 import { GameTile } from '@/components/identity/GameTile';
 import { PayoutReceipt } from '@/components/landing/PayoutReceipt';
+import { Chip } from '@/components/ui/chip';
 import { Icon } from '@/components/ui/icon';
+import { useTimeAgo } from '@/hooks/useTimeAgo';
 import type { WonDuel } from '@/hooks/useWonDuels';
 import { useTranslation } from '@/i18n/useTranslation';
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
@@ -16,15 +18,15 @@ interface DuelResultRowProps {
   onToggle: () => void;
   /** A game was just picked that this duel was not played in: the row steps out. */
   isLeaving: boolean;
-  timeAgo: (timestamp: bigint) => string;
 }
 
 /**
  * A finished duel as one row: the game, both players with the winner marked, the note, the pot and
  * when it ended. It opens into the receipt of where the money went.
  */
-export function DuelResultRow({ duel, isOpen, onToggle, isLeaving, timeAgo }: DuelResultRowProps) {
+export function DuelResultRow({ duel, isOpen, onToggle, isLeaving }: DuelResultRowProps) {
   const { t, language } = useTranslation();
+  const timeAgo = useTimeAgo();
   const panelId = useId();
 
   return (
@@ -77,9 +79,7 @@ export function DuelResultRow({ duel, isOpen, onToggle, isLeaving, timeAgo }: Du
           <Icon name="chevron" className="size-[18px]" />
         </span>
       </button>
-      <div id={panelId} hidden={!isOpen}>
-        <PayoutReceipt duel={duel} />
-      </div>
+      <div id={panelId}>{isOpen && <PayoutReceipt duel={duel} />}</div>
     </li>
   );
 }
@@ -101,10 +101,10 @@ function Player({ address, name, tone, isWinner }: PlayerProps) {
         {name}
       </span>
       {isWinner && (
-        <span className="inline-flex h-[22px] items-center gap-1 rounded-full bg-sun pr-2 pl-1.5 text-xs font-strong text-ink">
+        <Chip className="h-[22px] bg-sun pr-2 pl-1.5 text-xs font-strong text-ink">
           <Icon name="trophy" className="size-[13px]" />
           {t('recent.won')}
-        </span>
+        </Chip>
       )}
     </span>
   );

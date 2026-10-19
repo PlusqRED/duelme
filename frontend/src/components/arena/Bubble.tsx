@@ -4,6 +4,13 @@ import type { IconName } from '@/components/ui/iconPaths';
 import type { SeatSide } from '@/lib/duel';
 import { cn } from '@/lib/utils';
 
+/**
+ * Speech in a player's colour, `--tone`: a paper face edged in it, sitting on an edge of it, with a
+ * tail down to the speaker in the middle.
+ */
+export const speechClassName =
+  'rounded-[14px] border-[1.5px] border-(--tone) bg-paper shadow-[0_3px_0_var(--tone)] after:absolute after:top-full after:left-1/2 after:-mt-1 after:size-2.5 after:-translate-x-1/2 after:rotate-45 after:border-r-[1.5px] after:border-b-[1.5px] after:border-(--tone) after:bg-paper';
+
 interface BubbleProps {
   /** Whose avatar it sits above. On a phone it leans outwards, away from the safe. */
   side: SeatSide;
@@ -34,8 +41,8 @@ export function Bubble({ side, kind, icon, children }: BubbleProps) {
           'data-[side=opponent]:-right-[18px] data-[side=opponent]:left-auto data-[side=opponent]:translate-x-0',
         ],
         kind === 'say' && [
-          'border-[1.5px] border-(--tone) bg-paper text-ink shadow-[0_3px_0_var(--tone)] [--tone:var(--color-red)] data-[side=opponent]:[--tone:var(--color-blue)]',
-          'after:absolute after:top-full after:left-1/2 after:-mt-1 after:size-2.5 after:-translate-x-1/2 after:rotate-45 after:border-r-[1.5px] after:border-b-[1.5px] after:border-(--tone) after:bg-paper',
+          speechClassName,
+          'text-ink [--tone:var(--color-red)] data-[side=opponent]:[--tone:var(--color-blue)]',
           'max-xs:data-[side=creator]:after:left-[calc(18px+var(--av)/2)]',
           'max-xs:data-[side=opponent]:after:right-[calc(18px+var(--av)/2)] max-xs:data-[side=opponent]:after:left-auto max-xs:data-[side=opponent]:after:translate-x-1/2',
         ]

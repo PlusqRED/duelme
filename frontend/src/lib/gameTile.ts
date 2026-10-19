@@ -29,9 +29,21 @@ function capital(letter: string): string {
 }
 
 /**
- * The ink of a category's tile, as a colour for what a game marks beyond its tile: a picked game's
- * edge, the bar of its share. Ink, the page's own, without a category.
+ * Each category's tile, as classes, and its ink as a colour for what a game marks beyond its tile:
+ * a picked game's edge, the bar of its share.
  */
+export const GAME_TONES: Record<GameCategory, { tile: string; ink: string }> = {
+  FPS: { tile: 'bg-game-fps text-game-fps-ink', ink: 'var(--color-game-fps-ink)' },
+  MOBA: { tile: 'bg-game-moba text-game-moba-ink', ink: 'var(--color-game-moba-ink)' },
+  SPORT: { tile: 'bg-game-sport text-game-sport-ink', ink: 'var(--color-game-sport-ink)' },
+  STRATEGY: { tile: 'bg-game-strategy text-game-strategy-ink', ink: 'var(--color-game-strategy-ink)' },
+  FIGHTING: { tile: 'bg-game-fighting text-game-fighting-ink', ink: 'var(--color-game-fighting-ink)' },
+  RACING: { tile: 'bg-game-racing text-game-racing-ink', ink: 'var(--color-game-racing-ink)' },
+  CARD: { tile: 'bg-game-card text-game-card-ink', ink: 'var(--color-game-card-ink)' },
+  OTHER: { tile: 'bg-game-other text-game-other-ink', ink: 'var(--color-game-other-ink)' },
+};
+
+/** A game's ink, from its category's tile; the page's own without a category. */
 export function gameInk(category: GameCategory | null | undefined): string {
-  return category ? `var(--color-game-${category.toLowerCase()}-ink)` : 'var(--color-ink)';
+  return category ? GAME_TONES[category].ink : 'var(--color-ink)';
 }

@@ -6,11 +6,11 @@ import { PartialDataNotice } from '@/components/duel/PartialDataNotice';
 import { GameTile } from '@/components/identity/GameTile';
 import { DuelResultRow } from '@/components/landing/DuelResultRow';
 import { PopularGames } from '@/components/landing/PopularGames';
+import { SectionHead } from '@/components/landing/SectionHead';
 import { Icon } from '@/components/ui/icon';
-import { useGameFilter } from '@/hooks/useGameFilter';
+import { LEAVE_MS, useGameFilter } from '@/hooks/useGameFilter';
 import { useGames } from '@/hooks/useGames';
 import { useListReflow } from '@/hooks/useListReflow';
-import { useTimeAgo } from '@/hooks/useTimeAgo';
 import { useWonDuels } from '@/hooks/useWonDuels';
 import { useTranslation } from '@/i18n/useTranslation';
 import { popularGames } from '@/lib/landingDuels';
@@ -25,26 +25,24 @@ import { LANDING_SECTION_IDS } from '@/lib/navigation';
 export function RecentDuels() {
   const { t } = useTranslation();
   const titleId = useId();
-  const timeAgo = useTimeAgo();
   const { games, isLoading: isLoadingGames } = useGames();
   const popular = useMemo(() => popularGames(games), [games]);
   const filter = useGameFilter();
-  const { results, hasAny, isLoading, isError, retry } = useWonDuels(filter.shown);
+  const { results, hasAny, isLoading, isError, retry } = useWonDuels(filter.shown, filter.picked);
   const [openId, setOpenId] = useState<number | null>(null);
   const listRef = useRef<HTMLOListElement>(null);
-  useListReflow(listRef, filter.shown);
+  const reflow = useListReflow(listRef, filter.shown);
 
   const pickedGame = popular.find((game) => game.slug === filter.picked);
   const shownGame = popular.find((game) => game.slug === filter.shown);
-  const isLeaving = filter.picked !== filter.shown && filter.picked !== null;
 
   function pick(slug: string | null) {
-    const next = slug === filter.picked ? null : slug;
+    reflow.capture();
+    const next = filter.pick(slug);
     const open = results.find((duel) => duel.id === openId);
     if (next !== null && open?.game?.gameSlug !== next) {
       setOpenId(null);
     }
-    filter.pick(next);
   }
 
   return (
@@ -54,12 +52,12 @@ export function RecentDuels() {
       className="mx-auto w-full max-w-page px-gutter pt-section"
     >
       <div className="grid grid-cols-[minmax(0,1fr)] gap-x-12 wide:grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)] wide:grid-rows-[auto_1fr] wide:items-start wide:[grid-template-areas:'head_side'_'main_side']">
-        <div className="mb-[clamp(24px,3vw,40px)] grid max-w-[780px] gap-3 wide:[grid-area:head]">
-          <h2 id={titleId} className="text-h2">
-            {t('recent.title')}
-          </h2>
-          <p className="max-w-[60ch] text-lg text-ink-2">{t('recent.subtitle')}</p>
-        </div>
+        <SectionHead
+          titleId={titleId}
+          title={t('recent.title')}
+          subtitle={t('recent.subtitle')}
+          className="wide:[grid-area:head]"
+        />
 
         <PopularGames
           games={popular}
@@ -89,7 +87,11 @@ export function RecentDuels() {
               </button>
             )}
           </div>
-          <ol ref={listRef} className="relative rounded-3xl border border-line bg-paper p-1">
+          <ol
+            ref={listRef}
+            style={{ '--leave': `${LEAVE_MS}ms` }}
+            className="relative rounded-3xl border border-line bg-paper p-1"
+          >
             {isLoading &&
               [0, 1, 2].map((index) => (
                 <li key={index} aria-hidden="true" className="m-1 h-[88px] animate-pulse rounded-[20px] bg-canvas" />
@@ -100,11 +102,10 @@ export function RecentDuels() {
                 duel={duel}
                 isOpen={openId === duel.id}
                 onToggle={() => setOpenId(openId === duel.id ? null : duel.id)}
-                isLeaving={isLeaving && duel.game?.gameSlug !== filter.picked}
-                timeAgo={timeAgo}
+                isLeaving={filter.isLeaving && duel.game?.gameSlug !== filter.picked}
               />
             ))}
-            {!isLoading && results.length === 0 && (
+            {!isLoading && !isError && results.length === 0 && (
               <li data-key="none" className="grid justify-items-start gap-0.5 px-[18px] pt-[18px] pb-2 text-ink-2">
                 {shownGame && hasAny ? (
                   <>

@@ -3,8 +3,7 @@
 import Link from 'next/link';
 import { GameTile } from '@/components/identity/GameTile';
 import { useTranslation } from '@/i18n/useTranslation';
-import type { TranslationKey } from '@/i18n/translations';
-import type { Game } from '@/lib/game';
+import { getCategoryLabelKey, type Game } from '@/lib/game';
 
 interface GameCardProps {
   game: Game;
@@ -24,7 +23,7 @@ export function GameCard({ game }: GameCardProps) {
           <h3 className="font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">
             {game.name}
           </h3>
-          <span className="text-xs text-slate-400">{t(`category.${game.category}` as TranslationKey)}</span>
+          <span className="text-xs text-slate-400">{t(getCategoryLabelKey(game.category))}</span>
         </div>
       </div>
       <div className="mt-auto flex items-center gap-4 text-xs text-ink-3">

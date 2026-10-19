@@ -2,6 +2,7 @@
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WonDuel } from '@/hooks/useWonDuels';
+import { duelMeta } from '@/lib/__tests__/helpers/duelMeta';
 import { FakeIntersectionObserver } from '@/lib/__tests__/helpers/intersectionObserver';
 import type { DuelMeta, Game } from '@/lib/game';
 
@@ -12,6 +13,7 @@ const arena = vi.hoisted(() => ({
   games: [] as Game[],
   won: [] as WonDuel[],
   isLoading: false,
+  isError: false,
   askedFor: [] as (string | null)[],
 }));
 vi.mock('@/hooks/useGames', () => ({ useGames: () => ({ games: arena.games, isLoading: false }) }));
@@ -22,7 +24,7 @@ vi.mock('@/hooks/useWonDuels', () => ({
       results: arena.won.filter((duel) => slug === null || duel.game?.gameSlug === slug),
       hasAny: arena.won.length > 0,
       isLoading: arena.isLoading,
-      isError: false,
+      isError: arena.isError,
       retry: vi.fn(),
     };
   },
@@ -37,16 +39,7 @@ function game(slug: string, name: string, duelCount: number): Game {
 }
 
 function meta(duelId: number, gameSlug: string, gameName: string): DuelMeta {
-  return {
-    duelId,
-    chainId: 421614,
-    contractAddress: '0x588a54fa8c00c8ac003e41bd8ee26fbc8994105f',
-    gameSlug,
-    gameName,
-    category: 'MOBA',
-    creatorAddress: CREATOR,
-    createdAt: null,
-  };
+  return duelMeta(duelId, gameSlug, { gameName });
 }
 
 function won(id: number, game: DuelMeta | undefined, overrides: Partial<WonDuel> = {}): WonDuel {
@@ -75,6 +68,7 @@ beforeEach(() => {
   arena.games = [game('dota-2', 'Dota 2', 2), game('chess', 'Chess', 1), game('new-game', 'New Game', 0)];
   arena.won = [won(3, meta(3, 'dota-2', 'Dota 2')), won(2, meta(2, 'cs-2', 'CS 2'), { winner: 'opponent' }), won(0, meta(0, 'dota-2', 'Dota 2'))];
   arena.isLoading = false;
+  arena.isError = false;
   arena.askedFor = [];
 });
 
@@ -109,11 +103,12 @@ describe('RecentDuels', () => {
 
     expect(row(/Dota 2 #3/).getAttribute('aria-expanded')).toBe('false');
     expect(row(/CS 2 #2/).getAttribute('aria-expanded')).toBe('true');
-    const receipt = document.getElementById(row(/CS 2 #2/).getAttribute('aria-controls') ?? '');
-    expect(receipt?.hidden).toBe(false);
-    expect(within(receipt as HTMLElement).getByText('To the winner')).toBeTruthy();
-    expect(within(receipt as HTMLElement).getByText('Platform fee: 0 USDT', { normalizer: (text) => text })).toBeTruthy();
-    expect(within(receipt as HTMLElement).getByRole('link', { name: 'Open duel #2' }).getAttribute('href')).toBe('/duel/2');
+    const panel = document.getElementById(row(/CS 2 #2/).getAttribute('aria-controls') ?? '');
+    if (!panel) throw new Error('No receipt panel');
+    expect(screen.getAllByText('To the winner')).toHaveLength(1);
+    expect(within(panel).getByText('To the winner')).toBeTruthy();
+    expect(within(panel).getByText('Platform fee: 0 USDT', { normalizer: (text) => text })).toBeTruthy();
+    expect(within(panel).getByRole('link', { name: 'Open duel #2' }).getAttribute('href')).toBe('/duel/2');
   });
 
   it('offers the games that have duels as filters, most played first', () => {
@@ -166,6 +161,16 @@ describe('RecentDuels', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Only Dota 2 Show all games' }));
 
     expect(row(/CS 2 #2/).getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('says the list is short rather than empty when it could not be read', () => {
+    render(<RecentDuels />);
+    arena.isError = true;
+
+    fireEvent.click(screen.getByRole('button', { name: /^Chess MOBA/ }));
+
+    expect(screen.getByText('Not every duel loaded, so this list may be incomplete or out of date.')).toBeTruthy();
+    expect(screen.queryByText('No finished Chess duels yet.')).toBeNull();
   });
 
   it('says so when no duel has finished yet', () => {

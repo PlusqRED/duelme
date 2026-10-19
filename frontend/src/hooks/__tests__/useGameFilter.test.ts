@@ -56,6 +56,30 @@ describe('useGameFilter', () => {
     expect(result.current.shown).toBe('chess');
   });
 
+  it('says the rows are leaving until the pick is shown', () => {
+    const { result } = renderHook(() => useGameFilter());
+
+    act(() => result.current.pick('dota-2'));
+
+    expect(result.current.isLeaving).toBe(true);
+    act(() => vi.advanceTimersByTime(LEAVE_MS));
+    expect(result.current.isLeaving).toBe(false);
+  });
+
+  it('shows every game again when the picked game is picked again, and says so', () => {
+    const { result } = renderHook(() => useGameFilter());
+    act(() => result.current.pick('dota-2'));
+    act(() => vi.advanceTimersByTime(LEAVE_MS));
+    let next: string | null = 'unset';
+
+    act(() => {
+      next = result.current.pick('dota-2');
+    });
+    act(() => vi.advanceTimersByTime(LEAVE_MS));
+
+    expect([next, result.current.picked, result.current.shown, result.current.isLeaving]).toEqual([null, null, null, false]);
+  });
+
   it('goes back to every game', () => {
     const { result } = renderHook(() => useGameFilter());
     act(() => result.current.pick('dota-2'));

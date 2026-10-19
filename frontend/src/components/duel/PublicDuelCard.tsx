@@ -14,15 +14,14 @@ import { GameBadge } from '@/components/game/GameBadge';
 import { ReputationPill } from '@/components/identity/ReputationPill';
 import { useTranslation } from '@/i18n/useTranslation';
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
-import { getCategoryLabelKey } from '@/lib/game';
 import { truncateUnicode } from '@/lib/duel';
+import { getCategoryLabelKey } from '@/lib/game';
 import { formatPublicDuelAmount, type EnrichedDuel } from '@/lib/publicDuelsFilters';
 import { cn, formatDateTime } from '@/lib/utils';
 
 interface PublicDuelCardProps {
   duel: EnrichedDuel;
   timeAgo: (timestamp: bigint) => string;
-  variant?: 'compact' | 'full';
   className?: string;
   viewerAddress?: `0x${string}`;
   isViewerIdentityPending?: boolean;
@@ -31,13 +30,11 @@ interface PublicDuelCardProps {
 export function PublicDuelCard({
   duel,
   timeAgo,
-  variant = 'full',
   className,
   viewerAddress,
   isViewerIdentityPending = false,
 }: PublicDuelCardProps) {
   const { t, language } = useTranslation();
-  const compact = variant === 'compact';
   const showMessage = hasVisibleDuelMessage(duel.message);
   const isOwnDuel = viewerAddress === duel.creator.toLowerCase();
   const actionLabel = isOwnDuel || isViewerIdentityPending
@@ -54,7 +51,7 @@ export function PublicDuelCard({
       className={cn(
         'group relative flex h-full flex-col overflow-hidden rounded-2xl border border-emerald-200/70 bg-white shadow-sm transition-all',
         'hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md',
-        compact ? 'min-h-[22rem]' : 'min-h-[24rem]',
+        'min-h-[24rem]',
         className,
       )}
     >
@@ -101,12 +98,12 @@ export function PublicDuelCard({
             className={cn(
               'text-sm leading-relaxed text-slate-700',
               showMessage && 'italic',
-              compact ? 'line-clamp-2' : 'line-clamp-3',
+              'line-clamp-3',
             )}
           >
             {showMessage ? (
               <>
-                &ldquo;{truncateUnicode(duel.message, compact ? 96 : 150)}&rdquo;
+                &ldquo;{truncateUnicode(duel.message, 150)}&rdquo;
               </>
             ) : (
               t('publicDuels.fallbackNote')
@@ -171,7 +168,7 @@ export function PublicDuelCard({
         </div>
         <Link
           href={`/duel/${duel.id}`}
-          className={cn(buttonVariants({ size: compact ? 'md' : 'lg' }), 'w-full')}
+          className={cn(buttonVariants({ size: 'lg' }), 'w-full')}
         >
           {actionLabel}
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />

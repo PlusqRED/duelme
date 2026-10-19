@@ -2,8 +2,7 @@
 
 import { Gamepad2 } from 'lucide-react';
 import { useTranslation } from '@/i18n/useTranslation';
-import type { TranslationKey } from '@/i18n/translations';
-import type { Game } from '@/lib/game';
+import { getCategoryLabelKey, type Game } from '@/lib/game';
 import { buildHighlightSet } from '@/lib/gameSearch';
 
 interface GameSearchResultRowProps {
@@ -49,7 +48,7 @@ export function GameSearchResultRow({
           )}
         </div>
         <div className="mt-0.5 flex items-center gap-2 text-xs text-ink-3">
-          <span>{t(`category.${game.category}` as TranslationKey)}</span>
+          <span>{t(getCategoryLabelKey(game.category))}</span>
           <span>·</span>
           <span>
             {game.duelCount} {plural('games.duelsCount', game.duelCount)}

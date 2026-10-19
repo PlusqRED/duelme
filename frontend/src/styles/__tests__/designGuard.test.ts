@@ -106,6 +106,12 @@ describe('design guard', () => {
     expect(pathsMatching(/(?<![\w-])font-mono(?![\w-])/)).toEqual([]);
   });
 
+  it('puts every move in its final place at once with motion reduced, a delayed one too', () => {
+    const reduced = sourceFile('styles/motion.css').match(/@media \(prefers-reduced-motion: reduce\) \{[^@]*/)?.[0] ?? '';
+
+    expect(['animation-delay', 'transition-delay'].filter((delay) => !reduced.includes(`${delay}: 0s !important`))).toEqual([]);
+  });
+
   it('keeps only legacy classes that a screen still uses', () => {
     const legacyClasses = [...sourceFile('styles/legacy.css').matchAll(/^\.([a-z0-9-]+)/gm)].map((match) => match[1]);
     const usedWords = new Set(

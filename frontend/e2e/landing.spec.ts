@@ -15,7 +15,8 @@ async function serveGames(page: Page) {
   await page.route('**/api/v1/games', (route) =>
     route.fulfill({ json: [game('dota-2', 'Dota 2', 'MOBA', 2), game('chess', 'Chess', 'STRATEGY', 1)] })
   );
-  // Every duel asked about was a Dota 2 duel.
+  // Every duel asked about was a Dota 2 duel, so none was a Chess one.
+  await page.route('**/api/v1/duels/meta?gameSlug=chess&**', (route) => route.fulfill({ json: [] }));
   await page.route('**/api/v1/duels/meta/batch?**', (route) => {
     const url = new URL(route.request().url());
     const ids = url.searchParams.get('duelIds')?.split(',') ?? [];

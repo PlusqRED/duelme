@@ -1,23 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { DuelState } from '@/lib/contracts';
-import type { DuelMeta, Game } from '@/lib/game';
+import { duelMeta } from '@/lib/__tests__/helpers/duelMeta';
+import type { Game } from '@/lib/game';
 import { isLobby, isWon, lobbyColumns, pickResults, popularGames, POPULAR_GAMES_SHOWN, winnerSide } from '@/lib/landingDuels';
 
 const CREATOR = '0x1111111111111111111111111111111111111111';
 const OPPONENT = '0x2222222222222222222222222222222222222222';
-
-function meta(duelId: number, gameSlug: string): DuelMeta {
-  return {
-    duelId,
-    chainId: 421614,
-    contractAddress: '0x588a54fa8c00c8ac003e41bd8ee26fbc8994105f',
-    gameSlug,
-    gameName: gameSlug,
-    category: null,
-    creatorAddress: CREATOR,
-    createdAt: null,
-  };
-}
 
 function game(slug: string, duelCount: number): Game {
   return { slug, name: slug, iconUrl: null, category: 'OTHER', duelCount, createdAt: null, updatedAt: null };
@@ -76,22 +64,23 @@ describe('winnerSide', () => {
 
 describe('pickResults', () => {
   const duels = [{ id: 5 }, { id: 4 }, { id: 3 }, { id: 2 }, { id: 1 }];
-  const metas = { 5: meta(5, 'chess'), 4: meta(4, 'dota-2'), 2: meta(2, 'chess'), 1: meta(1, 'chess') };
 
   it('keeps the newest duels of every game when no game is picked', () => {
-    expect(pickResults(duels, metas, null, 3).map((duel) => duel.id)).toEqual([5, 4, 3]);
+    expect(pickResults(duels, null, 3).map((duel) => duel.id)).toEqual([5, 4, 3]);
   });
 
-  it('keeps only the picked game’s duels, up to the limit', () => {
-    expect(pickResults(duels, metas, 'chess', 2).map((duel) => duel.id)).toEqual([5, 2]);
+  it('keeps only the picked game’s duels, newest first, up to the limit', () => {
+    const chess = [duelMeta(1, 'chess'), duelMeta(5, 'chess'), duelMeta(2, 'chess')];
+
+    expect(pickResults(duels, chess, 2).map((duel) => duel.id)).toEqual([5, 2]);
   });
 
   it('finds nothing for a game none of the duels was played in', () => {
-    expect(pickResults(duels, metas, 'cs-2', 6)).toEqual([]);
+    expect(pickResults(duels, [], 6)).toEqual([]);
   });
 
-  it('counts a duel whose game is not known as no game’s', () => {
-    expect(pickResults([{ id: 3 }], metas, 'chess', 6)).toEqual([]);
+  it('leaves out a duel of the game that is not among the duels given', () => {
+    expect(pickResults(duels, [duelMeta(9, 'chess')], 6)).toEqual([]);
   });
 });
 

@@ -11,7 +11,6 @@ import type { EnrichedDuel } from '@/lib/publicDuelsFilters';
 interface OpenDuelsLobbyProps {
   duels: EnrichedDuel[];
   isOwn: (duel: EnrichedDuel) => boolean;
-  timeAgo: (timestamp: bigint) => string;
 }
 
 /**
@@ -19,7 +18,7 @@ interface OpenDuelsLobbyProps {
  * strip to swipe, the next card peeking in from the edge, with dots that follow it. A slim
  * invitation to make your own sits under them.
  */
-export function OpenDuelsLobby({ duels, isOwn, timeAgo }: OpenDuelsLobbyProps) {
+export function OpenDuelsLobby({ duels, isOwn }: OpenDuelsLobbyProps) {
   const reducedMotion = useReducedMotion();
   const trackRef = useRef<HTMLDivElement>(null);
   const inView = useSnapIndex(trackRef, duels.length);
@@ -37,7 +36,7 @@ export function OpenDuelsLobby({ duels, isOwn, timeAgo }: OpenDuelsLobbyProps) {
       <div
         ref={trackRef}
         data-columns={lobbyColumns(duels.length)}
-        className="relative grid gap-5 wide:grid-cols-2 wide:data-[columns=3]:grid-cols-3 max-wide:-mx-gutter max-wide:flex max-wide:snap-x max-wide:snap-mandatory max-wide:scroll-px-gutter max-wide:gap-3 max-wide:overflow-x-auto max-wide:overscroll-x-contain max-wide:px-gutter max-wide:pt-1 max-wide:pb-2 max-wide:[scrollbar-width:none]"
+        className="relative grid gap-5 wide:grid-cols-2 wide:data-[columns=3]:grid-cols-3 max-wide:swipe-strip max-wide:gap-3 max-wide:pt-1 max-wide:pb-2"
       >
         {duels.map((duel) => (
           <OpenDuelCard
@@ -45,8 +44,7 @@ export function OpenDuelsLobby({ duels, isOwn, timeAgo }: OpenDuelsLobbyProps) {
             duel={duel}
             isCompact
             isOwn={isOwn(duel)}
-            timeAgo={timeAgo}
-            className="max-wide:shrink-0 max-wide:basis-[min(86%,360px)] max-wide:snap-start"
+            className="max-wide:basis-[min(86%,360px)]"
           />
         ))}
       </div>

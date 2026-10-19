@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, render } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { useRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
@@ -12,18 +12,28 @@ const { useListReflow } = await import('@/hooks/useListReflow');
 let tops: Record<string, number> = {};
 let animate: Mock<HTMLElement['animate']>;
 
+/** A list with the button that picks its next filter, which notes where its rows are. */
 function List({ rows, filter }: { rows: string[]; filter: string }) {
   const listRef = useRef<HTMLOListElement>(null);
-  useListReflow(listRef, filter);
+  const { capture } = useListReflow(listRef, filter);
   return (
-    <ol ref={listRef}>
-      {rows.map((row) => (
-        <li key={row} data-key={row}>
-          {row}
-        </li>
-      ))}
-    </ol>
+    <>
+      <button type="button" onClick={capture}>
+        Pick
+      </button>
+      <ol ref={listRef}>
+        {rows.map((row) => (
+          <li key={row} data-key={row}>
+            {row}
+          </li>
+        ))}
+      </ol>
+    </>
   );
+}
+
+function pick() {
+  fireEvent.click(screen.getByRole('button', { name: 'Pick' }));
 }
 
 /** The row each animation moved, with its first frame and its delay. */
@@ -61,6 +71,7 @@ describe('useListReflow', () => {
   it('slides a row that stays from where it was to its new place', () => {
     tops = { a: 0, b: 100, c: 200 };
     const { rerender } = render(<List rows={['a', 'b', 'c']} filter="all" />);
+    pick();
 
     tops = { c: 0 };
     rerender(<List rows={['c']} filter="chess" />);
@@ -71,6 +82,7 @@ describe('useListReflow', () => {
   it('raises new rows in after a moment, one after another', () => {
     tops = { a: 0 };
     const { rerender } = render(<List rows={['a']} filter="chess" />);
+    pick();
 
     tops = { a: 0, b: 100, c: 200 };
     rerender(<List rows={['a', 'b', 'c']} filter="all" />);
@@ -84,6 +96,7 @@ describe('useListReflow', () => {
   it('moves nothing when the list changes without a new filter', () => {
     tops = { a: 0 };
     const { rerender } = render(<List rows={['a']} filter="all" />);
+    pick();
 
     tops = { b: 0, a: 100 };
     rerender(<List rows={['b', 'a']} filter="all" />);
@@ -91,22 +104,34 @@ describe('useListReflow', () => {
     expect(animate).not.toHaveBeenCalled();
   });
 
-  it('measures from where the rows were last drawn, not where they first were', () => {
-    tops = { a: 0 };
-    const { rerender } = render(<List rows={['a']} filter="all" />);
-    tops = { b: 0, a: 100 };
-    rerender(<List rows={['b', 'a']} filter="all" />);
+  it('moves nothing for a new filter whose places were not captured', () => {
+    tops = { a: 0, b: 100 };
+    const { rerender } = render(<List rows={['a', 'b']} filter="all" />);
 
-    tops = { a: 0 };
-    rerender(<List rows={['a']} filter="chess" />);
+    tops = { b: 0 };
+    rerender(<List rows={['b']} filter="chess" />);
 
-    expect(moves()).toEqual([['a', { transform: 'translateY(100px)' }, 0]]);
+    expect(animate).not.toHaveBeenCalled();
+  });
+
+  it('moves from the places captured last, once', () => {
+    tops = { a: 0, b: 100 };
+    const { rerender } = render(<List rows={['a', 'b']} filter="all" />);
+    pick();
+    tops = { b: 0 };
+    rerender(<List rows={['b']} filter="chess" />);
+    animate.mockClear();
+
+    rerender(<List rows={['b']} filter="dota-2" />);
+
+    expect(animate).not.toHaveBeenCalled();
   });
 
   it('moves nothing with motion reduced', () => {
     motion.reduced = true;
     tops = { a: 0, b: 100 };
     const { rerender } = render(<List rows={['a', 'b']} filter="all" />);
+    pick();
 
     tops = { b: 0, c: 100 };
     rerender(<List rows={['b', 'c']} filter="chess" />);

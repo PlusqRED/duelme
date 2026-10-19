@@ -1,18 +1,7 @@
 import { Icon } from '@/components/ui/icon';
 import type { GameCategory } from '@/lib/game';
-import { gameInitials } from '@/lib/gameTile';
+import { GAME_TONES, gameInitials } from '@/lib/gameTile';
 import { cn } from '@/lib/utils';
-
-const tones: Record<GameCategory, string> = {
-  FPS: 'bg-game-fps text-game-fps-ink',
-  MOBA: 'bg-game-moba text-game-moba-ink',
-  SPORT: 'bg-game-sport text-game-sport-ink',
-  STRATEGY: 'bg-game-strategy text-game-strategy-ink',
-  FIGHTING: 'bg-game-fighting text-game-fighting-ink',
-  RACING: 'bg-game-racing text-game-racing-ink',
-  CARD: 'bg-game-card text-game-card-ink',
-  OTHER: 'bg-game-other text-game-other-ink',
-};
 
 interface GameTileProps {
   /** Null for a duel created without a game: a gamepad stands in for the initials. */
@@ -30,7 +19,7 @@ export function GameTile({ name, category, className }: GameTileProps) {
       className={cn(
         'grid size-11 shrink-0 place-items-center rounded-[13px] text-sm font-extrabold tracking-[-0.02em]',
         // A category the backend has and this list does not yet stays neutral too.
-        (category && tones[category]) || 'bg-canvas-deep text-ink',
+        (category && GAME_TONES[category]?.tile) || 'bg-canvas-deep text-ink',
         className
       )}
     >

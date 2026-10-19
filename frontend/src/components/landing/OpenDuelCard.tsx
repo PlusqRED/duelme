@@ -1,16 +1,18 @@
 'use client';
 
 import Link from 'next/link';
+import { speechClassName } from '@/components/arena/Bubble';
 import { OpenSeat } from '@/components/arena/OpenSeat';
 import { Avatar } from '@/components/identity/Avatar';
 import { GameTile } from '@/components/identity/GameTile';
 import { ReputationPill } from '@/components/identity/ReputationPill';
 import { buttonVariants } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
+import { useTimeAgo } from '@/hooks/useTimeAgo';
 import { useTranslation } from '@/i18n/useTranslation';
 import { truncateUnicode } from '@/lib/duel';
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
-import { categoryKey } from '@/lib/game';
+import { getCategoryLabelKey } from '@/lib/game';
 import type { EnrichedDuel } from '@/lib/publicDuelsFilters';
 import { cn, formatDateTime, formatUSDT } from '@/lib/utils';
 
@@ -23,7 +25,6 @@ interface OpenDuelCardProps {
   isCompact: boolean;
   /** The reader created it, or who they are is still loading: the button opens it rather than joining. */
   isOwn: boolean;
-  timeAgo: (timestamp: bigint) => string;
   className?: string;
 }
 
@@ -32,8 +33,9 @@ interface OpenDuelCardProps {
  * note and their record, the empty blue seat, what joining costs and what the pot becomes, and the
  * way in. Pointing at it puts the reader in the open seat.
  */
-export function OpenDuelCard({ duel, isCompact, isOwn, timeAgo, className }: OpenDuelCardProps) {
+export function OpenDuelCard({ duel, isCompact, isOwn, className }: OpenDuelCardProps) {
   const { t, language } = useTranslation();
+  const timeAgo = useTimeAgo();
   const titleId = `open-duel-${duel.id}`;
   // A record that could not be read shows no level rather than New: New would tell the reader
   // something about the creator nobody knows.
@@ -56,7 +58,7 @@ export function OpenDuelCard({ duel, isCompact, isOwn, timeAgo, className }: Ope
             {duel.gameName ?? t('publicDuels.noGame')}
           </h3>
           <p className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm text-ink-3">
-            {duel.gameCategory && <Chip>{t(categoryKey(duel.gameCategory))}</Chip>}
+            {duel.gameCategory && <Chip>{t(getCategoryLabelKey(duel.gameCategory))}</Chip>}
             <span title={formatDateTime(duel.createdAt, language)}>{timeAgo(duel.createdAt)}</span>
           </p>
         </div>
@@ -74,8 +76,8 @@ export function OpenDuelCard({ duel, isCompact, isOwn, timeAgo, className }: Ope
         {hasVisibleDuelMessage(duel.message) && (
           <p
             className={cn(
-              'relative mb-2.5 max-w-full justify-self-center rounded-[14px] border-[1.5px] border-red bg-paper px-3 py-2 text-body-sm/[1.35] font-label [overflow-wrap:anywhere] shadow-[0_3px_0_var(--color-red)] [grid-area:note]',
-              'after:absolute after:top-full after:left-1/2 after:-mt-1 after:size-2.5 after:-translate-x-1/2 after:rotate-45 after:border-r-[1.5px] after:border-b-[1.5px] after:border-red after:bg-paper',
+              speechClassName,
+              'relative mb-2.5 max-w-full justify-self-center px-3 py-2 text-body-sm/[1.35] font-label [overflow-wrap:anywhere] [--tone:var(--color-red)] [grid-area:note]',
               isCompact && 'w-max max-w-[calc(100%+56px)]'
             )}
           >

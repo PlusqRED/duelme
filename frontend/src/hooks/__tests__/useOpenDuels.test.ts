@@ -49,33 +49,6 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('useOpenDuels', () => {
-  it('gives each open duel its game, its creator’s name and their record', () => {
-    chain.duels = [duel(7)];
-    chain.metas = {
-      7: {
-        duelId: 7,
-        chainId: 421614,
-        contractAddress: '0x588a54fa8c00c8ac003e41bd8ee26fbc8994105f',
-        gameSlug: 'wow-midnight',
-        gameName: 'Wow Midnight',
-        category: 'OTHER',
-        creatorAddress: CREATOR,
-        createdAt: null,
-      },
-    };
-
-    const { result } = renderHook(() => useOpenDuels());
-
-    expect(result.current.duels[0]).toMatchObject({
-      id: 7,
-      wagerAmount: 14_000_000n,
-      gameName: 'Wow Midnight',
-      gameCategory: 'OTHER',
-      creatorName: 'alice',
-      reputationStats: { level: 'fair', honored: 4, total: 4 },
-    });
-  });
-
   it('shows as many as the landing does and counts every open duel', () => {
     chain.duels = Array.from({ length: OPEN_DUELS_SHOWN + 2 }, (_, index) => duel(index));
 

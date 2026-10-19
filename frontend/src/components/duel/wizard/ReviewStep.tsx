@@ -3,9 +3,8 @@
 import { DollarSign, Gamepad2, Globe, Lock, MessageSquare, Pencil } from 'lucide-react';
 import { NetworkChip } from '@/components/duel/wizard/NetworkChip';
 import { useTranslation } from '@/i18n/useTranslation';
-import type { TranslationKey } from '@/i18n/translations';
 import type { ChainKey } from '@/lib/constants';
-import type { GameCategory } from '@/lib/game';
+import { getCategoryLabelKey, type GameCategory } from '@/lib/game';
 import { parseWager } from '@/lib/wager';
 
 interface ReviewStepProps {
@@ -49,7 +48,7 @@ export function ReviewStep({
               <span className="font-semibold text-slate-900">{gameName}</span>
               {gameCategory && (
                 <span className="ml-2 text-xs text-ink-3">
-                  · {t(`category.${gameCategory}` as TranslationKey)}
+                  · {t(getCategoryLabelKey(gameCategory))}
                 </span>
               )}
             </span>

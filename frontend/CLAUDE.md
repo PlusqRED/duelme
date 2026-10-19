@@ -121,12 +121,13 @@ and controls; the guard tests below list it.
   no dark theme) fail `styles/__tests__/designGuard.test.ts`. The files the port has not reached are
   listed in `styles/__tests__/notYetPorted.ts`; a screen's port takes its files off, and the list
   only shrinks. A place CSS cannot reach (the browser's theme colour, Privy's window) takes its hex
-  from `lib/brandColors.ts`, which a test keeps equal to the theme.
+  from `lib/brandColors.ts`, and a move made in script its curve from `lib/easings.ts`; a test
+  keeps each equal to the theme.
 - **Tailwind only, with one exception.** A value that changes while the page runs (a timer's
   progress, a notch's position, a bar's fill) goes in as a CSS variable through `style` and the
   classes read it; a state with several looks is a data attribute with variants
   (`data-[tone=short]:bg-orange-wash`). Shared CSS lives only in `src/styles/`: the theme, element
-  defaults with the `keycap` and `link` utilities, motion, and `legacy.css` — classes of screens not ported yet,
+  defaults with the `keycap`, `link` and `swipe-strip` utilities, motion, and `legacy.css` — classes of screens not ported yet,
   each of which the guard test drops once nothing uses it.
 - **Type:** Geologica only; 800 for headings and amounts, `font-label` (650) and `font-strong`
   (750) for labels, 400 for text. Figures are `tabular-nums`; there is no monospace face.
@@ -145,7 +146,8 @@ and controls; the guard tests below list it.
   The moves are `animate-*` utilities from the `@theme` in `styles/motion.css`, the landing's own
   in `styles/landingMotion.css`; a colour that should flash or a glow that should breathe is an
   overlay whose opacity moves (the green ring when money arrives, the safe's seal, an open seat, a
-  payout in a receipt). With `prefers-reduced-motion` everything is in its final place at once, and
+  payout in a receipt). With `prefers-reduced-motion` everything is in its final place at once (a
+  delayed move too: `motion.css` zeroes delays as well as durations), and
   a figure that counts (`useCountUp`) shows its value, as it does when a screen is shown anew rather
   than moved to (a new `epoch`).
 - **Russian says «ты» and is gender-neutral**: nothing about a person in a past tense or a gendered
@@ -172,7 +174,7 @@ and controls; the guard tests below list it.
 | `frontend/src/lib/wagmi.ts` | wagmi config (Privy adapter); `resolveRpcUrl` validates the RPC env and picks the fallback chain (configured provider → Tenderly) |
 | `frontend/src/lib/contracts.ts` | ABI, DuelState enum, ACTIVE_STATES, ERC20 ABIs, getUsdtAddress |
 | `frontend/src/styles/theme.css` | The design's tokens as Tailwind's theme: colours by role, type, weights, easing, shadows |
-| `frontend/src/styles/base.css` | Element defaults (font, headings, focus ring), the `keycap` utility every button's press comes from, and `link` for a link that reads as one |
+| `frontend/src/styles/base.css` | Element defaults (font, headings, focus ring), the `keycap` utility every button's press comes from, `link` for a link that reads as one, and `swipe-strip` for a row of cards swiped sideways on a phone |
 | `frontend/src/components/ui/button.tsx` | Keycap buttons (navy, paper, sun, ghost); `buttonVariants` gives a link the same face |
 | `frontend/src/components/ui/iconPaths.ts` | The design's icons as shapes, drawn by `ui/icon.tsx` |
 | `frontend/src/components/ui/dialog.tsx` | The one window: a card from a fixed top on a wide screen, a sheet below 560px; `--dialog-width` widens it; `DialogFooter isPinned` keeps a long sheet's last action on screen on a phone |
@@ -219,7 +221,7 @@ and controls; the guard tests below list it.
 | `frontend/src/components/landing/Hero.tsx` | The landing's first screen: the motto, the two ways in, the developer's note (`DevNote`; its last update is the build's time, which `next.config.ts` writes in as `DUELME_BUILT_AT`), the platform's figures and the demo duel |
 | `frontend/src/components/landing/DemoDuel.tsx` | The demo duel: stills of a 10 USDT duel from `lib/demoDuel.ts`, moved between by `useDemoDuel` (steps, three endings, one play by itself once in view), stakes flown by `useStakeFlights` |
 | `frontend/src/components/landing/OpenDuels.tsx` | The landing's open public duels (`useOpenDuels`): one as a wide card, two or more as a lobby that is a strip to swipe below the `wide:` breakpoint, none as the invitation to make one; the count is every open duel |
-| `frontend/src/components/landing/RecentDuels.tsx` | The landing's finished duels (`useWonDuels`, won duels only) beside the popular games that filter them (`useGameFilter`: rows step out, then `useListReflow` slides the rest); a row opens into its `PayoutReceipt`. The sizes and the pure rules are `lib/landingDuels.ts` |
+| `frontend/src/components/landing/RecentDuels.tsx` | The landing's finished duels (`useWonDuels`, won duels only) beside the popular games that filter them (`useGameFilter`: rows step out, then `useListReflow` slides the rest; a picked game's duels come from that game's own, `useDuelsByGame`); a row opens into its `PayoutReceipt`. The sizes and the pure rules are `lib/landingDuels.ts` |
 | `frontend/src/components/arena/` | The table a duel is drawn on: `Seat`, `Safe`, `Stake`, `Bubble`, `CountdownRing`, `OpenSeat`, `RepChip`; `SafeLock`, the padlock the safe and the wallet menu's `SafeMini` share |
 | `frontend/src/lib/timeWords.ts` | A contract's duration in words (`durationWords`) and a past day as today, yesterday or days ago |
 | `frontend/src/hooks/usePlatformStats.ts` | Landing-page Total Volume / Duels Played stats |

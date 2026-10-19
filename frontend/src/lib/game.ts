@@ -29,11 +29,6 @@ export interface DuelMeta {
   createdAt: string | null;
 }
 
-/** A category's name, as its translation key. */
-export function categoryKey(category: GameCategory) {
-  return `category.${category}` as const;
-}
-
 export const GAME_CATEGORIES: GameCategory[] = [
   'FPS', 'MOBA', 'SPORT', 'STRATEGY', 'FIGHTING', 'RACING', 'CARD', 'OTHER',
 ];

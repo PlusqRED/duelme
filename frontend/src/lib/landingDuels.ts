@@ -8,13 +8,6 @@ export const OPEN_DUELS_SHOWN = 6;
 /** How many finished duels the landing lists, of every game or of the one picked. */
 export const RESULTS_SHOWN = 6;
 
-/**
- * How many of the latest finished duels the landing looks up the game of, so that a picked game
- * finds its duels among them and not only among the few on screen: as many as one batch of duel
- * metadata takes.
- */
-export const RESULTS_LOOKED_UP = 200;
-
 /** How many games the landing offers to filter its finished duels by. */
 export const POPULAR_GAMES_SHOWN = 6;
 
@@ -38,18 +31,17 @@ export function winnerSide(duel: { player1: string; winner: string }): SeatSide 
   return duel.winner.toLowerCase() === duel.player1.toLowerCase() ? 'creator' : 'opponent';
 }
 
-/**
- * The first `limit` duels of one game, by its slug, or of every game when none is picked. A duel
- * whose game is not known yet belongs to no game.
- */
+/** The first `limit` duels of one game, given that game's duels, or of every game when there is none. */
 export function pickResults<T extends { id: number }>(
   duels: readonly T[],
-  metaByDuelId: Readonly<Record<number, DuelMeta>>,
-  gameSlug: string | null,
+  gameDuels: readonly DuelMeta[] | null,
   limit: number
 ): T[] {
-  const matching = gameSlug === null ? duels : duels.filter((duel) => metaByDuelId[duel.id]?.gameSlug === gameSlug);
-  return matching.slice(0, limit);
+  if (gameDuels === null) {
+    return duels.slice(0, limit);
+  }
+  const inGame = new Set(gameDuels.map((meta) => meta.duelId));
+  return duels.filter((duel) => inGame.has(duel.id)).slice(0, limit);
 }
 
 /** The games with the most duels, most first, as many as the landing shows; one nobody has played is not popular. */

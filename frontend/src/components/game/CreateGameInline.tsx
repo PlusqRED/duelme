@@ -6,8 +6,7 @@ import { useIdentityToken } from '@privy-io/react-auth';
 import { Input } from '@/components/ui/input';
 import { useAppToast } from '@/hooks/useAppToast';
 import { useTranslation } from '@/i18n/useTranslation';
-import type { TranslationKey } from '@/i18n/translations';
-import { GAME_CATEGORIES, type Game, type GameCategory } from '@/lib/game';
+import { getCategoryLabelKey, GAME_CATEGORIES, type Game, type GameCategory } from '@/lib/game';
 import { createGame } from '@/lib/gameApi';
 
 interface CreateGameInlineProps {
@@ -81,7 +80,7 @@ export function CreateGameInline({ initialName, onCreated }: CreateGameInlinePro
                     : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:bg-indigo-50/30'
                 }`}
               >
-                {t(`category.${cat}` as TranslationKey)}
+                {t(getCategoryLabelKey(cat))}
               </button>
             );
           })}

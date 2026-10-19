@@ -13,6 +13,7 @@ import { useReputationLevels } from '@/hooks/useReputationLevels';
 import { useTranslation } from '@/i18n/useTranslation';
 import { DEFAULT_CHAIN } from '@/lib/constants';
 import { buildDashboardDuelSearchText, normalizeSearchQuery } from '@/lib/duelSearch';
+import { getCategoryLabelKey } from '@/lib/game';
 import { formatUSDT } from '@/lib/utils';
 import { ArrowLeft, BarChart3, Gamepad2, Search, Swords, Zap } from 'lucide-react';
 
@@ -120,7 +121,7 @@ export default function GameDetailPage({
             <div>
               <h1 className="text-2xl font-bold">{game.name}</h1>
               <span className="text-sm text-white/80">
-                {t(`category.${game.category}` as Parameters<typeof t>[0])}
+                {t(getCategoryLabelKey(game.category))}
               </span>
             </div>
           </div>

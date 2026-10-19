@@ -2,8 +2,7 @@
 
 import { ChevronDown, Gamepad2 } from 'lucide-react';
 import { useTranslation } from '@/i18n/useTranslation';
-import type { TranslationKey } from '@/i18n/translations';
-import type { Game } from '@/lib/game';
+import { getCategoryLabelKey, type Game } from '@/lib/game';
 
 interface GameSelectProps {
   games: Game[];
@@ -55,7 +54,7 @@ export function GameSelect({
           </option>
           {games.map((game) => (
             <option key={game.slug} value={game.slug}>
-              {game.name} · {t(`category.${game.category}` as TranslationKey)}
+              {game.name} · {t(getCategoryLabelKey(game.category))}
             </option>
           ))}
         </select>

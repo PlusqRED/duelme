@@ -7,20 +7,16 @@ import { PartialDataNotice } from '@/components/duel/PartialDataNotice';
 import { PublicDuelCard } from '@/components/duel/PublicDuelCard';
 import { PublicDuelsFiltersPanel } from '@/components/duel/PublicDuelsFiltersPanel';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
+import { useEnrichedPublicDuels } from '@/hooks/useEnrichedPublicDuels';
 import { usePublicDuels } from '@/hooks/usePublicDuels';
-import { usePublicDuelMetas } from '@/hooks/usePublicDuelMetas';
-import { useNicknames } from '@/hooks/useNicknames';
-import { useReputationLevels } from '@/hooks/useReputationLevels';
 import { useTimeAgo } from '@/hooks/useTimeAgo';
 import { useTranslation } from '@/i18n/useTranslation';
-import { DEFAULT_CHAIN_ID } from '@/lib/constants';
 import { buildPublicDuelSearchText, normalizeSearchQuery } from '@/lib/duelSearch';
 import {
   NO_GAME_FILTER,
   WAGER_RANGES,
-  enrichPublicDuel,
   formatPublicDuelAmount,
-  type SortBy, type WagerRange, type EnrichedDuel,
+  type SortBy, type WagerRange,
 } from '@/lib/publicDuelsFilters';
 import { usePrivy } from '@privy-io/react-auth';
 import { Globe2 } from 'lucide-react';
@@ -39,22 +35,7 @@ export default function PublicDuelsPage() {
   const [sortBy, setSortBy] = useState<SortBy>('newest');
   const [page, setPage] = useState(1);
 
-  const duelIds = useMemo(() => duels.map((d) => d.id), [duels]);
-  const { metaByDuelId } = usePublicDuelMetas(duelIds, DEFAULT_CHAIN_ID);
-
-  const addresses = useMemo(() => duels.map((d) => d.creator), [duels]);
-  const { resolveDisplay } = useNicknames(addresses);
-  const { reputationStatsByAddress } = useReputationLevels(addresses, DEFAULT_CHAIN_ID);
-
-  const enriched = useMemo<EnrichedDuel[]>(
-    () => duels.map((duel) => enrichPublicDuel({
-      duel,
-      meta: metaByDuelId[duel.id],
-      resolveDisplay,
-      reputationStatsByAddress,
-    })),
-    [duels, metaByDuelId, resolveDisplay, reputationStatsByAddress],
-  );
+  const enriched = useEnrichedPublicDuels(duels);
 
   const gameOptions = useMemo(() => {
     const map = new Map<string, { name: string; count: number }>();

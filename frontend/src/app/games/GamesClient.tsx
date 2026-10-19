@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { GameCard } from '@/components/game/GameCard';
 import { useGames } from '@/hooks/useGames';
 import { useTranslation } from '@/i18n/useTranslation';
-import { GAME_CATEGORIES, type GameCategory } from '@/lib/game';
+import { getCategoryLabelKey, GAME_CATEGORIES, type GameCategory } from '@/lib/game';
 import { Search, Gamepad2 } from 'lucide-react';
 
 export function GamesClient() {
@@ -50,7 +50,7 @@ export function GamesClient() {
                 category === cat ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              {t(`category.${cat}` as Parameters<typeof t>[0])}
+              {t(getCategoryLabelKey(cat))}
             </button>
           ))}
         </div>
