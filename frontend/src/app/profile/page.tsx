@@ -187,7 +187,7 @@ export default function MyProfilePage() {
                     <X className="h-3.5 w-3.5" />
                   </Button>
                   <Button
-                    size="sm" aria-label={t('profile.save')}
+                    size="sm" aria-label={isSaving ? undefined : t('profile.save')}
                     onClick={() => saveField(field)}
                     disabled={isSaving || editValue.length > limit}
                   >

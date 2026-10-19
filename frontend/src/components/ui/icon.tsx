@@ -31,7 +31,11 @@ export function Icon({ name, className, ...props }: IconProps) {
   );
 }
 
-function IconPart({ shape }: { shape: IconShape }) {
+interface IconPartProps {
+  shape: IconShape;
+}
+
+function IconPart({ shape }: IconPartProps) {
   if ('d' in shape) {
     return shape.filled ? <path d={shape.d} fill="currentColor" stroke="none" /> : <path d={shape.d} />;
   }

@@ -98,8 +98,9 @@ address, no relayer key — is the case the self-paid path still covers.
 
 ## Design
 
-The app is being moved, screen by screen, onto one design. These are its rules; a screen the port
-has not reached yet still looks old, and the guard tests below list it.
+The app is being moved, screen by screen, onto one design. These are its rules. A screen the port
+has not reached yet keeps its old layout and colours, though it already has the new type, corners
+and controls; the guard tests below list it.
 
 - **Calm, never a casino.** Light surfaces, no neon, no chips or coin piles, nothing that nudges
   toward a bigger stake, plain words.

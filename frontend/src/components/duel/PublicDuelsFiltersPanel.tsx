@@ -31,6 +31,14 @@ interface PublicDuelsFiltersPanelProps {
   onSortChange: (value: SortBy) => void;
 }
 
+const SORT_LABEL_KEY: Record<SortBy, TranslationKey> = {
+  newest: 'publicDuels.sortNewest',
+  highest: 'publicDuels.sortHighest',
+  lowest: 'publicDuels.sortLowest',
+};
+
+const SORT_OPTIONS: readonly SortBy[] = ['newest', 'highest', 'lowest'];
+
 export function PublicDuelsFiltersPanel({
   searchQuery,
   gameOptions,
@@ -98,13 +106,13 @@ export function PublicDuelsFiltersPanel({
 
           <div className="flex items-center gap-1.5">
             <ArrowUpDown className="h-3.5 w-3.5 text-slate-400" />
-            {(['newest', 'highest', 'lowest'] as const).map((sort) => (
+            {SORT_OPTIONS.map((sort) => (
               <SortButton
                 key={sort}
                 active={sortBy === sort}
                 onClick={() => onSortChange(sort)}
               >
-                {t(`publicDuels.sort${sort.charAt(0).toUpperCase() + sort.slice(1)}` as TranslationKey)}
+                {t(SORT_LABEL_KEY[sort])}
               </SortButton>
             ))}
           </div>

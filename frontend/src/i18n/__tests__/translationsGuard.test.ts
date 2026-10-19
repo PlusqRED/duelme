@@ -10,8 +10,8 @@ const code = sourceFiles(['.ts', '.tsx'])
   .map((file) => file.text)
   .join('\n');
 
-/** Keys a caller puts together from data at runtime: a game's category, the public duels' sort order. */
-const BUILT_KEY_PREFIXES = ['category.', 'publicDuels.sort'];
+/** Keys a caller puts together from data at runtime: a game's category. */
+const BUILT_KEY_PREFIXES = ['category.'];
 
 const PLURAL_FORM = /\.(one|few|many|other)$/;
 
