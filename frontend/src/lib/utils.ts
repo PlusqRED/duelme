@@ -14,7 +14,7 @@ const twMerge = extendTailwindMerge({
       text: ['note', 'body-sm', 'body', 'lead', 'figure', 'h1', 'h2'],
       'font-weight': ['label', 'strong'],
       shadow: ['window', 'menu', 'sheet'],
-      'inset-shadow': ['avatar'],
+      'inset-shadow': ['avatar', 'stake'],
       ease: ['spring', 'press', 'sheet'],
       spacing: ['gutter'],
       container: ['page'],

@@ -31,6 +31,9 @@ claimable balances, never push transfers.
   recurring cost the app has — and `staleTime: 0` made every screen that mounted one download all
   of it again. Player-initiated changes do not wait for the interval; every duel write calls
   `refetch()` on success.
+- The wallet menu's safe and pip (`useOwed`) mount that same history read in the top bar, so a
+  signed-in wallet reads it on every page — once, shared with any list on the page. If that cost
+  grows, the pip moves to the pages that read the history anyway; it does not get a reader of its own.
 - Always `refetch()` + `reset()` after successful write transactions
 - Header / wallet balances use `frontend/src/lib/balanceRefresh.ts` event bus + 30s poll fallback
 
@@ -172,7 +175,7 @@ and controls; the guard tests below list it.
 | `frontend/src/components/ui/dialog.tsx` | The one window: a card from a fixed top on a wide screen, a sheet below 560px; `--dialog-width` widens it; `DialogFooter isPinned` keeps a long sheet's last action on screen on a phone |
 | `frontend/src/components/ui/popover.tsx` | The menus: a panel under its button on a wide screen, a modal sheet below 560px, with a title the sheet shows and a panel only reads out |
 | `frontend/src/components/header/Header.tsx` | The top bar on every page: the brand, the sections (`lib/navigation.ts`) from 980px, the language, the wallet menu or Sign in, and the navigation menu below 980px |
-| `frontend/src/components/header/WalletMenu.tsx` | The wallet button (the duel network's USDT, never a sum across networks) and its menu: player card, a balance tile per network, Top up, Send, the faucet flask, key export and sign out |
+| `frontend/src/components/header/WalletMenu.tsx` | The wallet button (the duel network's USDT, never a sum across networks, and a pip while money waits in the contract) and its menu: player card, the small safe (`SafeMini`), a balance tile per network, Top up, Send, the faucet flask, key export and sign out |
 | `frontend/src/hooks/useWalletBalances.ts` | The wallet's USDT and ETH on each network the build lists, read apart (USDT on `useUsdtBalance`'s query): the button's balance polled always, the rest while the menu is open, all again on the balance bus |
 | `frontend/src/hooks/useSendUsdt.ts` | Sends USDT on the network picked: moves the wallet there, then `writeWithGas` |
 | `frontend/src/lib/sendUsdt.ts` | The send form's rules: the typed amount, the transfer it asks for, what stops it, and where a sent one is |
@@ -209,6 +212,7 @@ and controls; the guard tests below list it.
 | `frontend/src/lib/writeErrors.ts` | The ways a write ends without running (reverted, replaced, wallet not ready), which the guided flows word for the player |
 | `frontend/src/hooks/useDashboardClaims.ts` | Dashboard claim/refund handlers and computed state |
 | `frontend/src/hooks/usePlayerDuels.ts` | Filters `useDuelRange` down to one player; wins/losses/volume/withdrawn totals |
+| `frontend/src/lib/owed.ts` | What the contract keeps for a player — wins, stakes coming back, timed-out claims — and the safe's bars; `useOwed` reads it from the shared `useDuelRange` history |
 | `frontend/src/hooks/usePlatformStats.ts` | Landing-page Total Volume / Duels Played stats |
 | `frontend/src/hooks/useRecentDuels.ts` | Landing-page duel feed (newest-first) |
 | `frontend/src/hooks/useReputation.ts` | Wilson Score reputation calculation |

@@ -4,6 +4,7 @@ import { defineSection } from './defineSection';
 export const walletTranslations = defineSection({
   en: {
     'wallet.open': 'Wallet: {amount} USDT on {network}',
+    'wallet.open.owed': '{amount} USDT waiting in the contract',
     'wallet.title': 'Your wallet',
     'wallet.copy': 'Copy',
     'wallet.copied': 'Copied',
@@ -11,6 +12,8 @@ export const walletTranslations = defineSection({
     'wallet.copyAddress': 'Copy the address',
     'wallet.quest': 'To {level}: {have} of {need} honored',
     'wallet.quest.top': 'Top level: {level}',
+    'wallet.waiting': 'Waiting for you in the contract',
+    'wallet.waiting.take': 'Take',
     'quest.score': '{have} of {need}',
     'quest.top': 'Unlocked',
     'wallet.balances': 'Balance',
@@ -57,6 +60,7 @@ export const walletTranslations = defineSection({
   },
   ru: {
     'wallet.open': 'Кошелёк: {amount} USDT в {network}',
+    'wallet.open.owed': '{amount} USDT ждут в контракте',
     'wallet.title': 'Твой кошелёк',
     'wallet.copy': 'Копировать',
     'wallet.copied': 'Скопировано',
@@ -64,6 +68,8 @@ export const walletTranslations = defineSection({
     'wallet.copyAddress': 'Скопировать адрес',
     'wallet.quest': 'До уровня «{level}»: выполнено {have} из {need}',
     'wallet.quest.top': 'Высший уровень: «{level}»',
+    'wallet.waiting': 'Ждут тебя в контракте',
+    'wallet.waiting.take': 'Забрать',
     'quest.score': '{have} из {need}',
     'quest.top': 'Открыт',
     'wallet.balances': 'Баланс',

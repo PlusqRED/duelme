@@ -4,12 +4,14 @@ import { useRef, useState } from 'react';
 import { useExportWallet, usePrivy } from '@privy-io/react-auth';
 import { PlayerCard } from '@/components/header/PlayerCard';
 import { QuietButton } from '@/components/header/QuietButton';
+import { SafeMini } from '@/components/header/SafeMini';
 import { SendView } from '@/components/header/SendView';
 import { WalletButton } from '@/components/header/WalletButton';
 import { WalletMoney } from '@/components/header/WalletMoney';
 import { Popover, PopoverContent } from '@/components/ui/popover';
 import { TopUpWindow } from '@/components/topup/TopUpWindow';
 import { useFaucetFlask } from '@/hooks/useFaucetFlask';
+import { useOwed } from '@/hooks/useOwed';
 import { useWalletBalances } from '@/hooks/useWalletBalances';
 import { useTranslation } from '@/i18n/useTranslation';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
@@ -26,9 +28,9 @@ interface WalletMenuProps {
 type View = 'main' | 'send' | 'back-from-send';
 
 /**
- * The wallet button and everything the wallet does, in its menu: who you are, the balance on each
- * network with Top up and Send, the faucet, the key and signing out. It opens on the network duels
- * run on, and on the wallet's own view whenever it opens.
+ * The wallet button and everything the wallet does, in its menu: who you are, the money the
+ * contract keeps for you, the balance on each network with Top up and Send, the faucet, the key and
+ * signing out. It opens on the network duels run on, and on the wallet's own view whenever it opens.
  */
 export function WalletMenu({ address, walletAddress, walletClientType }: WalletMenuProps) {
   const { t } = useTranslation();
@@ -44,6 +46,7 @@ export function WalletMenu({ address, walletAddress, walletClientType }: WalletM
   const picked = networks.find((network) => network.chain.id === pickedId) ?? networks[0];
   const duelNetwork = networks.find((network) => network.chain.id === DEFAULT_CHAIN_ID) ?? networks[0];
   const faucet = useFaucetFlask(picked.chain.id, readingRaw(picked.usdt));
+  const owed = useOwed(walletAddress);
 
   function changeOpen(open: boolean) {
     setIsOpen(open);
@@ -53,9 +56,11 @@ export function WalletMenu({ address, walletAddress, walletClientType }: WalletM
     setView('main');
     // Only the button's balance is polled while the menu is closed; the rest may have moved since.
     refetch();
-    // The quest's cells light up the first time the menu opens for this wallet, not every time.
-    setIsEntering(introFor.current !== walletAddress);
-    introFor.current = walletAddress;
+    // The quest's cells light up and the safe opens the first time the menu opens for this wallet,
+    // and again once the money waiting has changed; an ordinary reopening stays still.
+    const intro = `${walletAddress}|${owed?.totalRaw ?? 0n}`;
+    setIsEntering(introFor.current !== intro);
+    introFor.current = intro;
   }
 
   // Privy's own windows and the top-up window open over the page, not inside a menu.
@@ -67,7 +72,7 @@ export function WalletMenu({ address, walletAddress, walletClientType }: WalletM
   return (
     <>
       <Popover open={isOpen} onOpenChange={changeOpen}>
-        <WalletButton address={address} network={duelNetwork} />
+        <WalletButton address={address} network={duelNetwork} owed={owed} />
         <PopoverContent title={t('wallet.title')}>
           {view === 'send' ? (
             <SendView
@@ -84,6 +89,7 @@ export function WalletMenu({ address, walletAddress, walletClientType }: WalletM
                 isEntering={isEntering}
                 onLeave={() => setIsOpen(false)}
               />
+              {owed && <SafeMini owed={owed} isEntering={isEntering} onLeave={() => setIsOpen(false)} />}
               <WalletMoney
                 networks={networks}
                 pickedId={picked.chain.id}
