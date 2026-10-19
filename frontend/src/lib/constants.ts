@@ -103,9 +103,9 @@ export const CHAIN_NAMES: Record<number, string> = Object.fromEntries(
 );
 
 export const SITE_URL = 'https://duelme.pro';
+export const SITE_NAME = 'DuelMe';
 
-/** Where the developer can be reached: the footer links each. */
+/** Where the developer can be reached. */
 export const DEVELOPER_EMAIL = 'rickes.oleg@gmail.com';
 export const TELEGRAM_URL = 'https://t.me/grapexel';
 export const INSTAGRAM_URL = 'https://www.instagram.com/rickes.oleg';
-export const SITE_NAME = 'DuelMe';

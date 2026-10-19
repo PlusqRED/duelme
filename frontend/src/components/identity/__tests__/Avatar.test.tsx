@@ -12,7 +12,9 @@ describe('Avatar', () => {
   it('draws the address pattern, one square per filled cell', () => {
     const { container } = render(<Avatar address={ADDRESS} tone="red" />);
 
-    expect(container.querySelectorAll('rect')).toHaveLength(identiconCells(ADDRESS).length);
+    expect(container.querySelector('path')?.getAttribute('d')?.match(/M/g)).toHaveLength(
+      identiconCells(ADDRESS).length
+    );
   });
 
   it('sits on the seat colour it is given', () => {

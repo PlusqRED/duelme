@@ -181,7 +181,8 @@ export function useDuelRange({ chainId, enabled = true }: DuelRangeOptions) {
   const { duels, hasFailedPage } = useStitchedDuels(pageResults, pageContracts, idAt);
 
   const refetch = useCallback(async () => {
-    await Promise.all([refetchCount(), refetchPages()]);
+    // A second click joins the read already running rather than abandoning it for a new one.
+    await Promise.all([refetchCount({ cancelRefetch: false }), refetchPages({ cancelRefetch: false })]);
   }, [refetchCount, refetchPages]);
 
   return {
@@ -238,5 +239,7 @@ export function useDuelsByIds(duelIds: readonly number[], { chainId }: { chainId
 
   const { duels, hasFailedPage } = useStitchedDuels(pageResults, pageContracts, idAt);
 
-  return { duels, isLoading, isError: isPagesError || hasFailedPage, refetch };
+  const retry = useCallback(() => refetch({ cancelRefetch: false }), [refetch]);
+
+  return { duels, isLoading, isError: isPagesError || hasFailedPage, refetch: retry };
 }

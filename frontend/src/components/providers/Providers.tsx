@@ -1,7 +1,7 @@
 'use client';
 
 import { type ReactNode, useCallback, useEffect, useRef } from 'react';
-import { PrivyProvider, usePrivy } from '@privy-io/react-auth';
+import { PrivyProvider, usePrivy, type PrivyClientConfig } from '@privy-io/react-auth';
 import { WagmiProvider } from '@privy-io/wagmi';
 import type { SetActiveWalletForWagmiType } from '@privy-io/wagmi';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
@@ -48,6 +48,23 @@ function ContractConfigLoader() {
   return null;
 }
 
+// Everything in it is fixed, so Privy gets the same object on every render.
+const privyConfig: PrivyClientConfig = {
+  appearance: {
+    theme: 'light',
+    accentColor: brandColors.ink,
+    logo: <BrandMark size="lg" />,
+  },
+  loginMethods: ['google', 'email', 'wallet'],
+  defaultChain: supportedChains[0],
+  supportedChains: [...supportedChains],
+  embeddedWallets: {
+    ethereum: {
+      createOnLogin: 'all-users',
+    },
+  },
+};
+
 interface ProvidersProps {
   children: ReactNode;
   /** Read by the root layout from the server's relayer config, so it is known on the first render. */
@@ -63,21 +80,7 @@ export function Providers({ children, relayerStatus }: ProvidersProps) {
   return (
     <PrivyProvider
       appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID!}
-      config={{
-        appearance: {
-          theme: 'light',
-          accentColor: brandColors.ink,
-          logo: <BrandMark size="lg" />,
-        },
-        loginMethods: ['google', 'email', 'wallet'],
-        defaultChain: supportedChains[0],
-        supportedChains: [...supportedChains],
-        embeddedWallets: {
-          ethereum: {
-            createOnLogin: 'all-users',
-          },
-        },
-      }}
+      config={privyConfig}
     >
       <QueryClientProvider client={queryClient}>
         <QueryCacheManager />

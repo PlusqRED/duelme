@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useMemo } from 'react';
 import { buttonVariants } from '@/components/ui/button';
 import { useTranslation } from '@/i18n/useTranslation';
+import { intlLocales } from '@/i18n/intlLocales';
 import { usePlatformStats } from '@/hooks/usePlatformStats';
 import { formatUnits } from 'viem';
 import { USDT_DECIMALS } from '@/lib/constants';
@@ -22,7 +23,7 @@ export function HeroSection() {
   const { duelsPlayed, totalVolumeRaw, isLoading, isError } = usePlatformStats();
   const isStatsUnavailable = isLoading || isError;
 
-  const locale = language === 'ru' ? 'ru-RU' : 'en-US';
+  const locale = intlLocales[language];
   const formattedVolume = useMemo(() => {
     const value = Number(formatUnits(totalVolumeRaw, USDT_DECIMALS));
 

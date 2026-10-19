@@ -71,7 +71,7 @@ export function buildFlowAction(options: {
       options.actionState === 'awaiting-wallet'
         ? options.t('status.confirmWallet')
         : options.actionState === 'error'
-          ? options.t(options.retryKey ?? 'create.flow.action.tryAgain')
+          ? options.t(options.retryKey ?? 'action.tryAgain')
           : options.idleLabel,
     onClick: options.onClick,
     disabled: options.actionState === 'awaiting-wallet' || options.actionState === 'confirming',

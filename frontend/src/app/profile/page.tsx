@@ -11,11 +11,10 @@ import { SocialLinksSection } from '@/components/profile/SocialLinksSection';
 import { useMyProfile } from '@/hooks/useMyProfile';
 import { useAppToast } from '@/hooks/useAppToast';
 import { useTranslation } from '@/i18n/useTranslation';
-import { intlLocales } from '@/i18n/intlLocales';
 import { PROFILE_LIMITS } from '@/lib/profile';
 import type { ProfileRequest } from '@/lib/profile';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
-import { truncateAddress } from '@/lib/utils';
+import { formatDate, truncateAddress } from '@/lib/utils';
 import { usePrivy } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { ArrowLeft, Pencil, X, Check, Plus, User } from 'lucide-react';
@@ -355,7 +354,7 @@ export default function MyProfilePage() {
                   {t('profile.memberSince')}
                 </div>
                 <p className="text-sm text-slate-900">
-                  {new Date(profile.createdAt).toLocaleDateString(intlLocales[language], { dateStyle: 'medium' })}
+                  {formatDate(profile.createdAt, language)}
                 </p>
               </div>
             )}
@@ -365,7 +364,7 @@ export default function MyProfilePage() {
                   {t('profile.lastUpdated')}
                 </div>
                 <p className="text-sm text-slate-900">
-                  {new Date(profile.updatedAt).toLocaleDateString(intlLocales[language], { dateStyle: 'medium' })}
+                  {formatDate(profile.updatedAt, language)}
                 </p>
               </div>
             )}

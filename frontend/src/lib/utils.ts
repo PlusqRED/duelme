@@ -33,6 +33,17 @@ function isDecimal(text: string): text is `${number}` {
   return /^-?\d+(?:\.\d+)?$/.test(text);
 }
 
+// Built once per language: a list's search text formats every duel's amount and date per keystroke.
+function perLanguage<T>(make: (locale: string) => T): Record<Language, T> {
+  return { en: make(intlLocales.en), ru: make(intlLocales.ru) };
+}
+
+const usdtFormats = perLanguage((locale) => new Intl.NumberFormat(locale, { maximumFractionDigits: USDT_DECIMALS }));
+const dateTimeFormats = perLanguage(
+  (locale) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' })
+);
+const dateFormats = perLanguage((locale) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }));
+
 /**
  * A USDT amount the way the language writes numbers, with up to the token's 6 decimals, so 4.123456
  * is not shown as 4.12, and no trailing zeros: `20`, `0.5`, `1,234.5`, in Russian `1 234,5`.
@@ -41,7 +52,7 @@ export function formatUSDT(amount: bigint, language: Language): string {
   // A decimal string, not a float, so Intl formats the exact amount.
   const decimal = formatUnits(amount, USDT_DECIMALS);
   if (!isDecimal(decimal)) throw new Error(`Not a decimal amount: ${decimal}`);
-  return new Intl.NumberFormat(intlLocales[language], { maximumFractionDigits: USDT_DECIMALS }).format(decimal);
+  return usdtFormats[language].format(decimal);
 }
 
 export function parseUSDT(amount: number): bigint {
@@ -64,8 +75,10 @@ export function formatDateTime(timestamp: bigint | number, language: Language): 
   const seconds = typeof timestamp === 'bigint' ? Number(timestamp) : timestamp;
   if (!seconds) return '—';
 
-  return new Intl.DateTimeFormat(intlLocales[language], {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(seconds * 1000));
+  return dateTimeFormats[language].format(new Date(seconds * 1000));
+}
+
+/** A day in the language's medium style: `Oct 19, 2026`, `19 окт. 2026 г.`. */
+export function formatDate(date: string | number | Date, language: Language): string {
+  return dateFormats[language].format(new Date(date));
 }

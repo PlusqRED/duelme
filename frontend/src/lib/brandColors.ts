@@ -12,5 +12,4 @@ export const brandColors = {
   line: '#dde2ef',
   red: '#dc3426',
   blue: '#2b64f5',
-  sun: '#ffc633',
 } as const;

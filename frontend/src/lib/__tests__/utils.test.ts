@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cn, formatUSDT } from '@/lib/utils';
+import { cn, formatDate, formatUSDT } from '@/lib/utils';
 import { themeTokens } from '@/lib/__tests__/helpers/sourceFiles';
 
 describe('cn', () => {
@@ -54,5 +54,11 @@ describe('formatUSDT', () => {
 
   it('keeps every digit of an amount past what a float holds', () => {
     expect(formatUSDT(123_456_789_012_345_678n, 'en')).toBe('123,456,789,012.345678');
+  });
+});
+
+describe('formatDate', () => {
+  it('writes a day in the language’s medium style', () => {
+    expect(formatDate('2026-10-19T12:00:00Z', 'en')).toBe('Oct 19, 2026');
   });
 });

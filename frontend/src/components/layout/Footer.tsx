@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { BrandMark } from '@/components/identity/BrandMark';
 import { useTranslation } from '@/i18n/useTranslation';
-import { DEVELOPER_EMAIL, INSTAGRAM_URL, TELEGRAM_URL } from '@/lib/constants';
+import { DEVELOPER_EMAIL, INSTAGRAM_URL, SITE_NAME, TELEGRAM_URL } from '@/lib/constants';
 
 const SOCIAL_LINKS = [
   { name: 'Telegram', href: TELEGRAM_URL },
@@ -21,7 +21,7 @@ export function Footer() {
           className="inline-flex min-h-11 w-fit items-center gap-2.5 text-xl font-extrabold tracking-[-0.03em] text-ink"
         >
           <BrandMark />
-          DuelMe
+          {SITE_NAME}
         </Link>
         <p>{t('footer.tagline')}</p>
         <p>
@@ -45,7 +45,7 @@ export function Footer() {
           ))}
         </ul>
         <p>
-          © {new Date().getFullYear()} DuelMe. {t('footer.rights')}
+          © {new Date().getFullYear()} {SITE_NAME}. {t('footer.rights')}
         </p>
       </div>
     </footer>

@@ -109,7 +109,7 @@ and controls; the guard tests below list it.
   winner and the payout, green (`good`) what is good (honored, unlocked, copied, under your
   control), orange what needs attention (an error, a shortfall, a late answer) — never red, which
   is a player. Reputation levels: Reliable green, Mixed sun (its bars a deeper `sun-bar`), Risky
-  orange, New grey (`level-new`).
+  orange, New grey (`level-new-soft`, `level-new-ink`).
 - **Tokens only.** Every colour, easing and shadow, and every type size, weight or breakpoint
   Tailwind's own scale lacks, is a token in `src/styles/theme.css`, used by its role: `bg-canvas`,
   `text-ink-3`, `bg-red-soft`, `text-body-sm`, `ease-press`, `xs:` (560px, where a window stops

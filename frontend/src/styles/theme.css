@@ -40,7 +40,6 @@
   /* Reputation levels: Reliable is good, Risky orange, Mixed the sun and New grey. The sun is too
      pale for a bar on paper, so Mixed's bars take a deeper one. */
   --color-sun-bar: #e0a100;
-  --color-level-new: #b8c0d8;
   --color-level-new-ink: #4c5577;
   --color-level-new-soft: #eceff7;
 
