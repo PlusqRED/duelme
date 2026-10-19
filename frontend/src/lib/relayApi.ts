@@ -9,19 +9,20 @@ import {
 const RELAY_ENDPOINT = '/api/relay';
 
 /**
- * Ceiling on one relay round trip. The server answers only once the transaction is mined (or
- * its own 30s receipt wait gives up) and requests queue behind one another, so this has to be
- * generous — but never unbounded: the guided flow disables its close button while a write is
- * in flight, so a stalled connection would otherwise trap the player in the dialog.
+ * Ceiling on one relayed write, every post of it included. The server answers only once the
+ * transaction is mined (or its own 30s receipt wait gives up) and requests queue behind one
+ * another, so this has to be generous — but never unbounded: the guided flow disables its close
+ * button while a write is in flight, so a stalled connection would otherwise trap the player in
+ * the dialog.
  */
 const RELAY_TIMEOUT_MS = 120_000;
 
 /**
- * Posts of one signed request while its answer keeps getting lost, to a dropped connection or a
- * timeout. Posting the same body again is safe: the relayer gives every copy of a signed request
- * the first one's outcome (relayerDedup), so a repeat joins a relay still under way or gets the
- * hash of one already done, and never sends it twice. A request signed afresh would be a new one,
- * and a second duel if the first post went through.
+ * Posts of one signed request, all within that one deadline, while its answer keeps getting lost
+ * on the way back. Posting the same body again is safe: the relayer gives every copy of a signed request the first one's
+ * outcome (relayerDedup), so a repeat joins a relay still under way or gets the hash of one
+ * already done, and never sends it twice. A request signed afresh would be a new one, and a
+ * second duel if the first post went through.
  */
 const RELAY_POST_ATTEMPTS = 3;
 const RELAY_REPOST_DELAY_MS = 2_000;
@@ -42,16 +43,15 @@ export class RelayRequestError extends Error {
  * can tell "your allowance is spent" apart from "that action would revert".
  */
 export async function submitRelayRequest(chainId: number, request: RelayForwardRequest): Promise<Hex> {
-  const response = await postUntilAnswered(JSON.stringify({ chainId, request }));
-  const body: unknown = await response.json().catch(() => null);
-  const fields = isRecord(body) ? body : {};
+  const answer = await postUntilAnswered(JSON.stringify({ chainId, request }));
+  const fields = isRecord(answer.body) ? answer.body : {};
 
-  if (!response.ok) {
+  if (!answer.ok) {
     // A code this bundle does not know — a tab left open across a deploy — reads as
     // "unavailable", the one answer every caller already handles.
     const code = isRelayErrorCode(fields.code) ? fields.code : 'RELAYER_UNAVAILABLE';
     const message =
-      typeof fields.error === 'string' ? fields.error : `Relayer refused the request (HTTP ${response.status}).`;
+      typeof fields.error === 'string' ? fields.error : `Relayer refused the request (HTTP ${answer.status}).`;
     throw new RelayRequestError(code, message);
   }
 
@@ -64,19 +64,22 @@ export async function submitRelayRequest(chainId: number, request: RelayForwardR
   return fields.hash;
 }
 
+interface RelayAnswer {
+  ok: boolean;
+  status: number;
+  body: unknown;
+}
+
 /** Posts the body until the relayer answers at all. Any answer, a refusal included, is final. */
-async function postUntilAnswered(body: string): Promise<Response> {
+async function postUntilAnswered(body: string): Promise<RelayAnswer> {
+  const deadline = AbortSignal.timeout(RELAY_TIMEOUT_MS);
+
   for (let attempt = 1; ; attempt++) {
     try {
-      return await fetch(RELAY_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body,
-        signal: AbortSignal.timeout(RELAY_TIMEOUT_MS),
-      });
+      return await post(body, deadline);
     } catch (error) {
-      if (attempt === RELAY_POST_ATTEMPTS) {
-        const timedOut = error instanceof DOMException && error.name === 'TimeoutError';
+      const timedOut = error instanceof DOMException && error.name === 'TimeoutError';
+      if (timedOut || attempt === RELAY_POST_ATTEMPTS) {
         throw new RelayRequestError(
           'RELAYER_UNAVAILABLE',
           timedOut ? 'The relayer did not answer in time.' : 'Could not reach the relayer.',
@@ -87,4 +90,20 @@ async function postUntilAnswered(body: string): Promise<Response> {
 
     await new Promise((resolve) => setTimeout(resolve, RELAY_REPOST_DELAY_MS));
   }
+}
+
+/** One post. Throws when no answer came back: no response at all, or a success without its body. */
+async function post(body: string, deadline: AbortSignal): Promise<RelayAnswer> {
+  const response = await fetch(RELAY_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body,
+    signal: deadline,
+  });
+
+  // Every success carries the hash in its body, so one whose body is lost is a lost answer.
+  // A refusal's body can be anything, a proxy's error page included, and its status is enough.
+  const answer: unknown = response.ok ? await response.json() : await response.json().catch(() => null);
+
+  return { ok: response.ok, status: response.status, body: answer };
 }
