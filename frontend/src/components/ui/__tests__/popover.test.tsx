@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { PHONE_QUERY, Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { themeTokens } from '@/lib/__tests__/helpers/sourceFiles';
 
 const display = vi.hoisted(() => ({ isPhone: false }));
 vi.mock('@/hooks/useMediaQuery', () => ({ useMediaQuery: () => display.isPhone }));
@@ -24,6 +25,10 @@ function renderMenu() {
 }
 
 describe('Popover', () => {
+  it('turns into a sheet below the theme\'s xs breakpoint, where the sheet styles start', () => {
+    expect(PHONE_QUERY).toBe(`(width < ${themeTokens('breakpoint').get('xs')})`);
+  });
+
   it('opens from its button, named after its title', async () => {
     renderMenu();
 

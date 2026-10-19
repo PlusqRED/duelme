@@ -94,6 +94,8 @@
   /* A page's content column, and the room either side of it that shrinks on a phone. */
   --container-page: 77.5rem;
   --spacing-gutter: clamp(1rem, 4vw, 2.5rem);
+  /* A tile inside a menu or a window: a network's balance, the faucet, a transfer's route. */
+  --radius-tile: 18px;
 
   /* Room for the wallet button's chevron. Wider than a phone: a window stops being a sheet. Wide
      enough for a window's two columns. Wide enough for the navigation in the top bar. */

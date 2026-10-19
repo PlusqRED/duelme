@@ -1,6 +1,6 @@
 import { isHash, type Hex } from 'viem';
+import { isRecord } from '@/lib/parsing';
 import {
-  isRecord,
   isRelayErrorCode,
   type RelayErrorCode,
   type RelayForwardRequest,

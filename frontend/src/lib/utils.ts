@@ -7,7 +7,7 @@ import type { Language } from '@/i18n/translations';
 
 // tailwind-merge does not read styles/theme.css: it takes the theme's own type sizes, weights and
 // (inset) shadows for colours or font families (dropping `text-body` from `text-body text-ink`),
-// and does not know its easings, spacing or widths at all.
+// and does not know its easings, spacing, widths or radii at all.
 const twMerge = extendTailwindMerge({
   extend: {
     theme: {
@@ -18,6 +18,7 @@ const twMerge = extendTailwindMerge({
       ease: ['spring', 'press', 'sheet'],
       spacing: ['gutter'],
       container: ['page'],
+      radius: ['tile'],
     },
   },
 });

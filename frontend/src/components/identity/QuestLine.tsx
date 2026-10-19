@@ -3,25 +3,12 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { getReputationLabelKey, questCells, type LevelQuest, type ReputationLevel } from '@/lib/reputation';
 import { cn } from '@/lib/utils';
 
-const lit: Record<ReputationLevel, string> = {
-  new: 'bg-level-new',
-  unreliable: 'bg-orange',
-  fair: 'bg-sun',
-  honorable: 'bg-good',
-};
-
-const nextRing: Record<ReputationLevel, string> = {
-  new: 'ring-level-new',
-  unreliable: 'ring-orange',
-  fair: 'ring-sun',
-  honorable: 'ring-good',
-};
-
-const nextGlow: Record<ReputationLevel, string> = {
-  new: 'bg-level-new-soft',
-  unreliable: 'bg-orange-soft',
-  fair: 'bg-sun-soft',
-  honorable: 'bg-good-soft',
+/** A level's colours on the way to it: a cell done, and the ring and glow of the next one. */
+const ZONE: Record<ReputationLevel, { lit: string; ring: string; glow: string }> = {
+  new: { lit: 'bg-level-new', ring: 'ring-level-new', glow: 'bg-level-new-soft' },
+  unreliable: { lit: 'bg-orange', ring: 'ring-orange', glow: 'bg-orange-soft' },
+  fair: { lit: 'bg-sun', ring: 'ring-sun', glow: 'bg-sun-soft' },
+  honorable: { lit: 'bg-good', ring: 'ring-good', glow: 'bg-good-soft' },
 };
 
 interface QuestLineProps {
@@ -38,10 +25,14 @@ interface QuestLineProps {
 export function QuestLine({ quest, isEntering = false, className }: QuestLineProps) {
   const { t } = useTranslation();
   const zone = quest.next ?? quest.level;
+  const colours = ZONE[zone];
   const cells = questCells(quest);
-  const label = quest.next
-    ? t('wallet.quest', { level: t(getReputationLabelKey(quest.next)), have: Math.min(quest.have, quest.need), need: quest.need })
-    : t('wallet.quest.top', { level: t(getReputationLabelKey(quest.level)) });
+  const { label, score } = quest.next
+    ? {
+        label: t('wallet.quest', { level: t(getReputationLabelKey(quest.next)), have: quest.have, need: quest.need }),
+        score: t('quest.score', { have: quest.have, need: quest.need }),
+      }
+    : { label: t('wallet.quest.top', { level: t(getReputationLabelKey(quest.level)) }), score: t('quest.top') };
 
   return (
     <div role="img" aria-label={label} className={cn('grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2.5', className)}>
@@ -53,22 +44,20 @@ export function QuestLine({ quest, isEntering = false, className }: QuestLinePro
                 style={{ '--i': index }}
                 className={cn(
                   'absolute inset-0 inset-shadow-avatar',
-                  lit[zone],
+                  colours.lit,
                   isEntering && 'animate-cell-in [animation-delay:calc(var(--i)*90ms)]'
                 )}
               />
             )}
             {index === cells.lit && (
-              <span className={cn('absolute inset-0 rounded-[4px] ring-[1.5px] ring-inset', nextRing[zone])}>
-                <span className={cn('absolute inset-0 animate-next-cell opacity-0', nextGlow[zone])} />
+              <span className={cn('absolute inset-0 rounded-[4px] ring-[1.5px] ring-inset', colours.ring)}>
+                <span className={cn('absolute inset-0 animate-next-cell opacity-0', colours.glow)} />
               </span>
             )}
           </span>
         ))}
       </span>
-      <span className="text-note font-bold text-ink-2 tabular-nums">
-        {quest.next ? t('quest.score', { have: Math.min(quest.have, quest.need), need: quest.need }) : t('quest.top')}
-      </span>
+      <span className="text-note font-bold text-ink-2 tabular-nums">{score}</span>
       <LevelBadge level={zone} isLocked={quest.next !== null} className="h-[34px] pr-3 pl-2.5 text-sm" />
     </div>
   );

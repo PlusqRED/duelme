@@ -1,30 +1,42 @@
 // @vitest-environment happy-dom
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AVAILABLE_CHAINS } from '@/lib/constants';
+import { AVAILABLE_CHAINS, DEFAULT_CHAIN_ID } from '@/lib/constants';
 
 const WALLET = '0x32a3fe56f4fee248e4f19ca3d4374a018ac9aa23';
 
+interface QueryResult {
+  status: 'pending' | 'error' | 'success';
+  data?: bigint;
+  refetch: () => void;
+}
+
+interface QueryOptions {
+  queryKey: [string, Record<string, unknown>];
+  enabled: boolean;
+  refetchInterval: number | false;
+  select?: (data: { value: bigint }) => bigint;
+}
+
 const reads = vi.hoisted(() => ({
-  usdt: { data: undefined as unknown, isError: false, refetch: vi.fn() },
-  eth: [] as { status: 'pending' | 'error' | 'success'; data?: { value: bigint }; refetch: () => void }[],
-  usdtContracts: [] as unknown[],
-  ethQueries: [] as unknown[],
+  usdt: [] as QueryResult[],
+  eth: [] as QueryResult[],
+  usdtQueries: [] as QueryOptions[],
+  ethQueries: [] as QueryOptions[],
   listeners: new Set<() => void>(),
 }));
 
-vi.mock('wagmi', () => ({
-  useConfig: () => ({}),
-  useReadContracts: ({ contracts }: { contracts: unknown[] }) => {
-    reads.usdtContracts = contracts;
-    return reads.usdt;
-  },
-}));
+vi.mock('wagmi', () => ({ useConfig: () => ({}) }));
 vi.mock('wagmi/query', () => ({
+  readContractQueryOptions: (_config: object, parameters: object) => ({ queryKey: ['readContract', parameters] }),
   getBalanceQueryOptions: (_config: object, parameters: object) => ({ queryKey: ['balance', parameters] }),
 }));
 vi.mock('@tanstack/react-query', () => ({
-  useQueries: ({ queries }: { queries: unknown[] }) => {
+  useQueries: ({ queries }: { queries: QueryOptions[] }) => {
+    if (queries[0]?.queryKey[0] === 'readContract') {
+      reads.usdtQueries = queries;
+      return reads.usdt;
+    }
     reads.ethQueries = queries;
     return reads.eth;
   },
@@ -38,9 +50,15 @@ vi.mock('@/lib/balanceRefresh', () => ({
 
 const { useWalletBalances } = await import('@/hooks/useWalletBalances');
 
+const DUEL_NETWORK = AVAILABLE_CHAINS.findIndex((chain) => chain.id === DEFAULT_CHAIN_ID);
+
+function allQueries() {
+  return [...reads.usdt, ...reads.eth];
+}
+
 beforeEach(() => {
-  reads.usdt = { data: undefined, isError: false, refetch: vi.fn() };
-  reads.eth = AVAILABLE_CHAINS.map(() => ({ status: 'pending' as const, refetch: vi.fn() }));
+  reads.usdt = AVAILABLE_CHAINS.map(() => ({ status: 'pending', refetch: vi.fn() }));
+  reads.eth = AVAILABLE_CHAINS.map(() => ({ status: 'pending', refetch: vi.fn() }));
   reads.listeners.clear();
 });
 
@@ -48,24 +66,40 @@ afterEach(cleanup);
 
 describe('useWalletBalances', () => {
   it('reads USDT and ETH on every network the app lists, for the wallet', () => {
-    renderHook(() => useWalletBalances(WALLET));
+    renderHook(() => useWalletBalances(WALLET, false));
 
-    expect(reads.usdtContracts).toHaveLength(AVAILABLE_CHAINS.length);
-    expect(reads.usdtContracts[0]).toMatchObject({ address: AVAILABLE_CHAINS[0].usdt, args: [WALLET], chainId: AVAILABLE_CHAINS[0].id });
+    expect(reads.usdtQueries).toHaveLength(AVAILABLE_CHAINS.length);
+    expect(reads.usdtQueries[0]).toMatchObject({
+      queryKey: ['readContract', { address: AVAILABLE_CHAINS[0].usdt, functionName: 'balanceOf', args: [WALLET], chainId: AVAILABLE_CHAINS[0].id }],
+      enabled: true,
+    });
     expect(reads.ethQueries[0]).toMatchObject({ queryKey: ['balance', { address: WALLET, chainId: AVAILABLE_CHAINS[0].id }], enabled: true });
+    expect(reads.ethQueries[0].select?.({ value: 7n })).toBe(7n);
   });
 
   it('reads nothing without a wallet', () => {
-    renderHook(() => useWalletBalances(undefined));
+    renderHook(() => useWalletBalances(undefined, false));
 
-    expect(reads.usdtContracts).toEqual([]);
-    expect(reads.ethQueries[0]).toMatchObject({ enabled: false });
+    expect([...reads.usdtQueries, ...reads.ethQueries].every((query) => !query.enabled)).toBe(true);
+  });
+
+  it('polls only the balance on the wallet button while the menu is closed', () => {
+    renderHook(() => useWalletBalances(WALLET, false));
+
+    reads.usdtQueries.forEach((query, index) => expect(query.refetchInterval === false).toBe(index !== DUEL_NETWORK));
+    reads.ethQueries.forEach((query) => expect(query.refetchInterval).toBe(false));
+  });
+
+  it('polls every balance while the menu shows them', () => {
+    renderHook(() => useWalletBalances(WALLET, true));
+
+    [...reads.usdtQueries, ...reads.ethQueries].forEach((query) => expect(query.refetchInterval).toBeGreaterThan(0));
   });
 
   it('keeps each network\'s balances apart, still being read until they are known', () => {
-    reads.usdt.data = AVAILABLE_CHAINS.map((_, index) => ({ status: 'success', result: BigInt(index + 1) }));
-    reads.eth[0] = { status: 'success', data: { value: 7n }, refetch: vi.fn() };
-    const { result } = renderHook(() => useWalletBalances(WALLET));
+    reads.usdt[0] = { status: 'success', data: 1n, refetch: vi.fn() };
+    reads.eth[0] = { status: 'success', data: 7n, refetch: vi.fn() };
+    const { result } = renderHook(() => useWalletBalances(WALLET, true));
 
     expect(result.current.networks[0]).toEqual({ chain: AVAILABLE_CHAINS[0], usdt: { kind: 'ready', raw: 1n }, eth: { kind: 'ready', raw: 7n } });
     if (AVAILABLE_CHAINS.length > 1) {
@@ -74,20 +108,18 @@ describe('useWalletBalances', () => {
   });
 
   it('reads everything again when a write says a balance moved', () => {
-    renderHook(() => useWalletBalances(WALLET));
+    renderHook(() => useWalletBalances(WALLET, false));
 
     act(() => reads.listeners.forEach((listener) => listener()));
 
-    expect(reads.usdt.refetch).toHaveBeenCalled();
-    reads.eth.forEach((query) => expect(query.refetch).toHaveBeenCalled());
+    allQueries().forEach((query) => expect(query.refetch).toHaveBeenCalled());
   });
 
-  it('reads everything again on request, after a read failed', () => {
-    const { result } = renderHook(() => useWalletBalances(WALLET));
+  it('reads everything again on request', () => {
+    const { result } = renderHook(() => useWalletBalances(WALLET, false));
 
     act(() => result.current.refetch());
 
-    expect(reads.usdt.refetch).toHaveBeenCalled();
-    reads.eth.forEach((query) => expect(query.refetch).toHaveBeenCalled());
+    allQueries().forEach((query) => expect(query.refetch).toHaveBeenCalled());
   });
 });

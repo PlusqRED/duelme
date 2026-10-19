@@ -68,4 +68,26 @@ describe('useCountUp', () => {
 
     expect(result.current).toBe(5_000_000n);
   });
+
+  it('counts on from wherever a count had got to when the amount moves again', () => {
+    const { result, rerender } = renderCount(10_000_000n);
+    rerender({ value: 20_000_000n });
+    act(() => vi.advanceTimersByTime(300));
+    const midway = result.current ?? 0n;
+
+    rerender({ value: 30_000_000n });
+    act(() => vi.advanceTimersByTime(16));
+    expect((result.current ?? 0n) >= midway).toBe(true);
+
+    act(() => vi.advanceTimersByTime(800));
+    expect(result.current).toBe(30_000_000n);
+  });
+
+  it('shows an amount no longer known as unknown at once', () => {
+    const { result, rerender } = renderCount(5_000_000n);
+
+    rerender({ value: null });
+
+    expect(result.current).toBeNull();
+  });
 });

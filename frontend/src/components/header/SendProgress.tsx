@@ -10,7 +10,7 @@ import type { SendStage, Transfer } from '@/lib/sendUsdt';
 import { cn, formatUSDT, truncateAddress } from '@/lib/utils';
 
 interface SendProgressProps {
-  stage: Exclude<SendStage, 'form'>;
+  stage: SendStage;
   /** The wallet the money leaves. */
   from: string;
   transfer: Transfer;
@@ -64,7 +64,7 @@ export function SendProgress({ stage, from, transfer, network, hash, error, onDo
           href={`${network.explorer}/tx/${hash}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex min-h-11 items-center gap-2 justify-self-start text-sm font-bold text-blue-deep underline decoration-blue-deep/30 decoration-[1.5px] underline-offset-4 hover:decoration-current"
+          className="link inline-flex min-h-11 items-center gap-2 justify-self-start text-sm"
         >
           <span className="tabular-nums">{truncateAddress(hash)}</span>
           {t('send.tx')}
@@ -95,7 +95,7 @@ function Route({ stage, from, to }: RouteProps) {
   const isStopped = stage === 'rejected' || stage === 'failed';
 
   return (
-    <div aria-hidden="true" className="grid grid-cols-[40px_minmax(0,1fr)_40px] items-center rounded-[18px] bg-canvas px-3 py-2.5">
+    <div aria-hidden="true" className="grid grid-cols-[40px_minmax(0,1fr)_40px] items-center rounded-tile bg-canvas px-3 py-2.5">
       <Avatar address={from} tone="ink" className="size-10" />
       <span
         className={cn(

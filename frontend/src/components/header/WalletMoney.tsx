@@ -5,12 +5,12 @@ import { FaucetFlask } from '@/components/header/FaucetFlask';
 import { NetworkTiles } from '@/components/header/NetworkTiles';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { Note } from '@/components/ui/note';
 import type { FaucetFlaskState } from '@/hooks/useFaucetFlask';
 import { useRelayerStatus } from '@/hooks/useRelayerStatus';
 import type { NetworkBalances } from '@/hooks/useWalletBalances';
 import { useTranslation } from '@/i18n/useTranslation';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
-import { cn } from '@/lib/utils';
 
 interface WalletMoneyProps {
   networks: NetworkBalances[];
@@ -60,13 +60,9 @@ export function WalletMoney({ networks, pickedId, onPick, faucet, onRetry, onTop
           {t('wallet.send')}
         </Button>
       </div>
-      <p className="flex items-start gap-[7px] text-sm/[1.4] text-pretty text-ink-2">
-        <Icon
-          name={isRelayEnabled ? 'check' : 'fuel'}
-          className={cn('mt-0.5 size-4', isRelayEnabled ? 'stroke-[2.6] text-good-ink' : 'text-ink-2')}
-        />
+      <Note icon={isRelayEnabled ? 'check' : 'fuel'} tone={isRelayEnabled ? 'good' : 'plain'}>
         {t(isRelayEnabled ? 'wallet.fees' : 'wallet.fees.self')}
-      </p>
+      </Note>
       <div aria-live="polite" className="empty:hidden">
         <FaucetFlask phase={faucet.phase} offer={faucet.offer} onClaim={() => void faucet.claim()} onPoured={faucet.settle} />
       </div>

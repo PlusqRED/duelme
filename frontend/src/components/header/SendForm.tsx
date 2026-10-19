@@ -5,19 +5,25 @@ import { formatUnits } from 'viem';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
+import { Note } from '@/components/ui/note';
 import type { NetworkBalances } from '@/hooks/useWalletBalances';
 import type { TranslationKey } from '@/i18n/translations';
 import { useTranslation } from '@/i18n/useTranslation';
 import { USDT_DECIMALS } from '@/lib/constants';
 import type { FaucetOffer } from '@/lib/faucetApi';
-import { parseTransfer, parseUsdtAmount, sendProblems, type SendDraft, type SendProblems, type Transfer } from '@/lib/sendUsdt';
-import { cn, formatEth, formatUSDT } from '@/lib/utils';
-import { readingRaw } from '@/lib/walletBalances';
+import { checkTransfer, parseUsdtAmount, type SendDraft, type SendProblems, type Transfer } from '@/lib/sendUsdt';
+import { formatEth, formatUSDT } from '@/lib/utils';
+import { readingFigure, readingRaw } from '@/lib/walletBalances';
 
 const TO_PROBLEM: Record<NonNullable<SendProblems['to']>, TranslationKey> = {
   address: 'send.err.address',
   self: 'send.err.self',
 };
+
+/** The id of the line that says what is wrong with a field, which the field points to. */
+function errorId(fieldId: string): string {
+  return `${fieldId}-error`;
+}
 
 interface SendFormProps {
   address: string;
@@ -35,25 +41,25 @@ interface SendFormProps {
 export function SendForm({ address, network, faucetOffer, draft, onDraft, onSubmit }: SendFormProps) {
   const { t, language } = useTranslation();
   const ids = useId();
+  const toId = `${ids}-to`;
+  const amountId = `${ids}-amount`;
   const toInput = useRef<HTMLInputElement>(null);
   const amountInput = useRef<HTMLInputElement>(null);
   const [isTried, setIsTried] = useState(false);
   const usdtRaw = readingRaw(network.usdt);
-  const ethWei = readingRaw(network.eth);
-  const problems = isTried ? sendProblems(draft, { address, usdtRaw, ethWei }) : {};
+  const check = checkTransfer(draft, { address, usdtRaw, ethWei: readingRaw(network.eth) });
+  const problems = isTried ? check.problems : {};
   const amountRaw = parseUsdtAmount(draft.amount);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsTried(true);
-    const found = sendProblems(draft, { address, usdtRaw, ethWei });
-    const transfer = parseTransfer(draft);
-    if (found.to) {
+    if (check.problems.to) {
       toInput.current?.focus();
-    } else if (found.amount) {
+    } else if (check.problems.amount) {
       amountInput.current?.focus();
-    } else if (!found.eth && transfer) {
-      onSubmit(transfer);
+    } else if (check.transfer) {
+      onSubmit(check.transfer);
     }
   }
 
@@ -75,10 +81,10 @@ export function SendForm({ address, network, faucetOffer, draft, onDraft, onSubm
 
   return (
     <form noValidate onSubmit={submit} className="grid gap-3">
-      <Field id={`${ids}-to`} label={t('send.to')} error={toError}>
+      <Field id={toId} label={t('send.to')} error={toError}>
         <Input
           ref={toInput}
-          id={`${ids}-to`}
+          id={toId}
           type="text"
           autoComplete="off"
           spellCheck={false}
@@ -86,15 +92,15 @@ export function SendForm({ address, network, faucetOffer, draft, onDraft, onSubm
           value={draft.to}
           onChange={(event) => onDraft({ ...draft, to: event.target.value })}
           aria-invalid={toError ? true : undefined}
-          aria-describedby={toError ? `${ids}-to-error` : undefined}
+          aria-describedby={toError ? errorId(toId) : undefined}
           className="text-body-sm tabular-nums"
         />
       </Field>
-      <Field id={`${ids}-amount`} label={t('send.amount')} error={amountError}>
+      <Field id={amountId} label={t('send.amount')} error={amountError}>
         <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2">
           <Input
             ref={amountInput}
-            id={`${ids}-amount`}
+            id={amountId}
             type="text"
             inputMode="decimal"
             autoComplete="off"
@@ -102,7 +108,7 @@ export function SendForm({ address, network, faucetOffer, draft, onDraft, onSubm
             value={draft.amount}
             onChange={(event) => onDraft({ ...draft, amount: event.target.value })}
             aria-invalid={amountError ? true : undefined}
-            aria-describedby={amountError ? `${ids}-amount-error` : undefined}
+            aria-describedby={amountError ? errorId(amountId) : undefined}
             className="tabular-nums"
           />
           <span className="text-sm font-label text-ink-3">USDT</span>
@@ -115,10 +121,10 @@ export function SendForm({ address, network, faucetOffer, draft, onDraft, onSubm
           </button>
         </div>
       </Field>
-      <Note icon={problems.eth ? 'alert' : 'fuel'} isBad={!!problems.eth}>
+      <Note icon={problems.eth ? 'alert' : 'fuel'} tone={problems.eth ? 'bad' : 'quiet'}>
         {problems.eth
           ? t('send.err.eth', { network: network.chain.name }) + offersEth
-          : t('send.fee', { eth: ethWei === null ? '…' : formatEth(ethWei, language) })}
+          : t('send.fee', { eth: readingFigure(network.eth, (wei) => formatEth(wei, language)) })}
       </Note>
       <Note icon="alert">{t('send.check')}</Note>
       <Button type="submit" size="lg" className="mt-1 w-full">
@@ -144,25 +150,10 @@ function Field({ id, label, error, children }: FieldProps) {
       </label>
       {children}
       {error && (
-        <p id={`${id}-error`} className="text-sm font-label text-orange-ink">
+        <p id={errorId(id)} className="text-sm font-label text-orange-ink">
           {error}
         </p>
       )}
     </div>
-  );
-}
-
-interface NoteProps {
-  icon: 'alert' | 'fuel';
-  isBad?: boolean;
-  children: string;
-}
-
-function Note({ icon, isBad = false, children }: NoteProps) {
-  return (
-    <p className={cn('flex items-start gap-[7px] text-sm/[1.4] text-ink-2', isBad && 'font-label text-orange-ink')}>
-      <Icon name={icon} className={cn('mt-0.5 size-4', isBad ? 'text-orange-ink' : 'text-ink-3')} />
-      {children}
-    </p>
   );
 }

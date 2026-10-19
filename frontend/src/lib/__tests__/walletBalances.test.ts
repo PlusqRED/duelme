@@ -1,47 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { ethReading, readingRaw, usdtReadings } from '@/lib/walletBalances';
+import { balanceReading, readingFigure, readingRaw } from '@/lib/walletBalances';
 
-describe('usdtReadings', () => {
-  it('reads each network that answered', () => {
-    const results = [
-      { status: 'success', result: 2_000_000n },
-      { status: 'success', result: 0n },
-    ] as const;
-
-    expect(usdtReadings(2, results, false)).toEqual([
-      { kind: 'ready', raw: 2_000_000n },
-      { kind: 'ready', raw: 0n },
-    ]);
+describe('balanceReading', () => {
+  it('reads a balance that answered, zero included', () => {
+    expect(balanceReading({ status: 'success', data: 7n })).toEqual({ kind: 'ready', raw: 7n });
+    expect(balanceReading({ status: 'success', data: 0n })).toEqual({ kind: 'ready', raw: 0n });
   });
 
-  it('keeps a network still loading as checking', () => {
-    expect(usdtReadings(2, undefined, false)).toEqual([{ kind: 'checking' }, { kind: 'checking' }]);
+  it('is checking while it loads', () => {
+    expect(balanceReading({ status: 'pending' })).toEqual({ kind: 'checking' });
   });
 
-  it('does not show a failed network as zero', () => {
-    const results = [{ status: 'success', result: 2_000_000n }, { status: 'failure' }] as const;
-
-    expect(usdtReadings(2, results, false)[1]).toEqual({ kind: 'error' });
-  });
-
-  it('marks every network failed when the whole read failed, even with old results cached', () => {
-    const results = [
-      { status: 'success', result: 2_000_000n },
-      { status: 'success', result: 1n },
-    ] as const;
-
-    expect(usdtReadings(2, results, true)).toEqual([{ kind: 'error' }, { kind: 'error' }]);
-  });
-});
-
-describe('ethReading', () => {
-  it('reads a balance that answered', () => {
-    expect(ethReading({ status: 'success', data: { value: 7n } })).toEqual({ kind: 'ready', raw: 7n });
-  });
-
-  it('is checking while it loads, and failed when it failed', () => {
-    expect(ethReading({ status: 'pending' })).toEqual({ kind: 'checking' });
-    expect(ethReading({ status: 'error', data: { value: 7n } })).toEqual({ kind: 'error' });
+  it('is failed when the read failed, even with an old amount cached, never a zero', () => {
+    expect(balanceReading({ status: 'error', data: 7n })).toEqual({ kind: 'error' });
   });
 });
 
@@ -50,5 +21,18 @@ describe('readingRaw', () => {
     expect(readingRaw({ kind: 'ready', raw: 0n })).toBe(0n);
     expect(readingRaw({ kind: 'checking' })).toBeNull();
     expect(readingRaw({ kind: 'error' })).toBeNull();
+  });
+});
+
+describe('readingFigure', () => {
+  const format = (raw: bigint) => `${raw} units`;
+
+  it('shows a known amount the way it is asked to', () => {
+    expect(readingFigure({ kind: 'ready', raw: 0n }, format)).toBe('0 units');
+  });
+
+  it('shows an ellipsis while the balance is read, and a dash once the read failed', () => {
+    expect(readingFigure({ kind: 'checking' }, format)).toBe('…');
+    expect(readingFigure({ kind: 'error' }, format)).toBe('—');
   });
 });

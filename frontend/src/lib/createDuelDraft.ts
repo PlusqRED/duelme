@@ -1,4 +1,5 @@
 import { GAME_CATEGORIES, type Game } from '@/lib/game';
+import { isRecord } from '@/lib/parsing';
 
 /** Versioned, so a later change of shape reads an old entry as nothing rather than as garbage. */
 export const CREATE_DUEL_DRAFT_KEY = 'duelme:create-duel-draft:v1';
@@ -97,8 +98,4 @@ function isDraftGame(value: unknown): value is CreateDuelDraftGame {
     typeof value.name === 'string' &&
     GAME_CATEGORIES.some((category) => category === value.category)
   );
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

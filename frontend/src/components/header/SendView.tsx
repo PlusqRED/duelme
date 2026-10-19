@@ -1,16 +1,16 @@
 'use client';
 
 import { useState } from 'react';
+import { QuietButton } from '@/components/header/QuietButton';
 import { SendForm } from '@/components/header/SendForm';
 import { SendProgress } from '@/components/header/SendProgress';
-import { Icon } from '@/components/ui/icon';
 import { useSendUsdt } from '@/hooks/useSendUsdt';
 import type { NetworkBalances } from '@/hooks/useWalletBalances';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { FaucetOffer } from '@/lib/faucetApi';
 import { sendStage, type SendDraft, type Transfer } from '@/lib/sendUsdt';
 import { formatUSDT } from '@/lib/utils';
-import { readingRaw } from '@/lib/walletBalances';
+import { readingFigure } from '@/lib/walletBalances';
 
 interface SendViewProps {
   /** Checksummed: the wallet the money leaves. */
@@ -28,8 +28,6 @@ export function SendView({ address, network, faucetOffer, onBack }: SendViewProp
   const [draft, setDraft] = useState<SendDraft>({ to: '', amount: '' });
   const [transfer, setTransfer] = useState<Transfer | null>(null);
   const sending = useSendUsdt(network.chain.id);
-  const stage = sendStage(transfer !== null, sending);
-  const usdtRaw = readingRaw(network.usdt);
 
   function submit(next: Transfer) {
     setTransfer(next);
@@ -43,22 +41,16 @@ export function SendView({ address, network, faucetOffer, onBack }: SendViewProp
 
   return (
     <>
-      <button
-        type="button"
-        onClick={onBack}
-        autoFocus
-        className="-mt-2 -mb-1.5 inline-flex min-h-11 cursor-pointer items-center gap-[7px] justify-self-start text-body-sm font-label text-ink-2 transition-colors hover:text-ink"
-      >
-        <Icon name="arrow-left" className="size-[18px]" />
+      <QuietButton icon="arrow-left" onClick={onBack} autoFocus className="-mt-2 -mb-1.5 justify-self-start">
         {t('send.back')}
-      </button>
+      </QuietButton>
       <div className="grid gap-0.5">
         <h3 className="text-xl font-extrabold tracking-[-0.02em]">{t('send.title')}</h3>
         <p className="text-body-sm text-ink-2">
-          {t('send.from', { network: network.chain.name, amount: usdtRaw === null ? '…' : formatUSDT(usdtRaw, language) })}
+          {t('send.from', { network: network.chain.name, amount: readingFigure(network.usdt, (raw) => formatUSDT(raw, language)) })}
         </p>
       </div>
-      {transfer === null || stage === 'form' ? (
+      {transfer === null ? (
         <SendForm
           address={address}
           network={network}
@@ -69,7 +61,7 @@ export function SendView({ address, network, faucetOffer, onBack }: SendViewProp
         />
       ) : (
         <SendProgress
-          stage={stage}
+          stage={sendStage(sending)}
           from={address}
           transfer={transfer}
           network={network.chain}

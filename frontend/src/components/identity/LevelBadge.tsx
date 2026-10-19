@@ -40,7 +40,8 @@ export function LevelBadge({ level, isLocked = false, className }: LevelBadgePro
     <span
       className={cn(
         'inline-flex shrink-0 items-center gap-[5px] rounded-full font-extrabold',
-        isLocked ? cn('border-[1.5px] border-dashed bg-paper', locked[level]) : reached[level],
+        isLocked && 'border-[1.5px] border-dashed bg-paper',
+        (isLocked ? locked : reached)[level],
         className
       )}
     >

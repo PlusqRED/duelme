@@ -2,9 +2,21 @@
 
 import { useId } from 'react';
 import { Icon } from '@/components/ui/icon';
+import type { TranslationKey } from '@/i18n/translations';
 import { useTranslation } from '@/i18n/useTranslation';
-import type { FaucetOffer, FlaskPhase } from '@/lib/faucetApi';
+import type { FaucetOffer } from '@/lib/faucetApi';
+import type { FlaskPhase } from '@/lib/faucetFlask';
 import { cn, formatEth, formatUSDT } from '@/lib/utils';
+
+/** The phases the flask is a button in: before the claim, and while it is answered and on its way. */
+type ClaimPhase = Extract<FlaskPhase, 'ready' | 'asking' | 'sent'>;
+
+const CLAIM_LEVEL: Record<ClaimPhase, FlaskLevel> = { ready: 'low', asking: 'filling', sent: 'full' };
+const CLAIM_NOTE: Record<ClaimPhase, TranslationKey> = {
+  ready: 'wallet.faucet.note',
+  asking: 'wallet.faucet.asking',
+  sent: 'wallet.faucet.sent',
+};
 
 interface FaucetFlaskProps {
   phase: FlaskPhase;
@@ -28,7 +40,7 @@ export function FaucetFlask({ phase, offer, onClaim, onPoured }: FaucetFlaskProp
   if (phase === 'landed' || phase === 'claimed') {
     const isPouring = phase === 'landed';
     return (
-      <p className="grid min-h-[60px] grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-x-3 rounded-[18px] bg-good-soft py-2.5 pr-3.5 pl-2.5 text-sm font-label text-good-ink">
+      <p className="grid min-h-[60px] grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-x-3 rounded-tile bg-good-soft py-2.5 pr-3.5 pl-2.5 text-sm font-label text-good-ink">
         <Flask level={isPouring ? 'pouring' : 'empty'} onPoured={onPoured} className="bg-paper" />
         <span>{t('wallet.faucet.done', amounts)}</span>
         <Icon name="check" className={cn('size-5 stroke-[2.6]', isPouring && 'animate-pop [animation-delay:0.6s]')} />
@@ -43,18 +55,12 @@ export function FaucetFlask({ phase, offer, onClaim, onPoured }: FaucetFlaskProp
       type="button"
       onClick={isBusy ? undefined : onClaim}
       aria-disabled={isBusy || undefined}
-      className="grid min-h-[60px] w-full cursor-pointer grid-cols-[40px_minmax(0,1fr)] items-center gap-x-3 rounded-[18px] border-[1.5px] border-dashed border-line-strong bg-paper py-2.5 pr-3.5 pl-2.5 text-left text-ink transition-colors hover:border-good aria-disabled:cursor-default aria-disabled:border-solid aria-disabled:border-good-soft"
+      className="grid min-h-[60px] w-full cursor-pointer grid-cols-[40px_minmax(0,1fr)] items-center gap-x-3 rounded-tile border-[1.5px] border-dashed border-line-strong bg-paper py-2.5 pr-3.5 pl-2.5 text-left text-ink transition-colors hover:border-good aria-disabled:cursor-default aria-disabled:border-solid aria-disabled:border-good-soft"
     >
-      <Flask level={phase === 'asking' ? 'filling' : phase === 'sent' ? 'full' : 'low'} />
+      <Flask level={CLAIM_LEVEL[phase]} />
       <span className="grid gap-px">
         <b className="text-body-sm font-bold">{t('wallet.faucet')}</b>
-        <small className="text-note text-pretty text-ink-3">
-          {phase === 'asking'
-            ? t('wallet.faucet.asking')
-            : phase === 'sent'
-              ? t('wallet.faucet.sent', amounts)
-              : t('wallet.faucet.note', amounts)}
-        </small>
+        <small className="text-note text-pretty text-ink-3">{t(CLAIM_NOTE[phase], amounts)}</small>
       </span>
     </button>
   );

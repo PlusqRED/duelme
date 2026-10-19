@@ -1,3 +1,5 @@
+import { isRecord, parseUintString } from '@/lib/parsing';
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '/api/v1';
 
 export interface FaucetClaimResponse {
@@ -59,16 +61,6 @@ export type FaucetStatus =
   | { enabled: false }
   | { enabled: true; claimed: boolean; chainId: number; usdtAmountRaw: bigint; ethAmountWei: bigint };
 
-const WHOLE_NUMBER = /^\d+$/;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
-function isWholeNumberString(value: unknown): value is string {
-  return typeof value === 'string' && WHOLE_NUMBER.test(value);
-}
-
 /** The backend's answer as a status, or null when it has another shape. */
 export function parseFaucetStatus(body: unknown): FaucetStatus | null {
   if (!isRecord(body) || typeof body.enabled !== 'boolean') {
@@ -77,17 +69,19 @@ export function parseFaucetStatus(body: unknown): FaucetStatus | null {
   if (!body.enabled) {
     return { enabled: false };
   }
-  const { claimed, chainId, usdtAmountRaw, ethAmountWei } = body;
+  const { claimed, chainId } = body;
+  const usdtAmountRaw = parseUintString(body.usdtAmountRaw);
+  const ethAmountWei = parseUintString(body.ethAmountWei);
   if (
     typeof claimed !== 'boolean' ||
     typeof chainId !== 'number' ||
     !Number.isSafeInteger(chainId) ||
-    !isWholeNumberString(usdtAmountRaw) ||
-    !isWholeNumberString(ethAmountWei)
+    usdtAmountRaw === null ||
+    ethAmountWei === null
   ) {
     return null;
   }
-  return { enabled: true, claimed, chainId, usdtAmountRaw: BigInt(usdtAmountRaw), ethAmountWei: BigInt(ethAmountWei) };
+  return { enabled: true, claimed, chainId, usdtAmountRaw, ethAmountWei };
 }
 
 export async function getFaucetStatus(token: string): Promise<FaucetStatus> {
@@ -119,36 +113,4 @@ export function faucetOffer(status: FaucetStatus | undefined, chainId: number): 
     usdtAmountRaw: status.usdtAmountRaw,
     ethAmountWei: status.ethAmountWei,
   };
-}
-
-/** A claim the wallet menu follows until its USDT shows up in the balance it was sent to. */
-export interface FaucetFollow {
-  chainId: number;
-  /** The network's USDT when the claim went out. */
-  usdtBefore: bigint;
-}
-
-/**
- * The faucet's flask on one network: hidden where the faucet gives nothing, ready, asking while the
- * claim is answered, sent until the USDT lands, landed the moment it does, and claimed after.
- */
-export type FlaskPhase = 'hidden' | 'ready' | 'asking' | 'sent' | 'landed' | 'claimed';
-
-export function flaskPhase(
-  offer: FaucetOffer,
-  isClaiming: boolean,
-  follow: FaucetFollow | null,
-  chainId: number,
-  usdtRaw: bigint | null
-): FlaskPhase {
-  if (offer.kind === 'none') {
-    return 'hidden';
-  }
-  if (isClaiming) {
-    return 'asking';
-  }
-  if (follow?.chainId === chainId) {
-    return usdtRaw !== null && usdtRaw > follow.usdtBefore ? 'landed' : 'sent';
-  }
-  return offer.kind === 'claimed' ? 'claimed' : 'ready';
 }

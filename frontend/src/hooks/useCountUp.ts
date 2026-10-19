@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 const COUNT_MS = 700;
@@ -9,6 +9,11 @@ const STEP = 100_000n;
 /** The easing's resolution: the share of the way travelled, in thousandths. */
 const PARTS = 1000;
 
+interface Count {
+  from: bigint;
+  to: bigint;
+}
+
 /**
  * A USDT amount, in base units, that counts to its new value, eased out, instead of jumping, the
  * way a balance moves in the design. Null until there is a value; the first value and every value
@@ -16,29 +21,37 @@ const PARTS = 1000;
  */
 export function useCountUp(value: bigint | null): bigint | null {
   const reducedMotion = useReducedMotion();
+  const [target, setTarget] = useState(value);
   const [shown, setShown] = useState(value);
-  const shownRef = useRef(value);
+  const [count, setCount] = useState<Count | null>(null);
+
+  // Whether a new value counts is decided while rendering, so one that shows at once is there in
+  // the same render; a count starts from wherever the last one had got to.
+  if (value !== target) {
+    setTarget(value);
+    const counts = value !== null && shown !== null && value !== shown && !reducedMotion;
+    setCount(counts ? { from: shown, to: value } : null);
+    if (!counts) {
+      setShown(value);
+    }
+  }
 
   useEffect(() => {
-    const from = shownRef.current;
-    if (value === null || from === null || from === value || reducedMotion) {
-      shownRef.current = value;
-      setShown(value);
+    if (!count) {
       return;
     }
+    const { from, to } = count;
     const start = performance.now();
     let frame = requestAnimationFrame(function step(now) {
       const progress = Math.min(1, (now - start) / COUNT_MS);
       const travelled = BigInt(Math.round((1 - (1 - progress) ** 3) * PARTS));
-      const next = progress < 1 ? ((from + ((value - from) * travelled) / BigInt(PARTS)) / STEP) * STEP : value;
-      shownRef.current = next;
-      setShown(next);
+      setShown(progress < 1 ? ((from + ((to - from) * travelled) / BigInt(PARTS)) / STEP) * STEP : to);
       if (progress < 1) {
         frame = requestAnimationFrame(step);
       }
     });
     return () => cancelAnimationFrame(frame);
-  }, [value, reducedMotion]);
+  }, [count]);
 
   return shown;
 }

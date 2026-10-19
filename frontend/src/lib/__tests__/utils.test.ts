@@ -35,6 +35,10 @@ describe('cn', () => {
     expect(cn(`max-w-${container}`, 'max-w-sm')).toBe('max-w-sm');
   });
 
+  it.each([...themeTokens('radius').keys()])('lets a later radius replace rounded-%s', (radius) => {
+    expect(cn(`rounded-${radius}`, 'rounded-full')).toBe('rounded-full');
+  });
+
   it('lets a later type size replace an earlier one', () => {
     expect(cn('text-body', 'text-note')).toBe('text-note');
   });

@@ -3,11 +3,10 @@
 import { useRef, useState } from 'react';
 import { useExportWallet, usePrivy } from '@privy-io/react-auth';
 import { PlayerCard } from '@/components/header/PlayerCard';
+import { QuietButton } from '@/components/header/QuietButton';
 import { SendView } from '@/components/header/SendView';
 import { WalletButton } from '@/components/header/WalletButton';
 import { WalletMoney } from '@/components/header/WalletMoney';
-import { Icon } from '@/components/ui/icon';
-import type { IconName } from '@/components/ui/iconPaths';
 import { Popover, PopoverContent } from '@/components/ui/popover';
 import { DepositDialog } from '@/components/wallet/DepositDialog';
 import { useFaucetFlask } from '@/hooks/useFaucetFlask';
@@ -41,7 +40,7 @@ export function WalletMenu({ address, walletAddress, walletClientType }: WalletM
   const [topUpChainId, setTopUpChainId] = useState<number | null>(null);
   const [isEntering, setIsEntering] = useState(false);
   const introFor = useRef<string | null>(null);
-  const { networks, refetch } = useWalletBalances(walletAddress);
+  const { networks, refetch } = useWalletBalances(walletAddress, isOpen);
   const picked = networks.find((network) => network.chain.id === pickedId) ?? networks[0];
   const duelNetwork = networks.find((network) => network.chain.id === DEFAULT_CHAIN_ID) ?? networks[0];
   const faucet = useFaucetFlask(picked.chain.id, readingRaw(picked.usdt));
@@ -52,6 +51,8 @@ export function WalletMenu({ address, walletAddress, walletClientType }: WalletM
       return;
     }
     setView('main');
+    // Only the button's balance is polled while the menu is closed; the rest may have moved since.
+    refetch();
     // The quest's cells light up the first time the menu opens for this wallet, not every time.
     setIsEntering(introFor.current !== walletAddress);
     introFor.current = walletAddress;
@@ -95,13 +96,13 @@ export function WalletMenu({ address, walletAddress, walletClientType }: WalletM
               />
               <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 border-t border-line pt-2">
                 {walletClientType === EMBEDDED_WALLET_CLIENT_TYPE && (
-                  <FootButton icon="key" onClick={() => leaveFor(() => void exportWallet())}>
+                  <QuietButton icon="key" onClick={() => leaveFor(() => void exportWallet())}>
                     {t('wallet.export')}
-                  </FootButton>
+                  </QuietButton>
                 )}
-                <FootButton icon="logout" onClick={() => leaveFor(() => void logout())}>
+                <QuietButton icon="logout" onClick={() => leaveFor(() => void logout())}>
                   {t('wallet.signOut')}
-                </FootButton>
+                </QuietButton>
               </div>
             </>
           )}
@@ -109,24 +110,5 @@ export function WalletMenu({ address, walletAddress, walletClientType }: WalletM
       </Popover>
       <DepositDialog chainId={topUpChainId} onClose={() => setTopUpChainId(null)} />
     </>
-  );
-}
-
-interface FootButtonProps {
-  icon: IconName;
-  onClick: () => void;
-  children: string;
-}
-
-function FootButton({ icon, onClick, children }: FootButtonProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="inline-flex min-h-11 cursor-pointer items-center gap-[7px] text-body-sm font-label text-ink-2 transition-colors hover:text-ink"
-    >
-      <Icon name={icon} className="size-[18px]" />
-      {children}
-    </button>
   );
 }

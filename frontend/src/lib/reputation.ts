@@ -123,8 +123,11 @@ export function levelQuest(honored: number, abandoned: number): LevelQuest {
   };
 }
 
-/** The quest's cells: one per duel it needs, up to `max`, and how many of them are lit. */
-export function questCells(quest: LevelQuest, max = 12): { count: number; lit: number } {
-  const count = Math.min(quest.need, max);
+/** Past this many, a quest's cells each stand for more than one duel, so the line keeps its width. */
+const MAX_QUEST_CELLS = 12;
+
+/** The quest's cells: one per duel it needs, up to `MAX_QUEST_CELLS`, and how many of them are lit. */
+export function questCells(quest: LevelQuest): { count: number; lit: number } {
+  const count = Math.min(quest.need, MAX_QUEST_CELLS);
   return { count, lit: Math.round((quest.have / quest.need) * count) };
 }

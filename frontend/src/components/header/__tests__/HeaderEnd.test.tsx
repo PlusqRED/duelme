@@ -47,12 +47,12 @@ describe('HeaderEnd', () => {
     expect(screen.getByRole('button', { name: 'Sign in' }).hasAttribute('disabled')).toBe(true);
   });
 
-  it('shows the wallet of a signed-in player', () => {
+  it('shows the wallet of a signed-in player', async () => {
     session.authenticated = true;
     session.activeWallet = { address: '0x4BFa1486661d6FAa5300923bd684F261AE4776a5', walletClientType: 'privy' };
     render(<HeaderEnd />);
 
-    expect(screen.getByText('Wallet of 0x4BFa1486661d6FAa5300923bd684F261AE4776a5')).toBeTruthy();
+    expect(await screen.findByText('Wallet of 0x4BFa1486661d6FAa5300923bd684F261AE4776a5')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Sign in' })).toBeNull();
   });
 

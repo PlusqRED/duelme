@@ -1,16 +1,15 @@
 'use client';
 
 import { useRef, type KeyboardEvent, type Ref } from 'react';
+import { GainRing } from '@/components/header/GainRing';
 import { Chip } from '@/components/ui/chip';
 import { Icon } from '@/components/ui/icon';
-import { useBalanceChange } from '@/hooks/useBalanceChange';
-import { useCountUp } from '@/hooks/useCountUp';
+import { useBalanceFigure } from '@/hooks/useBalanceFigure';
 import type { NetworkBalances } from '@/hooks/useWalletBalances';
-import type { Language } from '@/i18n/translations';
 import { useTranslation } from '@/i18n/useTranslation';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
 import { cn, formatEth, formatUSDT } from '@/lib/utils';
-import { readingRaw, type BalanceReading } from '@/lib/walletBalances';
+import { readingFigure } from '@/lib/walletBalances';
 
 /** Arrow keys move between the networks, as in any radio group. */
 const ARROW_STEP: Partial<Record<string, number>> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
@@ -54,7 +53,7 @@ export function NetworkTiles({ networks, pickedId, onPick }: NetworkTilesProps) 
     >
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 left-0 z-1 w-[calc((100%-(var(--count)-1)*var(--gap))/var(--count))] translate-x-[calc(var(--pick)*(100%+var(--gap)))] rounded-[18px] border-2 border-ink transition-[translate] duration-450 ease-spring"
+        className="pointer-events-none absolute inset-y-0 left-0 z-1 w-[calc((100%-(var(--count)-1)*var(--gap))/var(--count))] translate-x-[calc(var(--pick)*(100%+var(--gap)))] rounded-tile border-2 border-ink transition-[translate] duration-450 ease-spring"
       />
       {networks.map((network, index) => (
         <NetworkTile
@@ -81,10 +80,7 @@ interface NetworkTileProps {
 /** One network's balance: the figure counts to a new amount, and a float says by how much. */
 function NetworkTile({ ref, network, isPicked, onPick }: NetworkTileProps) {
   const { t, language } = useTranslation();
-  const raw = readingRaw(network.usdt);
-  const shown = useCountUp(raw);
-  const change = useBalanceChange(raw);
-  const figure = network.usdt.kind === 'error' ? '—' : shown === null ? '…' : formatUSDT(shown, language);
+  const { figure, change } = useBalanceFigure(network.usdt);
   const isGain = change !== null && change.delta > 0n;
 
   return (
@@ -95,7 +91,7 @@ function NetworkTile({ ref, network, isPicked, onPick }: NetworkTileProps) {
       aria-checked={isPicked}
       tabIndex={isPicked ? 0 : -1}
       onClick={() => onPick(network.chain.id)}
-      className="relative row-span-4 grid min-w-0 cursor-pointer grid-rows-subgrid justify-items-start gap-y-1 rounded-[18px] border-[1.5px] border-line bg-paper p-3 text-left text-ink transition-colors hover:border-line-strong aria-checked:border-transparent aria-checked:bg-canvas"
+      className="relative row-span-4 grid min-w-0 cursor-pointer grid-rows-subgrid justify-items-start gap-y-1 rounded-tile border-[1.5px] border-line bg-paper p-3 text-left text-ink transition-colors hover:border-line-strong aria-checked:border-transparent aria-checked:bg-canvas"
     >
       <span className="flex min-w-0 items-start gap-2">
         <span aria-hidden="true" className="relative mt-px size-[18px] flex-none rounded-full border-2 border-line-strong bg-paper">
@@ -123,7 +119,7 @@ function NetworkTile({ ref, network, isPicked, onPick }: NetworkTileProps) {
       </span>
       <span className="inline-flex items-center gap-1 text-note whitespace-nowrap text-ink-3 tabular-nums">
         <Icon name="fuel" className="size-3.5" />
-        {t('wallet.eth', { amount: ethFigure(network.eth, language) })}
+        {t('wallet.eth', { amount: readingFigure(network.eth, (wei) => formatEth(wei, language)) })}
       </span>
       <span className="mt-1 flex flex-wrap gap-1 self-end">
         {network.chain.testnet && (
@@ -138,13 +134,7 @@ function NetworkTile({ ref, network, isPicked, onPick }: NetworkTileProps) {
       )}
       {change && (
         <>
-          {isGain && (
-            <span
-              key={`ring-${change.id}`}
-              aria-hidden="true"
-              className="pointer-events-none absolute -inset-[1.5px] animate-gain-ring rounded-[18px] border-[1.5px] border-good opacity-0 ring-4 ring-good-soft"
-            />
-          )}
+          {isGain && <GainRing key={`ring-${change.id}`} className="-inset-[1.5px] rounded-tile border-[1.5px]" />}
           <span
             key={change.id}
             aria-hidden="true"
@@ -160,11 +150,4 @@ function NetworkTile({ ref, network, isPicked, onPick }: NetworkTileProps) {
       )}
     </button>
   );
-}
-
-function ethFigure(reading: BalanceReading, language: Language): string {
-  if (reading.kind === 'ready') {
-    return formatEth(reading.raw, language);
-  }
-  return reading.kind === 'error' ? '—' : '…';
 }

@@ -58,7 +58,7 @@ export function PlayerCard({ address, walletAddress, isEntering, onLeave }: Play
           <Link
             href="/profile"
             onClick={onLeave}
-            className="group inline-flex min-h-8 items-center gap-0.5 text-sm font-bold text-blue-deep underline decoration-blue-deep/30 decoration-[1.5px] underline-offset-4 hover:decoration-current"
+            className="group link inline-flex min-h-8 items-center gap-0.5 text-sm"
           >
             {t('nav.myProfile')}
             <Icon name="chevron-right" className="size-4 transition-[translate] duration-200 ease-press group-hover:translate-x-0.5" />

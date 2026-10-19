@@ -19,6 +19,7 @@ export function useFaucetStatus() {
   return useQuery({
     queryKey: [FAUCET_STATUS_KEY, walletAddress],
     queryFn: HAS_TEST_NETWORK && identityToken && walletAddress ? () => getFaucetStatus(identityToken) : skipToken,
-    staleTime: 60_000,
+    // A faucet that does not answer leaves the flask hidden; asking once more is enough.
+    retry: 1,
   });
 }

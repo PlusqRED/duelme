@@ -1,6 +1,7 @@
 'use client';
 
 import { FlaskConical } from 'lucide-react';
+import { useAppToast } from '@/hooks/useAppToast';
 import { useFaucetClaim } from '@/hooks/useFaucetClaim';
 import { useTranslation } from '@/i18n/useTranslation';
 
@@ -11,7 +12,15 @@ interface FaucetButtonProps {
 /** The testnet faucet button; renders nothing where the faucet has nothing to give. */
 export function FaucetButton({ chainId }: FaucetButtonProps) {
   const { t } = useTranslation();
+  const appToast = useAppToast();
   const { offer, isClaiming, claim } = useFaucetClaim(chainId);
+
+  // The wallet menu shows a claim land in its flask; this button has nothing but a toast for it.
+  async function claimAndSay() {
+    if (await claim()) {
+      appToast.success('toast.faucetClaimed');
+    }
+  }
 
   if (offer.kind !== 'ready') {
     return null;
@@ -20,7 +29,7 @@ export function FaucetButton({ chainId }: FaucetButtonProps) {
   return (
     <button
       type="button"
-      onClick={() => void claim()}
+      onClick={() => void claimAndSay()}
       disabled={isClaiming}
       className="flex min-h-11 w-full items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 transition-colors hover:border-amber-300 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-70"
     >

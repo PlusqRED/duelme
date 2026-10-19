@@ -7,7 +7,7 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { cn } from '@/lib/utils';
 
 /** Narrower than the `xs` breakpoint, where a menu is a sheet from the bottom edge. */
-const PHONE = '(width < 35rem)';
+export const PHONE_QUERY = '(width < 35rem)';
 
 type PopoverProps = Omit<PopoverPrimitive.Root.Props, 'modal'>;
 
@@ -18,7 +18,7 @@ type PopoverProps = Omit<PopoverPrimitive.Root.Props, 'modal'>;
  * the focus goes back to its button.
  */
 function Popover(props: PopoverProps) {
-  const isPhone = useMediaQuery(PHONE);
+  const isPhone = useMediaQuery(PHONE_QUERY);
   return <PopoverPrimitive.Root modal={isPhone} {...props} />;
 }
 
@@ -33,6 +33,8 @@ interface PopoverContentProps extends Omit<PopoverPrimitive.Popup.Props, 'classN
 /** The menu itself, 400px wide on a wide screen unless the caller sets `--panel-width`. */
 function PopoverContent({ title, className, children, ...props }: PopoverContentProps) {
   const { t } = useTranslation();
+  // A sheet sits on the bottom edge whatever the button does: nothing to follow as the page moves.
+  const isPhone = useMediaQuery(PHONE_QUERY);
 
   return (
     <PopoverPrimitive.Portal>
@@ -43,6 +45,7 @@ function PopoverContent({ title, className, children, ...props }: PopoverContent
         sideOffset={10}
         collisionPadding={16}
         positionMethod="fixed"
+        disableAnchorTracking={isPhone}
         className="z-50 max-xs:top-auto! max-xs:right-0! max-xs:bottom-0! max-xs:left-0! max-xs:transform-none!"
       >
         <PopoverPrimitive.Popup

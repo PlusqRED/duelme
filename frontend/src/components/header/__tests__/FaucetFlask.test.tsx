@@ -2,7 +2,8 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { FaucetFlask } from '@/components/header/FaucetFlask';
-import type { FaucetOffer, FlaskPhase } from '@/lib/faucetApi';
+import type { FaucetOffer } from '@/lib/faucetApi';
+import type { FlaskPhase } from '@/lib/faucetFlask';
 
 const OFFER: FaucetOffer = { kind: 'ready', usdtAmountRaw: 100_000_000n, ethAmountWei: 1_000_000_000_000_000n };
 

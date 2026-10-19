@@ -32,13 +32,6 @@ export interface Transfer {
   raw: bigint;
 }
 
-/** The transfer a draft asks for, or null while it names no address or no amount above zero. */
-export function parseTransfer(draft: SendDraft): Transfer | null {
-  const to = draft.to.trim();
-  const raw = parseUsdtAmount(draft.amount);
-  return isAddress(to, { strict: false }) && raw !== null && raw > 0n ? { to, raw } : null;
-}
-
 /** What stops a transfer, by field. Nothing in it means it may go to the wallet. */
 export interface SendProblems {
   to?: 'address' | 'self';
@@ -46,37 +39,45 @@ export interface SendProblems {
   eth?: 'none';
 }
 
+export interface TransferCheck {
+  problems: SendProblems;
+  /** The transfer the draft asks for, or null while something stops it. */
+  transfer: Transfer | null;
+}
+
 /**
  * Checks a transfer before the wallet sees it. A balance that is not known yet stops nothing: the
  * wallet's own estimate catches what this cannot.
  */
-export function sendProblems(draft: SendDraft, wallet: SendWallet): SendProblems {
+export function checkTransfer(draft: SendDraft, wallet: SendWallet): TransferCheck {
   const problems: SendProblems = {};
-  const to = draft.to.trim();
-  if (!isAddress(to, { strict: false })) {
+  const typedTo = draft.to.trim();
+  const to = isAddress(typedTo, { strict: false }) ? typedTo : null;
+  if (to === null) {
     problems.to = 'address';
   } else if (to.toLowerCase() === wallet.address.toLowerCase()) {
     problems.to = 'self';
   }
 
-  const amount = parseUsdtAmount(draft.amount);
-  if (amount === null || amount === 0n) {
+  const raw = parseUsdtAmount(draft.amount);
+  if (raw === null || raw === 0n) {
     problems.amount = 'empty';
-  } else if (wallet.usdtRaw !== null && amount > wallet.usdtRaw) {
+  } else if (wallet.usdtRaw !== null && raw > wallet.usdtRaw) {
     problems.amount = 'tooMuch';
   }
 
   if (wallet.ethWei === 0n) {
     problems.eth = 'none';
   }
-  return problems;
+  const isClear = Object.keys(problems).length === 0;
+  return { problems, transfer: isClear && to !== null && raw !== null ? { to, raw } : null };
 }
 
 /**
- * Where a transfer is: the form; waiting for the wallet to confirm it; on the network; through;
- * turned down in the wallet; or failed some other way.
+ * Where a sent transfer is: waiting for the wallet to confirm it; on the network; through; turned
+ * down in the wallet; or failed some other way.
  */
-export type SendStage = 'form' | 'confirm' | 'sending' | 'done' | 'rejected' | 'failed';
+export type SendStage = 'confirm' | 'sending' | 'done' | 'rejected' | 'failed';
 
 interface TransferState {
   hash?: string;
@@ -85,10 +86,7 @@ interface TransferState {
   error: Error | null;
 }
 
-export function sendStage(isSubmitted: boolean, transfer: TransferState): SendStage {
-  if (!isSubmitted) {
-    return 'form';
-  }
+export function sendStage(transfer: TransferState): SendStage {
   if (transfer.error) {
     return isWalletRefusal(transfer.error) ? 'rejected' : 'failed';
   }

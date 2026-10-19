@@ -123,7 +123,7 @@ and controls; the guard tests below list it.
   progress, a notch's position, a bar's fill) goes in as a CSS variable through `style` and the
   classes read it; a state with several looks is a data attribute with variants
   (`data-[tone=short]:bg-orange-wash`). Shared CSS lives only in `src/styles/`: the theme, element
-  defaults with the `keycap` utility, motion, and `legacy.css` — classes of screens not ported yet,
+  defaults with the `keycap` and `link` utilities, motion, and `legacy.css` — classes of screens not ported yet,
   each of which the guard test drops once nothing uses it.
 - **Type:** Geologica only; 800 for headings and amounts, `font-label` (650) and `font-strong`
   (750) for labels, 400 for text. Figures are `tabular-nums`; there is no monospace face.
@@ -131,7 +131,7 @@ and controls; the guard tests below list it.
   only to take a payout, ghost for what should not compete), `Chip`, `Icon` (the design's icons;
   `lucide-react` stays only on screens not ported yet), `Dialog` (a card on a wide screen, a sheet
   from the bottom of a phone), `Popover` (a menu: a panel under its button, a sheet on a phone),
-  `Input`, `Toaster`. Who and what in `components/identity/`: `Avatar` (a player's identicon on
+  `Input`, `Note` (a line of small print after an icon), `Toaster`. Who and what in `components/identity/`: `Avatar` (a player's identicon on
   their seat's colour; the pattern is `lib/identicon.ts`, the same for an address everywhere),
   `GameTile` (initials on the category's colour), `ReputationPill` (a level) and `ReputationBadge`
   (a player's level, read), `LevelBadge` (a level as the badge a player earns, or still locked) and
@@ -166,17 +166,19 @@ and controls; the guard tests below list it.
 | `frontend/src/lib/wagmi.ts` | wagmi config (Privy adapter); `resolveRpcUrl` validates the RPC env and picks the fallback chain (configured provider → Tenderly) |
 | `frontend/src/lib/contracts.ts` | ABI, DuelState enum, ACTIVE_STATES, ERC20 ABIs, getUsdtAddress |
 | `frontend/src/styles/theme.css` | The design's tokens as Tailwind's theme: colours by role, type, weights, easing, shadows |
-| `frontend/src/styles/base.css` | Element defaults (font, headings, focus ring) and the `keycap` utility every button's press comes from |
+| `frontend/src/styles/base.css` | Element defaults (font, headings, focus ring), the `keycap` utility every button's press comes from, and `link` for a link that reads as one |
 | `frontend/src/components/ui/button.tsx` | Keycap buttons (navy, paper, sun, ghost); `buttonVariants` gives a link the same face |
 | `frontend/src/components/ui/iconPaths.ts` | The design's icons as shapes, drawn by `ui/icon.tsx` |
 | `frontend/src/components/ui/dialog.tsx` | The one window: a card from a fixed top on a wide screen, a sheet below 560px; `--dialog-width` widens it |
 | `frontend/src/components/ui/popover.tsx` | The menus: a panel under its button on a wide screen, a modal sheet below 560px, with a title the sheet shows and a panel only reads out |
 | `frontend/src/components/header/Header.tsx` | The top bar on every page: the brand, the sections (`lib/navigation.ts`) from 980px, the language, the wallet menu or Sign in, and the navigation menu below 980px |
 | `frontend/src/components/header/WalletMenu.tsx` | The wallet button (the duel network's USDT, never a sum across networks) and its menu: player card, a balance tile per network, Top up, Send, the faucet flask, key export and sign out |
-| `frontend/src/hooks/useWalletBalances.ts` | The wallet's USDT and ETH on each network the build lists, read apart and polled, again on the balance bus |
-| `frontend/src/hooks/useSendUsdt.ts` | Sends USDT on the network picked: moves the wallet there, waits until a write can reach it (`canWrite`), then `writeWithGas` |
+| `frontend/src/hooks/useWalletBalances.ts` | The wallet's USDT and ETH on each network the build lists, read apart (USDT on `useUsdtBalance`'s query): the button's balance polled always, the rest while the menu is open, all again on the balance bus |
+| `frontend/src/hooks/useSendUsdt.ts` | Sends USDT on the network picked: moves the wallet there, then `writeWithGas` |
 | `frontend/src/lib/sendUsdt.ts` | The send form's rules: the typed amount, the transfer it asks for, what stops it, and where a sent one is |
-| `frontend/src/lib/faucetApi.ts` | Faucet claim and status (`/faucet/status`), what it offers on a network, and the flask's phase while a claim lands |
+| `frontend/src/lib/faucetApi.ts` | Faucet claim and status (`/faucet/status`), and what it offers on a network |
+| `frontend/src/lib/faucetFlask.ts` | The wallet menu's faucet flask: its phase from the offer, the claim, and the balance a sent claim waits to land in |
+| `frontend/src/lib/parsing.ts` | `isRecord`, `parseUintString`: the checks a value read from outside (a response, storage, a request) passes before it is trusted |
 | `frontend/src/components/ui/toaster.tsx` | Toasts as paper cards with the design's icons, and what sonner's `unstyled` drops put back |
 | `frontend/src/lib/brandColors.ts` | Theme colours as hex for what CSS cannot reach (theme colour, Privy's window, the images `ImageResponse` draws) |
 | `frontend/src/lib/brandImage.tsx` | The brand mark for `ImageResponse`: the favicon, the home-screen icon and `/logo.png` |
@@ -312,17 +314,19 @@ and controls; the guard tests below list it.
   pull request's CI does not build the image, so deleting one of them (as with shadcn's
   `components.json`) passes every check and breaks the deploy only after the merge.
   `lib/__tests__/dockerfile.test.ts` fails on a `COPY` whose source is gone.
-- **A write right after a network switch has the old wallet in its hands.** `useWalletClient({ chainId })`
-  fails while the wallet sits on another network, and its query key does not change when the
-  wallet moves, so `useWriteWithGas` keys it by the wallet's network too (`scopeKey`); and a write
-  called in the same callback as `switchChainAsync` still holds the client from before the switch.
-  Queue the write and send it once the wallet is there and `canWrite` says a write reaches it, as
-  `useSendUsdt` does, or make the switch a step of its own, as the guided flows do.
+- **A wallet client taken from a render belongs to the network the wallet was on then.**
+  `useWalletClient({ chainId })` fails while the wallet sits on another network, and its query key
+  does not change when the wallet moves, so the failure outlasts the switch; and a write called in
+  the same callback as `switchChainAsync` holds the client of the render before it. So
+  `writeWithGas` reads the embedded wallet's client when it writes (`getWalletClient`), and
+  `useSendUsdt` switches and writes in one go. The relayer's signature (`relayWrite`) and the
+  permit (`useDuelPermit`) still take the hook's client: the guided flows make the switch a step
+  of its own for them.
 - **A window that closes because what it shows turned null empties before it is gone.** The window
   plays its closing animation after the value it was opened with (a network, a platform) is already
   null, so its title and body change or vanish on the way out. Show `useLastNonNull(value)` from
   `hooks/` instead, as `DepositDialog` and `UnlinkConfirmDialog` do.
-- **tailwind-merge does not know the theme's own tokens, and a type size clears the line height before it.** Left alone it reads `text-body` as a colour and `font-label` as a font family, so `cn('text-body', 'text-ink')` silently drops the size, and a later shadow or easing does not replace `shadow-menu` or `ease-spring`. `cn()` in `lib/utils.ts` registers the type sizes, weights, shadows, inset shadows, easings, spacing and widths; a new `--text-*`, `--font-weight-*`, `--shadow-*`, `--inset-shadow-*`, `--ease-*`, `--spacing-*` or `--container-*` token goes there too (`utils.test.ts` fails until it does). A `text-*` size also drops any `leading-*` that comes before it, so where a variant or a caller sets the size, the line height rides on it: `text-body-sm/[1.1]`, `text-lg/snug`.
+- **tailwind-merge does not know the theme's own tokens, and a type size clears the line height before it.** Left alone it reads `text-body` as a colour and `font-label` as a font family, so `cn('text-body', 'text-ink')` silently drops the size, and a later shadow or easing does not replace `shadow-menu` or `ease-spring`. `cn()` in `lib/utils.ts` registers the type sizes, weights, shadows, inset shadows, easings, spacing, widths and radii; a new `--text-*`, `--font-weight-*`, `--shadow-*`, `--inset-shadow-*`, `--ease-*`, `--spacing-*`, `--container-*` or `--radius-*` token goes there too (`utils.test.ts` fails until it does). A `text-*` size also drops any `leading-*` that comes before it, so where a variant or a caller sets the size, the line height rides on it: `text-body-sm/[1.1]`, `text-lg/snug`.
 - **`collectErrorDetails` returns viem's multi-line dump first.** An error's own `message` is visited before its `shortMessage` / `reason`, so the first entry is the whole "Contract Call / Request Arguments / Version" blob. Use `bestErrorDetail` (shortest non-placeholder detail) whenever the string reaches a person.
 - **`fundsViaPermit` has to gate every allowance check, not just the last one.** `handleContinueFlow`, `handleSwitchNetwork` and `handleCreateTransaction` / `handleJoinTransaction` all decide the approve step; a relayed flow that reads the allowance in any of them routes a zero-ETH player into a self-paid `approve`. They share `resolveNeedsApproval` from `guidedFlowSteps.ts`.
 - **`FORWARDER_NAME` must match on both sides.** `frontend/src/lib/forwardRequest.ts` and `contracts/script/ForwarderConfig.sol` (which both deploy scripts read) both spell `"DuelMe Forwarder"`; it is the EIP-712 domain name, so a mismatch makes every signature fail `verify` with no other symptom.

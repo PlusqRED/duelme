@@ -10,27 +10,27 @@ const TO = '0x1111111111111111111111111111111111111111';
 
 const wallet = vi.hoisted(() => ({
   chainId: 0,
-  canWrite: true,
   isSuccess: false,
+  switchError: null as Error | null,
+  writeError: null as Error | null,
   switchChainAsync: vi.fn(async () => undefined),
+  resetSwitch: vi.fn(),
   writeWithGas: vi.fn(async () => undefined),
   reset: vi.fn(),
 }));
 
 vi.mock('wagmi', () => ({
   useAccount: () => ({ chainId: wallet.chainId }),
-  useSwitchChain: () => ({ switchChainAsync: wallet.switchChainAsync }),
+  useSwitchChain: () => ({ switchChainAsync: wallet.switchChainAsync, error: wallet.switchError, reset: wallet.resetSwitch }),
 }));
 
 vi.mock('@/hooks/useWriteWithGas', () => ({
   useWriteWithGas: () => ({
     writeWithGas: wallet.writeWithGas,
-    canWrite: wallet.canWrite,
     hash: undefined,
-    isPending: false,
     isConfirming: false,
     isSuccess: wallet.isSuccess,
-    error: null,
+    error: wallet.writeError,
     reset: wallet.reset,
   }),
 }));
@@ -42,8 +42,9 @@ const { useSendUsdt } = await import('@/hooks/useSendUsdt');
 
 beforeEach(() => {
   wallet.chainId = SEPOLIA;
-  wallet.canWrite = true;
   wallet.isSuccess = false;
+  wallet.switchError = null;
+  wallet.writeError = null;
 });
 
 afterEach(() => {
@@ -68,78 +69,44 @@ describe('useSendUsdt', () => {
   });
 
   it('moves the wallet to the network the money is on, and sends once it is there', async () => {
-    let switched = () => {};
-    wallet.switchChainAsync.mockImplementationOnce(() => new Promise<undefined>((resolve) => {
-      switched = () => {
-        wallet.chainId = ONE;
-        resolve(undefined);
-      };
-    }));
-    const { result, rerender } = renderHook(() => useSendUsdt(ONE));
-
-    let sending = Promise.resolve();
-    act(() => {
-      sending = result.current.send(TO, 1n);
-    });
-    expect(wallet.switchChainAsync).toHaveBeenCalledWith({ chainId: ONE });
-    expect(wallet.writeWithGas).not.toHaveBeenCalled();
-    expect(result.current.isPending).toBe(true);
-
-    await act(async () => {
-      switched();
-      await sending;
-    });
-    rerender();
-
-    expect(wallet.writeWithGas).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ chainId: ONE, address: USDT_ADDRESSES[ONE] }));
-  });
-
-  it('sends a transfer once, however often the wallet re-renders', async () => {
-    const { result, rerender } = renderHook(() => useSendUsdt(SEPOLIA));
-
-    await act(() => result.current.send(TO, 1n));
-    wallet.canWrite = false;
-    rerender();
-    wallet.canWrite = true;
-    rerender();
-
-    expect(wallet.writeWithGas).toHaveBeenCalledOnce();
-  });
-
-  it('holds the transfer until the wallet can sign on its network', async () => {
-    wallet.canWrite = false;
-    const { result, rerender } = renderHook(() => useSendUsdt(SEPOLIA));
-
-    await act(() => result.current.send(TO, 1n));
-    expect(wallet.writeWithGas).not.toHaveBeenCalled();
-
-    wallet.canWrite = true;
-    rerender();
-
-    expect(wallet.writeWithGas).toHaveBeenCalledOnce();
-  });
-
-  it('sends nothing when the wallet will not change networks, and says so', async () => {
-    wallet.switchChainAsync.mockRejectedValueOnce(new Error('User rejected the request.'));
     const { result } = renderHook(() => useSendUsdt(ONE));
 
     await act(() => result.current.send(TO, 1n));
 
-    expect(wallet.writeWithGas).not.toHaveBeenCalled();
-    expect(result.current.isPending).toBe(false);
-    expect(result.current.error?.message).toBe('User rejected the request.');
+    expect(wallet.switchChainAsync).toHaveBeenCalledWith({ chainId: ONE });
+    expect(wallet.switchChainAsync.mock.invocationCallOrder[0]).toBeLessThan(wallet.writeWithGas.mock.invocationCallOrder[0]);
+    expect(wallet.writeWithGas).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ chainId: ONE, address: USDT_ADDRESSES[ONE] }));
   });
 
-  it('forgets a transfer still waiting for the wallet when it is reset', async () => {
+  it('sends nothing when the wallet will not change networks, and says so', async () => {
+    wallet.switchChainAsync.mockRejectedValueOnce(new Error('User rejected the request.'));
     const { result, rerender } = renderHook(() => useSendUsdt(ONE));
-    await act(() => result.current.send(TO, 1n));
 
-    act(() => result.current.reset());
-    wallet.chainId = ONE;
+    await act(() => result.current.send(TO, 1n));
+    wallet.switchError = new Error('User rejected the request.');
     rerender();
 
     expect(wallet.writeWithGas).not.toHaveBeenCalled();
-    expect(wallet.reset).toHaveBeenCalled();
+    expect(result.current.error?.message).toBe('User rejected the request.');
+  });
+
+  it('reports the write\'s own error when the wallet is already on the network', () => {
+    wallet.writeError = new Error('insufficient funds for gas');
+    const { result } = renderHook(() => useSendUsdt(SEPOLIA));
+
+    expect(result.current.error?.message).toBe('insufficient funds for gas');
+  });
+
+  it('clears the last transfer, its network switch included, before the next one and on reset', async () => {
+    const { result } = renderHook(() => useSendUsdt(SEPOLIA));
+
+    await act(() => result.current.send(TO, 1n));
+    expect(wallet.resetSwitch).toHaveBeenCalledOnce();
+    expect(wallet.reset).toHaveBeenCalledOnce();
+
+    act(() => result.current.reset());
+    expect(wallet.resetSwitch).toHaveBeenCalledTimes(2);
+    expect(wallet.reset).toHaveBeenCalledTimes(2);
   });
 
   it('has every balance read again once the transfer went through', () => {

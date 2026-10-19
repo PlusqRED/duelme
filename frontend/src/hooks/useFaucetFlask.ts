@@ -1,8 +1,8 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { useFaucetClaim } from '@/hooks/useFaucetClaim';
-import { flaskPhase, type FaucetFollow } from '@/lib/faucetApi';
+import { flaskPhase, type FaucetFollow } from '@/lib/faucetFlask';
 
 /**
  * The wallet menu's faucet on `chainId`, whose USDT reads `usdtRaw`: the claim, and what the flask
@@ -13,20 +13,18 @@ export function useFaucetFlask(chainId: number, usdtRaw: bigint | null) {
   const { offer, isClaiming, claim } = useFaucetClaim(chainId);
   const [follow, setFollow] = useState<FaucetFollow | null>(null);
 
-  const claimAndFollow = useCallback(async () => {
+  async function claimAndFollow() {
     const usdtBefore = usdtRaw ?? 0n;
     if (await claim()) {
       setFollow({ chainId, usdtBefore });
     }
-  }, [claim, chainId, usdtRaw]);
-
-  const settle = useCallback(() => setFollow(null), []);
+  }
 
   return {
     offer,
     phase: flaskPhase(offer, isClaiming, follow, chainId, usdtRaw),
     claim: claimAndFollow,
-    settle,
+    settle: () => setFollow(null),
   };
 }
 

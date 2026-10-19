@@ -3,7 +3,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { skipToken, useQuery } from '@tanstack/react-query';
 import type { Abi, Hex } from 'viem';
-import { useAccount, usePublicClient, useWalletClient, useWriteContract } from 'wagmi';
+import { useAccount, useConfig, usePublicClient, useWalletClient, useWriteContract } from 'wagmi';
+import { getWalletClient } from 'wagmi/actions';
 import {
   buildTransactionParams,
   type DuelPublicClient,
@@ -39,16 +40,12 @@ type EstimateContractGasConfig = Parameters<DuelPublicClient['estimateContractGa
  * functions on top and decides when a write needs an EIP-2612 permit.
  */
 export function useWriteWithGas(chainId: number) {
-  const { address: accountAddress, chainId: walletChainId } = useAccount();
+  const wagmiConfig = useConfig();
+  const { address: accountAddress } = useAccount();
   const publicClient = usePublicClient({ chainId });
-  // A wallet client for `chainId` fails to load while the wallet is on another network, and the
-  // query's key does not change when the wallet moves, so the failure would outlast the switch.
-  // Keyed by the wallet's network too, the client is read again once the wallet is there.
-  const { data: walletClient } = useWalletClient({ chainId, scopeKey: String(walletChainId) });
+  const { data: walletClient } = useWalletClient({ chainId });
   const { activeWallet } = useActiveWallet();
   const isPrivyEmbedded = activeWallet?.walletClientType === EMBEDDED_WALLET_CLIENT_TYPE;
-  // What writeWithGas's guards need: a write now reaches the wallet instead of failing at once.
-  const canWrite = !!publicClient && !!accountAddress && (!isPrivyEmbedded || !!walletClient);
   const { isRelayEnabled, forwarderAddress } = useRelayerStatus(chainId);
 
   const {
@@ -189,9 +186,17 @@ export function useWriteWithGas(chainId: number) {
         return;
       }
 
-      if (isPrivyEmbedded && !walletClient) {
-        setManagedError(new WalletNotReadyError('Embedded wallet client not ready'));
-        return;
+      // The embedded wallet's client is read now, not taken from the last render: a write sent
+      // right after a network switch would sign with the client from before it, and a client
+      // asked for while the wallet was elsewhere stays failed after the wallet gets there.
+      let embeddedClient: Awaited<ReturnType<typeof getWalletClient>> | undefined;
+      if (isPrivyEmbedded) {
+        try {
+          embeddedClient = await getWalletClient(wagmiConfig, { chainId });
+        } catch {
+          setManagedError(new WalletNotReadyError('Embedded wallet client not ready'));
+          return;
+        }
       }
 
       // Clear both result surfaces so the merged selectors can't mix in stale
@@ -231,10 +236,10 @@ export function useWriteWithGas(chainId: number) {
         return;
       }
 
-      if (isPrivyEmbedded && walletClient) {
+      if (embeddedClient) {
         await runManagedSend(() =>
           broadcastWithFallback({
-            walletClient,
+            walletClient: embeddedClient,
             publicClient,
             account: accountAddress,
             chainId,
@@ -255,9 +260,9 @@ export function useWriteWithGas(chainId: number) {
     },
     [
       chainId,
+      wagmiConfig,
       accountAddress,
       publicClient,
-      walletClient,
       isPrivyEmbedded,
       writeContract,
       wagmiReset,
@@ -270,7 +275,6 @@ export function useWriteWithGas(chainId: number) {
       writeWithGas,
       relayWrite,
       isRelayEnabled,
-      canWrite,
       hash,
       isPending,
       isConfirming,
@@ -283,7 +287,6 @@ export function useWriteWithGas(chainId: number) {
       writeWithGas,
       relayWrite,
       isRelayEnabled,
-      canWrite,
       hash,
       isPending,
       isConfirming,

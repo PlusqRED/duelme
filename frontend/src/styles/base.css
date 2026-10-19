@@ -73,3 +73,8 @@
     transition-duration: 0.05s;
   }
 }
+
+/* A link that reads as one: blue and bold, its underline faint until the pointer is on it. */
+@utility link {
+  @apply font-bold text-blue-deep underline decoration-blue-deep/30 decoration-[1.5px] underline-offset-4 hover:decoration-current;
+}

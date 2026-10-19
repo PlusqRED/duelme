@@ -1,13 +1,12 @@
 'use client';
 
+import { GainRing } from '@/components/header/GainRing';
 import { Avatar } from '@/components/identity/Avatar';
 import { Icon } from '@/components/ui/icon';
 import { PopoverTrigger } from '@/components/ui/popover';
-import { useBalanceChange } from '@/hooks/useBalanceChange';
-import { useCountUp } from '@/hooks/useCountUp';
+import { useBalanceFigure } from '@/hooks/useBalanceFigure';
 import type { NetworkBalances } from '@/hooks/useWalletBalances';
 import { useTranslation } from '@/i18n/useTranslation';
-import { readingRaw } from '@/lib/walletBalances';
 import { formatUSDT } from '@/lib/utils';
 
 interface WalletButtonProps {
@@ -22,10 +21,7 @@ interface WalletButtonProps {
  */
 export function WalletButton({ address, network }: WalletButtonProps) {
   const { t, language } = useTranslation();
-  const raw = readingRaw(network.usdt);
-  const shown = useCountUp(raw);
-  const change = useBalanceChange(raw);
-  const figure = network.usdt.kind === 'error' ? '—' : shown === null ? '…' : formatUSDT(shown, language);
+  const { raw, figure, change } = useBalanceFigure(network.usdt);
 
   return (
     <PopoverTrigger
@@ -41,13 +37,7 @@ export function WalletButton({ address, network }: WalletButtonProps) {
         name="chevron"
         className="size-4 text-ink-3 transition-[rotate] duration-300 ease-spring group-data-popup-open:rotate-180 max-2xs:hidden"
       />
-      {change && change.delta > 0n && (
-        <span
-          key={change.id}
-          aria-hidden="true"
-          className="pointer-events-none absolute -inset-px animate-gain-ring rounded-full border border-good opacity-0 ring-4 ring-good-soft"
-        />
-      )}
+      {change && change.delta > 0n && <GainRing key={change.id} className="-inset-px rounded-full border" />}
     </PopoverTrigger>
   );
 }
