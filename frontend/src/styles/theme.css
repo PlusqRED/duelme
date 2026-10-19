@@ -94,7 +94,7 @@
   --shadow-sheet: 0 -18px 40px -24px rgb(18 26 62 / 0.4);
   /* An avatar's lower rim, so a round face reads as a token on the table. */
   --inset-shadow-avatar: inset 0 -4px 0 rgb(0 0 0 / 0.16);
-  /* A stake's lower rim: the money a duel holds, as a chip. */
+  /* A stake's lower rim, so the money a duel holds sits on the table like the avatars do. */
   --inset-shadow-stake: inset 0 -3px 0 rgb(0 0 0 / 0.2);
 
   /* A page's content column, and the room either side of it that shrinks on a phone. */

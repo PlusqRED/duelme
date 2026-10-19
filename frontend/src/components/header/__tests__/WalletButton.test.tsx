@@ -5,7 +5,7 @@ import { WalletButton } from '@/components/header/WalletButton';
 import { Popover } from '@/components/ui/popover';
 import type { NetworkBalances } from '@/hooks/useWalletBalances';
 import { SUPPORTED_CHAINS } from '@/lib/constants';
-import type { Owed } from '@/lib/owed';
+import { summarizeOwed, type Owed } from '@/lib/owed';
 
 vi.mock('@/hooks/useMediaQuery', () => ({ useMediaQuery: () => false }));
 
@@ -23,8 +23,8 @@ function renderButton(usdt: NetworkBalances['usdt'], owed: Owed | null = null) {
   return screen.getByRole('button');
 }
 
-function owedOf(kind: 'win' | 'back'): Owed {
-  return { items: [{ duelId: 3, seat: 'creator', kind, raw: 15_000_000n }], totalRaw: 15_000_000n, hasWin: kind === 'win' };
+function owedOf(kind: 'win' | 'back'): Owed | null {
+  return summarizeOwed([{ duelId: 3, seat: 'creator', kind, raw: 15_000_000n }]);
 }
 
 describe('WalletButton', () => {

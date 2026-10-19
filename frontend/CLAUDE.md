@@ -212,7 +212,7 @@ and controls; the guard tests below list it.
 | `frontend/src/lib/writeErrors.ts` | The ways a write ends without running (reverted, replaced, wallet not ready), which the guided flows word for the player |
 | `frontend/src/hooks/useDashboardClaims.ts` | Dashboard claim/refund handlers and computed state |
 | `frontend/src/hooks/usePlayerDuels.ts` | Filters `useDuelRange` down to one player; wins/losses/volume/withdrawn totals |
-| `frontend/src/lib/owed.ts` | What the contract keeps for a player — wins, stakes coming back, timed-out claims — and the safe's bars; `useOwed` reads it from the shared `useDuelRange` history |
+| `frontend/src/lib/owed.ts` | What the contract keeps for a player — wins, stakes coming back, timed-out claims — and the safe's bars; `useOwed` reads it from the shared `useDuelRange` history and looks again when a claim runs out of time |
 | `frontend/src/hooks/usePlatformStats.ts` | Landing-page Total Volume / Duels Played stats |
 | `frontend/src/hooks/useRecentDuels.ts` | Landing-page duel feed (newest-first) |
 | `frontend/src/hooks/useReputation.ts` | Wilson Score reputation calculation |

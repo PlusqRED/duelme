@@ -1,27 +1,29 @@
 // @vitest-environment happy-dom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Owed, OwedItem } from '@/lib/owed';
+import { summarizeOwed, type Owed, type OwedItem } from '@/lib/owed';
 
 const motion = vi.hoisted(() => ({ reduced: false }));
 vi.mock('@/hooks/useReducedMotion', () => ({ useReducedMotion: () => motion.reduced }));
 
 const { SafeMini } = await import('@/components/header/SafeMini');
 
-function owedOf(items: OwedItem[]): Owed {
-  return {
-    items,
-    totalRaw: items.reduce((total, item) => total + item.raw, 0n),
-    hasWin: items.some((item) => item.kind === 'win'),
-  };
-}
-
 const WIN: OwedItem = { duelId: 7, seat: 'opponent', kind: 'win', raw: 10_000_000n };
 const BACK: OwedItem = { duelId: 3, seat: 'creator', kind: 'back', raw: 5_000_000n };
+
+function owedOf(items: OwedItem[]): Owed {
+  const owed = summarizeOwed(items);
+  if (!owed) throw new Error('A safe needs money in it');
+  return owed;
+}
 
 function renderSafe(owed: Owed, { isEntering = false, onLeave = vi.fn() } = {}) {
   render(<SafeMini owed={owed} isEntering={isEntering} onLeave={onLeave} />);
   return onLeave;
+}
+
+function bars() {
+  return [...screen.getByRole('group').querySelectorAll('[data-tone]')].map((bar) => [bar.getAttribute('data-tone'), bar.textContent]);
 }
 
 beforeEach(() => {
@@ -31,50 +33,59 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  vi.useRealTimers();
 });
 
 describe('SafeMini', () => {
   it('says how much waits in the contract, under its name', () => {
     renderSafe(owedOf([WIN, BACK]));
 
-    const safe = screen.getByRole('group', { name: 'Waiting for you in the contract' });
-    expect(safe.textContent).toContain('15USDT');
+    expect(screen.getByRole('group', { name: 'Waiting for you in the contract' })).toBeTruthy();
+    expect(screen.getByText('15')).toBeTruthy();
   });
 
-  it('gives each duel a bar with its money', () => {
-    renderSafe(owedOf([WIN, BACK]));
+  it('gives each duel a bar with its money, a win in the payout\'s sun and a stake in its seat\'s colour', () => {
+    renderSafe(owedOf([BACK, WIN]));
 
-    expect(screen.getByText('10')).toBeTruthy();
-    expect(screen.getByText('5')).toBeTruthy();
+    expect(bars()).toEqual([
+      ['win', '10'],
+      ['creator', '5'],
+    ]);
   });
 
   it('puts the duels that do not fit in one last bar', () => {
-    const items = [1, 2, 3, 4, 5].map((duelId): OwedItem => ({ ...BACK, duelId }));
-    renderSafe(owedOf(items));
+    renderSafe(owedOf([1, 2, 3, 4, 5].map((duelId): OwedItem => ({ ...BACK, duelId }))));
 
-    expect(screen.getByText('+2')).toBeTruthy();
+    expect(bars().at(-1)).toEqual(['more', '+2']);
   });
 
   it('leads Take to the dashboard, out of the menu', () => {
     const onLeave = renderSafe(owedOf([BACK]));
-
     const take = screen.getByRole('link', { name: 'Take' });
+
     fireEvent.click(take);
 
     expect(take.getAttribute('href')).toBe('/dashboard');
     expect(onLeave).toHaveBeenCalledOnce();
   });
 
-  it('counts the sum up from nothing as the safe opens', () => {
+  it('counts the sum up from nothing once the safe has opened', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame', 'performance'] });
     renderSafe(owedOf([WIN, BACK]), { isEntering: true });
+    expect(screen.getByText('0')).toBeTruthy();
 
-    expect(screen.getByRole('group').querySelector('b')?.textContent).toBe('0');
+    // The lock opens first; the count then runs frame by frame.
+    act(() => vi.advanceTimersByTime(300));
+    act(() => vi.advanceTimersByTime(1_000));
+
+    expect(screen.getByText('15')).toBeTruthy();
   });
 
   it('shows the sum at once with motion reduced', () => {
     motion.reduced = true;
+
     renderSafe(owedOf([WIN, BACK]), { isEntering: true });
 
-    expect(screen.getByRole('group').querySelector('b')?.textContent).toBe('15');
+    expect(screen.getByText('15')).toBeTruthy();
   });
 });

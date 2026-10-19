@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DuelState } from '@/lib/contracts';
 import { getContractConfig } from '@/lib/contractConfig';
 import type { DuelRecord } from '@/lib/duel';
-import { owedBars, owedTo, type OwedItem } from '@/lib/owed';
+import { duelsOf, nextLateAt, owedBars, owedTo, summarizeOwed, type OwedItem } from '@/lib/owed';
 import { duelView } from './helpers/duelView';
 
 const ME = '0x4BFa1486661d6FAa5300923bd684F261AE4776a5';
@@ -80,6 +80,50 @@ describe('owedTo', () => {
 
   it('matches the player whatever the case of the address', () => {
     expect(owedTo([duel(9, { state: DuelState.Refunded, creatorPayout: 5_000_000n })], ME.toLowerCase())?.totalRaw).toBe(5_000_000n);
+  });
+});
+
+describe('duelsOf', () => {
+  it('keeps the duels the player sits in, in either seat', () => {
+    const duels = [duel(1), duel(2, { creator: THEM, opponent: ME }), duel(3, { creator: THEM, opponent: THEM })];
+
+    expect(duelsOf(duels, ME.toLowerCase()).map((d) => d.id)).toEqual([1, 2]);
+  });
+});
+
+describe('summarizeOwed', () => {
+  it('owes nothing for no items', () => {
+    expect(summarizeOwed([])).toBeNull();
+  });
+
+  it('sums the items in the safe\'s order without reordering what it was given', () => {
+    const items: OwedItem[] = [
+      { duelId: 1, seat: 'creator', kind: 'late', raw: 1_000_000n },
+      { duelId: 2, seat: 'creator', kind: 'win', raw: 4_000_000n },
+    ];
+
+    const owed = summarizeOwed(items);
+
+    expect(owed?.items.map((item) => item.duelId)).toEqual([2, 1]);
+    expect(owed?.totalRaw).toBe(5_000_000n);
+    expect(items[0].duelId).toBe(1);
+  });
+});
+
+describe('nextLateAt', () => {
+  const timeout = () => getContractConfig().claimTimeout;
+
+  it('names the moment the next running claim runs out of time', () => {
+    const soon = duel(1, { state: DuelState.WinnerClaimed, claimTimestamp: BigInt(NOW - timeout() + 60) });
+    const later = duel(2, { state: DuelState.WinnerClaimed, claimTimestamp: BigInt(NOW - timeout() + 600) });
+
+    expect(nextLateAt([later, soon])).toBe((NOW + 60) * 1000);
+  });
+
+  it('has nothing to wait for once every claim has run out, or with none made', () => {
+    const late = duel(1, { state: DuelState.WinnerClaimed, claimTimestamp: BigInt(NOW - timeout()) });
+
+    expect(nextLateAt([late, duel(2)])).toBeNull();
   });
 });
 

@@ -80,6 +80,12 @@ export const iconPaths = {
   ],
   plus: [{ d: 'M12 5.5v13M5.5 12h13' }],
   replay: [{ d: 'M4.8 12a7.2 7.2 0 1 0 2.1-5.1' }, { d: 'M4.5 4.5v3.8h3.8' }],
+  // The safe's lock: the shackle is its first path, so a safe opening can lift it alone.
+  safe: [
+    { x: 5.5, y: 11, width: 13, height: 9.5, rx: 2.5 },
+    { d: 'M8.5 11V8a3.5 3.5 0 0 1 7 0v3' },
+    { d: 'M12 14.6v2.4' },
+  ],
   search: [{ cx: 11, cy: 11, r: 6.5 }, { d: 'M16 16l4.5 4.5' }],
   send: [{ d: 'M20.5 4.5L3.5 11l6 2.5 2.5 6z' }, { d: 'M9.5 13.5l4-3.5' }],
   'shield-alert': [

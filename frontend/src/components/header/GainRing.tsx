@@ -2,7 +2,8 @@ import { cn } from '@/lib/utils';
 
 /**
  * Money coming in: a green ring that flashes once around what holds it. The caller keys it by the
- * move, so each one plays it again, and gives it the holder's inset, radius and border.
+ * move, so each one plays it again, and gives it the holder's inset, radius and border; a ring
+ * colour of its own makes it the glint of a payout waiting to be taken.
  */
 export function GainRing({ className }: { className: string }) {
   return (

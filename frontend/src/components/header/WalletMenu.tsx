@@ -63,9 +63,13 @@ export function WalletMenu({ address, walletAddress, walletClientType }: WalletM
     introFor.current = intro;
   }
 
+  function close() {
+    setIsOpen(false);
+  }
+
   // Privy's own windows and the top-up window open over the page, not inside a menu.
   function leaveFor(action: () => void) {
-    setIsOpen(false);
+    close();
     action();
   }
 
@@ -87,9 +91,9 @@ export function WalletMenu({ address, walletAddress, walletClientType }: WalletM
                 address={address}
                 walletAddress={walletAddress}
                 isEntering={isEntering}
-                onLeave={() => setIsOpen(false)}
+                onLeave={close}
               />
-              {owed && <SafeMini owed={owed} isEntering={isEntering} onLeave={() => setIsOpen(false)} />}
+              {owed && <SafeMini owed={owed} isEntering={isEntering} onLeave={close} />}
               <WalletMoney
                 networks={networks}
                 pickedId={picked.chain.id}
