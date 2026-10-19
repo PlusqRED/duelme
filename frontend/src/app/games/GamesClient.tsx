@@ -34,6 +34,7 @@ export function GamesClient() {
         <div className="flex flex-wrap gap-1.5">
           <button
             onClick={() => setCategory(undefined)}
+            aria-pressed={!category}
             className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
               !category ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
@@ -44,6 +45,7 @@ export function GamesClient() {
             <button
               key={cat}
               onClick={() => setCategory(cat === category ? undefined : cat)}
+              aria-pressed={category === cat}
               className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                 category === cat ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}

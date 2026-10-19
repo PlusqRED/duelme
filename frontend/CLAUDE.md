@@ -64,7 +64,7 @@ address, no relayer key — is the case the self-paid path still covers.
 1. `npm run lint && npm run build` from `frontend/`.
 2. Start fresh dev server on a free port — don't trust an existing `3001`/`3002`. Example: `npm run dev -- --hostname 127.0.0.1 --port 3010`.
 3. Install Chromium once if missing: `npx playwright install chromium`.
-4. Run relevant e2e when present: `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3010 npx playwright test e2e/<file>.spec.ts`. Report unrelated failures explicitly.
+4. Run relevant e2e when present: `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3010 npm run test:e2e -- e2e/<file>.spec.ts`. Report unrelated failures explicitly.
 5. Screenshot desktop + mobile (`--viewport-size=390,844`) with `--wait-for-timeout=3000 --full-page` to avoid first-frame loading screenshots.
 6. Inspect screenshots — check overlapping text, clipped buttons, horizontal scroll, broken spacing, primary action visibility.
 7. Clean up: delete screenshots and stop temporary dev server unless user asked you to leave them.
@@ -86,7 +86,7 @@ address, no relayer key — is the case the self-paid path still covers.
 
 **State:** URL state for nav-relevant; `useState` for ephemeral UI; React Query for server/contract (never manually sync remote data into `useState`); Context only for cross-cutting concerns.
 
-**Styling:** Tailwind utility classes only — no inline styles, no CSS modules. Use `cn()` from `lib/utils.ts`. shadcn/ui as base, customize via Tailwind. Design tokens via Tailwind theme — never hardcode colors/spacing/breakpoints.
+**Styling:** Tailwind utility classes only, through `cn()` from `lib/utils.ts`; no CSS modules. Colours, type and motion come from the theme — the rules, and the one exception for inline styles, are under "Design" below.
 
 **Errors:** `try/catch` around wallet/API calls. Toast errors via `useAppToast()` — no silent failures. Parse contract reverts to human-readable. Check `res.ok` before parsing API responses.
 
@@ -96,9 +96,56 @@ address, no relayer key — is the case the self-paid path still covers.
 
 **Naming:** Components `PascalCase.tsx`, hooks `camelCase.ts` prefixed `use`, utils `camelCase.ts`, primitive constants `UPPER_SNAKE_CASE`, object constants `camelCase`, types `PascalCase` (prefer `interface` for object shapes).
 
+## Design
+
+The app is being moved, screen by screen, onto one design. These are its rules; a screen the port
+has not reached yet still looks old, and the guard tests below list it.
+
+- **Calm, never a casino.** Light surfaces, no neon, no chips or coin piles, nothing that nudges
+  toward a bigger stake, plain words.
+- **Colour says who or what, and lives on objects, not backgrounds.** Red is the player who created
+  the duel, blue the one who joined, navy (`ink`) the contract and every action button, sun the
+  winner and the payout, green (`good`) what is good (honored, unlocked, copied, under your
+  control), orange what needs attention (an error, a shortfall, a late answer) — never red, which
+  is a player. Reputation levels: Reliable green, Mixed amber, Risky orange, New grey.
+- **Tokens only.** Every colour, type size, weight, easing and shadow is a token in
+  `src/styles/theme.css`, used by its role: `bg-canvas`, `text-ink-3`, `bg-red-soft`. Tailwind's
+  own palette (`bg-slate-50`, `text-white`), a colour value in a component, and `dark:` (there is
+  no dark theme) fail `styles/__tests__/designGuard.test.ts`. The files the port has not reached are
+  listed in `styles/__tests__/notYetPorted.ts`; a screen's port takes its files off, and the list
+  only shrinks. A place CSS cannot reach (the browser's theme colour, Privy's window) takes its hex
+  from `lib/brandColors.ts`, which a test keeps equal to the theme.
+- **Tailwind only, with one exception.** A value that changes while the page runs (a timer's
+  progress, a notch's position, a bar's fill) goes in as a CSS variable through `style` and the
+  classes read it; a state with several looks is a data attribute with variants
+  (`data-[tone=short]:bg-orange-wash`). Shared CSS lives only in `src/styles/`: the theme, element
+  defaults with the `keycap` utility, motion, and `legacy.css` — classes of screens not ported yet,
+  each of which the guard test drops once nothing uses it.
+- **Type:** Geologica only; 800 for headings and amounts, `font-label` (650) and `font-strong`
+  (750) for labels, 400 for text. Figures are `tabular-nums`; there is no monospace face.
+- **Primitives** in `components/ui/`: keycap buttons (navy for every action, paper beside it, sun
+  only to take a payout, ghost for what should not compete), `Chip`, `Icon` (the design's icons;
+  `lucide-react` stays only on screens not ported yet), `Dialog` (a card on a wide screen, a sheet
+  from the bottom of a phone), `Input`, `Toaster`.
+- **Motion** either explains something once or answers a click, and moves only transform and
+  opacity. With `prefers-reduced-motion` everything is in its final place at once
+  (`styles/motion.css`).
+- **Russian says «ты» and is gender-neutral**: nothing about a person in a past tense or a gendered
+  adjective, and no slashes («победил(а)»). What you do is a noun or the present tense («Победа за
+  мной», «Ты заявляешь победу»); what happened is the thing, not who did it («Победа заявлена»);
+  another player by name («Ответа от {other} не было»). Role nouns (игрок, соперник, создатель)
+  keep their grammatical gender. `i18n/__tests__/translationsGuard.test.ts` fails on «вы» outside
+  `stillFormalKeys.ts`, a list that only shrinks, and on a key nothing uses.
+- **Amounts** show up to USDT's 6 decimals, and an amount never parts from its unit at a line break
+  (`{amount} USDT`).
+- **Anything a contract setting decides is read from it**: the time to answer a reported win is
+  `claimTimeout` in words, never a fixed "1 hour".
+
 ## Testing
 
 **Frontend (Vitest):** test `lib/` pure logic. Test complex hooks via `renderHook`. Test observable behavior, not implementation. Mock at boundaries. Vitest runs in `node`; a hook or component test opts into a DOM with `// @vitest-environment happy-dom` as its first line and renders through `@testing-library/react` (see `src/hooks/__tests__/`).
+
+**e2e (Playwright, `npm run test:e2e`)** runs against a server you start (`PLAYWRIGHT_BASE_URL`) and is not part of CI. Specs find elements by role, name and text, never by a class: the look changes, and a test tied to `bg-indigo-600` breaks with it.
 
 ## Key Files
 
@@ -106,6 +153,12 @@ address, no relayer key — is the case the self-paid path still covers.
 |------|---------|
 | `frontend/src/lib/wagmi.ts` | wagmi config (Privy adapter); `resolveRpcUrl` validates the RPC env and picks the fallback chain (configured provider → Tenderly) |
 | `frontend/src/lib/contracts.ts` | ABI, DuelState enum, ACTIVE_STATES, ERC20 ABIs, getUsdtAddress |
+| `frontend/src/styles/theme.css` | The design's tokens as Tailwind's theme: colours by role, type, weights, easing, shadows |
+| `frontend/src/components/ui/button.tsx` | Keycap buttons (navy, paper, sun, ghost); `buttonVariants` gives a link the same face |
+| `frontend/src/components/ui/iconPaths.ts` | The design's icons as shapes, drawn by `ui/icon.tsx` |
+| `frontend/src/lib/brandColors.ts` | Theme colours as hex for what CSS cannot reach (theme colour, Privy) |
+| `frontend/src/styles/__tests__/designGuard.test.ts` | Fails on palette classes, colour values, `dark:` and unused legacy classes outside what `notYetPorted.ts` lists |
+| `frontend/src/i18n/__tests__/translationsGuard.test.ts` | Fails on a translation key nothing uses and on Russian «вы» outside `stillFormalKeys.ts` |
 | `frontend/src/lib/constants.ts` | Chain configs, contract addresses, ZERO_ADDRESS, CHAIN_NAMES |
 | `frontend/src/components/providers/Providers.tsx` | Privy + wagmi + QueryClient providers |
 | `frontend/src/hooks/useDuel.ts` | Read single duel, polled until it is over and paid out; a failed poll keeps the last duel |
@@ -217,6 +270,7 @@ address, no relayer key — is the case the self-paid path still covers.
   probe once did this job: a flow opened before it answered planned the self-paid path, approve
   included, for a player the relayer would carry, and every fix for that (gates, retries,
   timeouts, writes waiting for the answer) added a failure of its own.
+- **tailwind-merge does not know the theme's own type sizes and weights.** Left alone it reads `text-body` as a colour and `font-label` as a font family, so `cn('text-body', 'text-ink')` silently drops the size. `cn()` in `lib/utils.ts` registers them; a new `--text-*` or `--font-weight-*` token goes there too (`utils.test.ts` fails until it does).
 - **`collectErrorDetails` returns viem's multi-line dump first.** An error's own `message` is visited before its `shortMessage` / `reason`, so the first entry is the whole "Contract Call / Request Arguments / Version" blob. Use `bestErrorDetail` (shortest non-placeholder detail) whenever the string reaches a person.
 - **`fundsViaPermit` has to gate every allowance check, not just the last one.** `handleContinueFlow`, `handleSwitchNetwork` and `handleCreateTransaction` / `handleJoinTransaction` all decide the approve step; a relayed flow that reads the allowance in any of them routes a zero-ETH player into a self-paid `approve`. They share `resolveNeedsApproval` from `guidedFlowSteps.ts`.
 - **`FORWARDER_NAME` must match on both sides.** `frontend/src/lib/forwardRequest.ts` and `contracts/script/ForwarderConfig.sol` (which both deploy scripts read) both spell `"DuelMe Forwarder"`; it is the EIP-712 domain name, so a mismatch makes every signature fail `verify` with no other symptom.
