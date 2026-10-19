@@ -191,8 +191,10 @@ export function useDuelRange({ chainId, enabled = true }: DuelRangeOptions) {
     duels,
     // A failed count is the quietest way this hook can lie: `count` falls back to 0, no page is
     // ever requested, and the two signals below both read "finished, nothing here". Without it
-    // an RPC hiccup renders an empty history as a complete one on every listing screen.
-    isError: isCountError || isPagesError || hasFailedPage,
+    // an RPC hiccup renders an empty history as a complete one on every listing screen. A read
+    // that fails again while an earlier one's result is kept leaves the list whole, only not the
+    // newest, so it is no error here.
+    isError: (isCountError && duelCount === undefined) || (isPagesError && !pageResults) || hasFailedPage,
     isLoading: isCountLoading || isDuelsLoading,
     /** Reads again from scratch, dropping a read already running: after a write, which it must see. */
     refetch,
@@ -244,13 +246,10 @@ export function useDuelsByIds(duelIds: readonly number[], { chainId }: { chainId
 
   const { duels, hasFailedPage } = useStitchedDuels(pageResults, pageContracts, idAt);
 
-  const refetch = useCallback(async () => {
-    await refetchPages();
-  }, [refetchPages]);
   const retry = useCallback(async () => {
     await refetchPages({ cancelRefetch: false });
   }, [refetchPages]);
 
-  // `refetch` and `retry` as `useDuelRange` has them.
-  return { duels, isLoading, isError: isPagesError || hasFailedPage, refetch, retry };
+  // `isError` and `retry` as `useDuelRange` has them.
+  return { duels, isLoading, isError: (isPagesError && !pageResults) || hasFailedPage, retry };
 }

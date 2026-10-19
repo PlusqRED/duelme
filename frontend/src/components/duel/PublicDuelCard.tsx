@@ -181,16 +181,21 @@ export function PublicDuelCard({
   );
 }
 
+/**
+ * Nothing while the creator's record is unknown, still loading or failed to read: a guess of New
+ * would vouch for a player nobody has checked.
+ */
 function HonorBadge({ duel }: { duel: EnrichedDuel }) {
   const { t } = useTranslation();
-  const level = duel.reputationStats?.level ?? duel.reputation ?? 'new';
   const stats = duel.reputationStats;
+
+  if (!stats) return null;
 
   return (
     <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5">
-      <ReputationPill level={level} />
+      <ReputationPill level={stats.level} />
       <span className="truncate text-[11px] text-slate-400">
-        {stats && stats.total > 0
+        {stats.total > 0
           ? t('publicDuels.honorStats', { honored: stats.honored, total: stats.total })
           : t('publicDuels.noHonorHistory')}
       </span>

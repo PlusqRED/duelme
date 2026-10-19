@@ -67,8 +67,8 @@ export function useGameDuels(gameSlug: string | undefined, chainId: number) {
   return {
     ...result,
     isLoading: isMetaLoading || isDuelsLoading,
-    // Without the game's duel ids nothing is read from the chain, and the page would show a game
-    // nobody has played rather than one whose duels did not load.
+    // Without the game's duel ids nothing is read from the chain, so a failed metadata read is a
+    // failed list: the page says so rather than passing for a game nobody has played.
     isError: isMetaError || isError,
     retry,
   };

@@ -52,7 +52,7 @@ export default function DashboardPage() {
   );
   const { reputationByAddress } = useReputationLevels(duelParticipantAddresses, DASHBOARD_CHAIN.id);
   const { resolveDisplay, nicknameByAddress } = useNicknames(duelParticipantAddresses);
-  const normalizedSearchQuery = normalizeSearchQuery(searchQuery);
+  const normalizedSearchQuery = normalizeSearchQuery(searchQuery, language);
 
   const filteredActiveDuels = useMemo(
     () => activeDuels.filter((duel) => (

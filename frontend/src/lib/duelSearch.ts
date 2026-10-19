@@ -4,6 +4,7 @@ import type { Language, TranslationKey, TranslationParams } from '@/i18n/transla
 import { formatUnits } from 'viem';
 import { USDT_DECIMALS } from '@/lib/constants';
 import { DuelState } from '@/lib/contracts';
+import { formatPublicDuelAmount, type EnrichedDuel } from '@/lib/publicDuelsFilters';
 import { formatDateTime, formatUSDT } from '@/lib/utils';
 import {
   getClaimableAmountForAddress,
@@ -43,22 +44,27 @@ const CANONICAL_OUTCOME_TERMS: Record<string, string[]> = {
 
 /**
  * Search text as it is matched: lower case, any run of spaces (a non-breaking one in a Russian
- * amount too) as one space, and a decimal comma as a point, so `1 234,5` typed matches `1 234,5`
- * shown, and `1234,5` matches `1234.5`.
+ * amount too) as one space, and a comma between digits read the way the language writes numbers.
+ * In Russian it is the decimal point, so `1 234,5` typed matches `1 234,5` shown and `1234,5`
+ * matches `1234.5`; in English it groups thousands and is dropped, so `1,234.5` matches `1234.5`
+ * while `1.5` does not match `1,500`.
  */
-function foldSearchText(text: string): string {
-  return text.toLowerCase().replace(/\s+/g, ' ').replace(/(\d),(\d)/g, '$1.$2');
+function foldSearchText(text: string, language: Language): string {
+  return text
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/(?<=\d),(?=\d)/g, language === 'ru' ? '.' : '');
 }
 
 /** A search box's query, folded the way the search text is. */
-export function normalizeSearchQuery(query: string): string {
-  return foldSearchText(query.trim());
+export function normalizeSearchQuery(query: string, language: Language): string {
+  return foldSearchText(query.trim(), language);
 }
 
-function normalizeSearchParts(parts: Array<string | number | undefined | null | false>) {
+function normalizeSearchParts(parts: Array<string | number | undefined | null | false>, language: Language) {
   return parts
     .filter((part): part is string | number => part !== undefined && part !== null && part !== false && part !== '')
-    .map((part) => foldSearchText(String(part)))
+    .map((part) => foldSearchText(String(part), language))
     .join(' ');
 }
 
@@ -92,6 +98,7 @@ export function buildDashboardDuelSearchText(
     duel.id,
     duel.wager,
     `${duel.wager} usdt`,
+    formatUSDT(duel.wagerAmount, language),
     duel.message,
     outcomeLabel,
     detailLabel,
@@ -125,7 +132,7 @@ export function buildDashboardDuelSearchText(
     claimableAmount > 0n ? formatUSDT(claimableAmount, language) : '',
     claimableAmount > 0n ? formatUnits(claimableAmount, USDT_DECIMALS) : '',
     claimableAmount > 0n ? t('dashboard.claimButton') : '',
-  ]);
+  ], language);
 }
 
 export function buildRecentDuelSearchText(
@@ -164,5 +171,21 @@ export function buildRecentDuelSearchText(
     nicknameByAddress?.[duel.player1.toLowerCase()] ?? '',
     nicknameByAddress?.[duel.player2.toLowerCase()] ?? '',
     gameName ?? '',
-  ]);
+  ], language);
+}
+
+/** An open duel's search text: its creator, its stake as the card writes it and as typed, its game. */
+export function buildPublicDuelSearchText(duel: EnrichedDuel, language: Language) {
+  return normalizeSearchParts([
+    duel.creatorName,
+    duel.creator,
+    duel.wager,
+    formatPublicDuelAmount(duel.wager, language),
+    duel.message,
+    duel.gameName,
+    duel.gameCategory,
+    duel.reputation,
+    duel.reputationStats?.honored,
+    duel.reputationStats?.total,
+  ], language);
 }

@@ -44,7 +44,7 @@ export default function GameDetailPage({
   const { reputationByAddress } = useReputationLevels(allAddresses, CHAIN.id);
   const { resolveDisplay, nicknameByAddress } = useNicknames(allAddresses);
 
-  const normalizedSearch = normalizeSearchQuery(searchQuery);
+  const normalizedSearch = normalizeSearchQuery(searchQuery, language);
 
   const filteredActive = useMemo(
     () => activeDuels.filter((d) =>

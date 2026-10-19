@@ -12,5 +12,6 @@ export function useDuelsByGame(gameSlug: string | undefined, chainId: number) {
     enabled: !!gameSlug && !!contractAddress,
     staleTime: 30_000,
   });
-  return { duels: data ?? [], isLoading, isError, refetch };
+  // An error only when there is nothing to show: a refetch that fails keeps the list it had.
+  return { duels: data ?? [], isLoading, isError: isError && !data, refetch };
 }

@@ -85,13 +85,14 @@ export default function RecentDuelsPage() {
         stateFilter,
         sort,
         searchQuery,
+        language,
         buildSearchIndex,
       }),
-    [duels, stateFilter, sort, searchQuery, buildSearchIndex],
+    [duels, stateFilter, sort, searchQuery, language, buildSearchIndex],
   );
 
   const countByFilter = useMemo(() => {
-    const normalizedQuery = normalizeSearchQuery(searchQuery);
+    const normalizedQuery = normalizeSearchQuery(searchQuery, language);
     const counts = Object.fromEntries(
       RECENT_STATE_FILTERS.map((f) => [f, 0]),
     ) as Record<RecentStateFilter, number>;
@@ -108,7 +109,7 @@ export default function RecentDuelsPage() {
     }
 
     return counts;
-  }, [duels, searchQuery, searchIndexByDuelId]);
+  }, [duels, searchQuery, language, searchIndexByDuelId]);
 
   const visibleDuels = useMemo(
     () => filteredDuels.slice(0, visibleCount),

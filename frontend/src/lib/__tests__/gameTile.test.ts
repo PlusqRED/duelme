@@ -18,6 +18,14 @@ describe('gameInitials', () => {
     expect([gameInitials('🔥 Fire Arena'), gameInitials('𝕏Game')]).toEqual(['🔥F', '𝕏G']);
   });
 
+  it('keeps a flag or a family of people one character', () => {
+    expect([gameInitials('🇺🇸 Game'), gameInitials('👨‍👩‍👧 Club')]).toEqual(['🇺🇸G', '👨‍👩‍👧C']);
+  });
+
+  it('keeps a letter that upper case would turn into two', () => {
+    expect(gameInitials('ßeta Game')).toBe('ßG');
+  });
+
   it('shows nothing for a name of blanks', () => {
     expect(gameInitials('   ')).toBe('');
   });

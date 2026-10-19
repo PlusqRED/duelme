@@ -71,6 +71,7 @@ describe('applyRecentFilters - state filtering', () => {
       stateFilter: 'all',
       sort: 'newest',
       searchQuery: '',
+      language: 'en',
       buildSearchIndex: searchIndex,
     });
     expect(result).toHaveLength(9);
@@ -81,6 +82,7 @@ describe('applyRecentFilters - state filtering', () => {
       stateFilter: 'live',
       sort: 'newest',
       searchQuery: '',
+      language: 'en',
       buildSearchIndex: searchIndex,
     });
     expect(result.map((d) => d.id).sort()).toEqual([1, 2, 3]);
@@ -91,6 +93,7 @@ describe('applyRecentFilters - state filtering', () => {
       stateFilter: 'resolved',
       sort: 'newest',
       searchQuery: '',
+      language: 'en',
       buildSearchIndex: searchIndex,
     });
     expect(result.map((d) => d.id)).toEqual([4]);
@@ -101,6 +104,7 @@ describe('applyRecentFilters - state filtering', () => {
       stateFilter: 'refunded',
       sort: 'newest',
       searchQuery: '',
+      language: 'en',
       buildSearchIndex: searchIndex,
     });
     expect(result.map((d) => d.id)).toEqual([5]);
@@ -111,6 +115,7 @@ describe('applyRecentFilters - state filtering', () => {
       stateFilter: 'cancelled',
       sort: 'newest',
       searchQuery: '',
+      language: 'en',
       buildSearchIndex: searchIndex,
     });
     expect(result.map((d) => d.id).sort()).toEqual([6, 7, 8]);
@@ -121,6 +126,7 @@ describe('applyRecentFilters - state filtering', () => {
       stateFilter: 'disputed',
       sort: 'newest',
       searchQuery: '',
+      language: 'en',
       buildSearchIndex: searchIndex,
     });
     expect(result.map((d) => d.id)).toEqual([9]);
@@ -139,6 +145,7 @@ describe('applyRecentFilters - search', () => {
       stateFilter: 'all',
       sort: 'newest',
       searchQuery: '',
+      language: 'en',
       buildSearchIndex: () => 'whatever',
     });
     expect(result).toHaveLength(3);
@@ -154,6 +161,7 @@ describe('applyRecentFilters - search', () => {
       stateFilter: 'all',
       sort: 'newest',
       searchQuery: 'bob',
+      language: 'en',
       buildSearchIndex: (d) => indexes[d.id],
     });
     expect(result.map((d) => d.id)).toEqual([2]);
@@ -169,9 +177,20 @@ describe('applyRecentFilters - search', () => {
       stateFilter: 'all',
       sort: 'newest',
       searchQuery: '  ALICE  ',
+      language: 'en',
       buildSearchIndex: (d) => indexes[d.id],
     });
     expect(result.map((d) => d.id)).toEqual([1]);
+  });
+  it('folds the query the way the search text is, as the filter counts do', () => {
+    const result = applyRecentFilters(duels, {
+      stateFilter: 'all',
+      sort: 'newest',
+      searchQuery: 'Best  of 3,4',
+      language: 'ru',
+      buildSearchIndex: (d) => (d.id === 2 ? 'best of 3.4 maps' : ''),
+    });
+    expect(result.map((d) => d.id)).toEqual([2]);
   });
 });
 
@@ -187,6 +206,7 @@ describe('applyRecentFilters - sorting', () => {
       stateFilter: 'all',
       sort: 'newest',
       searchQuery: '',
+      language: 'en',
       buildSearchIndex: searchIndex,
     });
     expect(result.map((d) => d.id)).toEqual([3, 2, 1]);
@@ -197,6 +217,7 @@ describe('applyRecentFilters - sorting', () => {
       stateFilter: 'all',
       sort: 'oldest',
       searchQuery: '',
+      language: 'en',
       buildSearchIndex: searchIndex,
     });
     expect(result.map((d) => d.id)).toEqual([1, 2, 3]);
@@ -207,6 +228,7 @@ describe('applyRecentFilters - sorting', () => {
       stateFilter: 'all',
       sort: 'highestWager',
       searchQuery: '',
+      language: 'en',
       buildSearchIndex: searchIndex,
     });
     expect(result.map((d) => d.id)).toEqual([2, 3, 1]);
@@ -217,6 +239,7 @@ describe('applyRecentFilters - sorting', () => {
       stateFilter: 'all',
       sort: 'lowestWager',
       searchQuery: '',
+      language: 'en',
       buildSearchIndex: searchIndex,
     });
     expect(result.map((d) => d.id)).toEqual([1, 3, 2]);
@@ -232,6 +255,7 @@ describe('applyRecentFilters - sorting', () => {
       stateFilter: 'all',
       sort: 'highestWager',
       searchQuery: '',
+      language: 'en',
       buildSearchIndex: searchIndex,
     });
     expect(result.map((d) => d.id)).toEqual([2, 3, 1]);
@@ -256,6 +280,7 @@ describe('applyRecentFilters - composition', () => {
       stateFilter: 'resolved',
       sort: 'highestWager',
       searchQuery: 'alice',
+      language: 'en',
       buildSearchIndex: (d) => indexes[d.id],
     });
     // 'alice' matches 1 and 3, 'resolved' state keeps both, sort by wager desc
@@ -268,6 +293,7 @@ describe('applyRecentFilters - composition', () => {
       stateFilter: 'disputed',
       sort: 'newest',
       searchQuery: '',
+      language: 'en',
       buildSearchIndex: searchIndex,
     });
     expect(result).toEqual([]);
@@ -278,6 +304,7 @@ describe('applyRecentFilters - composition', () => {
       stateFilter: 'all',
       sort: 'newest',
       searchQuery: 'anything',
+      language: 'en',
       buildSearchIndex: searchIndex,
     });
     expect(result).toEqual([]);

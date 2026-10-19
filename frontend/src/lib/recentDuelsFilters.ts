@@ -1,5 +1,7 @@
 import { DuelState } from '@/lib/contracts';
+import { normalizeSearchQuery } from '@/lib/duelSearch';
 import type { RecentDuel } from '@/hooks/useRecentDuels';
+import type { Language } from '@/i18n/translations';
 
 export type RecentStateFilter =
   | 'all'
@@ -53,14 +55,16 @@ export interface ApplyRecentFiltersOptions {
   stateFilter: RecentStateFilter;
   sort: RecentSortBy;
   searchQuery: string;
+  /** The language the search text was built in: the query is folded the way it was. */
+  language: Language;
   buildSearchIndex: (duel: RecentDuel) => string;
 }
 
 export function applyRecentFilters(
   duels: RecentDuel[],
-  { stateFilter, sort, searchQuery, buildSearchIndex }: ApplyRecentFiltersOptions
+  { stateFilter, sort, searchQuery, language, buildSearchIndex }: ApplyRecentFiltersOptions
 ): RecentDuel[] {
-  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const normalizedQuery = normalizeSearchQuery(searchQuery, language);
 
   const filtered = duels.filter((duel) => {
     if (!isStateInFilter(duel.state, stateFilter)) return false;

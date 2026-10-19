@@ -14,6 +14,7 @@ import { useReputationLevels } from '@/hooks/useReputationLevels';
 import { useTimeAgo } from '@/hooks/useTimeAgo';
 import { useTranslation } from '@/i18n/useTranslation';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
+import { buildPublicDuelSearchText, normalizeSearchQuery } from '@/lib/duelSearch';
 import {
   NO_GAME_FILTER,
   WAGER_RANGES,
@@ -66,7 +67,7 @@ export default function PublicDuelsPage() {
     return [...map.values()].sort((a, b) => b.count - a.count);
   }, [enriched]);
 
-  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const normalizedSearch = normalizeSearchQuery(searchQuery, language);
 
   const filtered = useMemo(() => {
     let result = enriched;
@@ -83,16 +84,7 @@ export default function PublicDuelsPage() {
     }
 
     if (normalizedSearch) {
-      result = result.filter((d) => {
-        const hay = [
-          d.creatorName, d.creator, String(d.wager),
-          d.message, d.gameName ?? '', d.gameCategory ?? '',
-          d.reputation ?? '',
-          String(d.reputationStats?.honored ?? ''),
-          String(d.reputationStats?.total ?? ''),
-        ].join(' ').toLowerCase();
-        return hay.includes(normalizedSearch);
-      });
+      result = result.filter((d) => buildPublicDuelSearchText(d, language).includes(normalizedSearch));
     }
 
     result = [...result];
@@ -101,7 +93,7 @@ export default function PublicDuelsPage() {
     else result.sort((a, b) => a.wager - b.wager);
 
     return result;
-  }, [enriched, gameFilter, wagerRange, normalizedSearch, sortBy]);
+  }, [enriched, gameFilter, wagerRange, normalizedSearch, sortBy, language]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
