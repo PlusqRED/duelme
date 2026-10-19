@@ -1,7 +1,7 @@
 import type { ReputationLevel } from '@/lib/reputation';
 import { cn } from '@/lib/utils';
 
-const BAR_HEIGHTS = ['h-1.5', 'h-[9px]', 'h-3'];
+const barHeights = ['h-1.5', 'h-[9px]', 'h-3'];
 
 /** How many of the three bars a level fills, in what colour, and how the rest look; New is all outlines. */
 const levels: Record<ReputationLevel, { filled: number; colour: string; empty: string }> = {
@@ -22,7 +22,7 @@ export function ReputationMeter({ level, className }: ReputationMeterProps) {
 
   return (
     <span aria-hidden="true" className={cn('inline-flex items-end gap-0.5', className)}>
-      {BAR_HEIGHTS.map((height, index) => (
+      {barHeights.map((height, index) => (
         <span
           key={height}
           className={cn('w-1 rounded-[2px]', height, index < filled ? colour : empty)}

@@ -18,7 +18,7 @@ import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { usePlayerDuels } from '@/hooks/usePlayerDuels';
 import { DEFAULT_CHAIN } from '@/lib/constants';
 import { getClaimableAmountForAddress, isRefundableDuel } from '@/lib/duel';
-import { buildDashboardDuelSearchText } from '@/lib/duelSearch';
+import { buildDashboardDuelSearchText, normalizeSearchQuery } from '@/lib/duelSearch';
 import { formatUSDT } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Swords, Trophy, XCircle, BarChart3, Info, Wallet, Search, RotateCcw } from 'lucide-react';
@@ -38,7 +38,7 @@ export default function DashboardPage() {
 
   // `isError` means a page of the history failed to load: duels — including ones with an
   // unclaimed payout — are missing from these lists and from the claim totals below.
-  const { wins, losses, totalWagered, totalWithdrawn, activeDuels, historyDuels, isLoading, isError, refetch } =
+  const { wins, losses, totalWagered, totalWithdrawn, activeDuels, historyDuels, isLoading, isError, refetch, retry } =
     usePlayerDuels(walletAddress, DASHBOARD_CHAIN.id);
   const actionFlow = useActionFlow({ duelId: 0, refetchDuel: refetch });
   const {
@@ -52,7 +52,7 @@ export default function DashboardPage() {
   );
   const { reputationByAddress } = useReputationLevels(duelParticipantAddresses, DASHBOARD_CHAIN.id);
   const { resolveDisplay, nicknameByAddress } = useNicknames(duelParticipantAddresses);
-  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const normalizedSearchQuery = normalizeSearchQuery(searchQuery);
 
   const filteredActiveDuels = useMemo(
     () => activeDuels.filter((duel) => (
@@ -95,7 +95,7 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
-      <PartialDataNotice when={isError} onRetry={refetch} />
+      <PartialDataNotice when={isError} onRetry={retry} />
       <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
         {t('dashboard.title')}
       </h1>
@@ -130,7 +130,7 @@ export default function DashboardPage() {
           <CardContent className="flex flex-col items-center gap-1 py-4">
             <BarChart3 className="h-5 w-5 text-indigo-500" />
             <span className="text-2xl font-bold text-slate-900">
-              {totalWagered.toFixed(0)} USDT
+              {formatUSDT(totalWagered, language)} USDT
             </span>
             <span className="text-xs font-medium text-ink-3">
               {t('dashboard.totalWagered')}

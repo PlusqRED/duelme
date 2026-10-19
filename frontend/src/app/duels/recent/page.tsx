@@ -13,7 +13,7 @@ import { useRecentDuels } from '@/hooks/useRecentDuels';
 import { useReputationLevels } from '@/hooks/useReputationLevels';
 import { useTranslation } from '@/i18n/useTranslation';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
-import { buildRecentDuelSearchText } from '@/lib/duelSearch';
+import { buildRecentDuelSearchText, normalizeSearchQuery } from '@/lib/duelSearch';
 import {
   RECENT_STATE_FILTERS,
   applyRecentFilters,
@@ -27,7 +27,7 @@ const BATCH_SIZE = 12;
 
 export default function RecentDuelsPage() {
   const { t, language } = useTranslation();
-  const { duels, isLoading, isError, refetch } = useRecentDuels();
+  const { duels, isLoading, isError, retry } = useRecentDuels();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [stateFilter, setStateFilter] = useState<RecentStateFilter>('all');
@@ -91,7 +91,7 @@ export default function RecentDuelsPage() {
   );
 
   const countByFilter = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const normalizedQuery = normalizeSearchQuery(searchQuery);
     const counts = Object.fromEntries(
       RECENT_STATE_FILTERS.map((f) => [f, 0]),
     ) as Record<RecentStateFilter, number>;
@@ -139,7 +139,7 @@ export default function RecentDuelsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
-      <PartialDataNotice when={isError} onRetry={refetch} />
+      <PartialDataNotice when={isError} onRetry={retry} />
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
           {t('recent.title')}

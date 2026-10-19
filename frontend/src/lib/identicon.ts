@@ -6,6 +6,10 @@ export interface IdenticonCell {
 
 const SIZE = 5;
 const DRAWN_COLUMNS = 3;
+const DRAWN_BITS = SIZE * DRAWN_COLUMNS;
+const DRAWN_MASK = (1 << DRAWN_BITS) - 1;
+/** Fewer squares than this hardly tell one face from another, and none leaves the token blank. */
+const FEWEST_SQUARES = 3;
 
 /** FNV-1a, 32 bits: the same text always gives the same number. */
 function fnv1a(text: string): number {
@@ -17,12 +21,21 @@ function fnv1a(text: string): number {
   return hash >>> 0;
 }
 
+function countBits(bits: number): number {
+  let count = 0;
+  for (let rest = bits; rest; rest &= rest - 1) count += 1;
+  return count;
+}
+
 /**
  * A player's pattern, drawn from their address: 15 bits of its hash fill the left three columns
- * of a 5×5 grid, and the right two mirror them. An address in any letter case draws the same one.
+ * of a 5×5 grid, and the right two mirror them; a hash whose 15 bits fill fewer than three squares
+ * adds its next 15. An address in any letter case draws the same one.
  */
 export function identiconCells(address: string): IdenticonCell[] {
-  const bits = fnv1a(address.trim().toLowerCase());
+  const hash = fnv1a(address.trim().toLowerCase());
+  const first = hash & DRAWN_MASK;
+  const bits = countBits(first) >= FEWEST_SQUARES ? first : first | ((hash >>> DRAWN_BITS) & DRAWN_MASK);
   const cells: IdenticonCell[] = [];
 
   for (let y = 0; y < SIZE; y += 1) {

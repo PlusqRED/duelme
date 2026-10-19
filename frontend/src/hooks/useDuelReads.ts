@@ -183,6 +183,9 @@ export function useDuelRange({ chainId, enabled = true }: DuelRangeOptions) {
   const refetch = useCallback(async () => {
     await Promise.all([refetchCount(), refetchPages()]);
   }, [refetchCount, refetchPages]);
+  const retry = useCallback(async () => {
+    await Promise.all([refetchCount({ cancelRefetch: false }), refetchPages({ cancelRefetch: false })]);
+  }, [refetchCount, refetchPages]);
 
   return {
     duels,
@@ -191,7 +194,10 @@ export function useDuelRange({ chainId, enabled = true }: DuelRangeOptions) {
     // an RPC hiccup renders an empty history as a complete one on every listing screen.
     isError: isCountError || isPagesError || hasFailedPage,
     isLoading: isCountLoading || isDuelsLoading,
+    /** Reads again from scratch, dropping a read already running: after a write, which it must see. */
     refetch,
+    /** Reads again, joining a read already running: for Try again, which a second click must not restart. */
+    retry,
   };
 }
 
@@ -241,6 +247,10 @@ export function useDuelsByIds(duelIds: readonly number[], { chainId }: { chainId
   const refetch = useCallback(async () => {
     await refetchPages();
   }, [refetchPages]);
+  const retry = useCallback(async () => {
+    await refetchPages({ cancelRefetch: false });
+  }, [refetchPages]);
 
-  return { duels, isLoading, isError: isPagesError || hasFailedPage, refetch };
+  // `refetch` and `retry` as `useDuelRange` has them.
+  return { duels, isLoading, isError: isPagesError || hasFailedPage, refetch, retry };
 }

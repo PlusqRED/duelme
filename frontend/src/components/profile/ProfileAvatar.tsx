@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { User } from 'lucide-react';
 import { useTranslation } from '@/i18n/useTranslation';
-import { Identicon } from '@/components/identity/Identicon';
+import { Avatar } from '@/components/identity/Avatar';
 import { getProfileAvatarUrls, isUsableAvatarImageSize, type Profile } from '@/lib/profile';
 import { cn } from '@/lib/utils';
 
@@ -61,8 +61,8 @@ export function ProfileAvatar({ profile, displayName, walletAddress, className }
           onError={() => rejectAvatarUrl(avatarUrl)}
         />
       ) : walletAddress?.trim() ? (
-        <span role="img" aria-label={avatarLabel} className="grid size-full place-items-center bg-ink text-paper">
-          <Identicon address={walletAddress} className="size-[52%]" />
+        <span role="img" aria-label={avatarLabel} className="size-full">
+          <Avatar address={walletAddress} tone="ink" className="size-full rounded-none inset-shadow-none" />
         </span>
       ) : (
         <User

@@ -9,8 +9,8 @@ export const OG_IMAGE_SIZE = { width: 1200, height: 630 };
 export const OG_IMAGE_ALT = 'DuelMe — 1v1 USDT duels on Arbitrum, 0% platform fee';
 export const OG_IMAGE_CONTENT_TYPE = 'image/png';
 
-const MOTTO = ['Skill should pay you.', 'Not the platform.'];
-const FACTS = ['0% platform fee', 'Stakes held by a smart contract', 'Arbitrum'];
+const motto = ['Skill should pay you.', 'Not the platform.'];
+const facts = ['0% platform fee', 'Stakes held by a smart contract', 'Arbitrum'];
 
 // `ImageResponse` reads TTF, OTF and WOFF but not the WOFF2 `next/font` serves, so the share
 // images carry their own copy of Geologica (SIL Open Font License, next to the files).
@@ -45,7 +45,7 @@ export async function renderBrandOgImage() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {MOTTO.map((line) => (
+          {motto.map((line) => (
             <div key={line} style={{ fontSize: 92, fontWeight: 800, lineHeight: 0.98, letterSpacing: '-0.04em' }}>
               {line}
             </div>
@@ -56,7 +56,7 @@ export async function renderBrandOgImage() {
         </div>
 
         <div style={{ display: 'flex', gap: 14 }}>
-          {FACTS.map((fact) => (
+          {facts.map((fact) => (
             <div
               key={fact}
               style={{

@@ -5,7 +5,7 @@ import { BrandMark } from '@/components/identity/BrandMark';
 import { useTranslation } from '@/i18n/useTranslation';
 import { DEVELOPER_EMAIL, INSTAGRAM_URL, SITE_NAME, TELEGRAM_URL } from '@/lib/constants';
 
-const SOCIAL_LINKS = [
+const socialLinks = [
   { name: 'Telegram', href: TELEGRAM_URL },
   { name: 'Instagram', href: INSTAGRAM_URL },
 ];
@@ -34,7 +34,7 @@ export function Footer() {
           </a>
         </p>
         <ul className="flex flex-wrap gap-x-5">
-          {SOCIAL_LINKS.map(({ name, href }) => (
+          {socialLinks.map(({ name, href }) => (
             <li key={name}>
               <a
                 href={href}

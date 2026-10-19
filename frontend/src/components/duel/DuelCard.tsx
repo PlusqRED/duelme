@@ -85,7 +85,7 @@ export function DuelCard({
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-lg font-semibold text-slate-900">
-                {duel.wager} USDT
+                {formatUSDT(duel.wagerAmount, language)} USDT
               </span>
               {showOutcomeBadge && (
                 <span

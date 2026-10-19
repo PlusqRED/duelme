@@ -14,6 +14,10 @@ describe('gameInitials', () => {
     expect(gameInitials(name)).toBe(initials);
   });
 
+  it('keeps a character outside the basic plane whole', () => {
+    expect([gameInitials('🔥 Fire Arena'), gameInitials('𝕏Game')]).toEqual(['🔥F', '𝕏G']);
+  });
+
   it('shows nothing for a name of blanks', () => {
     expect(gameInitials('   ')).toBe('');
   });

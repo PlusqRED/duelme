@@ -4,9 +4,10 @@
  * first two words.
  */
 export function gameInitials(name: string): string {
-  const [first, second] = name.trim().split(/\s+/);
-  if (!first) return '';
-  if (/^[A-Z0-9]{2,3}$/.test(first)) return first;
-  if (!second) return first.slice(0, 2).toUpperCase();
-  return (first.charAt(0) + second.charAt(0)).toUpperCase();
+  // By code point, so a name that starts with an emoji keeps it whole.
+  const [first, second] = name.trim().split(/\s+/).map((word) => Array.from(word));
+  if (!first?.length) return '';
+  if (/^[A-Z0-9]{2,3}$/.test(first.join(''))) return first.join('');
+  if (!second) return first.slice(0, 2).join('').toUpperCase();
+  return (first[0] + second[0]).toUpperCase();
 }

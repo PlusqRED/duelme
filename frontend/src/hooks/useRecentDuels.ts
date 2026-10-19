@@ -23,7 +23,7 @@ export interface RecentDuel {
 
 
 export function useRecentDuels() {
-  const { duels: duelRecords, isLoading, isError, refetch } = useDuelRange({ chainId: DEFAULT_CHAIN_ID });
+  const { duels: duelRecords, isLoading, isError, retry } = useDuelRange({ chainId: DEFAULT_CHAIN_ID });
 
   const duels = useMemo<RecentDuel[]>(() => {
     const recent: RecentDuel[] = [];
@@ -65,6 +65,6 @@ export function useRecentDuels() {
     duels,
     isLoading,
     isError,
-    refetch,
+    retry,
   };
 }

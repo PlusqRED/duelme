@@ -41,10 +41,24 @@ const CANONICAL_OUTCOME_TERMS: Record<string, string[]> = {
   'dashboard.outcomeNoWinner': ['no winner', 'refund', 'draw'],
 };
 
+/**
+ * Search text as it is matched: lower case, any run of spaces (a non-breaking one in a Russian
+ * amount too) as one space, and a decimal comma as a point, so `1 234,5` typed matches `1 234,5`
+ * shown, and `1234,5` matches `1234.5`.
+ */
+function foldSearchText(text: string): string {
+  return text.toLowerCase().replace(/\s+/g, ' ').replace(/(\d),(\d)/g, '$1.$2');
+}
+
+/** A search box's query, folded the way the search text is. */
+export function normalizeSearchQuery(query: string): string {
+  return foldSearchText(query.trim());
+}
+
 function normalizeSearchParts(parts: Array<string | number | undefined | null | false>) {
   return parts
     .filter((part): part is string | number => part !== undefined && part !== null && part !== false && part !== '')
-    .map((part) => String(part).toLowerCase())
+    .map((part) => foldSearchText(String(part)))
     .join(' ');
 }
 

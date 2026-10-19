@@ -17,11 +17,18 @@ interface AvatarProps {
   className?: string;
 }
 
-/** A player's face: their identicon on a round token, 44px unless the caller sizes it. */
+/**
+ * A player's face: their identicon on a round token, 44px unless the caller sizes it. The pattern
+ * takes about half the token, rounded down to whole pixels per square where the browser can, so
+ * its sharp edges fall the same on both sides of the mirror.
+ */
 export function Avatar({ address, tone, className }: AvatarProps) {
   return (
     <span className={cn('grid size-11 shrink-0 place-items-center rounded-full', tones[tone], className)}>
-      <Identicon address={address} className="size-[52%]" />
+      <Identicon
+        address={address}
+        className="size-[52%] supports-[width:round(down,1px,1px)]:size-[round(down,52%,5px)]"
+      />
     </span>
   );
 }

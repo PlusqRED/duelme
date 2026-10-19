@@ -12,7 +12,7 @@ import { useNicknames } from '@/hooks/useNicknames';
 import { useReputationLevels } from '@/hooks/useReputationLevels';
 import { useTranslation } from '@/i18n/useTranslation';
 import { DEFAULT_CHAIN } from '@/lib/constants';
-import { buildDashboardDuelSearchText } from '@/lib/duelSearch';
+import { buildDashboardDuelSearchText, normalizeSearchQuery } from '@/lib/duelSearch';
 import { formatUSDT } from '@/lib/utils';
 import { ArrowLeft, BarChart3, Gamepad2, Search, Swords, Zap } from 'lucide-react';
 
@@ -29,7 +29,7 @@ export default function GameDetailPage({
   const { game, isLoading: isGameLoading } = useGame(slug);
   const {
     activeDuels, historyDuels, totalVolume, duelsPlayed, activeDuelCount,
-    isLoading: isDuelsLoading, isError: isDuelsError, refetch: refetchDuels,
+    isLoading: isDuelsLoading, isError: isDuelsError, retry: retryDuels,
   } = useGameDuels(game?.slug, CHAIN.id);
 
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
@@ -44,7 +44,7 @@ export default function GameDetailPage({
   const { reputationByAddress } = useReputationLevels(allAddresses, CHAIN.id);
   const { resolveDisplay, nicknameByAddress } = useNicknames(allAddresses);
 
-  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const normalizedSearch = normalizeSearchQuery(searchQuery);
 
   const filteredActive = useMemo(
     () => activeDuels.filter((d) =>
@@ -101,7 +101,7 @@ export default function GameDetailPage({
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
-      <PartialDataNotice when={isDuelsError} onRetry={refetchDuels} />
+      <PartialDataNotice when={isDuelsError} onRetry={retryDuels} />
       <Link
         href="/games"
         className="mb-6 inline-flex items-center gap-1.5 text-sm text-ink-3 transition-colors hover:text-slate-900"

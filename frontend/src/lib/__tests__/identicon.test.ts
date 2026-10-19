@@ -34,6 +34,12 @@ describe('identiconCells', () => {
     expect(keys(ADDRESS)).not.toEqual(keys('0x2222222222222222222222222222222222222222'));
   });
 
+  it('fills a few more squares for an address whose pattern would be blank', () => {
+    const sources = identiconCells('0x0e681fd6c3eb7c3bc21614b378dfb01696ef2371').filter(({ x }) => x < 3);
+
+    expect(sources.length).toBeGreaterThanOrEqual(3);
+  });
+
   it('stays inside the 5×5 grid', () => {
     expect(identiconCells(ADDRESS).every(({ x, y }) => x >= 0 && x < 5 && y >= 0 && y < 5)).toBe(true);
   });

@@ -12,12 +12,18 @@ interface ReputationBadgeProps {
   tone?: 'light' | 'dark';
 }
 
-/** A player's level, read from the contract, with their record beside it on request. */
+/**
+ * A player's level, read from the contract, with their record beside it on request; nothing when
+ * the read failed, rather than calling a player of unknown record New.
+ */
 export function ReputationBadge({ address, chainId, showStats = false, tone = 'light' }: ReputationBadgeProps) {
-  const { honored, total, score, level, isLoading } = useReputation(address, chainId);
+  const { honored, total, score, level, isLoading, isError } = useReputation(address, chainId);
 
   if (isLoading || !address) {
     return <span className="inline-flex h-6 w-20 animate-pulse rounded-full bg-canvas-deep" />;
+  }
+  if (isError) {
+    return null;
   }
 
   return (

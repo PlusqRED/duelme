@@ -79,7 +79,7 @@ export function formatDateTime(timestamp: bigint | number, language: Language): 
 }
 
 /** A day in the language's medium style: `Oct 19, 2026`, `19 окт. 2026 г.`; a date that is none is a dash. */
-export function formatDate(date: string | number | Date, language: Language): string {
+export function formatDate(date: string | Date, language: Language): string {
   const day = new Date(date);
   if (Number.isNaN(day.getTime())) return '—';
 

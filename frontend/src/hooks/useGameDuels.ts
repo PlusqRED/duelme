@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { isActiveDuel, toPlayerDuel, type PlayerDuel } from '@/lib/duel';
 import { useDuelsByGame } from './useDuelsByGame';
 import { useDuelsByIds } from './useDuelReads';
@@ -17,13 +17,17 @@ export function useGameDuels(gameSlug: string | undefined, chainId: number) {
   // Already narrowed to this chain and this deployment by the query, so every id here belongs
   // to the contract we are about to read. Filtering after the fetch is what made a game page
   // empty whenever the backend's row cap was spent on another chain's rows.
-  const { duels: metas, isLoading: isMetaLoading } = useDuelsByGame(gameSlug, chainId);
+  const { duels: metas, isLoading: isMetaLoading, isError: isMetaError, refetch: refetchMetas } = useDuelsByGame(gameSlug, chainId);
 
   const duelIds = useMemo(() => metas.map((meta) => meta.duelId), [metas]);
   // Membership, not lookup: the loop only needs to know whether a record is one of these.
   const gameDuelIds = useMemo(() => new Set(duelIds), [duelIds]);
 
-  const { duels: duelRecords, isLoading: isDuelsLoading, isError, refetch } = useDuelsByIds(duelIds, { chainId });
+  const { duels: duelRecords, isLoading: isDuelsLoading, isError, retry: retryDuels } = useDuelsByIds(duelIds, { chainId });
+
+  const retry = useCallback(async () => {
+    await Promise.all([refetchMetas({ cancelRefetch: false }), retryDuels()]);
+  }, [refetchMetas, retryDuels]);
 
   const result = useMemo<GameDuelsData>(() => {
     const activeDuels: PlayerDuel[] = [];
@@ -63,7 +67,9 @@ export function useGameDuels(gameSlug: string | undefined, chainId: number) {
   return {
     ...result,
     isLoading: isMetaLoading || isDuelsLoading,
-    isError,
-    refetch,
+    // Without the game's duel ids nothing is read from the chain, and the page would show a game
+    // nobody has played rather than one whose duels did not load.
+    isError: isMetaError || isError,
+    retry,
   };
 }

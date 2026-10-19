@@ -4,11 +4,15 @@ import { brandColors } from '@/lib/brandColors';
 /** The mark's width in its own pixels: two 10px dots and a 15px square, 3px apart. */
 const MARK_WIDTH = 41;
 
+interface BrandMarkImageProps {
+  unit: number;
+}
+
 /**
  * The brand mark for `ImageResponse`, which reads inline styles only; `unit` is the size of one of
  * the mark's pixels. `components/identity/BrandMark.tsx` draws the same shapes for the page.
  */
-export function BrandMarkImage({ unit }: { unit: number }) {
+export function BrandMarkImage({ unit }: BrandMarkImageProps) {
   const dot = { width: 10 * unit, height: 10 * unit, borderRadius: 5 * unit };
 
   return (

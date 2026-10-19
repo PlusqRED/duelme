@@ -285,7 +285,7 @@ export default function DuelPage({
   const backHref = authenticated ? '/dashboard' : '/';
   const backLabel = authenticated ? t('nav.dashboard') : t('sidenav.hero');
 
-  const wagerDisplay = Number(duel.wagerAmount) / 1e6;
+  const wagerDisplay = formatUSDT(duel.wagerAmount, language);
   const hasOpponent = duel.opponent !== ZERO_ADDRESS;
   const isFundedPot = state === DuelState.Funded
     || state === DuelState.MutualCancelRequested
@@ -294,7 +294,7 @@ export default function DuelPage({
     || state === DuelState.Refunded
     || state === DuelState.Disputed
     || state === DuelState.MutuallyCancelled;
-  const potDisplay = isFundedPot ? wagerDisplay * 2 : wagerDisplay;
+  const potDisplay = formatUSDT(isFundedPot ? duel.wagerAmount * 2n : duel.wagerAmount, language);
   const creatorIsWinner = isResolved && duel.claimedWinner.toLowerCase() === duel.creator.toLowerCase();
   const opponentIsWinner = isResolved && hasOpponent && duel.claimedWinner.toLowerCase() === duel.opponent.toLowerCase();
   const creatorIsReportedWinner = isWinnerClaimed && duel.claimedWinner.toLowerCase() === duel.creator.toLowerCase();
