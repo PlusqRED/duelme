@@ -151,7 +151,7 @@ address, no relayer key — is the case the self-paid path still covers.
 | `frontend/src/lib/relayerSignerHold.ts` | Holds a signer back until their last relayed transaction has a receipt |
 | `frontend/src/lib/forwardRequest.ts` | Signs the EIP-712 ForwardRequest (domain name, gas padding) |
 | `frontend/src/lib/permitSignature.ts` | Signs an EIP-2612 permit, rebuilding and verifying the token's EIP-712 domain |
-| `frontend/src/lib/relayApi.ts` | `/api/relay` client + `RelayRequestError` carrying the server's code |
+| `frontend/src/lib/relayApi.ts` | `/api/relay` client: posts the same signed request again when an answer is lost; `RelayRequestError` carries the server's code |
 | `frontend/src/hooks/useRelayerStatus.ts` | Whether duel writes on a chain can be relayed: the forwarder address and the server's relayer status, handed down with the page by the root layout |
 | `frontend/src/lib/testnetGas.ts` | Testnet vs mainnet gas/fee buffers; min-gas constants per duel action |
 | `frontend/src/i18n/translations.ts` | Merges the per-area section files into one EN/RU key map — **add keys in `frontend/src/i18n/translations/<section>.ts`**, not here |
@@ -209,7 +209,8 @@ address, no relayer key — is the case the self-paid path still covers.
   included: a write reported as failed that went through is one "Try again" away from a second
   duel and a second wager. For the same reason a Privy broadcast that fails asks the network for
   the transaction before calling the write failed (`lib/resilientBroadcast.ts`), unless the node
-  refused the transaction's own funds, gas or fee fields.
+  refused the transaction's own funds, gas or fee fields, and a relayed write whose answer is
+  lost posts the same signed request again (`lib/relayApi.ts`).
 - **Whether relaying is on comes with the page, never from a request.** The root layout reads
   `getRelayerStatus()` from the server's relayer config and hands it to `useRelayerStatus` through
   context, so every flow plans and every write routes from the first render. An asynchronous

@@ -16,6 +16,16 @@ const RELAY_ENDPOINT = '/api/relay';
  */
 const RELAY_TIMEOUT_MS = 120_000;
 
+/**
+ * Posts of one signed request while its answer keeps getting lost, to a dropped connection or a
+ * timeout. Posting the same body again is safe: the relayer gives every copy of a signed request
+ * the first one's outcome (relayerDedup), so a repeat joins a relay still under way or gets the
+ * hash of one already done, and never sends it twice. A request signed afresh would be a new one,
+ * and a second duel if the first post went through.
+ */
+const RELAY_POST_ATTEMPTS = 3;
+const RELAY_REPOST_DELAY_MS = 2_000;
+
 export class RelayRequestError extends Error {
   readonly code: RelayErrorCode;
 
@@ -32,24 +42,7 @@ export class RelayRequestError extends Error {
  * can tell "your allowance is spent" apart from "that action would revert".
  */
 export async function submitRelayRequest(chainId: number, request: RelayForwardRequest): Promise<Hex> {
-  let response: Response;
-
-  try {
-    response = await fetch(RELAY_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chainId, request }),
-      signal: AbortSignal.timeout(RELAY_TIMEOUT_MS),
-    });
-  } catch (error) {
-    const timedOut = error instanceof DOMException && error.name === 'TimeoutError';
-    throw new RelayRequestError(
-      'RELAYER_UNAVAILABLE',
-      timedOut ? 'The relayer did not answer in time.' : 'Could not reach the relayer.',
-      { cause: error }
-    );
-  }
-
+  const response = await postUntilAnswered(JSON.stringify({ chainId, request }));
   const body: unknown = await response.json().catch(() => null);
   const fields = isRecord(body) ? body : {};
 
@@ -69,4 +62,29 @@ export async function submitRelayRequest(chainId: number, request: RelayForwardR
   }
 
   return fields.hash;
+}
+
+/** Posts the body until the relayer answers at all. Any answer, a refusal included, is final. */
+async function postUntilAnswered(body: string): Promise<Response> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fetch(RELAY_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        signal: AbortSignal.timeout(RELAY_TIMEOUT_MS),
+      });
+    } catch (error) {
+      if (attempt === RELAY_POST_ATTEMPTS) {
+        const timedOut = error instanceof DOMException && error.name === 'TimeoutError';
+        throw new RelayRequestError(
+          'RELAYER_UNAVAILABLE',
+          timedOut ? 'The relayer did not answer in time.' : 'Could not reach the relayer.',
+          { cause: error }
+        );
+      }
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, RELAY_REPOST_DELAY_MS));
+  }
 }
