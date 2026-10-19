@@ -26,7 +26,10 @@ export function Footer() {
         <p>{t('footer.tagline')}</p>
         <p>
           {t('footer.developer')}:{' '}
-          <a href={`mailto:${DEVELOPER_EMAIL}`} className="text-ink">
+          <a
+            href={`mailto:${DEVELOPER_EMAIL}`}
+            className="inline-flex min-h-11 items-center text-ink underline-offset-4 hover:underline"
+          >
             {DEVELOPER_EMAIL}
           </a>
         </p>

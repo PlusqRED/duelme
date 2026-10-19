@@ -70,7 +70,7 @@ address, no relayer key — is the case the self-paid path still covers.
 7. Clean up: delete screenshots and stop temporary dev server unless user asked you to leave them.
 
 **Components:**
-- Functional + hooks only. `function` keyword (not arrow). Named exports only — the exception is the App Router files Next requires a default export from (`page.tsx`, `layout.tsx`, `sitemap.ts`, `robots.ts`, `opengraph-image.tsx`, `twitter-image.tsx`), and those are the only default exports in `frontend/src`.
+- Functional + hooks only. `function` keyword (not arrow). Named exports only — the exception is the App Router files Next requires a default export from (`page.tsx`, `layout.tsx`, `sitemap.ts`, `robots.ts`, `icon.tsx`, `apple-icon.tsx`, `opengraph-image.tsx`, `twitter-image.tsx`), and those are the only default exports in `frontend/src`.
 - TypeScript strict — no `any`, no unchecked `as`. Narrow unknown data with a hand-written type guard; there is no schema library in the frontend and adding one is a dependency decision, not a detail.
 - Props interface `{ComponentName}Props` directly above component.
 - One exported component per file (small internal helpers <30 lines are fine). Guard clauses first, happy path last.
@@ -166,7 +166,7 @@ and controls; the guard tests below list it.
 | `frontend/src/components/ui/iconPaths.ts` | The design's icons as shapes, drawn by `ui/icon.tsx` |
 | `frontend/src/components/ui/dialog.tsx` | The one window: a card from a fixed top on a wide screen, a sheet below 560px; `--dialog-width` widens it |
 | `frontend/src/components/ui/toaster.tsx` | Toasts as paper cards with the design's icons, and what sonner's `unstyled` drops put back |
-| `frontend/src/lib/brandColors.ts` | Theme colours as hex for what CSS cannot reach (theme colour, the images `ImageResponse` draws) |
+| `frontend/src/lib/brandColors.ts` | Theme colours as hex for what CSS cannot reach (theme colour, Privy's window, the images `ImageResponse` draws) |
 | `frontend/src/lib/brandImage.tsx` | The brand mark for `ImageResponse`: the favicon, the home-screen icon and `/logo.png` |
 | `frontend/src/lib/ogImage.tsx` | The share image; carries Geologica as WOFF (`src/assets/fonts/`, OFL), since `ImageResponse` cannot read WOFF2 |
 | `frontend/src/components/identity/Avatar.tsx` | A player's face: the address's identicon (`lib/identicon.ts`) on their seat's colour |
@@ -294,7 +294,7 @@ and controls; the guard tests below list it.
   plays its closing animation after the value it was opened with (a network, a platform) is already
   null, so its title and body change or vanish on the way out. Show `useLastNonNull(value)` from
   `hooks/` instead, as `DepositDialog` and `UnlinkConfirmDialog` do.
-- **tailwind-merge does not know the theme's own tokens, and a type size clears the line height before it.** Left alone it reads `text-body` as a colour and `font-label` as a font family, so `cn('text-body', 'text-ink')` silently drops the size, and a later shadow or easing does not replace `shadow-menu` or `ease-spring`. `cn()` in `lib/utils.ts` registers the type sizes, weights, shadows and easings; a new `--text-*`, `--font-weight-*`, `--shadow-*` or `--ease-*` token goes there too (`utils.test.ts` fails until it does). A `text-*` size also drops any `leading-*` that comes before it, so where a variant or a caller sets the size, the line height rides on it: `text-body-sm/[1.1]`, `text-lg/snug`.
+- **tailwind-merge does not know the theme's own tokens, and a type size clears the line height before it.** Left alone it reads `text-body` as a colour and `font-label` as a font family, so `cn('text-body', 'text-ink')` silently drops the size, and a later shadow or easing does not replace `shadow-menu` or `ease-spring`. `cn()` in `lib/utils.ts` registers the type sizes, weights, shadows, inset shadows and easings; a new `--text-*`, `--font-weight-*`, `--shadow-*`, `--inset-shadow-*` or `--ease-*` token goes there too (`utils.test.ts` fails until it does). A `text-*` size also drops any `leading-*` that comes before it, so where a variant or a caller sets the size, the line height rides on it: `text-body-sm/[1.1]`, `text-lg/snug`.
 - **`collectErrorDetails` returns viem's multi-line dump first.** An error's own `message` is visited before its `shortMessage` / `reason`, so the first entry is the whole "Contract Call / Request Arguments / Version" blob. Use `bestErrorDetail` (shortest non-placeholder detail) whenever the string reaches a person.
 - **`fundsViaPermit` has to gate every allowance check, not just the last one.** `handleContinueFlow`, `handleSwitchNetwork` and `handleCreateTransaction` / `handleJoinTransaction` all decide the approve step; a relayed flow that reads the allowance in any of them routes a zero-ETH player into a self-paid `approve`. They share `resolveNeedsApproval` from `guidedFlowSteps.ts`.
 - **`FORWARDER_NAME` must match on both sides.** `frontend/src/lib/forwardRequest.ts` and `contracts/script/ForwarderConfig.sol` (which both deploy scripts read) both spell `"DuelMe Forwarder"`; it is the EIP-712 domain name, so a mismatch makes every signature fail `verify` with no other symptom.

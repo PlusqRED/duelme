@@ -181,8 +181,7 @@ export function useDuelRange({ chainId, enabled = true }: DuelRangeOptions) {
   const { duels, hasFailedPage } = useStitchedDuels(pageResults, pageContracts, idAt);
 
   const refetch = useCallback(async () => {
-    // A second click joins the read already running rather than abandoning it for a new one.
-    await Promise.all([refetchCount({ cancelRefetch: false }), refetchPages({ cancelRefetch: false })]);
+    await Promise.all([refetchCount(), refetchPages()]);
   }, [refetchCount, refetchPages]);
 
   return {
@@ -227,7 +226,7 @@ export function useDuelsByIds(duelIds: readonly number[], { chainId }: { chainId
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEnabled, idsKey, contractAddress, chainId]);
 
-  const { data: pageResults, isLoading, isError: isPagesError, refetch } = useReadContracts({
+  const { data: pageResults, isLoading, isError: isPagesError, refetch: refetchPages } = useReadContracts({
     contracts: pageContracts,
     query: { enabled: pageContracts.length > 0, ...duelPageQuery },
   });
@@ -239,7 +238,9 @@ export function useDuelsByIds(duelIds: readonly number[], { chainId }: { chainId
 
   const { duels, hasFailedPage } = useStitchedDuels(pageResults, pageContracts, idAt);
 
-  const retry = useCallback(() => refetch({ cancelRefetch: false }), [refetch]);
+  const refetch = useCallback(async () => {
+    await refetchPages();
+  }, [refetchPages]);
 
-  return { duels, isLoading, isError: isPagesError || hasFailedPage, refetch: retry };
+  return { duels, isLoading, isError: isPagesError || hasFailedPage, refetch };
 }

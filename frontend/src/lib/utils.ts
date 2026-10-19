@@ -6,8 +6,8 @@ import { intlLocales } from '@/i18n/intlLocales';
 import type { Language } from '@/i18n/translations';
 
 // tailwind-merge does not read styles/theme.css: it takes the theme's own type sizes, weights and
-// shadows for colours or font families (dropping `text-body` from `text-body text-ink`), and does
-// not know its easings at all.
+// (inset) shadows for colours or font families (dropping `text-body` from `text-body text-ink`),
+// and does not know its easings at all.
 const twMerge = extendTailwindMerge({
   extend: {
     theme: {
@@ -78,7 +78,10 @@ export function formatDateTime(timestamp: bigint | number, language: Language): 
   return dateTimeFormats[language].format(new Date(seconds * 1000));
 }
 
-/** A day in the language's medium style: `Oct 19, 2026`, `19 окт. 2026 г.`. */
+/** A day in the language's medium style: `Oct 19, 2026`, `19 окт. 2026 г.`; a date that is none is a dash. */
 export function formatDate(date: string | number | Date, language: Language): string {
-  return dateFormats[language].format(new Date(date));
+  const day = new Date(date);
+  if (Number.isNaN(day.getTime())) return '—';
+
+  return dateFormats[language].format(day);
 }

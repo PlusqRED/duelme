@@ -58,7 +58,18 @@ describe('formatUSDT', () => {
 });
 
 describe('formatDate', () => {
+  // Local noon, so the day is the same in every time zone the tests run in.
+  const day = new Date(2026, 9, 19, 12);
+
   it('writes a day in the language’s medium style', () => {
-    expect(formatDate('2026-10-19T12:00:00Z', 'en')).toBe('Oct 19, 2026');
+    expect(formatDate(day, 'en')).toBe('Oct 19, 2026');
+  });
+
+  it('writes a Russian day as Russian does', () => {
+    expect(formatDate(day, 'ru')).toBe('19 окт. 2026 г.');
+  });
+
+  it('shows a dash rather than failing on a date that is none', () => {
+    expect(formatDate('not a date', 'en')).toBe('—');
   });
 });

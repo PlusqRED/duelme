@@ -17,7 +17,7 @@ import { usePrivy, useExportWallet } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useReadContracts, useBalance } from 'wagmi';
 import { formatUnits, parseUnits, encodeFunctionData } from 'viem';
-import { AVAILABLE_CHAIN_IDS, AVAILABLE_CHAINS, DEFAULT_CHAIN_ID, INSTAGRAM_URL, TELEGRAM_URL, USDT_DECIMALS } from '@/lib/constants';
+import { AVAILABLE_CHAIN_IDS, AVAILABLE_CHAINS, DEFAULT_CHAIN_ID, INSTAGRAM_URL, SITE_NAME, TELEGRAM_URL, USDT_DECIMALS } from '@/lib/constants';
 import { balanceOfAbi, getUsdtAddress, transferAbi } from '@/lib/contracts';
 import { emitBalanceRefreshBurst, subscribeToBalanceRefresh } from '@/lib/balanceRefresh';
 import { summarizeChainBalances } from '@/lib/deposit';
@@ -400,7 +400,7 @@ export function Header() {
             className="flex min-h-11 items-center gap-2.5"
           >
             <BrandMark />
-            <span className="text-xl font-extrabold tracking-[-0.03em] text-ink">DuelMe</span>
+            <span className="text-xl font-extrabold tracking-[-0.03em] text-ink">{SITE_NAME}</span>
           </Link>
           <div className="flex shrink-0 items-center gap-1.5">
             <div className="flex items-center gap-1">

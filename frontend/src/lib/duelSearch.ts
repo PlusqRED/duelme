@@ -1,6 +1,8 @@
 import type { PlayerDuel } from '@/lib/duel';
 import type { RecentDuel } from '@/hooks/useRecentDuels';
 import type { Language, TranslationKey, TranslationParams } from '@/i18n/translations';
+import { formatUnits } from 'viem';
+import { USDT_DECIMALS } from '@/lib/constants';
 import { DuelState } from '@/lib/contracts';
 import { formatDateTime, formatUSDT } from '@/lib/utils';
 import {
@@ -105,7 +107,9 @@ export function buildDashboardDuelSearchText(
     claimableAmount > 0n ? t('dashboard.claimReady') : '',
     claimableAmount > 0n ? 'ready to claim' : '',
     claimableAmount > 0n ? 'claimable' : '',
+    // As the screen writes it, and as typed: `1234.5` finds what reads `1,234.5` or `1 234,5`.
     claimableAmount > 0n ? formatUSDT(claimableAmount, language) : '',
+    claimableAmount > 0n ? formatUnits(claimableAmount, USDT_DECIMALS) : '',
     claimableAmount > 0n ? t('dashboard.claimButton') : '',
   ]);
 }

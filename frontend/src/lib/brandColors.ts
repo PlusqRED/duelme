@@ -1,6 +1,7 @@
 /**
- * Theme colours for the places a stylesheet cannot reach — the browser's theme colour, and the
- * favicon, logo and share images that `ImageResponse` draws from inline styles. Each one is a copy
+ * Theme colours for the places a stylesheet cannot reach — the browser's theme colour, Privy's
+ * login window, and the favicon, logo and share images that `ImageResponse` draws from inline
+ * styles. Each one is a copy
  * of its token in `styles/theme.css`, and `brandColors.test.ts` keeps them equal.
  */
 export const brandColors = {
