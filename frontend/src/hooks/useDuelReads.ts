@@ -226,7 +226,7 @@ export function useDuelsByIds(duelIds: readonly number[], { chainId }: { chainId
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEnabled, idsKey, contractAddress, chainId]);
 
-  const { data: pageResults, isLoading, isError: isPagesError } = useReadContracts({
+  const { data: pageResults, isLoading, isError: isPagesError, refetch } = useReadContracts({
     contracts: pageContracts,
     query: { enabled: pageContracts.length > 0, ...duelPageQuery },
   });
@@ -238,5 +238,5 @@ export function useDuelsByIds(duelIds: readonly number[], { chainId }: { chainId
 
   const { duels, hasFailedPage } = useStitchedDuels(pageResults, pageContracts, idAt);
 
-  return { duels, isLoading, isError: isPagesError || hasFailedPage };
+  return { duels, isLoading, isError: isPagesError || hasFailedPage, refetch };
 }

@@ -23,7 +23,7 @@ import { DUEL_STATE_CONFIG, TIMED_OUT_CONFIG } from '@/lib/duelStateColors';
 import { formatDateTime, formatUSDT, truncateAddress } from '@/lib/utils';
 import { ArrowUpRight, CheckCircle2, Coins, RotateCcw } from 'lucide-react';
 import { GameBadge } from '@/components/game/GameBadge';
-import { ReputationBadge } from './ReputationBadge';
+import { ReputationBadge } from '@/components/identity/ReputationBadge';
 
 interface DuelCardProps {
   duel: PlayerDuel;

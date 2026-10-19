@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Gamepad2 } from 'lucide-react';
+import { GameTile } from '@/components/identity/GameTile';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/translations';
 import type { Game } from '@/lib/game';
@@ -19,9 +19,7 @@ export function GameCard({ game }: GameCardProps) {
       className="group flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
     >
       <div className="mb-3 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-          <Gamepad2 className="h-5 w-5" />
-        </div>
+        <GameTile name={game.name} category={game.category} />
         <div>
           <h3 className="font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">
             {game.name}

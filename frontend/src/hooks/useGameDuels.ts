@@ -23,7 +23,7 @@ export function useGameDuels(gameSlug: string | undefined, chainId: number) {
   // Membership, not lookup: the loop only needs to know whether a record is one of these.
   const gameDuelIds = useMemo(() => new Set(duelIds), [duelIds]);
 
-  const { duels: duelRecords, isLoading: isDuelsLoading, isError } = useDuelsByIds(duelIds, { chainId });
+  const { duels: duelRecords, isLoading: isDuelsLoading, isError, refetch } = useDuelsByIds(duelIds, { chainId });
 
   const result = useMemo<GameDuelsData>(() => {
     const activeDuels: PlayerDuel[] = [];
@@ -64,5 +64,6 @@ export function useGameDuels(gameSlug: string | undefined, chainId: number) {
     ...result,
     isLoading: isMetaLoading || isDuelsLoading,
     isError,
+    refetch,
   };
 }

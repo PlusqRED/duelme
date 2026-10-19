@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   getProfileAvatarUrls,
   getProfileAvatarUrl,
-  getWalletIdenticon,
   isUsableAvatarImageSize,
   isUsableSteamAvatarUrl,
   isValidInstagramHandle,
@@ -266,31 +265,5 @@ describe('isUsableAvatarImageSize', () => {
   it('accepts real avatar-sized images', () => {
     expect(isUsableAvatarImageSize(8, 8)).toBe(true);
     expect(isUsableAvatarImageSize(320, 320)).toBe(true);
-  });
-});
-
-describe('getWalletIdenticon', () => {
-  it('returns null when wallet address is missing', () => {
-    expect(getWalletIdenticon(null)).toBeNull();
-    expect(getWalletIdenticon('   ')).toBeNull();
-  });
-
-  it('generates a stable case-insensitive identicon for a wallet', () => {
-    const wallet = '0x1111111111111111111111111111111111111111';
-    const identicon = getWalletIdenticon(wallet);
-
-    expect(identicon).toEqual(getWalletIdenticon(wallet.toUpperCase()));
-    expect(identicon?.backgroundColor).toMatch(/^hsl\(\d{1,3}, 48%, 92%\)$/);
-    expect(identicon?.foregroundColor).toMatch(/^hsl\(\d{1,3}, 70%, 42%\)$/);
-    expect(identicon?.cells.length).toBeGreaterThanOrEqual(5);
-    expect(identicon?.cells.every((cell) => (
-      cell.x >= 0 && cell.x < 5 && cell.y >= 0 && cell.y < 5
-    ))).toBe(true);
-  });
-
-  it('generates a different identicon for a different wallet', () => {
-    expect(getWalletIdenticon('0x1111111111111111111111111111111111111111')).not.toEqual(
-      getWalletIdenticon('0x2222222222222222222222222222222222222222'),
-    );
   });
 });

@@ -19,6 +19,10 @@ describe('cn', () => {
     expect(cn(`shadow-${shadow}`, 'shadow-lg')).toBe('shadow-lg');
   });
 
+  it.each([...themeTokens('inset-shadow').keys()])('keeps the inset shadow inset-shadow-%s beside its colour', (shadow) => {
+    expect(cn(`inset-shadow-${shadow}`, 'inset-shadow-ink/20')).toBe(`inset-shadow-${shadow} inset-shadow-ink/20`);
+  });
+
   it.each([...themeTokens('ease').keys()])('lets a later easing replace ease-%s', (ease) => {
     expect(cn(`ease-${ease}`, 'ease-in')).toBe('ease-in');
   });

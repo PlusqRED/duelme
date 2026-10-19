@@ -39,7 +39,7 @@ export const navigationTranslations = defineSection({
     'sidenav.recentDuels': 'Дуэли',
     'sidenav.reputation': 'Доверие',
     'sidenav.games': 'Игры',
-    'footer.tagline': 'Честные PvP дуэли. 0% комиссия. На смарт-контрактах.',
+    'footer.tagline': 'Честные PvP-дуэли. Комиссия 0%. На смарт-контрактах.',
     'footer.rights': 'Все права защищены.',
     'footer.developer': 'Разработчик и связь',
   },

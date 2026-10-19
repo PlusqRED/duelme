@@ -4,7 +4,7 @@ import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ReputationBadge } from '@/components/duel/ReputationBadge';
+import { ReputationBadge } from '@/components/identity/ReputationBadge';
 import { OAuthCallbackHandler } from '@/components/profile/OAuthCallbackHandler';
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { SocialLinksSection } from '@/components/profile/SocialLinksSection';

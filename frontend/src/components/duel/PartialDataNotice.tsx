@@ -1,25 +1,36 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { useTranslation } from '@/i18n/useTranslation';
 
 interface PartialDataNoticeProps {
   /** `isError` from a paged duel reader: true when a page of the list is missing. */
   when: boolean;
+  /** Reads the missing pages again. */
+  onRetry: () => void;
 }
 
 /**
  * Says out loud that a list is short, rather than letting an incomplete history render as a
- * complete one. One component so the six screens that disclose this cannot drift into six
- * different warnings, and the seventh gets it by calling one thing.
+ * complete one, and offers to read it again. One component so the six screens that disclose this
+ * cannot drift into six different warnings, and the seventh gets it by calling one thing.
  */
-export function PartialDataNotice({ when }: PartialDataNoticeProps) {
+export function PartialDataNotice({ when, onRetry }: PartialDataNoticeProps) {
   const { t } = useTranslation();
 
   if (!when) return null;
 
   return (
-    <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-      {t('duel.partiallyLoaded')}
-    </p>
+    <div
+      role="status"
+      className="mb-4 flex flex-wrap items-center gap-x-3.5 gap-y-2.5 rounded-[18px] bg-orange-wash px-4 py-3.5 font-label text-orange-ink ring-[1.5px] ring-orange-line ring-inset"
+    >
+      <Icon name="alert" />
+      <p className="flex-[1_1_260px]">{t('duel.partiallyLoaded')}</p>
+      <Button variant="paper" size="sm" onClick={() => onRetry()}>
+        {t('action.tryAgain')}
+      </Button>
+    </div>
   );
 }

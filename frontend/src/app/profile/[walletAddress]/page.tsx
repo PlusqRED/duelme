@@ -2,7 +2,7 @@
 
 import { use } from 'react';
 import Link from 'next/link';
-import { ReputationBadge } from '@/components/duel/ReputationBadge';
+import { ReputationBadge } from '@/components/identity/ReputationBadge';
 import { CopyableAddress } from '@/components/duel/CopyableAddress';
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { SocialLinksDisplay } from '@/components/profile/SocialLinksDisplay';

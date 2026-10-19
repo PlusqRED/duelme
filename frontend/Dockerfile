@@ -16,7 +16,6 @@ COPY next.config.ts tsconfig.json postcss.config.mjs ./
 
 # Layer 3: Source code (changes frequently → layers above stay cached)
 COPY src src
-COPY public public
 
 # Layer 4: Build
 ARG NEXT_PUBLIC_PRIVY_APP_ID
@@ -40,7 +39,6 @@ RUN apk add --no-cache curl \
 WORKDIR /app
 COPY --from=build --chown=app:app /app/.next/standalone ./
 COPY --from=build --chown=app:app /app/.next/static ./.next/static
-COPY --from=build --chown=app:app /app/public ./public
 
 USER app
 EXPOSE 3001

@@ -9,7 +9,7 @@ import { DuelCard } from '@/components/duel/DuelCard';
 import { PartialDataNotice } from '@/components/duel/PartialDataNotice';
 import { useActionFlow } from '@/hooks/useActionFlow';
 import { useTranslation } from '@/i18n/useTranslation';
-import { ReputationBadge } from '@/components/duel/ReputationBadge';
+import { ReputationBadge } from '@/components/identity/ReputationBadge';
 import { useNicknames } from '@/hooks/useNicknames';
 import { useReputationLevels } from '@/hooks/useReputationLevels';
 import { useDashboardClaims } from '@/hooks/useDashboardClaims';
@@ -95,7 +95,7 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
-      <PartialDataNotice when={isError} />
+      <PartialDataNotice when={isError} onRetry={refetch} />
       <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
         {t('dashboard.title')}
       </h1>

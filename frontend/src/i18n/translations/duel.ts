@@ -97,7 +97,8 @@ export const duelTranslations = defineSection({
     'duel.mutuallyCancelledClaimHint':
       'This duel was cancelled by mutual agreement. Each player can claim back their own wager from My Duels. Reputation did not change.',
     'duel.notFound': 'Duel not found or contract not deployed yet.',
-    'duel.partiallyLoaded': 'Some duels could not be loaded — this list may be incomplete.',
+    'duel.partiallyLoaded': 'Some duels didn’t load, so this list may be missing a few.',
+    'action.tryAgain': 'Try again',
     'duel.title': 'Duel #{id}',
     'duel.messageTitle': 'Challenge note',
     'duel.spectatorFundedTitle': 'Duel is live',
@@ -221,7 +222,8 @@ export const duelTranslations = defineSection({
     'duel.mutuallyCancelledClaimHint':
       'Эта дуэль была отменена по обоюдному согласию. Каждый игрок может отдельно забрать назад свою ставку в разделе «Мои дуэли». Репутация не изменилась.',
     'duel.notFound': 'Дуэль не найдена или контракт ещё не задеплоен.',
-    'duel.partiallyLoaded': 'Часть дуэлей не загрузилась — список может быть неполным.',
+    'duel.partiallyLoaded': 'Часть дуэлей не загрузилась: в списке могут быть не все.',
+    'action.tryAgain': 'Попробовать снова',
     'duel.title': 'Дуэль #{id}',
     'duel.messageTitle': 'Сообщение к дуэли',
     'duel.spectatorFundedTitle': 'Дуэль в процессе',

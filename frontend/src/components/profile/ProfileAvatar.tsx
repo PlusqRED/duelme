@@ -3,12 +3,8 @@
 import { useState } from 'react';
 import { User } from 'lucide-react';
 import { useTranslation } from '@/i18n/useTranslation';
-import {
-  getProfileAvatarUrls,
-  getWalletIdenticon,
-  isUsableAvatarImageSize,
-  type Profile,
-} from '@/lib/profile';
+import { Avatar } from '@/components/identity/Avatar';
+import { getProfileAvatarUrls, isUsableAvatarImageSize, type Profile } from '@/lib/profile';
 import { cn } from '@/lib/utils';
 
 interface ProfileAvatarProps {
@@ -23,7 +19,6 @@ export function ProfileAvatar({ profile, displayName, walletAddress, className }
   const avatarLabel = t('profile.avatarAlt', { name: displayName });
   const avatarUrls = getProfileAvatarUrls(profile);
   const avatarKey = avatarUrls.join('\n');
-  const identicon = getWalletIdenticon(walletAddress);
   const [failedState, setFailedState] = useState<{ key: string; urls: string[] }>({
     key: '',
     urls: [],
@@ -65,26 +60,10 @@ export function ProfileAvatar({ profile, displayName, walletAddress, className }
           }}
           onError={() => rejectAvatarUrl(avatarUrl)}
         />
-      ) : identicon ? (
-        <svg
-          role="img"
-          aria-label={avatarLabel}
-          viewBox="0 0 5 5"
-          shapeRendering="crispEdges"
-          className="h-full w-full"
-        >
-          <rect width="5" height="5" fill={identicon.backgroundColor} />
-          {identicon.cells.map((cell) => (
-            <rect
-              key={`${cell.x}-${cell.y}`}
-              x={cell.x}
-              y={cell.y}
-              width="1"
-              height="1"
-              fill={identicon.foregroundColor}
-            />
-          ))}
-        </svg>
+      ) : walletAddress?.trim() ? (
+        <span role="img" aria-label={avatarLabel} className="grid size-full">
+          <Avatar address={walletAddress} tone="ink" className="size-full rounded-none" />
+        </span>
       ) : (
         <User
           role="img"

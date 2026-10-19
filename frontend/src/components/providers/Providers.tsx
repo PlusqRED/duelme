@@ -12,6 +12,7 @@ import { RelayerStatusContext } from '@/hooks/useRelayerStatus';
 import { brandColors } from '@/lib/brandColors';
 import type { RelayerStatus } from '@/lib/relayRequest';
 import { LanguageProvider } from '@/i18n/LanguageContext';
+import { BrandMark } from '@/components/identity/BrandMark';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
@@ -66,7 +67,7 @@ export function Providers({ children, relayerStatus }: ProvidersProps) {
         appearance: {
           theme: 'light',
           accentColor: brandColors.ink,
-          logo: undefined,
+          logo: <BrandMark size="lg" />,
         },
         loginMethods: ['google', 'email', 'wallet'],
         defaultChain: supportedChains[0],

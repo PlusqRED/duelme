@@ -108,8 +108,8 @@ and controls; the guard tests below list it.
   the duel, blue the one who joined, navy (`ink`) the contract and every action button, sun the
   winner and the payout, green (`good`) what is good (honored, unlocked, copied, under your
   control), orange what needs attention (an error, a shortfall, a late answer) — never red, which
-  is a player. Reputation levels: Reliable green, Mixed amber, Risky orange, New grey (amber gets
-  its token with the reputation badge, the first thing to show it).
+  is a player. Reputation levels: Reliable green, Mixed sun (its bars a deeper `sun-bar`), Risky
+  orange, New grey (`level-new`).
 - **Tokens only.** Every colour, easing and shadow, and every type size, weight or breakpoint
   Tailwind's own scale lacks, is a token in `src/styles/theme.css`, used by its role: `bg-canvas`,
   `text-ink-3`, `bg-red-soft`, `text-body-sm`, `ease-press`, `xs:` (560px, where a window stops
@@ -130,7 +130,10 @@ and controls; the guard tests below list it.
 - **Primitives** in `components/ui/`: keycap buttons (navy for every action, paper beside it, sun
   only to take a payout, ghost for what should not compete), `Chip`, `Icon` (the design's icons;
   `lucide-react` stays only on screens not ported yet), `Dialog` (a card on a wide screen, a sheet
-  from the bottom of a phone), `Input`, `Toaster`.
+  from the bottom of a phone), `Input`, `Toaster`. Who and what in `components/identity/`: `Avatar`
+  (a player's identicon on their seat's colour; the pattern is `lib/identicon.ts`, the same for an
+  address everywhere), `GameTile` (initials on the category's colour), `ReputationPill` (a level)
+  and `ReputationBadge` (a player's level, read), `BrandMark`.
 - **Motion** either explains something once or answers a click, and moves only transform and
   opacity. The one exception is the keycap's edge, a shadow that shortens as the button goes down.
   With `prefers-reduced-motion` everything is in its final place at once (`styles/motion.css`).
@@ -163,7 +166,11 @@ and controls; the guard tests below list it.
 | `frontend/src/components/ui/iconPaths.ts` | The design's icons as shapes, drawn by `ui/icon.tsx` |
 | `frontend/src/components/ui/dialog.tsx` | The one window: a card from a fixed top on a wide screen, a sheet below 560px; `--dialog-width` widens it |
 | `frontend/src/components/ui/toaster.tsx` | Toasts as paper cards with the design's icons, and what sonner's `unstyled` drops put back |
-| `frontend/src/lib/brandColors.ts` | Theme colours as hex for what CSS cannot reach (theme colour, Privy) |
+| `frontend/src/lib/brandColors.ts` | Theme colours as hex for what CSS cannot reach (theme colour, the images `ImageResponse` draws) |
+| `frontend/src/lib/brandImage.tsx` | The brand mark for `ImageResponse`: the favicon, the home-screen icon and `/logo.png` |
+| `frontend/src/lib/ogImage.tsx` | The share image; carries Geologica as WOFF (`src/assets/fonts/`, OFL), since `ImageResponse` cannot read WOFF2 |
+| `frontend/src/components/identity/Avatar.tsx` | A player's face: the address's identicon (`lib/identicon.ts`) on their seat's colour |
+| `frontend/src/components/identity/ReputationPill.tsx` | A reputation level as a pill with its three-bar meter; `ReputationBadge` reads a player's level and draws it |
 | `frontend/src/styles/__tests__/designGuard.test.ts` | Fails on palette classes and variables, colour values, `dark:`, `font-mono` and unused legacy classes outside what `notYetPorted.ts` lists |
 | `frontend/src/i18n/__tests__/translationsGuard.test.ts` | Fails on a translation key nothing uses and on Russian «вы» outside `stillFormalKeys.ts` |
 | `frontend/src/lib/__tests__/helpers/sourceFiles.ts` | What the guards read: the shipped source files, the theme's tokens, and `shrinkingList` for lists that may only shrink |
@@ -172,7 +179,7 @@ and controls; the guard tests below list it.
 | `frontend/src/hooks/useDuel.ts` | Read single duel, polled until it is over and paid out; a failed poll keeps the last duel |
 | `frontend/src/hooks/useDuelReads.ts` | Paged `getDuels` / `getDuelsByIds` readers shared by every listing screen |
 | `frontend/src/lib/duel.ts` | `DuelRecord` / `PlayerDuel` shapes, `toPlayerDuel`, claimable-amount and outcome helpers |
-| `frontend/src/components/duel/PartialDataNotice.tsx` | The one banner saying a duel list is short because a page failed to load |
+| `frontend/src/components/duel/PartialDataNotice.tsx` | The one banner saying a duel list is short because a page failed to load, with Try again |
 | `frontend/src/hooks/useContractConfig.ts` | Reads owner-adjustable on-chain params (minWager, claimTimeout, maxMessageCodepoints, maxMessageBytes), syncs contractConfig store |
 | `frontend/src/lib/contractConfig.ts` | Module-level cache of on-chain params for non-hook helpers (fallbacks from constants.ts) |
 | `frontend/src/hooks/useDuelActions.ts` | Write actions (join, cancel, claim, refundAndClaim, etc.) |
