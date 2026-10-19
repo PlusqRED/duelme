@@ -85,6 +85,7 @@ export const STILL_FORMAL_KEYS: readonly TranslationKey[] = [
   'profile.signInToEdit',
   'profile.socialLinks.subtitle',
   'profile.socialLinks.unlinkBody',
+  'profile.statusPlaceholder',
   'recent.noMatches',
   'recent.searchPlaceholder',
   'rep.levelNew',

@@ -26,8 +26,13 @@ function isUsed(key: string): boolean {
   return isQuoted(key) || (PLURAL_FORM.test(key) && isQuoted(key.replace(PLURAL_FORM, '')));
 }
 
-/** «Вы» and its forms, and verbs that agree with it: «попробуйте», «откройте», «поделитесь». */
-const FORMAL_ADDRESS = /(?<![а-яё])(?:вы|вас|вам|вами|ваш[а-яё]*|[а-яё]+(?:ите|йте)(?:сь)?)(?![а-яё])/iu;
+/**
+ * «Вы» and its forms, and verbs that agree with it even where it is left out: «попробуйте»,
+ * «поделитесь», «знаете», «чем занимаетесь». Only an -ете after a vowel counts, so a noun such as
+ * «в тестнете» does not.
+ */
+const FORMAL_ADDRESS =
+  /(?<![а-яё])(?:вы|вас|вам|вами|ваш[а-яё]*|[а-яё]+(?:ите|йте)(?:сь)?|[а-яё]*[аеиоуыэюяё][её]те(?:сь)?)(?![а-яё])/iu;
 
 const formal = shrinkingList(
   keys.filter((key) => FORMAL_ADDRESS.test(translations.ru[key])),
