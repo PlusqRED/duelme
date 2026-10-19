@@ -2,6 +2,9 @@ import type { TranslationKey } from '@/i18n/translations';
 
 export type ReputationLevel = 'new' | 'honorable' | 'fair' | 'unreliable';
 
+/** What a finished duel adds to a player's record: a duel seen through, or one walked away from. */
+export type ReputationMark = 'honored' | 'abandoned';
+
 export interface ReputationSummary {
   honored: number;
   abandoned: number;

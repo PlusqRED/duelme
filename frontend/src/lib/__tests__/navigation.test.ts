@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NAV_LINKS, isInSection } from '@/lib/navigation';
+import { LANDING_SECTIONS, NAV_LINKS, isInSection } from '@/lib/navigation';
 
 describe('isInSection', () => {
   it('counts the section’s own page', () => {
@@ -27,5 +27,11 @@ describe('NAV_LINKS', () => {
       ['/games', false],
       ['/dashboard', true],
     ]);
+  });
+});
+
+describe('LANDING_SECTIONS', () => {
+  it('lists the landing’s sections in the order the page has them', () => {
+    expect(LANDING_SECTIONS.map((link) => link.section)).toEqual(['public-duels', 'recent-duels', 'demo', 'safety']);
   });
 });

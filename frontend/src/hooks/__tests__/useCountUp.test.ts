@@ -90,4 +90,18 @@ describe('useCountUp', () => {
 
     expect(result.current).toBeNull();
   });
+
+  it('shows an amount that comes with a new epoch at once, cutting a count short', () => {
+    const { result, rerender } = renderHook(({ value, epoch }) => useCountUp(value, epoch), {
+      initialProps: { value: 10_000_000n, epoch: 0 },
+    });
+    rerender({ value: 20_000_000n, epoch: 0 });
+    act(() => vi.advanceTimersByTime(300));
+
+    rerender({ value: 50_000_000n, epoch: 1 });
+
+    expect(result.current).toBe(50_000_000n);
+    act(() => vi.advanceTimersByTime(800));
+    expect(result.current).toBe(50_000_000n);
+  });
 });

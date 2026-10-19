@@ -26,8 +26,9 @@ test.describe('Game catalog', () => {
     await expect(page.locator('body')).toContainText(/not found|не найдена/i);
   });
 
+  // The landing's top bar lists its own sections; every other page's lists the app's pages.
   test('Header has a Games link that opens the catalog', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/duels/public');
     const gamesLink = page.getByRole('link', { name: /^(Games|Игры)$/ }).first();
     await expect(gamesLink).toBeVisible();
     await gamesLink.click();
@@ -63,7 +64,7 @@ test.describe('Game catalog', () => {
 
   test('The phone menu has a Games link', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
-    await page.goto('/');
+    await page.goto('/duels/public');
     const menu = page.getByRole('button', { name: /^(Menu|Меню)$/ });
     await menu.click();
     await expect(menu).toHaveAttribute('aria-expanded', 'true');

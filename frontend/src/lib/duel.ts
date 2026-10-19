@@ -10,6 +10,13 @@ export { ZERO_ADDRESS } from '@/lib/constants';
 /** A duel as the contract's `DuelView` returns it, plus the id it was read at. */
 export type DuelRecord = Duel & { id: number };
 
+/** A player's seat: the creator's is red, the opponent's blue, wherever a duel is drawn. */
+export type SeatSide = 'creator' | 'opponent';
+export const SEAT_SIDES: readonly SeatSide[] = ['creator', 'opponent'];
+
+/** What the contract's safe, drawn between the seats, says it is doing with the money. */
+export type SafeTone = 'open' | 'locked' | 'paid' | 'refunded';
+
 /** A duel as the screens render it: the contract's fields, plus what display needs. */
 export interface PlayerDuel extends DuelRecord {
   /** The wager as a display number. `wagerAmount` keeps the exact on-chain value. */

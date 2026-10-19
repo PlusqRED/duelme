@@ -1,6 +1,6 @@
 import { getContractConfig } from '@/lib/contractConfig';
 import { DuelState } from '@/lib/contracts';
-import { getClaimableAmountForAddress, isRefundableDuel, type DuelRecord } from '@/lib/duel';
+import { getClaimableAmountForAddress, isRefundableDuel, type DuelRecord, type SeatSide } from '@/lib/duel';
 
 /**
  * Why the contract holds money for a player: a win to take, a stake coming back, or the stake of a
@@ -10,8 +10,8 @@ export type OwedKind = 'win' | 'back' | 'late';
 
 export interface OwedItem {
   duelId: number;
-  /** The player's seat in that duel: the creator's money is red, the opponent's blue. */
-  seat: 'creator' | 'opponent';
+  /** The player's seat in that duel. */
+  seat: SeatSide;
   kind: OwedKind;
   /** In USDT's smallest unit. */
   raw: bigint;
@@ -103,7 +103,7 @@ export function owedBars(items: readonly OwedItem[], max: number): OwedBar[] {
   ];
 }
 
-function seatOf(duel: DuelRecord, viewer: string): OwedItem['seat'] | null {
+function seatOf(duel: DuelRecord, viewer: string): SeatSide | null {
   if (duel.creator.toLowerCase() === viewer) return 'creator';
   if (duel.opponent.toLowerCase() === viewer) return 'opponent';
   return null;

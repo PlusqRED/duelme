@@ -36,6 +36,10 @@
   --color-orange-soft: #ffe7dc;
   --color-orange-wash: #fff4ee;
   --color-orange-line: #ffd2bf;
+  /* The edge of a paper mark for a duel a player walked away from. */
+  --color-orange-edge: #eab498;
+  /* The developer's sticky note on the landing, warm against the cool page. */
+  --color-sticky: #fff0b8;
 
   /* Reputation levels: Reliable is good, Risky orange, Mixed the sun and New grey. The sun is too
      pale for a bar on paper, so Mixed's bars take a deeper one. */
@@ -92,6 +96,11 @@
   --shadow-window: 0 40px 80px -30px rgb(4 8 31 / 0.55);
   --shadow-menu: 0 28px 56px -28px rgb(18 26 62 / 0.42);
   --shadow-sheet: 0 -18px 40px -24px rgb(18 26 62 / 0.4);
+  /* The landing's demo duel, a card laid on the page. */
+  --shadow-stage: 0 32px 64px -40px rgb(18 26 62 / 0.5);
+  /* The sticky note lifting off the page at its lower edge, and the tape that holds it. */
+  --shadow-sticky: 0 1px 0 rgb(110 74 0 / 0.1), 0 22px 30px -22px rgb(110 74 0 / 0.6);
+  --shadow-tape: 0 1px 2px rgb(18 26 62 / 0.14);
   /* An avatar's lower rim, so a round face reads as a token on the table. */
   --inset-shadow-avatar: inset 0 -4px 0 rgb(0 0 0 / 0.16);
   /* A stake's lower rim, so the money a duel holds sits on the table like the avatars do. */

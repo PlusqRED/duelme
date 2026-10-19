@@ -50,6 +50,28 @@ describe('useBalanceChange', () => {
     expect(result.current).toBeNull();
   });
 
+  it('does not count an amount that comes with a new epoch as a move, and forgets the last one', () => {
+    const { result, rerender } = renderHook(({ value, epoch }) => useBalanceChange(value, epoch), {
+      initialProps: { value: 5n, epoch: 0 },
+    });
+    rerender({ value: 7n, epoch: 0 });
+
+    rerender({ value: 50n, epoch: 1 });
+
+    expect(result.current).toBeNull();
+  });
+
+  it('counts a move again once the epoch stays', () => {
+    const { result, rerender } = renderHook(({ value, epoch }) => useBalanceChange(value, epoch), {
+      initialProps: { value: 5n, epoch: 0 },
+    });
+    rerender({ value: 50n, epoch: 1 });
+
+    rerender({ value: 60n, epoch: 1 });
+
+    expect(result.current).toEqual({ id: 1, delta: 10n });
+  });
+
   it('keeps the last move while the balance stays', () => {
     const { result, rerender } = renderChange(5n);
     rerender({ value: 7n });

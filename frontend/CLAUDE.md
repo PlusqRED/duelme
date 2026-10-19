@@ -140,11 +140,13 @@ and controls; the guard tests below list it.
   (a player's level, read), `LevelBadge` (a level as the badge a player earns, or still locked) and
   `QuestLine` (the honored duels to the next level, from `levelQuest`), `BrandMark`, `BrandLink`.
 - **Motion** either explains something once or answers a click, and moves only transform and
-  opacity. The one exception is the keycap's edge, a shadow that shortens as the button goes down.
+  opacity. The two exceptions are the keycap's edge, a shadow that shortens as the button goes
+  down, and a player's clock (`arena/CountdownRing`), an SVG ring whose dash offset drains.
   The moves are `animate-*` utilities from the `@theme` in `styles/motion.css`; a colour that should
-  flash is an overlay whose opacity moves (the green ring when money arrives). With
-  `prefers-reduced-motion` everything is in its final place at once, and a figure that counts
-  (`useCountUp`) shows its value.
+  flash or a glow that should breathe is an overlay whose opacity moves (the green ring when money
+  arrives, the safe's seal, an open seat). With `prefers-reduced-motion` everything is in its final
+  place at once, and a figure that counts (`useCountUp`) shows its value, as it does when a screen
+  is shown anew rather than moved to (a new `epoch`).
 - **Russian says «ты» and is gender-neutral**: nothing about a person in a past tense or a gendered
   adjective, and no slashes («победил(а)»). What you do is a noun or the present tense («Победа за
   мной», «Ты заявляешь победу»); what happened is the thing, not who did it («Победа заявлена»);
@@ -174,7 +176,7 @@ and controls; the guard tests below list it.
 | `frontend/src/components/ui/iconPaths.ts` | The design's icons as shapes, drawn by `ui/icon.tsx` |
 | `frontend/src/components/ui/dialog.tsx` | The one window: a card from a fixed top on a wide screen, a sheet below 560px; `--dialog-width` widens it; `DialogFooter isPinned` keeps a long sheet's last action on screen on a phone |
 | `frontend/src/components/ui/popover.tsx` | The menus: a panel under its button on a wide screen, a modal sheet below 560px, with a title the sheet shows and a panel only reads out |
-| `frontend/src/components/header/Header.tsx` | The top bar on every page: the brand, the sections (`lib/navigation.ts`) from 980px, the language, the wallet menu or Sign in, and the navigation menu below 980px |
+| `frontend/src/components/header/Header.tsx` | The top bar on every page: the brand, the sections (`lib/navigation.ts`; on the landing its own, the one being read marked through `useSectionInView`) from 980px, the language, the wallet menu or Sign in, and the navigation menu below 980px |
 | `frontend/src/components/header/WalletMenu.tsx` | The wallet button (the duel network's USDT, never a sum across networks, and a pip while money waits in the contract) and its menu: player card, the small safe (`SafeMini`), a balance tile per network, Top up, Send, the faucet flask, key export and sign out |
 | `frontend/src/hooks/useWalletBalances.ts` | The wallet's USDT and ETH on each network the build lists, read apart (USDT on `useUsdtBalance`'s query): the button's balance polled always, the rest while the menu is open, all again on the balance bus |
 | `frontend/src/hooks/useSendUsdt.ts` | Sends USDT on the network picked: moves the wallet there, then `writeWithGas` |
@@ -213,6 +215,10 @@ and controls; the guard tests below list it.
 | `frontend/src/hooks/useDashboardClaims.ts` | Dashboard claim/refund handlers and computed state |
 | `frontend/src/hooks/usePlayerDuels.ts` | Filters `useDuelRange` down to one player; wins/losses/volume/withdrawn totals |
 | `frontend/src/lib/owed.ts` | What the contract keeps for a player — wins, stakes coming back, timed-out claims — and the safe's bars; `useOwed` reads it from the shared `useDuelRange` history and looks again when a claim runs out of time |
+| `frontend/src/components/landing/Hero.tsx` | The landing's first screen: the motto, the two ways in, the developer's note (`DevNote`; its last update is the build's time, which `next.config.ts` writes in as `DUELME_BUILT_AT`), the platform's figures and the demo duel |
+| `frontend/src/components/landing/DemoDuel.tsx` | The demo duel: stills of a 10 USDT duel from `lib/demoDuel.ts`, moved between by `useDemoDuel` (steps, three endings, one play by itself once in view), stakes flown by `useStakeFlights` |
+| `frontend/src/components/arena/` | The table a duel is drawn on: `Seat`, `Safe`, `Stake`, `Bubble`, `CountdownRing`, `OpenSeat`, `RepChip` |
+| `frontend/src/lib/timeWords.ts` | A contract's duration in words (`durationWords`) and a past day as today, yesterday or days ago |
 | `frontend/src/hooks/usePlatformStats.ts` | Landing-page Total Volume / Duels Played stats |
 | `frontend/src/hooks/useRecentDuels.ts` | Landing-page duel feed (newest-first) |
 | `frontend/src/hooks/useReputation.ts` | Wilson Score reputation calculation |

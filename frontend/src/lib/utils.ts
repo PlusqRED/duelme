@@ -13,7 +13,7 @@ const twMerge = extendTailwindMerge({
     theme: {
       text: ['note', 'body-sm', 'body', 'lead', 'figure', 'h1', 'h2'],
       'font-weight': ['label', 'strong'],
-      shadow: ['window', 'menu', 'sheet'],
+      shadow: ['window', 'menu', 'sheet', 'stage', 'sticky', 'tape'],
       'inset-shadow': ['avatar', 'stake'],
       ease: ['spring', 'press', 'sheet'],
       spacing: ['gutter'],
@@ -43,6 +43,11 @@ export function perLanguage<T>(make: (locale: string) => T): Record<Language, T>
 
 const usdtFormats = perLanguage((locale) => new Intl.NumberFormat(locale, { maximumFractionDigits: USDT_DECIMALS }));
 const ethFormats = perLanguage((locale) => new Intl.NumberFormat(locale, { maximumFractionDigits: 4 }));
+const volumeFormats = perLanguage((locale) => new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }));
+const smallVolumeFormats = perLanguage(
+  (locale) => new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+);
+const countFormats = perLanguage((locale) => new Intl.NumberFormat(locale));
 const dateTimeFormats = perLanguage(
   (locale) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' })
 );
@@ -57,6 +62,25 @@ export function formatUSDT(amount: bigint, language: Language): string {
   const decimal = formatUnits(amount, USDT_DECIMALS);
   if (!isDecimal(decimal)) throw new Error(`Not a decimal amount: ${decimal}`);
   return usdtFormats[language].format(decimal);
+}
+
+/** Below this many USDT a total keeps its cents: 61.80, not 61.8. */
+const SMALL_VOLUME_RAW = 100n * 10n ** BigInt(USDT_DECIMALS);
+
+/**
+ * A total of USDT as a headline figure, to the cent: `1,234.5`, and with both cents below 100,
+ * where they still matter: `61.80`. Not for a balance or a stake, which `formatUSDT` writes exactly.
+ */
+export function formatVolume(amount: bigint, language: Language): string {
+  const decimal = formatUnits(amount, USDT_DECIMALS);
+  if (!isDecimal(decimal)) throw new Error(`Not a decimal amount: ${decimal}`);
+  const isSmall = amount > 0n && amount < SMALL_VOLUME_RAW;
+  return (isSmall ? smallVolumeFormats : volumeFormats)[language].format(decimal);
+}
+
+/** A count the way the language groups digits: `1,234`, in Russian `1 234`. */
+export function formatCount(count: number, language: Language): string {
+  return countFormats[language].format(count);
 }
 
 /** The least ETH written out; anything above zero but below it shows as `<0.0001`, never as 0. */

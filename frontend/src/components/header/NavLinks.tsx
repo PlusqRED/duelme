@@ -4,7 +4,10 @@ import Link from 'next/link';
 import { useNavLinks } from '@/hooks/useNavLinks';
 import { useTranslation } from '@/i18n/useTranslation';
 
-/** The sections, in the bar of a screen wide enough. The page you are on has an ink bar under it. */
+/**
+ * The sections, in the bar of a screen wide enough. The page you are on, or the landing's section
+ * you are reading, has an ink bar under it, which grows in under the next one as you scroll.
+ */
 export function NavLinks() {
   const { t } = useTranslation();
   const links = useNavLinks();
@@ -15,8 +18,9 @@ export function NavLinks() {
         <Link
           key={link.href}
           href={link.href}
-          aria-current={link.isCurrent ? 'page' : undefined}
-          className="relative inline-flex min-h-11 items-center rounded-xl px-3 text-body-sm font-medium text-ink-2 transition-colors hover:bg-paper hover:text-ink aria-[current=page]:text-ink aria-[current=page]:after:absolute aria-[current=page]:after:inset-x-3 aria-[current=page]:after:bottom-[3px] aria-[current=page]:after:h-[3px] aria-[current=page]:after:rounded-full aria-[current=page]:after:bg-ink"
+          aria-current={link.current}
+          data-current={link.current ? '' : undefined}
+          className="relative inline-flex min-h-11 items-center rounded-xl px-3 text-body-sm font-medium text-ink-2 transition-colors after:absolute after:inset-x-3 after:bottom-[3px] after:h-[3px] after:scale-x-0 after:rounded-full after:bg-ink after:transition-transform after:duration-450 after:ease-sheet hover:bg-paper hover:text-ink data-current:text-ink data-current:after:scale-x-100"
         >
           {link.label}
         </Link>

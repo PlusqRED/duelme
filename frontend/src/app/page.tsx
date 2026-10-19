@@ -1,14 +1,12 @@
 import type { Metadata } from 'next';
-import { SideNav } from './SideNav';
-import { HeroSection } from './HeroSection';
-import { HowItWorks } from './HowItWorks';
 import { TrustSection } from './TrustSection';
 import { OnboardingSection } from './OnboardingSection';
 import { RecentDuelsSection } from './RecentDuelsSection';
 import { PublicDuelsSection } from './PublicDuelsSection';
 import { PopularGamesSection } from './PopularGamesSection';
 import { ReputationSection } from './ReputationSection';
-import { CtaSection } from './CtaSection';
+import { Closing } from '@/components/landing/Closing';
+import { Hero } from '@/components/landing/Hero';
 import { JsonLd } from '@/components/seo/JsonLd';
 
 export const metadata: Metadata = {
@@ -28,16 +26,14 @@ export default function HomePage() {
       {/* FAQ schema lives here (not in root layout) so it's only emitted on the */}
       {/* page that's expected to carry FAQ content per Google's policy. */}
       <JsonLd type="faq" />
-      <SideNav />
-      <HeroSection />
+      <Hero />
       <PublicDuelsSection />
       <RecentDuelsSection />
       <PopularGamesSection />
-      <HowItWorks />
       <OnboardingSection />
       <TrustSection />
       <ReputationSection />
-      <CtaSection />
+      <Closing />
     </>
   );
 }

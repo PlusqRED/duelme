@@ -73,7 +73,6 @@ export const STILL_FORMAL_KEYS: readonly TranslationKey[] = [
   'gamePicker.noMatchesHint',
   'gamePicker.selected',
   'games.noGames',
-  'howItWorks.security.code.desc',
   'join.flow.join.awaitingWallet',
   'join.flow.join.description',
   'join.flow.join.title',

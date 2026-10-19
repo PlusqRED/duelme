@@ -11,15 +11,20 @@ export interface BalanceChange {
 
 /**
  * The last time a known balance moved to another known amount, and by how much; null until it has.
- * A balance that was not known, or no longer is, did not move.
+ * A balance that was not known, or no longer is, did not move, and one that comes with a new
+ * `epoch` (a screen shown anew, not moved to) is where it is, with no move behind it.
  */
-export function useBalanceChange(value: bigint | null): BalanceChange | null {
+export function useBalanceChange(value: bigint | null, epoch = 0): BalanceChange | null {
   const [last, setLast] = useState(value);
+  const [lastEpoch, setLastEpoch] = useState(epoch);
   const [change, setChange] = useState<BalanceChange | null>(null);
 
-  if (value !== last) {
+  if (value !== last || epoch !== lastEpoch) {
     setLast(value);
-    if (value !== null && last !== null) {
+    setLastEpoch(epoch);
+    if (epoch !== lastEpoch) {
+      setChange(null);
+    } else if (value !== null && last !== null) {
       setChange({ id: (change?.id ?? 0) + 1, delta: value - last });
     }
   }

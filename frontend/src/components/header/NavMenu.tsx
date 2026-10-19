@@ -31,9 +31,10 @@ export function NavMenu() {
             <Link
               key={link.href}
               href={link.href}
-              aria-current={link.isCurrent ? 'page' : undefined}
+              aria-current={link.current}
+              data-current={link.current ? '' : undefined}
               onClick={() => setIsOpen(false)}
-              className="flex min-h-12 items-center rounded-[14px] px-3 text-body font-label text-ink-2 transition-colors hover:bg-canvas hover:text-ink aria-[current=page]:bg-canvas aria-[current=page]:text-ink aria-[current=page]:shadow-[inset_3px_0_0_var(--color-ink)]"
+              className="flex min-h-12 items-center rounded-[14px] px-3 text-body font-label text-ink-2 transition-colors hover:bg-canvas hover:text-ink data-current:bg-canvas data-current:text-ink data-current:shadow-[inset_3px_0_0_var(--color-ink)]"
             >
               {link.label}
             </Link>

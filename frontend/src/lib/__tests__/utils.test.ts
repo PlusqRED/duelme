@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cn, formatDate, formatEth, formatUSDT } from '@/lib/utils';
+import { cn, formatCount, formatDate, formatEth, formatUSDT, formatVolume } from '@/lib/utils';
 import { themeTokens } from '@/lib/__tests__/helpers/sourceFiles';
 
 describe('cn', () => {
@@ -66,6 +66,28 @@ describe('formatUSDT', () => {
 
   it('keeps every digit of an amount past what a float holds', () => {
     expect(formatUSDT(123_456_789_012_345_678n, 'en')).toBe('123,456,789,012.345678');
+  });
+});
+
+describe('formatVolume', () => {
+  it.each([
+    [61_800_000n, '61.80'],
+    [1_234_567_890n, '1,234.57'],
+    [100_000_000n, '100'],
+    [0n, '0'],
+  ])('writes %s base units as %s in English', (amount, text) => {
+    expect(formatVolume(amount, 'en')).toBe(text);
+  });
+
+  it('writes Russian with its own separators', () => {
+    expect(formatVolume(61_800_000n, 'ru')).toBe('61,80');
+  });
+});
+
+describe('formatCount', () => {
+  it('groups digits the way the language does', () => {
+    expect(formatCount(1234, 'en')).toBe('1,234');
+    expect(formatCount(1234, 'ru')).toBe('1\u00a0234');
   });
 });
 

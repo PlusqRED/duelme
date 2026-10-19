@@ -16,20 +16,24 @@ interface Count {
 
 /**
  * A USDT amount, in base units, that counts to its new value, eased out, instead of jumping, the
- * way a balance moves in the design. Null until there is a value; the first value and every value
- * with motion reduced show at once. The count ends on the exact amount.
+ * way a balance moves in the design. Null until there is a value; the first value, every value with
+ * motion reduced and every value that comes with a new `epoch` (a screen shown anew, not moved to)
+ * show at once. The count ends on the exact amount.
  */
-export function useCountUp(value: bigint | null): bigint | null {
+export function useCountUp(value: bigint | null, epoch = 0): bigint | null {
   const reducedMotion = useReducedMotion();
   const [target, setTarget] = useState(value);
+  const [targetEpoch, setTargetEpoch] = useState(epoch);
   const [shown, setShown] = useState(value);
   const [count, setCount] = useState<Count | null>(null);
 
   // Whether a new value counts is decided while rendering, so one that shows at once is there in
   // the same render; a count starts from wherever the last one had got to.
-  if (value !== target) {
+  if (value !== target || epoch !== targetEpoch) {
     setTarget(value);
-    const counts = value !== null && shown !== null && value !== shown && !reducedMotion;
+    setTargetEpoch(epoch);
+    const counts =
+      epoch === targetEpoch && value !== null && shown !== null && value !== shown && !reducedMotion;
     setCount(counts ? { from: shown, to: value } : null);
     if (!counts) {
       setShown(value);

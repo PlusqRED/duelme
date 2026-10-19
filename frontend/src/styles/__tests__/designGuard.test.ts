@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
-import { shrinkingList, sourceFile, sourceFiles } from '@/lib/__tests__/helpers/sourceFiles';
+import { shrinkingList, sourceFile, sourceFiles, themeTokens } from '@/lib/__tests__/helpers/sourceFiles';
 import { STILL_ON_PALETTE, STILL_RAW_COLOURS } from './notYetPorted';
 
 const files = sourceFiles(['.ts', '.tsx', '.css']);
@@ -90,6 +90,12 @@ describe('design guard', () => {
     const shipped = [...readFileSync(tailwindTheme, 'utf8').matchAll(/--color-([a-z]+)-50:/g)];
 
     expect(shipped.map((match) => match[1]).sort()).toEqual([...PALETTES].sort());
+  });
+
+  it('names no colour like a type size, since `text-<name>` would then paint the text in it', () => {
+    const sizes = new Set(themeTokens('text').keys());
+
+    expect([...themeTokens('color').keys()].filter((colour) => sizes.has(colour))).toEqual([]);
   });
 
   it('has no dark variant, since there is no dark theme', () => {

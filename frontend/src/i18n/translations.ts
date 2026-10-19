@@ -2,7 +2,9 @@ import { actionFlowClaimsTranslations } from './translations/actionFlowClaims';
 import { actionFlowResultsTranslations } from './translations/actionFlowResults';
 import { createDuelTranslations } from './translations/createDuel';
 import { dashboardWalletTranslations } from './translations/dashboardWallet';
+import { demoDuelTranslations } from './translations/demoDuel';
 import { duelTranslations } from './translations/duel';
+import { homeTranslations } from './translations/home';
 import { joinDuelFlowTranslations } from './translations/joinDuelFlow';
 import { landingTranslations } from './translations/landing';
 import { navigationTranslations } from './translations/navigation';
@@ -15,6 +17,8 @@ import { walletTranslations } from './translations/wallet';
 export const translations = {
   en: {
     ...navigationTranslations.en,
+    ...homeTranslations.en,
+    ...demoDuelTranslations.en,
     ...landingTranslations.en,
     ...createDuelTranslations.en,
     ...joinDuelFlowTranslations.en,
@@ -30,6 +34,8 @@ export const translations = {
   },
   ru: {
     ...navigationTranslations.ru,
+    ...homeTranslations.ru,
+    ...demoDuelTranslations.ru,
     ...landingTranslations.ru,
     ...createDuelTranslations.ru,
     ...joinDuelFlowTranslations.ru,

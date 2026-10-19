@@ -5,15 +5,11 @@
 
 /** Files still coloured from Tailwind's own palette (`bg-slate-50`, `text-white`) instead of the theme. */
 export const STILL_ON_PALETTE: readonly string[] = [
-  'app/CtaSection.tsx',
-  'app/HeroSection.tsx',
-  'app/HowItWorks.tsx',
   'app/OnboardingSection.tsx',
   'app/PopularGamesSection.tsx',
   'app/PublicDuelsSection.tsx',
   'app/RecentDuelsSection.tsx',
   'app/ReputationSection.tsx',
-  'app/SideNav.tsx',
   'app/TrustSection.tsx',
   'app/dashboard/page.tsx',
   'app/duel/[id]/page.tsx',
@@ -65,9 +61,6 @@ export const STILL_ON_PALETTE: readonly string[] = [
 
 /** Files still holding colour values (`#eef2ff`, `rgba(…)`) outside the theme. */
 export const STILL_RAW_COLOURS: readonly string[] = [
-  'app/CtaSection.tsx',
-  'app/HeroSection.tsx',
-  'app/HowItWorks.tsx',
   'app/TrustSection.tsx',
   'components/duel/GuidedTransactionStepIndicator.tsx',
   'components/duel/wizard/WagerStep.tsx',

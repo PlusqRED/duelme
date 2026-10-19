@@ -85,7 +85,7 @@ export function TrustSection() {
   const { t } = useTranslation();
 
   return (
-    <section id="trust" className="relative bg-white py-16 sm:py-24">
+    <section id="safety" className="relative bg-white py-16 sm:py-24">
       <div className="section-divider absolute inset-x-0 top-0" />
 
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
