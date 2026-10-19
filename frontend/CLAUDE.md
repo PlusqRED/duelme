@@ -16,11 +16,12 @@ rules live in this file.
 ### Transaction Pattern
 Write ops, relayed: check chain → sign EIP-2612 permit (funding calls only) → sign
 ForwardRequest → POST `/api/relay`. Self-paid: check chain → check allowance → approve if
-needed → execute. `useWriteWithGas` picks between them from `useRelayerStatus`; `useDuelActions`
-binds each duel action on top of it and swaps in the `*WithPermit` variant when the write is
-relayed (see "Gasless Duel Actions" below). `createDuel` generates a private invite secret
-client-side and sends only its hash on-chain; `joinDuel`/`declineDuel` use the secret. Payouts are
-pull-based — terminal duel flows expose claimable balances, never push transfers.
+needed → execute. `useDuelActions` binds each duel action on top of `useWriteWithGas`, picks
+between the two paths from `useRelayerStatus` (which the server fills in with the page) and swaps
+in the `*WithPermit` variant when the write is relayed (see "Gasless Duel Actions" below).
+`createDuel` generates a private invite secret client-side and sends only its hash on-chain;
+`joinDuel`/`declineDuel` use the secret. Payouts are pull-based — terminal duel flows expose
+claimable balances, never push transfers.
 
 ### Data Fetching
 - wagmi `useReadContract` / `useReadContracts` (multicall) for on-chain reads
@@ -97,7 +98,7 @@ address, no relayer key — is the case the self-paid path still covers.
 
 ## Testing
 
-**Frontend (Vitest):** test `lib/` pure logic. Test complex hooks via `renderHook`. Test observable behavior, not implementation. Mock at boundaries.
+**Frontend (Vitest):** test `lib/` pure logic. Test complex hooks via `renderHook`. Test observable behavior, not implementation. Mock at boundaries. Vitest runs in `node`; a hook or component test opts into a DOM with `// @vitest-environment happy-dom` as its first line and renders through `@testing-library/react` (see `src/hooks/__tests__/`).
 
 ## Key Files
 
@@ -107,7 +108,7 @@ address, no relayer key — is the case the self-paid path still covers.
 | `frontend/src/lib/contracts.ts` | ABI, DuelState enum, ACTIVE_STATES, ERC20 ABIs, getUsdtAddress |
 | `frontend/src/lib/constants.ts` | Chain configs, contract addresses, ZERO_ADDRESS, CHAIN_NAMES |
 | `frontend/src/components/providers/Providers.tsx` | Privy + wagmi + QueryClient providers |
-| `frontend/src/hooks/useDuel.ts` | Read single duel |
+| `frontend/src/hooks/useDuel.ts` | Read single duel, polled until it is over and paid out; a failed poll keeps the last duel |
 | `frontend/src/hooks/useDuelReads.ts` | Paged `getDuels` / `getDuelsByIds` readers shared by every listing screen |
 | `frontend/src/lib/duel.ts` | `DuelRecord` / `PlayerDuel` shapes, `toPlayerDuel`, claimable-amount and outcome helpers |
 | `frontend/src/components/duel/PartialDataNotice.tsx` | The one banner saying a duel list is short because a page failed to load |
@@ -115,6 +116,8 @@ address, no relayer key — is the case the self-paid path still covers.
 | `frontend/src/lib/contractConfig.ts` | Module-level cache of on-chain params for non-hook helpers (fallbacks from constants.ts) |
 | `frontend/src/hooks/useDuelActions.ts` | Write actions (join, cancel, claim, refundAndClaim, etc.) |
 | `frontend/src/hooks/useWriteWithGas.ts` | Duel write dispatcher: relayed / resilient / plain routing + merged hash/isPending/error surface |
+| `frontend/src/lib/writeReceipt.ts` | Waits for a write's receipt and decides by it: the receipt, `TransactionRevertedError` with the replayed reason, or `TransactionReplacedError` |
+| `frontend/src/lib/writeErrors.ts` | The ways a write ends without running (reverted, replaced, wallet not ready), which the guided flows word for the player |
 | `frontend/src/hooks/useDashboardClaims.ts` | Dashboard claim/refund handlers and computed state |
 | `frontend/src/hooks/usePlayerDuels.ts` | Filters `useDuelRange` down to one player; wins/losses/volume/withdrawn totals |
 | `frontend/src/hooks/usePlatformStats.ts` | Landing-page Total Volume / Duels Played stats |
@@ -135,7 +138,7 @@ address, no relayer key — is the case the self-paid path still covers.
 | `frontend/src/lib/addressQr.ts` | QR of a bare string as an SVG path, rendered as plain React markup |
 | `frontend/src/hooks/useFaucetClaim.ts` | Testnet faucet claim shared by the wallet menu and the top-up panel |
 | `frontend/src/lib/buildTransactionParams.ts` | Builds explicit `gas`/`maxFeePerGas`/`maxPriorityFeePerGas`/`nonce` to bypass Privy auto-populate (see Common Pitfalls) |
-| `frontend/src/lib/resilientBroadcast.ts` | Splits writes into sign + broadcast so wagmi fallback transport handles RPC retries |
+| `frontend/src/lib/resilientBroadcast.ts` | Splits writes into sign + broadcast so wagmi fallback transport handles RPC retries; asks the network for a transaction whose broadcast failed |
 | `frontend/src/lib/errorDetails.ts` | Flattens an error graph into lowercase detail strings for failure classification; `bestErrorDetail` picks the one worth showing |
 | `frontend/src/app/api/relay/route.ts` | Gas relayer: admits a signed ERC-2771 request, then signs and sends `ERC2771Forwarder.execute` under the lock (order: "Gasless Duel Actions") |
 | `frontend/src/lib/relayRequest.ts` | Relay wire types and error codes, relayable-function allowlist, payload validation, outer gas-limit rule |
@@ -148,8 +151,8 @@ address, no relayer key — is the case the self-paid path still covers.
 | `frontend/src/lib/relayerSignerHold.ts` | Holds a signer back until their last relayed transaction has a receipt |
 | `frontend/src/lib/forwardRequest.ts` | Signs the EIP-712 ForwardRequest (domain name, gas padding) |
 | `frontend/src/lib/permitSignature.ts` | Signs an EIP-2612 permit, rebuilding and verifying the token's EIP-712 domain |
-| `frontend/src/lib/relayApi.ts` | `/api/relay` client + `RelayRequestError` carrying the server's code |
-| `frontend/src/hooks/useRelayerStatus.ts` | Whether duel writes on a chain can be relayed (forwarder address + server probe) |
+| `frontend/src/lib/relayApi.ts` | `/api/relay` client: posts the same signed request again when an answer is lost; `RelayRequestError` carries the server's code |
+| `frontend/src/hooks/useRelayerStatus.ts` | Whether duel writes on a chain can be relayed: the forwarder address and the server's relayer status, handed down with the page by the root layout |
 | `frontend/src/lib/testnetGas.ts` | Testnet vs mainnet gas/fee buffers; min-gas constants per duel action |
 | `frontend/src/i18n/translations.ts` | Merges the per-area section files into one EN/RU key map — **add keys in `frontend/src/i18n/translations/<section>.ts`**, not here |
 | `frontend/src/lib/__tests__/deployedAddresses.test.ts` | Fails the build when `constants.ts` or a backend `application.yml` address (faucet token, `duelme.contracts.duel-me`) drifts from the broadcast artifact |
@@ -175,7 +178,7 @@ address, no relayer key — is the case the self-paid path still covers.
 - `NEXT_PUBLIC_API_URL` — Backend API base URL (default `/api/v1`)
 - `NEXT_PUBLIC_ARBITRUM_RPC_URL` — authenticated RPC for Arbitrum One. **Unset since 2026-09-20**, so both environments run on Tenderly Gateway public; the previous provider was disabled upstream and took withdrawals down with it (see the RPC gotcha below). Used as Privy embedded-wallet override + first wagmi fallback. If you set it: check the endpoint answers `eth_chainId`, add its host to `connect-src`, and lock the URL via the provider's "Allowed Origins" — `NEXT_PUBLIC_*` are inlined into the JS bundle.
 - `NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL` — same for Arbitrum Sepolia. Optional; Tenderly public works for dev.
-- `RELAYER_PRIVATE_KEY` — hot wallet that pays gas for relayed duel actions (frontend container, **runtime** not build-time). Unset ⇒ `/api/relay` returns 503 and duel writes stay self-paid. Dedicated key; fund it with only what the daily budgets can spend.
+- `RELAYER_PRIVATE_KEY` — hot wallet that pays gas for relayed duel actions (frontend container, **runtime** not build-time). Unset, or not a valid private key ⇒ `/api/relay` returns 503 and duel writes stay self-paid. Dedicated key; fund it with only what the daily budgets can spend.
 - `RELAYER_RPC_URL` — server-side RPC for the relayer. Optional; defaults to the default chain's public RPC. A browser-origin-locked `NEXT_PUBLIC_*` key will NOT work here — server requests send no `Origin`.
 - `RELAYER_DAILY_BUDGET_WEI` — per-address daily gas allowance in wei. Optional; defaults to 0.0005 ETH.
 - `RELAYER_GLOBAL_DAILY_BUDGET_WEI` — relayer-wide daily ceiling in wei. Optional; defaults to 0.01 ETH. Addresses are free to create, so this — not the per-address budget — is what bounds a sybil drain.
@@ -194,6 +197,26 @@ address, no relayer key — is the case the self-paid path still covers.
 - **A dead RPC provider looks like nothing at all.** `resolveRpcUrl` validates the URL's shape, never calls it, and Privy embedded wallets broadcast through one URL with no fallback — so an endpoint that has been disabled upstream surfaces only as "HTTP request failed" in the wallet modal, with the fee estimate rendering fine because that goes through Privy's own RPC. On 2026-09-20 the configured Arbitrum One provider answered `403 App is inactive` and withdrawals were dead; the wallet had ample ETH, and gas was the first thing everyone suspected. Before blaming the chain, `curl` the endpoint with `eth_chainId`.
 - **Relayer gas limit must clear `request.gas * 64 / 63` plus forwarder overhead.** `ERC2771Forwarder._checkForwardedGas` triggers `invalid()` — burning the *entire* limit, not just the unused part — when the forwarded call did not get the gas the request promised. On Arbitrum the L1 posting fee is charged out of the same limit and only `eth_estimateGas` knows its size, so `relayGasLimit` adds the floor ON TOP of the estimate; `max(floor, estimate)` would starve the inner call. Measured forwarder overhead beyond the floor is ~25k.
 - **`ERC2771Forwarder.execute` does not bubble up the inner revert reason** — a failed forwarded call surfaces as a bare `Errors.FailedCall()`. `/api/relay` re-simulates the inner call directly as the signer to recover the real message.
+- **A sent write is decided by its receipt, on the chain it went to.** `useWriteWithGas` reads the
+  receipt through `lib/writeReceipt.ts`, not wagmi's `useWaitForTransactionReceipt`, which watches
+  the chain the wallet is on now and, on a revert, throws whatever its replay of the call throws.
+  A reverted receipt ends the write in a `TransactionRevertedError` (its reason recovered from a
+  replay on the block before), a cancel or another call with its nonce in a
+  `TransactionReplacedError` — seen only while a watch still holds the pending original, which on
+  Arbitrum, with no public mempool, it rarely does. Any other failure to read the receipt, a watch
+  that timed out included, is retried for as long as it lasts, and the write counts as confirming
+  until the receipt decides, offline included: a write reported as failed that went through is one
+  "Try again" away from a second duel and a second wager. For the same reason a Privy broadcast
+  that fails asks the network for the transaction before calling the write failed
+  (`lib/resilientBroadcast.ts`), unless the node refused the transaction's own funds, gas or fee
+  fields, and a relayed write whose answer is lost posts the same signed request again
+  (`lib/relayApi.ts`).
+- **Whether relaying is on comes with the page, never from a request.** The root layout reads
+  `getRelayerStatus()` from the server's relayer config and hands it to `useRelayerStatus` through
+  context, so every flow plans and every write routes from the first render. An asynchronous
+  probe once did this job: a flow opened before it answered planned the self-paid path, approve
+  included, for a player the relayer would carry, and every fix for that (gates, retries,
+  timeouts, writes waiting for the answer) added a failure of its own.
 - **`collectErrorDetails` returns viem's multi-line dump first.** An error's own `message` is visited before its `shortMessage` / `reason`, so the first entry is the whole "Contract Call / Request Arguments / Version" blob. Use `bestErrorDetail` (shortest non-placeholder detail) whenever the string reaches a person.
 - **`fundsViaPermit` has to gate every allowance check, not just the last one.** `handleContinueFlow`, `handleSwitchNetwork` and `handleCreateTransaction` / `handleJoinTransaction` all decide the approve step; a relayed flow that reads the allowance in any of them routes a zero-ETH player into a self-paid `approve`. They share `resolveNeedsApproval` from `guidedFlowSteps.ts`.
 - **`FORWARDER_NAME` must match on both sides.** `frontend/src/lib/forwardRequest.ts` and `contracts/script/ForwarderConfig.sol` (which both deploy scripts read) both spell `"DuelMe Forwarder"`; it is the EIP-712 domain name, so a mismatch makes every signature fail `verify` with no other symptom.

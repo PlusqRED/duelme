@@ -1,5 +1,5 @@
-import type { Abi } from 'viem';
-import { describe, expect, it, vi } from 'vitest';
+import { HttpRequestError, keccak256, RpcRequestError, type Abi } from 'viem';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { broadcastWithFallback } from '@/lib/resilientBroadcast';
 
 const ACCOUNT = '0x0afbe1aae4301458ba762ccbb22ba6fc4775e3a5' as const;
@@ -63,15 +63,17 @@ function makeArgs(overrides: TestOverrides = {}) {
     ('0xcd96707e59322b0e7966e0003a7c927226fd3c3f41199417d5e071abde846139' as const);
   const signTransaction = vi.fn().mockResolvedValue(signedTx);
   const sendRawTransaction = vi.fn().mockResolvedValue(broadcastHash);
+  const getTransaction = vi.fn().mockRejectedValue(new Error('Transaction not found'));
 
   return {
     signTransaction,
     sendRawTransaction,
+    getTransaction,
     signedTx,
     broadcastHash,
     args: {
       walletClient: { signTransaction } as never,
-      publicClient: { sendRawTransaction } as never,
+      publicClient: { sendRawTransaction, getTransaction } as never,
       account: ACCOUNT as `0x${string}`,
       chainId: overrides.chainId ?? 42161,
       to: CONTRACT as `0x${string}`,
@@ -206,14 +208,6 @@ describe('broadcastWithFallback', () => {
     expect(sendRawTransaction).not.toHaveBeenCalled();
   });
 
-  it('propagates broadcast failures from the public client', async () => {
-    const { args } = makeArgs();
-    (args.publicClient as unknown as { sendRawTransaction: ReturnType<typeof vi.fn> }).sendRawTransaction =
-      vi.fn().mockRejectedValue(new Error('HTTP request failed'));
-
-    await expect(broadcastWithFallback(args)).rejects.toThrow('HTTP request failed');
-  });
-
   it('works for Arbitrum Sepolia (testnet) just like mainnet', async () => {
     // The Privy single-URL broadcast bug affects testnet too, so the helper
     // must accept testnet chainId without any special-casing.
@@ -250,4 +244,42 @@ describe('broadcastWithFallback', () => {
 
     expect(callOrder).toEqual(['sign', 'broadcast']);
   });
+
+  it('returns the transaction\'s hash when the broadcast failed but the network has it', async () => {
+    const { args, sendRawTransaction, getTransaction, signedTx } = makeArgs();
+    sendRawTransaction.mockRejectedValue(nodeError('nonce too low: next nonce 3, tx nonce 2'));
+    getTransaction.mockResolvedValue({ hash: keccak256(signedTx) });
+
+    await expect(broadcastWithFallback(args)).resolves.toBe(keccak256(signedTx));
+  });
+
+  it('reports the broadcast error when the network never shows the transaction', async () => {
+    vi.useFakeTimers();
+    const broadcastError = new HttpRequestError({ url: 'https://rpc.example', details: 'The request timed out.' });
+    const { args, sendRawTransaction, getTransaction } = makeArgs();
+    sendRawTransaction.mockRejectedValue(broadcastError);
+
+    const sent = expect(broadcastWithFallback(args)).rejects.toBe(broadcastError);
+    await vi.runAllTimersAsync();
+
+    await sent;
+    expect(getTransaction).toHaveBeenCalledTimes(3);
+  });
+
+  it('reports a node\'s refusal of the transaction itself at once, without looking for it', async () => {
+    const refusal = nodeError('insufficient funds for gas * price + value');
+    const { args, sendRawTransaction, getTransaction } = makeArgs();
+    sendRawTransaction.mockRejectedValue(refusal);
+
+    await expect(broadcastWithFallback(args)).rejects.toBe(refusal);
+    expect(getTransaction).not.toHaveBeenCalled();
+  });
+});
+
+function nodeError(message: string) {
+  return new RpcRequestError({ body: {}, url: 'https://rpc.example', error: { code: -32000, message } });
+}
+
+afterEach(() => {
+  vi.useRealTimers();
 });

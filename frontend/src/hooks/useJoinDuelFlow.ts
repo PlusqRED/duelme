@@ -109,8 +109,8 @@ export function useJoinDuelFlow({
   });
 
   // On opening the flow and back from topping up, the duel may have been joined, cancelled or
-  // declined since the page read it (that read is not polled): read it again and keep Continue
-  // closed until the answer is in, then re-run the same checks as the page.
+  // declined since the page last polled it: read it again and keep Continue closed until the
+  // answer is in, then re-run the same checks as the page.
   // The count drops through React Query's own scheduler, i.e. after the new duel reached the page —
   // never in a render that still shows the old one. A count, not a flag: a second recheck cancels
   // the first refetch, whose promise then settles while the second is still in flight.

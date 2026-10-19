@@ -2,6 +2,7 @@ import type { TranslationKey, TranslationParams } from '@/i18n/translations';
 import { collectErrorDetails } from '@/lib/errorDetails';
 import { RelayRequestError } from '@/lib/relayApi';
 import { PermitDomainMismatchError } from '@/lib/permitSignature';
+import { TransactionReplacedError, TransactionRevertedError, WalletNotReadyError } from '@/lib/writeErrors';
 
 export function getGuidedFlowErrorMessage(
   error: unknown,
@@ -12,6 +13,11 @@ export function getGuidedFlowErrorMessage(
   const relayMessage = getRelayErrorMessage(error, t);
   if (relayMessage) {
     return relayMessage;
+  }
+
+  const writeMessage = getWriteErrorMessage(error, t);
+  if (writeMessage) {
+    return writeMessage;
   }
 
   const details = collectErrorDetails(error);
@@ -54,6 +60,28 @@ export function getGuidedFlowErrorMessage(
   }
 
   return t(fallbackKey, { chain: chainName });
+}
+
+/** How a write that never ran says so: the chain's verdict, or a wallet that was not ready. */
+function getWriteErrorMessage(
+  error: unknown,
+  t: (key: TranslationKey, params?: TranslationParams) => string
+): string | null {
+  if (error instanceof TransactionRevertedError) {
+    return error.reason
+      ? t('create.flow.error.detail', { details: formatErrorDetail(error.reason) })
+      : t('create.flow.error.reverted');
+  }
+
+  if (error instanceof TransactionReplacedError) {
+    return t('create.flow.error.replaced');
+  }
+
+  if (error instanceof WalletNotReadyError) {
+    return t('toast.walletNotReady');
+  }
+
+  return null;
 }
 
 /**

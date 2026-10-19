@@ -1,5 +1,14 @@
 import {
+  BaseError,
   encodeFunctionData,
+  FeeCapTooHighError,
+  InsufficientFundsError,
+  IntrinsicGasTooHighError,
+  IntrinsicGasTooLowError,
+  keccak256,
+  NonceMaxValueError,
+  TipAboveFeeCapError,
+  TransactionTypeNotSupportedError,
   type Abi,
   type Account,
   type Chain,
@@ -8,6 +17,7 @@ import {
   type Transport,
   type WalletClient,
 } from 'viem';
+import { getNodeError } from 'viem/utils';
 
 export interface ResilientBroadcastArgs {
   walletClient: WalletClient<Transport, Chain, Account>;
@@ -65,7 +75,72 @@ export async function broadcastWithFallback(params: ResilientBroadcastArgs): Pro
     value: 0n,
   });
 
-  return params.publicClient.sendRawTransaction({
-    serializedTransaction: signedTx,
-  });
+  try {
+    return await params.publicClient.sendRawTransaction({
+      serializedTransaction: signedTx,
+    });
+  } catch (broadcastError) {
+    // A broadcast can fail after the network already has the transaction: the first provider
+    // forwards it and times out, and the next answers "already known" or "nonce too low". The
+    // error alone would read as a write that never went out, and "Try again" would send it a
+    // second time with a new nonce. Ask the network for the transaction itself before saying so.
+    if (isRefusedOutright(broadcastError)) {
+      throw broadcastError;
+    }
+
+    const hash = keccak256(signedTx);
+
+    if (await isKnownToNetwork(params.publicClient, hash)) {
+      return hash;
+    }
+
+    throw broadcastError;
+  }
+}
+
+/**
+ * Refusals that never answer a copy the network already took. Gas, fee caps, type and nonce range
+ * are read off the signed bytes, the same in every copy, so a node that took one would have
+ * refused it too. Funds are checked after the nonce, so a copy already taken reads as "already
+ * known" or "nonce too low" first. A fee cap under the base fee is not among them: the base fee
+ * moves, so a copy may have gone in before it rose.
+ */
+const OUTRIGHT_REFUSALS = [
+  InsufficientFundsError,
+  IntrinsicGasTooHighError,
+  IntrinsicGasTooLowError,
+  FeeCapTooHighError,
+  TipAboveFeeCapError,
+  TransactionTypeNotSupportedError,
+  NonceMaxValueError,
+];
+
+function isRefusedOutright(broadcastError: unknown): boolean {
+  if (!(broadcastError instanceof BaseError)) {
+    return false;
+  }
+
+  const nodeError = getNodeError(broadcastError, {});
+  return OUTRIGHT_REFUSALS.some((refusal) => nodeError instanceof refusal);
+}
+
+/** Lookups after a failed broadcast, spaced out because a provider can lag the sequencer briefly. */
+const NETWORK_LOOKUPS = 3;
+const NETWORK_LOOKUP_DELAY_MS = 1_000;
+
+async function isKnownToNetwork(publicClient: PublicClient<Transport, Chain>, hash: Hex): Promise<boolean> {
+  for (let lookup = 0; lookup < NETWORK_LOOKUPS; lookup++) {
+    if (lookup > 0) {
+      await new Promise((resolve) => setTimeout(resolve, NETWORK_LOOKUP_DELAY_MS));
+    }
+
+    try {
+      await publicClient.getTransaction({ hash });
+      return true;
+    } catch {
+      // Not found, or the lookup itself failed: either way the network has not shown it yet.
+    }
+  }
+
+  return false;
 }

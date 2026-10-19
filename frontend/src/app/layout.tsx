@@ -5,6 +5,7 @@ import { Providers } from '@/components/providers/Providers';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { JsonLd } from '@/components/seo/JsonLd';
+import { getRelayerStatus } from '@/lib/relayerConfig';
 import { SITE_NAME, SITE_URL } from '@/lib/constants';
 import {
   SEO_DESCRIPTION_EN,
@@ -97,7 +98,7 @@ export default function RootLayout({
         {/* matching content is visible (homepage). See `app/page.tsx`. */}
         <JsonLd type="organization" />
         <JsonLd type="webApplication" />
-        <Providers>
+        <Providers relayerStatus={getRelayerStatus()}>
           <div className="flex min-h-screen flex-col bg-[#FAFAFA]">
             <Header />
             <main className="flex-1">{children}</main>

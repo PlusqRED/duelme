@@ -133,11 +133,7 @@ describe('getDepositCopyKeys', () => {
     { testnet: true, isRelayEnabled: true, token: 'deposit.token.testnet', instructions: TESTNET_INSTRUCTIONS, fees: 'deposit.fees.relayed' },
     { testnet: true, isRelayEnabled: false, token: 'deposit.token.testnet', instructions: TESTNET_INSTRUCTIONS, fees: 'deposit.fees.selfPaid' },
   ])('testnet: $testnet, relay: $isRelayEnabled → $fees', ({ testnet, isRelayEnabled, token, instructions, fees }) => {
-    expect(getDepositCopyKeys({ testnet, isRelayResolved: true, isRelayEnabled })).toEqual({ token, instructions, fees });
-  });
-
-  it.each([false, true])('says nothing about fees until the relayer probe has answered (testnet: %s)', (testnet) => {
-    expect(getDepositCopyKeys({ testnet, isRelayResolved: false, isRelayEnabled: false }).fees).toBeNull();
+    expect(getDepositCopyKeys({ testnet, isRelayEnabled })).toEqual({ token, instructions, fees });
   });
 });
 

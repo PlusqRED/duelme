@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { RelayRequestError, fetchRelayerStatus, submitRelayRequest } from '@/lib/relayApi';
+import { RelayRequestError, submitRelayRequest } from '@/lib/relayApi';
 import type { RelayForwardRequest } from '@/lib/relayRequest';
 import { DUELME_ADDRESSES, SUPPORTED_CHAINS } from '@/lib/constants';
 
@@ -23,32 +23,47 @@ function respond(status: number, body: unknown) {
   } as Response);
 }
 
+function bodyLost() {
+  return {
+    ok: true,
+    status: 200,
+    json: async () => {
+      throw new TypeError('network error');
+    },
+  } as unknown as Response;
+}
+
+/** Fails like a real fetch with no connection, which rejects with the deadline once it has passed. */
+async function noConnection(_input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  init?.signal?.throwIfAborted();
+  throw new TypeError('Failed to fetch');
+}
+
+/** Waits for an answer that never comes, until the deadline aborts the post. */
+function noAnswer(_input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  return new Promise((_resolve, reject) => {
+    init?.signal?.addEventListener('abort', () => reject(init.signal?.reason));
+  });
+}
+
+// AbortSignal.timeout runs on a timer fake timers do not reach, so the deadline is fired by hand.
+let deadline: AbortController;
+
+function runOutTheDeadline() {
+  deadline.abort(new DOMException('signal timed out', 'TimeoutError'));
+}
+
 beforeEach(() => {
+  vi.useFakeTimers();
+  deadline = new AbortController();
+  vi.spyOn(AbortSignal, 'timeout').mockReturnValue(deadline.signal);
   vi.stubGlobal('fetch', vi.fn());
 });
 
 afterEach(() => {
   vi.unstubAllGlobals();
-});
-
-describe('fetchRelayerStatus', () => {
-  it('reports availability and chain', async () => {
-    vi.mocked(fetch).mockReturnValue(respond(200, { available: true, chainId: 42161 }));
-
-    await expect(fetchRelayerStatus()).resolves.toEqual({ available: true, chainId: 42161 });
-  });
-
-  it('treats a failed probe as unavailable rather than throwing', async () => {
-    vi.mocked(fetch).mockReturnValue(respond(503, {}));
-
-    await expect(fetchRelayerStatus()).resolves.toEqual({ available: false, chainId: null });
-  });
-
-  it('treats a malformed body as unavailable', async () => {
-    vi.mocked(fetch).mockReturnValue(respond(200, 'nope'));
-
-    await expect(fetchRelayerStatus()).resolves.toEqual({ available: false, chainId: null });
-  });
+  vi.restoreAllMocks();
+  vi.useRealTimers();
 });
 
 describe('submitRelayRequest', () => {
@@ -108,20 +123,108 @@ describe('submitRelayRequest', () => {
   });
 
   it('gives up rather than hanging when the relayer never answers', async () => {
-    vi.mocked(fetch).mockRejectedValue(new DOMException('timed out', 'TimeoutError'));
+    vi.mocked(fetch).mockImplementation(noAnswer);
 
-    await expect(submitRelayRequest(42161, signedRequest)).rejects.toMatchObject({
+    const submitted = expect(submitRelayRequest(42161, signedRequest)).rejects.toMatchObject({
       name: 'RelayRequestError',
       code: 'RELAYER_UNAVAILABLE',
+      message: 'The relayer did not answer in time.',
     });
+    runOutTheDeadline();
+
+    await submitted;
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 
-  it('bounds the request with an abort signal', async () => {
-    vi.mocked(fetch).mockReturnValue(respond(200, { hash: HASH }));
+  it('stops at the deadline even while it waits to post again', async () => {
+    vi.mocked(fetch).mockImplementation(noConnection);
 
-    await submitRelayRequest(42161, signedRequest);
+    const submitted = expect(submitRelayRequest(42161, signedRequest)).rejects.toMatchObject({
+      message: 'The relayer did not answer in time.',
+    });
+    await vi.advanceTimersByTimeAsync(1_000);
+    runOutTheDeadline();
+    await vi.runAllTimersAsync();
 
-    const [, init] = vi.mocked(fetch).mock.calls[0];
-    expect(init?.signal).toBeInstanceOf(AbortSignal);
+    await submitted;
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('posts the same signed request again when the answer is lost, and takes the relayed hash', async () => {
+    vi.mocked(fetch)
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockReturnValue(respond(200, { hash: HASH }));
+
+    const submitted = submitRelayRequest(42161, signedRequest);
+    await vi.runAllTimersAsync();
+
+    await expect(submitted).resolves.toBe(HASH);
+    const [first, second] = vi.mocked(fetch).mock.calls.map(([, init]) => init?.body);
+    expect(second).toBe(first);
+  });
+
+  it('posts again when a success arrives without its body, since the hash is what got lost', async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(bodyLost())
+      .mockReturnValue(respond(200, { hash: HASH }));
+
+    const submitted = submitRelayRequest(42161, signedRequest);
+    await vi.runAllTimersAsync();
+
+    await expect(submitted).resolves.toBe(HASH);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops after four lost answers', async () => {
+    vi.mocked(fetch).mockImplementation(noConnection);
+
+    const submitted = expect(submitRelayRequest(42161, signedRequest)).rejects.toMatchObject({
+      code: 'RELAYER_UNAVAILABLE',
+      message: 'No answer came back from the relayer.',
+    });
+    await vi.runAllTimersAsync();
+
+    await submitted;
+    expect(fetch).toHaveBeenCalledTimes(4);
+  });
+
+  it('spaces its posts out so the last outlasts a phone switching networks', async () => {
+    const postedAt: number[] = [];
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      postedAt.push(Date.now());
+      return postedAt.length < 4 ? noConnection(input, init) : respond(200, { hash: HASH });
+    });
+
+    const submitted = submitRelayRequest(42161, signedRequest);
+    await vi.runAllTimersAsync();
+
+    await expect(submitted).resolves.toBe(HASH);
+    expect(postedAt[3] - postedAt[0]).toBeGreaterThanOrEqual(40_000);
+  });
+
+  it('does not post a refused request again', async () => {
+    vi.mocked(fetch).mockReturnValue(respond(503, { code: 'RELAYER_UNAVAILABLE', error: 'Relayer is busy.' }));
+
+    const submitted = expect(submitRelayRequest(42161, signedRequest)).rejects.toMatchObject({
+      message: 'Relayer is busy.',
+    });
+    await vi.runAllTimersAsync();
+
+    await submitted;
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('bounds every post of one request by a single deadline, so reposts never extend the wait', async () => {
+    vi.mocked(fetch)
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockReturnValue(respond(200, { hash: HASH }));
+
+    const submitted = submitRelayRequest(42161, signedRequest);
+    await vi.runAllTimersAsync();
+    await submitted;
+
+    const [first, second] = vi.mocked(fetch).mock.calls.map(([, init]) => init?.signal);
+    expect(first).toBeInstanceOf(AbortSignal);
+    expect(second).toBe(first);
   });
 });

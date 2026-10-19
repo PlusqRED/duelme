@@ -83,8 +83,7 @@ export interface DepositInstruction {
 export interface DepositCopyKeys {
   token: TranslationKey;
   instructions: DepositInstruction[];
-  /** `null` until the relayer probe has answered, so the panel never flashes the wrong claim. */
-  fees: TranslationKey | null;
+  fees: TranslationKey;
 }
 
 /**
@@ -96,7 +95,6 @@ export interface DepositCopyKeys {
  */
 export function getDepositCopyKeys(options: {
   testnet: boolean;
-  isRelayResolved: boolean;
   isRelayEnabled: boolean;
 }): DepositCopyKeys {
   return {
@@ -108,11 +106,7 @@ export function getDepositCopyKeys(options: {
           { key: 'deposit.mainnet.exact', warning: false },
           { key: 'deposit.mainnet.otherNetwork', warning: true },
         ],
-    fees: !options.isRelayResolved
-      ? null
-      : options.isRelayEnabled
-        ? 'deposit.fees.relayed'
-        : 'deposit.fees.selfPaid',
+    fees: options.isRelayEnabled ? 'deposit.fees.relayed' : 'deposit.fees.selfPaid',
   };
 }
 

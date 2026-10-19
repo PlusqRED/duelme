@@ -4,6 +4,7 @@ import { translations } from '@/i18n/translations';
 import { getCreateDuelFlowErrorMessage } from '@/lib/createDuelFlowRuntime';
 import { RelayRequestError } from '@/lib/relayApi';
 import { PermitDomainMismatchError } from '@/lib/permitSignature';
+import { TransactionReplacedError, TransactionRevertedError, WalletNotReadyError } from '@/lib/writeErrors';
 
 function t(key: TranslationKey, params?: TranslationParams) {
   let value = String(translations.en[key]);
@@ -128,5 +129,37 @@ describe('getCreateDuelFlowErrorMessage — relay failures', () => {
     expect(getCreateDuelFlowErrorMessage(error, t, 'Arbitrum One')).toBe(
       translations.en['create.flow.error.permitUnsupported']
     );
+  });
+});
+
+describe('getCreateDuelFlowErrorMessage — writes that never ran', () => {
+  it('gives the contract\'s reason for a reverted transaction', () => {
+    const error = new TransactionRevertedError('duel not in created state');
+
+    expect(getCreateDuelFlowErrorMessage(error, t, 'Arbitrum One')).toBe(
+      'This step failed: duel not in created state.'
+    );
+  });
+
+  it('says the contract turned the transaction down when no reason came back', () => {
+    const error = new TransactionRevertedError(undefined);
+
+    expect(getCreateDuelFlowErrorMessage(error, t, 'Arbitrum One')).toBe(
+      translations.en['create.flow.error.reverted']
+    );
+  });
+
+  it('says the transaction was replaced in the wallet rather than calling it rejected', () => {
+    const error = new TransactionReplacedError();
+
+    expect(getCreateDuelFlowErrorMessage(error, t, 'Arbitrum One')).toBe(
+      translations.en['create.flow.error.replaced']
+    );
+  });
+
+  it('says the wallet is not ready instead of showing the internal guard text', () => {
+    const error = new WalletNotReadyError('Wallet or RPC client not ready');
+
+    expect(getCreateDuelFlowErrorMessage(error, t, 'Arbitrum One')).toBe(translations.en['toast.walletNotReady']);
   });
 });

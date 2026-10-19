@@ -53,7 +53,7 @@ export function Header() {
 
   const { profile: myProfile } = useMyProfile();
   const displayName = myProfile?.nickname ?? walletShort ?? '';
-  const { isRelayEnabled, isRelayResolved } = useRelayerStatus(selectedChain);
+  const { isRelayEnabled } = useRelayerStatus(selectedChain);
 
   // One balance read per available chain, batched by wagmi. Prod lists Arbitrum One
   // only, so it never builds — let alone sends — a Sepolia call.
@@ -79,9 +79,8 @@ export function Header() {
     },
   });
 
-  // Only wallets paying their own gas need an ETH balance. Waiting for the relayer probe
-  // keeps a relayed wallet from firing a pointless eth_getBalance on every render.
-  const paysOwnGas = isRelayResolved && !isRelayEnabled;
+  // Only wallets paying their own gas need an ETH balance, so a relayed wallet never reads one.
+  const paysOwnGas = !isRelayEnabled;
   const { data: ethBalanceData, refetch: refetchEthBalance } = useBalance({
     address: walletAddress,
     chainId: selectedChain,
