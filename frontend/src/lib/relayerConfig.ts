@@ -64,7 +64,13 @@ let cached: RelayerConfigResult | undefined;
  * viem clients are safe to share across requests.
  */
 export function getRelayerConfig(): RelayerConfigResult {
-  cached ??= buildRelayerConfig();
+  if (!cached) {
+    cached = buildRelayerConfig();
+    if (!cached.ok) {
+      // Pages are only told that relaying is off, so the reason goes where the operator looks.
+      console.error('[relay] disabled:', cached.reason);
+    }
+  }
   return cached;
 }
 

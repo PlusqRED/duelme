@@ -54,7 +54,6 @@ const noStoreHeaders = { 'Cache-Control': 'no-store' };
 export async function POST(httpRequest: Request) {
   const resolved = getRelayerConfig();
   if (!resolved.ok) {
-    console.error('[relay] disabled:', resolved.reason);
     return fail('RELAYER_UNAVAILABLE', 'Gasless relaying is not available.', 503);
   }
   const config = resolved.config;
