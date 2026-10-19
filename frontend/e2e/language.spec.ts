@@ -27,4 +27,15 @@ test.describe('Language', () => {
     await page.reload();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(GAMES_HEADING.ru);
   });
+
+  test('another open tab follows the switch, so no tab mixes two languages', async ({ page, context }) => {
+    const other = await context.newPage();
+    await other.goto('/games');
+    await page.goto('/games');
+
+    await page.getByRole('button', { name: 'RU', exact: true }).first().click();
+
+    await expect(other.locator('html')).toHaveAttribute('lang', 'ru');
+    await expect(other.getByRole('heading', { level: 1 })).toHaveText(GAMES_HEADING.ru);
+  });
 });

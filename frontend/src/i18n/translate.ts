@@ -1,3 +1,4 @@
+import { intlLocales } from './intlLocales';
 import {
   translations,
   type Language,
@@ -20,7 +21,7 @@ export interface Translator {
 function createTranslator(language: Language): Translator {
   const dictionary: Record<string, string> = translations[language];
   const fallback: Record<string, string> = translations.en;
-  const pluralRules = new Intl.PluralRules(language);
+  const pluralRules = new Intl.PluralRules(intlLocales[language]);
 
   return {
     t: (key, params) => {

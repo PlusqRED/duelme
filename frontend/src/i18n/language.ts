@@ -16,6 +16,15 @@ export function parseLanguage(value: string | undefined): Language {
   return isLanguage(value) ? value : DEFAULT_LANGUAGE;
 }
 
+/** The language cookie's value in a `document.cookie` string, or undefined without one. */
+export function readLanguageCookie(cookies: string): string | undefined {
+  const prefix = `${LANGUAGE_COOKIE}=`;
+  return cookies
+    .split('; ')
+    .find((cookie) => cookie.startsWith(prefix))
+    ?.slice(prefix.length);
+}
+
 /** The `document.cookie` assignment that keeps `language` for a year. */
 export function languageCookie(language: Language): string {
   return `${LANGUAGE_COOKIE}=${language}; path=/; max-age=${LANGUAGE_COOKIE_MAX_AGE_SECONDS}; samesite=lax`;

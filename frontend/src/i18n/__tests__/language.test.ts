@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LANGUAGE_COOKIE, languageCookie, parseLanguage } from '@/i18n/language';
+import { LANGUAGE_COOKIE, languageCookie, parseLanguage, readLanguageCookie } from '@/i18n/language';
 
 describe('parseLanguage', () => {
   it.each(['en', 'ru'] as const)('keeps %s', (language) => {
@@ -17,5 +17,15 @@ describe('parseLanguage', () => {
 describe('languageCookie', () => {
   it('keeps the language on every page for a year', () => {
     expect(languageCookie('ru')).toBe(`${LANGUAGE_COOKIE}=ru; path=/; max-age=31536000; samesite=lax`);
+  });
+});
+
+describe('readLanguageCookie', () => {
+  it('finds the language among the page’s other cookies', () => {
+    expect(readLanguageCookie(`theme=dark; ${LANGUAGE_COOKIE}=ru; other=1`)).toBe('ru');
+  });
+
+  it('is undefined without the cookie, and not fooled by a name that only ends like it', () => {
+    expect([readLanguageCookie(''), readLanguageCookie(`x${LANGUAGE_COOKIE}=ru`)]).toEqual([undefined, undefined]);
   });
 });
