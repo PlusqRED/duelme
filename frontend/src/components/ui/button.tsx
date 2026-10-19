@@ -5,7 +5,8 @@ import { cn } from '@/lib/utils';
 /**
  * Buttons are keycaps that press down. Navy is every action, paper the quiet alternative beside
  * it, and sun is kept for taking a payout. Ghost has no keycap, for what should not compete with
- * the action on screen: sign out, back, a filter reset.
+ * the action on screen: sign out, back, a filter reset. It keeps the room below that a keycap's edge
+ * takes, so the two line up side by side.
  *
  * `buttonVariants` gives a link the same look: `<Link className={buttonVariants({ size: 'lg' })}>`.
  */
@@ -18,7 +19,7 @@ const buttonVariants = cva(
         paper:
           'keycap bg-paper text-ink [--keycap-edge:var(--color-line-strong)] [--keycap-ring:var(--color-line-strong)]',
         sun: 'keycap bg-sun text-ink [--keycap-edge:var(--color-sun-edge)]',
-        ghost: 'text-ink-2 transition-colors hover:bg-ink/5 hover:text-ink',
+        ghost: 'mb-1 text-ink-2 transition-colors hover:bg-ink/5 hover:text-ink',
       },
       // The line height rides on the type size: cn() drops a `leading-*` that comes before one.
       size: {

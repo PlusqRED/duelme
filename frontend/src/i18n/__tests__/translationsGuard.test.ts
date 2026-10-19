@@ -32,14 +32,16 @@ const FORMAL_PRONOUN = /(?<![а-яё])(?:вы|вас|вам|вами|ваш[а-�
 /** A verb that agrees with «вы» even where it is left out: «попробуйте», «проверьте», «можете», «поделитесь». */
 const FORMAL_VERB = /(?<![а-яё])[а-яё]+(?:ите|йте|ьте|ете|ёте)(?:сь)?(?![а-яё])/giu;
 
-/** Nouns that end like such a verb, in the case after «в» or «на»: «в тестнете», «на сайте». */
-const NOT_VERBS = new Set([
-  'бюджете', 'депозите', 'интернете', 'кабинете', 'лимите', 'сайте', 'счете', 'счёте', 'тестнете',
-]);
+/**
+ * A noun in the case after «в», «на», «о» or «при» ends like such a verb («в тестнете», «на сайте»,
+ * «в личном кабинете»), so a word right after one of them, or after one and an adjective, is no verb.
+ */
+const AFTER_PREPOSITION = /(?<![а-яё])(?:в|во|на|о|об|обо|при)\s+(?:[а-яё]+(?:ом|ем|ём|ой|ей)\s+)?$/iu;
 
 function isFormal(text: string): boolean {
   return (
-    FORMAL_PRONOUN.test(text) || (text.match(FORMAL_VERB) ?? []).some((word) => !NOT_VERBS.has(word.toLowerCase()))
+    FORMAL_PRONOUN.test(text) ||
+    [...text.matchAll(FORMAL_VERB)].some((verb) => !AFTER_PREPOSITION.test(text.slice(0, verb.index)))
   );
 }
 
@@ -47,6 +49,9 @@ const formal = shrinkingList(
   keys.filter((key) => isFormal(translations.ru[key])),
   STILL_FORMAL_KEYS
 );
+
+const FORMAL_EXAMPLES = ['Попробуйте ещё раз', 'Проверьте сеть', 'Вы можете отменить', 'На кнопку нажмите'];
+const INFORMAL_EXAMPLES = ['Дуэль в тестнете', 'Ссылка на сайте', 'Ответ в отчёте', 'Всё в личном кабинете'];
 
 describe('translations', () => {
   it('uses every key somewhere', () => {
@@ -57,11 +62,11 @@ describe('translations', () => {
     expect(code).toContain(`\`${prefix}\${`);
   });
 
-  it.each(['Попробуйте ещё раз', 'Проверьте сеть', 'Вы можете отменить'])('hears «вы» in «%s»', (text) => {
+  it.each(FORMAL_EXAMPLES)('hears «вы» in «%s»', (text) => {
     expect(isFormal(text)).toBe(true);
   });
 
-  it.each(['Дуэль в тестнете', 'Ссылка на сайте', 'Сумма на депозите'])('hears no «вы» in «%s»', (text) => {
+  it.each(INFORMAL_EXAMPLES)('hears no «вы» in «%s»', (text) => {
     expect(isFormal(text)).toBe(false);
   });
 

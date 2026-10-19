@@ -157,11 +157,13 @@ has not reached yet still looks old, and the guard tests below list it.
 | `frontend/src/lib/wagmi.ts` | wagmi config (Privy adapter); `resolveRpcUrl` validates the RPC env and picks the fallback chain (configured provider → Tenderly) |
 | `frontend/src/lib/contracts.ts` | ABI, DuelState enum, ACTIVE_STATES, ERC20 ABIs, getUsdtAddress |
 | `frontend/src/styles/theme.css` | The design's tokens as Tailwind's theme: colours by role, type, weights, easing, shadows |
+| `frontend/src/styles/base.css` | Element defaults (font, headings, focus ring) and the `keycap` utility every button's press comes from |
 | `frontend/src/components/ui/button.tsx` | Keycap buttons (navy, paper, sun, ghost); `buttonVariants` gives a link the same face |
 | `frontend/src/components/ui/iconPaths.ts` | The design's icons as shapes, drawn by `ui/icon.tsx` |
 | `frontend/src/components/ui/dialog.tsx` | The one window: a card from a fixed top on a wide screen, a sheet below 560px; `--dialog-width` widens it |
+| `frontend/src/components/ui/toaster.tsx` | Toasts as paper cards with the design's icons, and what sonner's `unstyled` drops put back |
 | `frontend/src/lib/brandColors.ts` | Theme colours as hex for what CSS cannot reach (theme colour, Privy) |
-| `frontend/src/styles/__tests__/designGuard.test.ts` | Fails on palette classes, colour values, `dark:`, `font-mono` and unused legacy classes outside what `notYetPorted.ts` lists |
+| `frontend/src/styles/__tests__/designGuard.test.ts` | Fails on palette classes and variables, colour values, `dark:`, `font-mono` and unused legacy classes outside what `notYetPorted.ts` lists |
 | `frontend/src/i18n/__tests__/translationsGuard.test.ts` | Fails on a translation key nothing uses and on Russian «вы» outside `stillFormalKeys.ts` |
 | `frontend/src/lib/__tests__/helpers/sourceFiles.ts` | What the guards read: the shipped source files, the theme's tokens, and `shrinkingList` for lists that may only shrink |
 | `frontend/src/lib/constants.ts` | Chain configs, contract addresses, ZERO_ADDRESS, CHAIN_NAMES |
@@ -275,6 +277,10 @@ has not reached yet still looks old, and the guard tests below list it.
   probe once did this job: a flow opened before it answered planned the self-paid path, approve
   included, for a player the relayer would carry, and every fix for that (gates, retries,
   timeouts, writes waiting for the answer) added a failure of its own.
+- **A window that closes because what it shows turned null empties before it is gone.** The window
+  plays its closing animation after the value it was opened with (a network, a platform) is already
+  null, so its title and body change or vanish on the way out. Show `useLastNonNull(value)` from
+  `hooks/` instead, as `DepositDialog` and `UnlinkConfirmDialog` do.
 - **tailwind-merge does not know the theme's own tokens, and a type size clears the line height before it.** Left alone it reads `text-body` as a colour and `font-label` as a font family, so `cn('text-body', 'text-ink')` silently drops the size, and a later shadow or easing does not replace `shadow-menu` or `ease-spring`. `cn()` in `lib/utils.ts` registers the type sizes, weights, shadows and easings; a new `--text-*`, `--font-weight-*`, `--shadow-*` or `--ease-*` token goes there too (`utils.test.ts` fails until it does). A `text-*` size also drops any `leading-*` that comes before it, so where a variant or a caller sets the size, the line height rides on it: `text-body-sm/[1.1]`, `text-lg/snug`.
 - **`collectErrorDetails` returns viem's multi-line dump first.** An error's own `message` is visited before its `shortMessage` / `reason`, so the first entry is the whole "Contract Call / Request Arguments / Version" blob. Use `bestErrorDetail` (shortest non-placeholder detail) whenever the string reaches a person.
 - **`fundsViaPermit` has to gate every allowance check, not just the last one.** `handleContinueFlow`, `handleSwitchNetwork` and `handleCreateTransaction` / `handleJoinTransaction` all decide the approve step; a relayed flow that reads the allowance in any of them routes a zero-ETH player into a self-paid `approve`. They share `resolveNeedsApproval` from `guidedFlowSteps.ts`.

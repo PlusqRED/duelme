@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useAppToast } from '@/hooks/useAppToast';
+import { useLastNonNull } from '@/hooks/useLastNonNull';
 import { useSocialLinks } from '@/hooks/useSocialLinks';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { SocialPlatform } from '@/lib/profile';
@@ -34,6 +35,7 @@ export function UnlinkConfirmDialog({ open, platform, onOpenChange }: UnlinkConf
   const { t } = useTranslation();
   const toast = useAppToast();
   const { unlink } = useSocialLinks();
+  const shownPlatform = useLastNonNull(platform);
 
   async function handleConfirm() {
     if (!platform) return;
@@ -55,12 +57,12 @@ export function UnlinkConfirmDialog({ open, platform, onOpenChange }: UnlinkConf
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {platform
-              ? t('profile.socialLinks.unlinkTitle', { platform: t(platformKey(platform)) })
+            {shownPlatform
+              ? t('profile.socialLinks.unlinkTitle', { platform: t(platformKey(shownPlatform)) })
               : t('profile.socialLinks.unlink')}
           </DialogTitle>
           <DialogDescription>
-            {platform && t('profile.socialLinks.unlinkBody', { platform: t(platformKey(platform)) })}
+            {shownPlatform && t('profile.socialLinks.unlinkBody', { platform: t(platformKey(shownPlatform)) })}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -73,7 +75,7 @@ export function UnlinkConfirmDialog({ open, platform, onOpenChange }: UnlinkConf
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={unlink.isPending || !platform}
+            disabled={unlink.isPending || !shownPlatform}
             aria-busy={unlink.isPending}
           >
             {unlink.isPending ? (

@@ -21,13 +21,22 @@ const COLOUR_UTILITIES = [
   'placeholder', 'caret', 'accent',
 ];
 
-/** A colour from Tailwind's own palette (`bg-slate-50`, `hover:text-white`) instead of a role from the theme. */
+const PALETTE_COLOUR = `(?:(?:${PALETTES.join('|')})-\\d{2,3}|white|black)(?![\\w-])`;
+
+/**
+ * A colour from Tailwind's own palette instead of a role from the theme: as a class (`bg-slate-50`,
+ * `hover:text-white`) or as its variable (`bg-(--color-slate-50)`).
+ */
 const PALETTE_CLASS = new RegExp(
-  `(?<![\\w-])(?:${COLOUR_UTILITIES.join('|')})-(?:(?:${PALETTES.join('|')})-\\d{2,3}|white|black)(?![\\w-])`
+  `(?<![\\w-])(?:${COLOUR_UTILITIES.join('|')})-${PALETTE_COLOUR}|--color-${PALETTE_COLOUR}`
 );
 
-/** A colour value: `#eef2ff` (also inside an arbitrary class), or any CSS colour function. */
-const RAW_COLOUR = /#[0-9a-f]{3,8}(?![0-9a-z-])|(?<![a-z-])(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color-mix|color)\(/i;
+/**
+ * A colour value: `#eef2ff` (also inside an arbitrary class), any CSS colour function, or white and
+ * black by name as a value (`bg-[white]`, `[--keycap-edge:black]`, `color: 'white'`).
+ */
+const RAW_COLOUR =
+  /#[0-9a-f]{3,8}(?![0-9a-z-])|(?<![a-z-])(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color-mix|color)\(|(?:[[:]\s*|['"])(?:white|black)(?=\s*[\]'";)}])/i;
 
 function pathsMatching(pattern: RegExp): string[] {
   return files.filter((file) => pattern.test(file.text)).map((file) => file.path);
@@ -39,7 +48,27 @@ const rawColours = shrinkingList(
   STILL_RAW_COLOURS
 );
 
+const COLOUR_EXAMPLES = [
+  'bg-slate-50',
+  'hover:text-white',
+  'bg-(--color-slate-50)',
+  'bg-[#eef2ff]',
+  'rgb(4 8 31 / 0.5)',
+  'bg-[white]',
+  '[--keycap-edge:black]',
+  "style={{ background: 'white' }}",
+];
+const NOT_COLOUR_EXAMPLES = ['bg-canvas', 'text-ink-3', 'font-black', 'not a black box', 'shadow-menu'];
+
 describe('design guard', () => {
+  it.each(COLOUR_EXAMPLES)('sees a colour outside the theme in %s', (text) => {
+    expect(PALETTE_CLASS.test(text) || RAW_COLOUR.test(text)).toBe(true);
+  });
+
+  it.each(NOT_COLOUR_EXAMPLES)('sees no colour outside the theme in %s', (text) => {
+    expect(PALETTE_CLASS.test(text) || RAW_COLOUR.test(text)).toBe(false);
+  });
+
   it('colours with the theme outside the files still waiting for their screen', () => {
     expect(palette.unlisted).toEqual([]);
   });

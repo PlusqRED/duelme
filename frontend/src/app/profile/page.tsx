@@ -183,11 +183,11 @@ export default function MyProfilePage() {
                   {t('profile.charCount', { count: editValue.length, max: limit })}
                 </span>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="ghost" onClick={cancelEdit} disabled={isSaving}>
+                  <Button size="sm" variant="ghost" onClick={cancelEdit} disabled={isSaving} aria-label={t('profile.cancel')}>
                     <X className="h-3.5 w-3.5" />
                   </Button>
                   <Button
-                    size="sm"
+                    size="sm" aria-label={t('profile.save')}
                     onClick={() => saveField(field)}
                     disabled={isSaving || editValue.length > limit}
                   >
@@ -312,7 +312,7 @@ export default function MyProfilePage() {
                       }
                     }}
                   />
-                  <Button size="sm" variant="paper" onClick={addGame} disabled={!gameInput.trim()}>
+                  <Button size="sm" variant="paper" onClick={addGame} disabled={!gameInput.trim()} aria-label={t('profile.addGame')}>
                     <Plus className="h-3.5 w-3.5" />
                   </Button>
                 </div>

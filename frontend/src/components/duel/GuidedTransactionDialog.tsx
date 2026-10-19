@@ -136,7 +136,7 @@ export function GuidedTransactionDialog({
           </ol>
         </div>
 
-        <div className="grid gap-6 p-6 lg:grid-cols-[minmax(0,1.45fr)_minmax(300px,1fr)]">
+        <div className="grid gap-6 p-6 split:grid-cols-[minmax(0,1.45fr)_minmax(300px,1fr)]">
           <div className="space-y-4">
             {stepPanel ? (
               <section

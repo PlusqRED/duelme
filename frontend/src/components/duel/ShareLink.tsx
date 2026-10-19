@@ -50,6 +50,7 @@ export function ShareLink({ duelId, inviteHash, inviteSecret }: ShareLinkProps) 
         <Button
           variant="paper"
           className="shrink-0"
+          aria-label={t('action.copyLink')}
           onClick={handleCopy}
           disabled={!canCopy}
         >
