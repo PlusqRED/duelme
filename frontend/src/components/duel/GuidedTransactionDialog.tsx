@@ -88,21 +88,21 @@ export function GuidedTransactionDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="max-h-[calc(100dvh-1.5rem)] max-w-[calc(100%-1.5rem)] gap-0 overflow-y-auto border border-slate-200 bg-white/95 p-0 shadow-2xl backdrop-blur-sm sm:max-w-4xl"
+        className="gap-0 p-0 xs:p-0 split:[--dialog-width:900px]"
         showCloseButton={canClose}
       >
         <div className="border-b border-slate-200 bg-gradient-to-r from-indigo-50 via-white to-slate-50 px-6 py-5">
           <DialogHeader className="gap-1">
-            <DialogTitle className="text-xl font-semibold text-slate-900">
+            <DialogTitle>
               {title}
             </DialogTitle>
-            <DialogDescription className="text-sm text-slate-600">
+            <DialogDescription>
               {description}
             </DialogDescription>
           </DialogHeader>
           <ol className={cn(
             'mt-5 grid gap-2',
-            steps.length <= 3 ? 'sm:grid-cols-3' : steps.length === 4 ? 'sm:grid-cols-4' : 'sm:grid-cols-5'
+            steps.length <= 3 ? 'split:grid-cols-3' : steps.length === 4 ? 'split:grid-cols-4' : 'split:grid-cols-5'
           )}>
             {steps.map((step) => (
               <li
@@ -123,9 +123,9 @@ export function GuidedTransactionDialog({
                       'text-xs font-semibold tracking-wide',
                       step.status === 'active' && 'text-indigo-700',
                       step.status === 'completed' && 'text-emerald-700',
-                      step.status === 'skipped' && 'text-slate-500',
+                      step.status === 'skipped' && 'text-ink-3',
                       step.status === 'error' && 'text-red-700',
-                      step.status === 'upcoming' && 'text-slate-500'
+                      step.status === 'upcoming' && 'text-ink-3'
                     )}
                   >
                     {step.label}
@@ -136,7 +136,7 @@ export function GuidedTransactionDialog({
           </ol>
         </div>
 
-        <div className="grid gap-6 p-6 lg:grid-cols-[minmax(0,1.45fr)_minmax(300px,1fr)]">
+        <div className="grid gap-6 p-6 split:grid-cols-[minmax(0,1.45fr)_minmax(300px,1fr)]">
           <div className="space-y-4">
             {stepPanel ? (
               <section
@@ -189,10 +189,9 @@ export function GuidedTransactionDialog({
                     {secondaryAction && (
                       <Button
                         size="lg"
-                        variant={secondaryAction.variant ?? 'outline'}
+                        variant="paper"
                         onClick={secondaryAction.onClick}
                         disabled={secondaryAction.disabled}
-                        className="h-11 transition-all duration-200 ease-out"
                       >
                         {secondaryAction.label}
                       </Button>
@@ -200,13 +199,12 @@ export function GuidedTransactionDialog({
                     {primaryAction && (
                       <Button
                         size="lg"
-                        variant={primaryAction.variant ?? 'default'}
                         onClick={primaryAction.onClick}
                         disabled={primaryAction.disabled}
-                        className="h-11 transition-all duration-200 ease-out sm:min-w-44"
+                        className="sm:min-w-44"
                       >
                         {primaryAction.loading && (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          <Loader2 className="h-4 w-4 animate-spin" />
                         )}
                         {primaryAction.label}
                       </Button>
@@ -232,7 +230,7 @@ export function GuidedTransactionDialog({
                     key={`${item.label}-${item.value}`}
                     className="flex items-start justify-between gap-4"
                   >
-                    <dt className="text-sm text-slate-500">{item.label}</dt>
+                    <dt className="text-sm text-ink-3">{item.label}</dt>
                     <dd
                       className={cn(
                         'max-w-[60%] text-right text-sm text-slate-700',
@@ -263,7 +261,7 @@ export function GuidedTransactionDialog({
                       <dd
                         className={cn(
                           'text-sm text-slate-700 break-all',
-                          item.monospace && 'font-mono text-xs'
+                          item.monospace && 'tabular-nums text-xs'
                         )}
                       >
                         {item.value}

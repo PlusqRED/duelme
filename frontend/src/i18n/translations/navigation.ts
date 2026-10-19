@@ -3,12 +3,13 @@ import { defineSection } from './defineSection';
 export const navigationTranslations = defineSection({
   en: {
     'nav.dashboard': 'My Duels',
-    'nav.createDuel': 'Create Duel',
     'nav.publicDuels': 'Public Duels',
     'nav.recentDuels': 'Recent Duels',
     'nav.connectWallet': 'Sign In',
     'nav.myProfile': 'Profile',
     'nav.games': 'Games',
+    'nav.menu': 'Menu',
+    'nav.signOut': 'Sign out',
     'sidenav.hero': 'Overview',
     'sidenav.publicDuels': 'Public Duels',
     'sidenav.howItWorks': 'How It Works',
@@ -20,18 +21,16 @@ export const navigationTranslations = defineSection({
     'footer.tagline': 'Fair PvP duels. Zero fees. Powered by smart contracts.',
     'footer.rights': 'All rights reserved.',
     'footer.developer': 'Developer & contact',
-    'seo.title': 'DuelMe — P2P Gaming Duels for USDT',
-    'seo.description':
-      'Challenge anyone to a PvP gaming duel for USDT. Create a duel, share the link, play your game, and claim your winnings. Powered by smart contracts on Arbitrum & Polygon.',
   },
   ru: {
     'nav.dashboard': 'Мои дуэли',
-    'nav.createDuel': 'Создать дуэль',
     'nav.publicDuels': 'Публичные дуэли',
     'nav.recentDuels': 'Недавние дуэли',
     'nav.connectWallet': 'Войти',
     'nav.myProfile': 'Профиль',
     'nav.games': 'Игры',
+    'nav.menu': 'Меню',
+    'nav.signOut': 'Выйти',
     'sidenav.hero': 'Обзор',
     'sidenav.publicDuels': 'Публичные',
     'sidenav.howItWorks': 'Как это работает',
@@ -43,8 +42,5 @@ export const navigationTranslations = defineSection({
     'footer.tagline': 'Честные PvP дуэли. 0% комиссия. На смарт-контрактах.',
     'footer.rights': 'Все права защищены.',
     'footer.developer': 'Разработчик и связь',
-    'seo.title': 'DuelMe — P2P игровые дуэли за USDT',
-    'seo.description':
-      'Вызови любого на PvP дуэль за USDT. Создай дуэль, отправь ссылку, сыграй и забери выигрыш.',
   },
 });

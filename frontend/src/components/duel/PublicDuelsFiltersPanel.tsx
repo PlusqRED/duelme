@@ -31,6 +31,14 @@ interface PublicDuelsFiltersPanelProps {
   onSortChange: (value: SortBy) => void;
 }
 
+const SORT_LABEL_KEY: Record<SortBy, TranslationKey> = {
+  newest: 'publicDuels.sortNewest',
+  highest: 'publicDuels.sortHighest',
+  lowest: 'publicDuels.sortLowest',
+};
+
+const SORT_OPTIONS: readonly SortBy[] = ['newest', 'highest', 'lowest'];
+
 export function PublicDuelsFiltersPanel({
   searchQuery,
   gameOptions,
@@ -52,7 +60,7 @@ export function PublicDuelsFiltersPanel({
           value={searchQuery}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder={t('publicDuels.searchPlaceholder')}
-          className="h-11 border-slate-200 bg-white pl-10"
+          className="pl-10"
         />
       </div>
 
@@ -98,13 +106,13 @@ export function PublicDuelsFiltersPanel({
 
           <div className="flex items-center gap-1.5">
             <ArrowUpDown className="h-3.5 w-3.5 text-slate-400" />
-            {(['newest', 'highest', 'lowest'] as const).map((sort) => (
+            {SORT_OPTIONS.map((sort) => (
               <SortButton
                 key={sort}
                 active={sortBy === sort}
                 onClick={() => onSortChange(sort)}
               >
-                {t(`publicDuels.sort${sort.charAt(0).toUpperCase() + sort.slice(1)}` as TranslationKey)}
+                {t(SORT_LABEL_KEY[sort])}
               </SortButton>
             ))}
           </div>
@@ -148,7 +156,7 @@ function SortButton({ active, children, onClick }: FilterButtonProps) {
         'rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors',
         active
           ? 'bg-slate-900 text-white'
-          : 'bg-slate-100 text-slate-500 hover:bg-slate-200',
+          : 'bg-slate-100 text-ink-3 hover:bg-slate-200',
       )}
     >
       {children}

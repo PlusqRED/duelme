@@ -33,7 +33,7 @@ export default function PublicProfilePage({
   if (!isValidAddress) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-12 text-center">
-        <p className="text-sm text-slate-500">{t('duel.notFound')}</p>
+        <p className="text-sm text-ink-3">{t('duel.notFound')}</p>
         <Link href="/" className="mt-4 inline-block text-sm text-indigo-600 hover:underline">
           {t('sidenav.hero')}
         </Link>
@@ -58,7 +58,7 @@ export default function PublicProfilePage({
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
       <Link
         href={backHref}
-        className="mb-6 inline-flex items-center gap-1.5 text-sm text-slate-500 transition-colors hover:text-slate-900"
+        className="mb-6 inline-flex items-center gap-1.5 text-sm text-ink-3 transition-colors hover:text-slate-900"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         {authenticated ? t('nav.dashboard') : t('sidenav.hero')}
@@ -86,7 +86,7 @@ export default function PublicProfilePage({
                   tone="dark"
                 />
               </div>
-              <p className="mt-1 font-mono text-xs text-white/60">{truncateAddress(walletAddress)}</p>
+              <p className="mt-1 tabular-nums text-xs text-white/60">{truncateAddress(walletAddress)}</p>
             </div>
           </div>
         </div>
@@ -104,7 +104,7 @@ export default function PublicProfilePage({
           {!hasProfile && (
             <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
               <User className="mx-auto mb-3 h-10 w-10 text-slate-300" />
-              <p className="text-sm text-slate-500">{t('profile.noProfileYet')}</p>
+              <p className="text-sm text-ink-3">{t('profile.noProfileYet')}</p>
             </div>
           )}
 

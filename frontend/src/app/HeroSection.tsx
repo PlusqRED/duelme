@@ -109,29 +109,20 @@ export function HeroSection() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
               <Link
                 href="/duel/create"
-                className={buttonVariants({
-                  size: 'lg',
-                  className:
-                    'h-14 rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-600 px-10 text-lg font-bold text-white shadow-lg shadow-indigo-300/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-indigo-300/50',
-                })}
+                className={buttonVariants({ size: 'lg' })}
               >
-                <Swords className="mr-2.5 h-5 w-5" />
+                <Swords className="h-5 w-5" />
                 {t('hero.cta')}
               </Link>
               <a
                 href="#how-it-works"
-                className={buttonVariants({
-                  variant: 'outline',
-                  size: 'lg',
-                  className:
-                    'h-14 rounded-2xl border-2 border-slate-300 bg-white/80 px-10 text-lg font-bold text-slate-700 backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-400 hover:bg-white hover:shadow-md',
-                })}
+                className={buttonVariants({ variant: 'paper', size: 'lg' })}
               >
                 {t('hero.ctaSecondary')}
               </a>
             </div>
 
-            <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-slate-500 [text-wrap:pretty]">
+            <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-ink-3 [text-wrap:pretty]">
               {t('hero.note')}
             </p>
 

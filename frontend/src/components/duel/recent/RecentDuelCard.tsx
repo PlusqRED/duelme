@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ArrowRight, Link2, Trophy } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Chip } from '@/components/ui/chip';
 import { ReputationBadge } from '@/components/duel/ReputationBadge';
 import { GameBadge } from '@/components/game/GameBadge';
 import type { RecentDuel } from '@/hooks/useRecentDuels';
@@ -88,9 +88,7 @@ export function RecentDuelCard({
           {gameName ? (
             <GameBadge gameName={gameName} gameSlug={gameSlug ?? undefined} />
           ) : (
-            <Badge variant="outline" className="text-xs">
-              {duel.chainName}
-            </Badge>
+            <Chip>{duel.chainName}</Chip>
           )}
         </div>
         <div className="flex shrink-0 flex-col items-end leading-tight">
@@ -142,7 +140,7 @@ export function RecentDuelCard({
           {t(getDuelStateLabelKey(duel.state, isTimedOut))}
         </span>
         <span
-          className="text-xs text-slate-500"
+          className="text-xs text-ink-3"
           title={formatDateTime(duel.lastEventAt, language)}
         >
           {timeAgo(duel.lastEventAt)}
@@ -184,7 +182,7 @@ function PlayerRow({
           onClick={(event) => event.stopPropagation()}
           className={cn(
             'truncate text-sm transition-colors hover:text-indigo-600',
-            !hasNickname && 'font-mono',
+            !hasNickname && 'tabular-nums',
             isWinner && 'font-semibold text-slate-900',
             isLoser && 'text-slate-400',
             !isWinner && !isLoser && 'text-slate-700',

@@ -221,7 +221,7 @@ export default function DuelPage({
   if (isError || !duel || duel.state === DuelState.Nonexistent) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-12 text-center">
-        <p className="text-slate-500">{t('duel.notFound')}</p>
+        <p className="text-ink-3">{t('duel.notFound')}</p>
         <Link href="/dashboard" className="mt-4 inline-block text-sm text-indigo-600 hover:underline">
           {t('nav.dashboard')}
         </Link>
@@ -386,7 +386,7 @@ export default function DuelPage({
       {/* Back link */}
       <Link
         href={backHref}
-        className="mb-6 inline-flex items-center gap-1.5 text-sm text-slate-500 transition-colors hover:text-slate-900"
+        className="mb-6 inline-flex items-center gap-1.5 text-sm text-ink-3 transition-colors hover:text-slate-900"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         {backLabel}
@@ -492,7 +492,7 @@ export default function DuelPage({
                     <span className={`mt-1 h-2.5 w-2.5 rounded-full ${event.dotColor}`} />
                     <span className="text-sm font-medium text-slate-700">{event.label}</span>
                   </div>
-                  <span className="text-right text-sm text-slate-500">
+                  <span className="text-right text-sm text-ink-3">
                     {formatDateTime(event.timestamp, language)}
                   </span>
                 </div>
@@ -510,7 +510,7 @@ export default function DuelPage({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="self-center text-red-500 hover:bg-red-50 hover:text-red-600"
+                  className="self-center"
                   onClick={handleCancel}
                   disabled={txPending}
                 >
@@ -526,7 +526,7 @@ export default function DuelPage({
                   <Shield className="h-5 w-5 text-slate-600" />
                 </div>
                 <p className="text-sm font-medium text-slate-800">{t('duel.privateInviteRequired')}</p>
-                <p className="mt-1 text-xs text-slate-500">{t('duel.privateInviteMissing')}</p>
+                <p className="mt-1 text-xs text-ink-3">{t('duel.privateInviteMissing')}</p>
               </div>
             )}
 
@@ -534,18 +534,18 @@ export default function DuelPage({
               <div className="flex flex-col gap-3">
                 <Button
                   size="lg"
-                  className="h-12 w-full bg-indigo-600 text-base font-semibold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700"
+                  className="w-full"
                   onClick={joinFlow.handleOpenJoinFlow}
                   disabled={txPending || joinFlow.flow !== null}
                 >
-                  <Swords className="mr-2 h-4 w-4" />
+                  <Swords className="h-4 w-4" />
                   {t('action.join')} — {wagerDisplay} USDT
                 </Button>
                 {isDeclinableDuel && (
                   <Button
                     size="lg"
-                    variant="outline"
-                    className="h-12 w-full border-slate-300 text-slate-700 hover:bg-slate-50"
+                    variant="paper"
+                    className="w-full"
                     onClick={handleDecline}
                     disabled={txPending}
                   >
@@ -556,7 +556,7 @@ export default function DuelPage({
                       </span>
                     ) : (
                       <>
-                        <XCircle className="mr-2 h-4 w-4" />
+                        <XCircle className="h-4 w-4" />
                         {t('action.decline')}
                       </>
                     )}
@@ -568,10 +568,10 @@ export default function DuelPage({
             {canLoginToJoinWaitingDuel && (
               <Button
                 size="lg"
-                className="h-12 w-full bg-indigo-600 text-base font-semibold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700"
+                className="w-full"
                 onClick={login}
               >
-                <LogIn className="mr-2 h-4 w-4" />
+                <LogIn className="h-4 w-4" />
                 {t('action.loginToJoin')}
               </Button>
             )}
@@ -657,7 +657,7 @@ export default function DuelPage({
             {/* Refunded */}
             {isRefunded && (
               <div className="flex items-center justify-center gap-2 rounded-xl bg-slate-50 p-4">
-                <RotateCcw className="h-5 w-5 text-slate-500" />
+                <RotateCcw className="h-5 w-5 text-ink-3" />
                 <span className="text-sm text-slate-600">{t('duel.refunded')}</span>
               </div>
             )}
@@ -666,7 +666,7 @@ export default function DuelPage({
             {isCancelled && (
               <div className="flex items-center justify-center gap-2 rounded-xl bg-slate-50 p-4">
                 <XCircle className="h-5 w-5 text-slate-400" />
-                <span className="text-sm text-slate-500">{t('duel.cancelled')}</span>
+                <span className="text-sm text-ink-3">{t('duel.cancelled')}</span>
               </div>
             )}
 
@@ -710,8 +710,8 @@ export default function DuelPage({
 
                   {canManageParticipantDuel && hasClaimablePayout && (
                     <Button
-                      size="lg"
-                      className="w-full bg-gradient-to-r from-emerald-500 via-emerald-600 to-green-600 text-white shadow-sm shadow-emerald-200 hover:from-emerald-600 hover:via-emerald-700 hover:to-green-700 sm:w-auto"
+                      variant="sun" size="lg"
+                      className="w-full sm:w-auto"
                       onClick={openClaimPayout}
                       disabled={txPending || actionFlow.flow !== null}
                     >

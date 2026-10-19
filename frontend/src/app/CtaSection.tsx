@@ -40,13 +40,9 @@ export function CtaSection() {
           <div className="mt-8">
             <Link
               href="/duel/create"
-              className={buttonVariants({
-                size: 'lg',
-                className:
-                  'h-12 rounded-2xl bg-slate-950 px-10 text-base font-semibold text-white shadow-lg shadow-slate-300/40 transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-900',
-              })}
+              className={buttonVariants({ size: 'lg' })}
             >
-              <Swords className="mr-2 h-4 w-4" />
+              <Swords className="h-4 w-4" />
               {t('hero.cta')}
             </Link>
           </div>

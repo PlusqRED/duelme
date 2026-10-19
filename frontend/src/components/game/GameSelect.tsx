@@ -30,7 +30,7 @@ export function GameSelect({
 
   return (
     <label className="flex flex-col gap-2">
-      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <span className="text-xs font-semibold uppercase tracking-wide text-ink-3">
         {label}
       </span>
       <div

@@ -119,8 +119,8 @@ export default function MyProfilePage() {
     return (
       <div className="mx-auto max-w-2xl px-4 py-12 text-center">
         <User className="mx-auto mb-4 h-12 w-12 text-slate-300" />
-        <p className="text-sm text-slate-500">{t('profile.signInToEdit')}</p>
-        <Button className="mt-4 bg-indigo-600 text-white hover:bg-indigo-700" onClick={login}>
+        <p className="text-sm text-ink-3">{t('profile.signInToEdit')}</p>
+        <Button className="mt-4" onClick={login}>
           {t('nav.connectWallet')}
         </Button>
       </div>
@@ -170,7 +170,6 @@ export default function MyProfilePage() {
                   onChange={(e) => setEditValue(e.target.value)}
                   placeholder={placeholder}
                   maxLength={limit}
-                  className="h-9"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
@@ -184,12 +183,11 @@ export default function MyProfilePage() {
                   {t('profile.charCount', { count: editValue.length, max: limit })}
                 </span>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="ghost" onClick={cancelEdit} disabled={isSaving}>
+                  <Button size="sm" variant="ghost" onClick={cancelEdit} disabled={isSaving} aria-label={t('profile.cancel')}>
                     <X className="h-3.5 w-3.5" />
                   </Button>
                   <Button
-                    size="sm"
-                    className="bg-indigo-600 text-white hover:bg-indigo-700"
+                    size="sm" aria-label={isSaving ? undefined : t('profile.save')}
                     onClick={() => saveField(field)}
                     disabled={isSaving || editValue.length > limit}
                   >
@@ -223,7 +221,7 @@ export default function MyProfilePage() {
       </Suspense>
       <Link
         href="/dashboard"
-        className="mb-6 inline-flex items-center gap-1.5 text-sm text-slate-500 transition-colors hover:text-slate-900"
+        className="mb-6 inline-flex items-center gap-1.5 text-sm text-ink-3 transition-colors hover:text-slate-900"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         {t('nav.dashboard')}
@@ -253,7 +251,7 @@ export default function MyProfilePage() {
                       tone="dark"
                     />
                   </div>
-                  <p className="mt-1 font-mono text-xs text-white/60">{truncateAddress(displayAddress)}</p>
+                  <p className="mt-1 tabular-nums text-xs text-white/60">{truncateAddress(displayAddress)}</p>
                 </>
               )}
             </div>
@@ -306,7 +304,7 @@ export default function MyProfilePage() {
                     onChange={(e) => setGameInput(e.target.value)}
                     placeholder={t('profile.gamesPlaceholder')}
                     maxLength={PROFILE_LIMITS.gameTag}
-                    className="h-9 flex-1"
+                    className="flex-1"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
@@ -314,7 +312,7 @@ export default function MyProfilePage() {
                       }
                     }}
                   />
-                  <Button size="sm" variant="outline" onClick={addGame} disabled={!gameInput.trim()}>
+                  <Button size="sm" variant="paper" onClick={addGame} disabled={!gameInput.trim()} aria-label={t('profile.addGame')}>
                     <Plus className="h-3.5 w-3.5" />
                   </Button>
                 </div>
@@ -324,7 +322,6 @@ export default function MyProfilePage() {
                   </Button>
                   <Button
                     size="sm"
-                    className="bg-indigo-600 text-white hover:bg-indigo-700"
                     onClick={saveGames}
                     disabled={isSaving}
                   >

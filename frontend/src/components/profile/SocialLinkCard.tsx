@@ -82,14 +82,14 @@ function StatusBadge({ state }: { state: SocialLinkState }) {
 
   if (state === 'selfReported') {
     return (
-      <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+      <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-ink-3">
         {t('profile.socialLinks.selfReported')}
       </span>
     );
   }
 
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-500">
+    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-ink-3">
       <CircleDashed aria-hidden="true" className="h-3 w-3" />
       {t('profile.socialLinks.notLinked')}
     </span>
@@ -148,9 +148,9 @@ export function SocialLinkCard({
           {platform === 'instagram' ? (
             <Button
               type="button"
-              variant="outline"
+              variant="paper"
               onClick={onAddInstagram}
-              className="h-10 w-full justify-center gap-2"
+              className="w-full"
             >
               <Plus aria-hidden="true" className="h-4 w-4" />
               {t('profile.socialLinks.add', { platform: platformName })}
@@ -178,9 +178,9 @@ export function SocialLinkCard({
             {platform === 'instagram' && onEditInstagram && (
               <Button
                 type="button"
-                variant="outline"
+                variant="paper"
                 onClick={onEditInstagram}
-                className="h-10 flex-1 justify-center gap-2"
+                className="flex-1"
               >
                 <Pencil aria-hidden="true" className="h-4 w-4" />
                 {t('profile.socialLinks.edit')}
@@ -188,13 +188,10 @@ export function SocialLinkCard({
             )}
             <Button
               type="button"
-              variant="outline"
+              variant="paper"
               onClick={onUnlink}
               aria-label={t('profile.socialLinks.unlinkTitle', { platform: platformName })}
-              className={cn(
-                'h-10 justify-center gap-2 text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-700',
-                platform === 'instagram' ? 'flex-1' : 'w-full',
-              )}
+              className={platform === 'instagram' ? 'flex-1' : 'w-full'}
             >
               <Trash2 aria-hidden="true" className="h-4 w-4" />
               {unlinkLabel}

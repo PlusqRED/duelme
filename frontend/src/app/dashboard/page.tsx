@@ -108,7 +108,7 @@ export default function DashboardPage() {
             <span className="text-2xl font-bold text-slate-900">
               {wins}
             </span>
-            <span className="text-xs font-medium text-slate-500">
+            <span className="text-xs font-medium text-ink-3">
               {t('dashboard.wins')}
             </span>
           </CardContent>
@@ -120,7 +120,7 @@ export default function DashboardPage() {
             <span className="text-2xl font-bold text-slate-900">
               {losses}
             </span>
-            <span className="text-xs font-medium text-slate-500">
+            <span className="text-xs font-medium text-ink-3">
               {t('dashboard.losses')}
             </span>
           </CardContent>
@@ -132,7 +132,7 @@ export default function DashboardPage() {
             <span className="text-2xl font-bold text-slate-900">
               {totalWagered.toFixed(0)} USDT
             </span>
-            <span className="text-xs font-medium text-slate-500">
+            <span className="text-xs font-medium text-ink-3">
               {t('dashboard.totalWagered')}
             </span>
           </CardContent>
@@ -144,7 +144,7 @@ export default function DashboardPage() {
             <span className="text-2xl font-bold text-slate-900">
               {formatUSDT(totalWithdrawn)} USDT
             </span>
-            <span className="text-xs font-medium text-slate-500">
+            <span className="text-xs font-medium text-ink-3">
               {t('dashboard.totalWithdrawn')}
             </span>
           </CardContent>
@@ -155,7 +155,7 @@ export default function DashboardPage() {
             <Swords className="h-5 w-5 text-violet-500" />
             <ReputationBadge address={walletAddress} chainId={DASHBOARD_CHAIN.id} showStats />
             <Tooltip>
-              <TooltipTrigger className="flex cursor-help items-center gap-1 text-xs font-medium text-slate-500">
+              <TooltipTrigger className="flex cursor-help items-center gap-1 text-xs font-medium text-ink-3">
                 {t('rep.title')}
                 <Info className="h-3 w-3 text-slate-400" />
               </TooltipTrigger>
@@ -178,8 +178,9 @@ export default function DashboardPage() {
             </div>
 
             <Button
+              variant="sun"
               size="lg"
-              className="w-full bg-gradient-to-r from-emerald-500 via-emerald-600 to-green-600 text-white shadow-sm shadow-emerald-200 hover:from-emerald-600 hover:via-emerald-700 hover:to-green-700 sm:w-auto"
+              className="w-full sm:w-auto"
               onClick={handleClaimAll}
               disabled={actionFlow.flow !== null}
             >
@@ -201,11 +202,11 @@ export default function DashboardPage() {
 
             <Button
               size="lg"
-              className="w-full bg-gradient-to-r from-red-500 via-red-600 to-rose-600 text-white shadow-sm shadow-red-200 hover:from-red-600 hover:via-red-700 hover:to-rose-700 sm:w-auto"
+              className="w-full sm:w-auto"
               onClick={handleRefundAndClaimAll}
               disabled={actionFlow.flow !== null}
             >
-              <RotateCcw className="mr-2 h-4 w-4" />
+              <RotateCcw className="h-4 w-4" />
               {t('action.claimAllRefunds')}
             </Button>
           </CardContent>
@@ -219,7 +220,7 @@ export default function DashboardPage() {
           className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
             activeTab === 'active'
               ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
+              : 'text-ink-3 hover:text-slate-700'
           }`}
         >
           {t('dashboard.active')} {activeDuels.length > 0 && `(${activeDuels.length})`}
@@ -229,7 +230,7 @@ export default function DashboardPage() {
           className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
             activeTab === 'history'
               ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
+              : 'text-ink-3 hover:text-slate-700'
           }`}
         >
           {t('dashboard.history')} {historyDuels.length > 0 && `(${historyDuels.length})`}
@@ -245,7 +246,7 @@ export default function DashboardPage() {
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder={t('dashboard.searchPlaceholder')}
-              className="h-11 border-slate-200 bg-white pl-10"
+              className="pl-10"
             />
           </div>
         </div>
@@ -260,15 +261,13 @@ export default function DashboardPage() {
         ) : paginatedDuels.length === 0 ? (
           <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-slate-300 bg-white py-16">
             <Swords className="h-10 w-10 text-slate-300" />
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-ink-3">
               {searchQuery ? t('dashboard.noMatches') : t('dashboard.noDuels')}
             </p>
             {!searchQuery && (
               <Link
                 href="/duel/create"
-                className={buttonVariants({
-                  className: 'bg-indigo-600 text-white hover:bg-indigo-700',
-                })}
+                className={buttonVariants()}
               >
                 {t('hero.cta')}
               </Link>
@@ -304,7 +303,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2">
             <Button
               type="button"
-              variant="outline"
+              variant="paper"
               onClick={() => (activeTab === 'active' ? setActivePage((page) => Math.max(1, page - 1)) : setHistoryPage((page) => Math.max(1, page - 1)))}
               disabled={currentPage <= 1}
             >
@@ -312,7 +311,7 @@ export default function DashboardPage() {
             </Button>
             <Button
               type="button"
-              variant="outline"
+              variant="paper"
               onClick={() => (activeTab === 'active'
                 ? setActivePage((page) => Math.min(activeTotalPages, page + 1))
                 : setHistoryPage((page) => Math.min(historyTotalPages, page + 1)))}

@@ -17,7 +17,7 @@ export function PopularGamesSection() {
       <div className="mb-8 flex items-end justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">{t('popularGames.title')}</h2>
-          <p className="mt-1 text-slate-500">{t('popularGames.subtitle')}</p>
+          <p className="mt-1 text-ink-3">{t('popularGames.subtitle')}</p>
         </div>
         {!isLoading && featuredGames.length > 0 && (
           <Link
@@ -59,10 +59,7 @@ export function PopularGamesSection() {
           <div className="mt-6">
             <Link
               href="/duel/create"
-              className={buttonVariants({
-                size: 'lg',
-                className: 'rounded-2xl bg-slate-950 px-8 text-white hover:bg-slate-900',
-              })}
+              className={buttonVariants({ size: 'lg' })}
             >
               {t('hero.cta')}
             </Link>

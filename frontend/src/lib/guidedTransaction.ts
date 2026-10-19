@@ -25,14 +25,6 @@ export interface GuidedFlowStep<TStage extends string> {
   status: GuidedTransactionStepState;
 }
 
-export type GuidedTransactionActionVariant =
-  | 'default'
-  | 'outline'
-  | 'secondary'
-  | 'ghost'
-  | 'destructive'
-  | 'link';
-
 export interface GuidedTransactionStepView {
   id: string;
   label: string;
@@ -56,7 +48,6 @@ export interface GuidedTransactionAction {
   onClick: () => void;
   disabled?: boolean;
   loading?: boolean;
-  variant?: GuidedTransactionActionVariant;
 }
 
 export interface GuidedTransactionDialogConfig {

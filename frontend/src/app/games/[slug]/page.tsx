@@ -89,7 +89,7 @@ export default function GameDetailPage({
   if (!game) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-12 text-center">
-        <p className="text-sm text-slate-500">{t('game.notFound')}</p>
+        <p className="text-sm text-ink-3">{t('game.notFound')}</p>
         <Link href="/games" className="mt-4 inline-block text-sm text-indigo-600 hover:underline">
           {t('popularGames.viewAll')}
         </Link>
@@ -104,7 +104,7 @@ export default function GameDetailPage({
       <PartialDataNotice when={isDuelsError} />
       <Link
         href="/games"
-        className="mb-6 inline-flex items-center gap-1.5 text-sm text-slate-500 transition-colors hover:text-slate-900"
+        className="mb-6 inline-flex items-center gap-1.5 text-sm text-ink-3 transition-colors hover:text-slate-900"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         {t('nav.games')}
@@ -133,17 +133,17 @@ export default function GameDetailPage({
             <span className="text-xl font-bold text-slate-900 sm:text-2xl">
               {volumeFormatted} USDT
             </span>
-            <span className="text-xs font-medium text-slate-500">{t('game.totalVolume')}</span>
+            <span className="text-xs font-medium text-ink-3">{t('game.totalVolume')}</span>
           </div>
           <div className="flex flex-col items-center gap-1 py-5">
             <Swords className="h-5 w-5 text-violet-500" />
             <span className="text-xl font-bold text-slate-900 sm:text-2xl">{duelsPlayed}</span>
-            <span className="text-xs font-medium text-slate-500">{t('game.duelsPlayed')}</span>
+            <span className="text-xs font-medium text-ink-3">{t('game.duelsPlayed')}</span>
           </div>
           <div className="flex flex-col items-center gap-1 py-5">
             <Zap className="h-5 w-5 text-amber-500" />
             <span className="text-xl font-bold text-slate-900 sm:text-2xl">{activeDuelCount}</span>
-            <span className="text-xs font-medium text-slate-500">{t('game.activeDuels')}</span>
+            <span className="text-xs font-medium text-ink-3">{t('game.activeDuels')}</span>
           </div>
         </div>
 
@@ -155,7 +155,7 @@ export default function GameDetailPage({
               className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
                 activeTab === 'active'
                   ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
+                  : 'text-ink-3 hover:text-slate-700'
               }`}
             >
               {t('game.active')} {activeDuels.length > 0 && `(${activeDuels.length})`}
@@ -165,7 +165,7 @@ export default function GameDetailPage({
               className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
                 activeTab === 'history'
                   ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
+                  : 'text-ink-3 hover:text-slate-700'
               }`}
             >
               {t('game.history')} {historyDuels.length > 0 && `(${historyDuels.length})`}
@@ -180,7 +180,7 @@ export default function GameDetailPage({
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder={t('game.searchPlaceholder')}
-                className="h-11 border-slate-200 bg-white pl-10"
+                className="pl-10"
               />
             </div>
           )}
@@ -194,7 +194,7 @@ export default function GameDetailPage({
             ) : paginatedDuels.length === 0 ? (
               <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-slate-300 bg-white py-16">
                 <Swords className="h-10 w-10 text-slate-300" />
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-ink-3">
                   {searchQuery
                     ? t('dashboard.noMatches')
                     : activeTab === 'active'
@@ -220,7 +220,7 @@ export default function GameDetailPage({
               <div className="flex items-center gap-2">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="paper"
                   onClick={() =>
                     activeTab === 'active'
                       ? setActivePage((p) => Math.max(1, p - 1))
@@ -232,7 +232,7 @@ export default function GameDetailPage({
                 </Button>
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="paper"
                   onClick={() =>
                     activeTab === 'active'
                       ? setActivePage((p) => Math.min(activeTotalPages, p + 1))

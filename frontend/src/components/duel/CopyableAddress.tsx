@@ -29,7 +29,7 @@ export function CopyableAddress({ address, className, nickname, href }: Copyable
       )}
       <button
         type="button"
-        className={`group inline-flex items-center gap-1.5 font-mono text-sm transition-colors ${className ?? 'text-slate-600 hover:text-slate-900'}`}
+        className={`group inline-flex items-center gap-1.5 tabular-nums text-sm transition-colors ${className ?? 'text-slate-600 hover:text-slate-900'}`}
         onClick={handleCopy}
         title={address}
       >

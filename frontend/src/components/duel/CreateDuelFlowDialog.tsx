@@ -155,7 +155,6 @@ export function CreateDuelFlowDialog({
       : {
           label: t('create.flow.action.backToForm'),
           onClick: onBackToForm,
-          variant: 'outline',
         };
 
   const config = getCreateDuelDialogConfig({

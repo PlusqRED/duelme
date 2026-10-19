@@ -44,7 +44,7 @@ export function DepositPanel({ chainId, requiredRaw, isJoining = false, onBack, 
   const retryBalance = flowBalance?.retry ?? ownRead.refetch;
 
   const backButton = onBack && (
-    <Button type="button" variant="outline" onClick={onBack} className="h-11 w-full sm:w-auto sm:self-start">
+    <Button type="button" variant="paper" onClick={onBack} className="w-full sm:w-auto sm:self-start">
       <ArrowLeft className="h-4 w-4" />
       {t('deposit.backToDuel')}
     </Button>
@@ -69,7 +69,7 @@ export function DepositPanel({ chainId, requiredRaw, isJoining = false, onBack, 
             {ready && authenticated ? t('toast.walletNotReady') : t('deposit.loginPrompt')}
           </p>
           {!authenticated && (
-            <Button type="button" onClick={login} disabled={!ready} className="h-11 px-4">
+            <Button type="button" onClick={login} disabled={!ready}>
               <LogIn className="h-4 w-4" />
               {t('nav.connectWallet')}
             </Button>
@@ -119,7 +119,7 @@ export function DepositPanel({ chainId, requiredRaw, isJoining = false, onBack, 
           balance={balance}
           onRetry={retryBalance}
         />
-        <p className="text-xs text-slate-500">{t('deposit.balance.autoUpdate')}</p>
+        <p className="text-xs text-ink-3">{t('deposit.balance.autoUpdate')}</p>
         {requiredRaw !== undefined && (
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-slate-100 pt-2 text-sm">
             <span className="text-slate-600">{t('deposit.required', { amount: formatUSDT(requiredRaw) })}</span>
@@ -135,7 +135,7 @@ export function DepositPanel({ chainId, requiredRaw, isJoining = false, onBack, 
         )}
       </div>
 
-      <p className="flex items-start gap-1.5 text-xs leading-5 text-slate-500">
+      <p className="flex items-start gap-1.5 text-xs leading-5 text-ink-3">
         <Fuel className="mt-0.5 h-3.5 w-3.5 shrink-0" />
         <span>{t(copy.fees, { chain: chain.name })}</span>
       </p>
@@ -143,7 +143,7 @@ export function DepositPanel({ chainId, requiredRaw, isJoining = false, onBack, 
       <FaucetButton chainId={chain.id} />
 
       {isJoining && (
-        <p className="flex items-start gap-1.5 text-xs leading-5 text-slate-500">
+        <p className="flex items-start gap-1.5 text-xs leading-5 text-ink-3">
           <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span>{t('deposit.joinNotHeld')}</span>
         </p>

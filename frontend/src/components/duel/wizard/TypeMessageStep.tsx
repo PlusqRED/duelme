@@ -50,7 +50,7 @@ export function TypeMessageStep({
         <h2 tabIndex={-1} className="text-xl font-bold text-slate-900 outline-none sm:text-2xl">
           {t('wizard.title.type')}
         </h2>
-        <p className="text-sm text-slate-500">{t('wizard.subtitle.type')}</p>
+        <p className="text-sm text-ink-3">{t('wizard.subtitle.type')}</p>
       </div>
 
       <div className="flex flex-col gap-3">
@@ -99,7 +99,7 @@ export function TypeMessageStep({
           onChange={(event) => onMessageChange(event.target.value)}
           className="min-h-[96px] w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 transition-colors outline-none placeholder:text-slate-400 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
         />
-        <p className="text-xs text-slate-500">{t('create.messageHint', { max: maxMessageCharacters })}</p>
+        <p className="text-xs text-ink-3">{t('create.messageHint', { max: maxMessageCharacters })}</p>
         {!isMessageValid && (
           <p className="text-xs text-red-500">{t('create.messageTooLong', { max: maxMessageCharacters })}</p>
         )}
@@ -139,7 +139,7 @@ function DuelTypeButton({
         {icon}
         {label}
       </div>
-      <p className="text-xs text-slate-500">{hint}</p>
+      <p className="text-xs text-ink-3">{hint}</p>
     </button>
   );
 }

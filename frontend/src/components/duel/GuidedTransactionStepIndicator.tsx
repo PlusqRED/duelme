@@ -20,7 +20,7 @@ export function GuidedTransactionStepIndicator({
 
   if (status === 'skipped') {
     return (
-      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-slate-500 transition-all duration-300 ease-out">
+      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-ink-3 transition-all duration-300 ease-out">
         <Minus className="h-3.5 w-3.5" />
       </span>
     );

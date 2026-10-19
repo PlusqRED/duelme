@@ -25,7 +25,7 @@ export function SocialLinksSection({ socialLinks }: SocialLinksSectionProps) {
     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
       <div className="border-b border-slate-200 px-4 py-3">
         <h2 className="text-sm font-semibold text-slate-900">{t('profile.socialLinks.title')}</h2>
-        <p className="mt-1 text-xs leading-relaxed text-slate-500">{t('profile.socialLinks.subtitle')}</p>
+        <p className="mt-1 text-xs leading-relaxed text-ink-3">{t('profile.socialLinks.subtitle')}</p>
       </div>
 
       <div className="grid divide-y divide-slate-200 lg:grid-cols-3 lg:divide-x lg:divide-y-0">

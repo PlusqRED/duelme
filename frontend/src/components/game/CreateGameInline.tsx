@@ -60,7 +60,6 @@ export function CreateGameInline({ initialName, onCreated }: CreateGameInlinePro
           onChange={(event) => setName(event.target.value)}
           maxLength={50}
           placeholder={t('createGame.namePlaceholder')}
-          className="h-11 border-slate-200"
         />
       </div>
 
@@ -88,7 +87,7 @@ export function CreateGameInline({ initialName, onCreated }: CreateGameInlinePro
           })}
         </div>
         {category === null && (
-          <p className="text-xs text-slate-500">{t('createGame.categoryRequired')}</p>
+          <p className="text-xs text-ink-3">{t('createGame.categoryRequired')}</p>
         )}
       </div>
 

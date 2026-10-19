@@ -34,7 +34,7 @@ export function FlowFundingCheck({ review, chainName }: FlowFundingCheckProps) {
           <span className="text-sm font-semibold text-amber-700">
             {t('deposit.short', { amount: formatUSDT(status.shortfallRaw) })}
           </span>
-          <Button type="button" onClick={funding.showDeposit} className="h-11 px-4">
+          <Button type="button" onClick={funding.showDeposit}>
             <Plus className="h-4 w-4" />
             {t('deposit.topUp')}
           </Button>

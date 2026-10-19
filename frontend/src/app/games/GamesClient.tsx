@@ -18,7 +18,7 @@ export function GamesClient() {
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">{t('games.title')}</h1>
-        <p className="mt-1 text-slate-500">{t('games.subtitle')}</p>
+        <p className="mt-1 text-ink-3">{t('games.subtitle')}</p>
       </div>
 
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -28,12 +28,13 @@ export function GamesClient() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t('games.searchPlaceholder')}
-            className="h-10 border-slate-200 bg-white pl-10"
+            className="pl-10"
           />
         </div>
         <div className="flex flex-wrap gap-1.5">
           <button
             onClick={() => setCategory(undefined)}
+            aria-pressed={!category}
             className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
               !category ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
@@ -44,6 +45,7 @@ export function GamesClient() {
             <button
               key={cat}
               onClick={() => setCategory(cat === category ? undefined : cat)}
+              aria-pressed={category === cat}
               className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                 category === cat ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
@@ -61,7 +63,7 @@ export function GamesClient() {
       ) : games.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-24 text-center">
           <Gamepad2 className="h-10 w-10 text-slate-300" />
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-ink-3">
             {search ? t('games.noMatches') : t('games.noGames')}
           </p>
         </div>

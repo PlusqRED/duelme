@@ -65,8 +65,8 @@ export function MutualCancellationCard({
 
           <Button
             size="lg"
-            variant="outline"
-            className="w-full border-violet-300 bg-white text-violet-900 hover:bg-violet-100 sm:w-auto"
+            variant="paper"
+            className="w-full sm:w-auto"
             onClick={onRequest}
             disabled={isPending}
           >
@@ -107,7 +107,7 @@ export function MutualCancellationCard({
                 <div className="mb-2 text-xs font-medium uppercase tracking-wide text-violet-700">
                   {t('duel.mutualCancelRequestedByLabel')}
                 </div>
-                <p className="font-mono text-sm font-semibold text-slate-900">{formattedRequester}</p>
+                <p className="tabular-nums text-sm font-semibold text-slate-900">{formattedRequester}</p>
               </div>
             )}
 
@@ -127,23 +127,23 @@ export function MutualCancellationCard({
             <>
               <Button
                 size="lg"
-                className="flex-1 bg-violet-600 text-white hover:bg-violet-700"
+                className="flex-1"
                 onClick={onAccept}
                 disabled={isPending}
               >
-                <Handshake className="mr-2 h-4 w-4" />
+                <Handshake className="h-4 w-4" />
                 {pendingAction === 'acceptingMutualCancel'
                   ? t('status.acceptingCancellation')
                   : t('action.acceptCancellation')}
               </Button>
               <Button
                 size="lg"
-                variant="outline"
-                className="flex-1 border-violet-300 text-violet-900 hover:bg-violet-100"
+                variant="paper"
+                className="flex-1"
                 onClick={onDecline}
                 disabled={isPending}
               >
-                <XCircle className="mr-2 h-4 w-4" />
+                <XCircle className="h-4 w-4" />
                 {pendingAction === 'decliningMutualCancelRequest'
                   ? t('status.processing')
                   : t('action.declineCancellation')}
@@ -154,12 +154,12 @@ export function MutualCancellationCard({
           {isRequester && (
             <Button
               size="lg"
-              variant="outline"
-              className="w-full border-violet-300 text-violet-900 hover:bg-violet-100 sm:w-auto"
+              variant="paper"
+              className="w-full sm:w-auto"
               onClick={onWithdraw}
               disabled={isPending}
             >
-              <Undo2 className="mr-2 h-4 w-4" />
+              <Undo2 className="h-4 w-4" />
               {pendingAction === 'withdrawingMutualCancelRequest'
                 ? t('status.withdrawing')
                 : t('action.withdrawCancellationRequest')}

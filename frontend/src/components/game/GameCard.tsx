@@ -29,7 +29,7 @@ export function GameCard({ game }: GameCardProps) {
           <span className="text-xs text-slate-400">{t(`category.${game.category}` as TranslationKey)}</span>
         </div>
       </div>
-      <div className="mt-auto flex items-center gap-4 text-xs text-slate-500">
+      <div className="mt-auto flex items-center gap-4 text-xs text-ink-3">
         <span>{game.duelCount} {plural('games.duelsCount', game.duelCount)}</span>
       </div>
     </Link>

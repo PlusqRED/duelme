@@ -145,7 +145,6 @@ export function JoinDuelFlowDialog({
       : {
           label: t('join.flow.action.cancel'),
           onClick: () => onOpenChange(false),
-          variant: 'outline',
         };
 
   const config = getJoinDuelDialogConfig({

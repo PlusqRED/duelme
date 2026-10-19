@@ -73,7 +73,7 @@ export function SideNav() {
                 className={`text-sm transition-all duration-200 ${
                   isActive
                     ? 'font-semibold text-slate-800'
-                    : 'font-medium text-slate-400 group-hover:text-slate-500'
+                    : 'font-medium text-slate-400 group-hover:text-ink-3'
                 }`}
               >
                 {t(labelKey)}

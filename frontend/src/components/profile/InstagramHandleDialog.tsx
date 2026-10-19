@@ -89,7 +89,6 @@ export function InstagramHandleDialog({ open, initialHandle, onOpenChange }: Ins
             autoCorrect="off"
             aria-describedby={`${counterId} ${invalid ? errorId : ''}`.trim()}
             aria-invalid={invalid || undefined}
-            className="h-11"
           />
           <div className="flex items-center justify-between text-xs text-slate-400">
             <span id={counterId}>{t('profile.charCount', { count: stripped.length, max: PROFILE_LIMITS.instagramHandle })}</span>
@@ -103,21 +102,19 @@ export function InstagramHandleDialog({ open, initialHandle, onOpenChange }: Ins
         <DialogFooter>
           <Button
             variant="ghost"
-            className="h-11"
             onClick={() => onOpenChange(false)}
             disabled={setInstagram.isPending}
           >
             {t('profile.socialLinks.cancel')}
           </Button>
           <Button
-            className="h-11"
             onClick={handleSave}
             disabled={!canSave || setInstagram.isPending}
             aria-busy={setInstagram.isPending}
           >
             {setInstagram.isPending ? (
               <>
-                <Loader2 aria-hidden="true" className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
                 {t('profile.socialLinks.saving')}
               </>
             ) : (

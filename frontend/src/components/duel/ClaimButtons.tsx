@@ -21,21 +21,21 @@ export function ClaimButtons({
     <div className="flex gap-3">
       <Button
         size="lg"
-        className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700"
+        className="flex-1"
         onClick={onClaimVictory}
         disabled={isPending}
       >
-        <Trophy className="mr-2 h-4 w-4" />
+        <Trophy className="h-4 w-4" />
         {t('action.iWon')}
       </Button>
       <Button
         size="lg"
-        variant="outline"
-        className="flex-1 border-slate-300 text-slate-600 hover:bg-slate-50"
+        variant="paper"
+        className="flex-1"
         onClick={onAdmitDefeat}
         disabled={isPending}
       >
-        <Flag className="mr-2 h-4 w-4" />
+        <Flag className="h-4 w-4" />
         {t('action.iLost')}
       </Button>
     </div>

@@ -18,7 +18,7 @@ export function GameSearchEmptyState({ query, onCreateClick }: GameSearchEmptySt
         <p className="text-sm font-medium text-slate-700">
           {t('gamePicker.noMatches', { query })}
         </p>
-        <p className="mt-1 text-xs text-slate-500">{t('gamePicker.noMatchesHint')}</p>
+        <p className="mt-1 text-xs text-ink-3">{t('gamePicker.noMatchesHint')}</p>
       </div>
       <button
         type="button"

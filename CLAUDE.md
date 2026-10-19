@@ -93,7 +93,7 @@ cost the first time.
 
 ### General Principles
 
-- **File size:** ≤300 lines. Extract helpers/sub-components/composable hooks when approaching the limit. One file = one purpose (SRP). Three files are over it today — `frontend/src/lib/contracts.ts` (the ABI mirror, which must stay a literal copy of the artifact), `frontend/src/app/duel/[id]/page.tsx` and `frontend/src/components/layout/Header.tsx`. The last two are debt, not precedent: don't add to them.
+- **File size:** ≤300 lines. Extract helpers/sub-components/composable hooks when approaching the limit. One file = one purpose (SRP). In `frontend/src` nine files are over it today: `lib/contracts.ts` (the ABI mirror, which must stay a literal copy of the artifact), and `app/duel/[id]/page.tsx`, `components/layout/Header.tsx`, `app/profile/page.tsx`, `app/dashboard/page.tsx`, `app/HowItWorks.tsx`, `lib/joinDuelFlowActions.ts`, `lib/createDuelFlowActions.ts` and `i18n/translations/landing.ts`. Those eight are debt, not precedent: don't add to them; the redesign's port takes them apart screen by screen.
 - **DRY:** single source of truth for every constant/type/helper/ABI. See `frontend/src/lib/constants.ts` / `contracts.ts`.
 - **YAGNI:** build what the task requires. No abstractions for hypothetical futures. Three similar lines beats a premature abstraction.
 - **Fail fast:** validate at system boundaries (user input, API, contract calls). Inside, trust the types. Never silently swallow errors.

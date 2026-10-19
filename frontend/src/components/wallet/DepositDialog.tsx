@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useLastNonNull } from '@/hooks/useLastNonNull';
 import { useTranslation } from '@/i18n/useTranslation';
 
 interface DepositDialogProps {
@@ -18,14 +19,15 @@ interface DepositDialogProps {
 /** The wallet menu's "Top up": the deposit panel for the network picked in the menu. */
 export function DepositDialog({ chainId, onClose }: DepositDialogProps) {
   const { t } = useTranslation();
+  const shownChainId = useLastNonNull(chainId);
 
   return (
     <Dialog open={chainId !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[calc(100dvh-1.5rem)] max-w-[calc(100%-1.5rem)] gap-4 overflow-y-auto p-5 sm:max-w-lg">
+      <DialogContent className="[--dialog-width:620px]">
         <DialogHeader>
-          <DialogTitle className="text-lg font-semibold text-slate-900">{t('deposit.title')}</DialogTitle>
+          <DialogTitle>{t('deposit.title')}</DialogTitle>
         </DialogHeader>
-        {chainId !== null && <DepositPanel chainId={chainId} />}
+        {shownChainId !== null && <DepositPanel chainId={shownChainId} />}
       </DialogContent>
     </Dialog>
   );

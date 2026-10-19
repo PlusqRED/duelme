@@ -44,7 +44,7 @@ Next.js web app for the DuelMe P2P gaming duel platform. The frontend handles se
 ```
 src/
 ├── app/          # Routes (App Router). One directory per route above, plus api/relay
-├── components/   # duel/ · layout/ · wallet/ · providers/ · seo/ · ui/ (shadcn primitives)
+├── components/   # duel/ · layout/ · wallet/ · providers/ · seo/ · ui/ (the design's primitives)
 ├── hooks/        # use{Feature} — one concern each; contract reads, write flows, profiles
 ├── lib/          # Pure logic and clients: contracts, invites, relayer, guided flows, search
 └── i18n/         # EN + RU string tables and the translation hook
