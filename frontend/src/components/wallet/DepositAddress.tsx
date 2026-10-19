@@ -35,8 +35,9 @@ export function DepositAddress({ address }: DepositAddressProps) {
         <Button
           type="button"
           variant="paper"
+          size="sm"
           onClick={() => void copy(address)}
-          className="h-11 min-w-11 self-start px-4"
+          className="self-start"
         >
           {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
           {copied ? t('wallet.copied') : t('wallet.copy')}

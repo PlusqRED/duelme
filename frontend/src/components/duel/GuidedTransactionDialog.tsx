@@ -88,7 +88,7 @@ export function GuidedTransactionDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="gap-0 p-0 before:mt-2.5 before:mb-0 min-[860px]:w-[min(900px,calc(100vw-48px))]"
+        className="gap-0 p-0 min-[560px]:pt-0 min-[860px]:[--dialog-width:900px]"
         showCloseButton={canClose}
       >
         <div className="border-b border-slate-200 bg-gradient-to-r from-indigo-50 via-white to-slate-50 px-6 py-5">
@@ -189,7 +189,7 @@ export function GuidedTransactionDialog({
                     {secondaryAction && (
                       <Button
                         size="lg"
-                        variant={secondaryAction.variant ?? 'paper'}
+                        variant="paper"
                         onClick={secondaryAction.onClick}
                         disabled={secondaryAction.disabled}
                       >
@@ -199,7 +199,6 @@ export function GuidedTransactionDialog({
                     {primaryAction && (
                       <Button
                         size="lg"
-                        variant={primaryAction.variant ?? 'navy'}
                         onClick={primaryAction.onClick}
                         disabled={primaryAction.disabled}
                         className="sm:min-w-44"

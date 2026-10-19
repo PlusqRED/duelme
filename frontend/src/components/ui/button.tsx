@@ -23,9 +23,9 @@ const buttonVariants = cva(
         ghost: 'text-ink-2 transition-colors hover:bg-paper hover:text-ink',
       },
       size: {
-        sm: 'min-h-11 px-4 text-[0.9375rem]',
+        sm: 'min-h-11 px-4 text-body-sm',
         md: 'min-h-12 px-[22px] text-base',
-        lg: 'min-h-14 px-7 text-[1.0625rem]',
+        lg: 'min-h-14 px-7 text-body',
       },
     },
     defaultVariants: {

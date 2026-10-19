@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { translations, type TranslationKey } from '@/i18n/translations';
-import { sourceFiles } from '@/lib/__tests__/helpers/sourceFiles';
+import { shrinkingList, sourceFiles } from '@/lib/__tests__/helpers/sourceFiles';
 import { STILL_FORMAL_KEYS } from './stillFormalKeys';
 
 const keys = Object.keys(translations.en) as TranslationKey[];
@@ -20,21 +20,19 @@ function isQuoted(key: string): boolean {
 }
 
 function isUsed(key: string): boolean {
-  if (isQuoted(key)) {
+  if (BUILT_KEY_PREFIXES.some((prefix) => key.startsWith(prefix))) {
     return true;
   }
-  if (PLURAL_FORM.test(key) && isQuoted(key.replace(PLURAL_FORM, ''))) {
-    return true;
-  }
-  return BUILT_KEY_PREFIXES.some((prefix) => key.startsWith(prefix));
+  return isQuoted(key) || (PLURAL_FORM.test(key) && isQuoted(key.replace(PLURAL_FORM, '')));
 }
 
 /** «Вы» and its forms, and verbs that agree with it: «попробуйте», «откройте», «поделитесь». */
 const FORMAL_ADDRESS = /(?<![а-яё])(?:вы|вас|вам|вами|ваш[а-яё]*|[а-яё]+(?:ите|йте)(?:сь)?)(?![а-яё])/iu;
 
-function isFormal(key: TranslationKey): boolean {
-  return FORMAL_ADDRESS.test(translations.ru[key]);
-}
+const formal = shrinkingList(
+  keys.filter((key) => FORMAL_ADDRESS.test(translations.ru[key])),
+  STILL_FORMAL_KEYS
+);
 
 describe('translations', () => {
   it('uses every key somewhere', () => {
@@ -46,12 +44,10 @@ describe('translations', () => {
   });
 
   it('says «ты» in Russian outside the strings still waiting for their screen', () => {
-    const stillFormal = new Set<TranslationKey>(STILL_FORMAL_KEYS);
-
-    expect(keys.filter((key) => isFormal(key) && !stillFormal.has(key))).toEqual([]);
+    expect(formal.unlisted).toEqual([]);
   });
 
   it('lists only strings that still say «вы», so the list only shrinks', () => {
-    expect(STILL_FORMAL_KEYS.filter((key) => !isFormal(key))).toEqual([]);
+    expect(formal.stale).toEqual([]);
   });
 });

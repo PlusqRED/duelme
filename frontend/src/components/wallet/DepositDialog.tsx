@@ -21,7 +21,7 @@ export function DepositDialog({ chainId, onClose }: DepositDialogProps) {
 
   return (
     <Dialog open={chainId !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="min-[560px]:w-[min(620px,calc(100vw-32px))]">
+      <DialogContent className="[--dialog-width:620px]">
         <DialogHeader>
           <DialogTitle>{t('deposit.title')}</DialogTitle>
         </DialogHeader>

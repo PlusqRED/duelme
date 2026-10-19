@@ -49,10 +49,11 @@
  * keeps the edge clear of whatever sits below.
  */
 @utility keycap {
+  --keycap-drop: 4px;
   margin-bottom: 4px;
   box-shadow:
     inset 0 0 0 1.5px var(--keycap-ring, transparent),
-    0 4px 0 var(--keycap-edge);
+    0 var(--keycap-drop) 0 var(--keycap-edge);
   transition:
     translate 0.14s var(--ease-press),
     box-shadow 0.14s var(--ease-press),
@@ -60,18 +61,14 @@
 
   @media (hover: hover) {
     &:hover {
+      --keycap-drop: 5px;
       translate: 0 -1px;
-      box-shadow:
-        inset 0 0 0 1.5px var(--keycap-ring, transparent),
-        0 5px 0 var(--keycap-edge);
     }
   }
 
   &:active {
+    --keycap-drop: 1px;
     translate: 0 3px;
-    box-shadow:
-      inset 0 0 0 1.5px var(--keycap-ring, transparent),
-      0 1px 0 var(--keycap-edge);
     transition-duration: 0.05s;
   }
 }
