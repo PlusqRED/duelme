@@ -1,29 +1,29 @@
 // @vitest-environment happy-dom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LanguageToggle } from '@/components/layout/LanguageToggle';
 import { LanguageContext } from '@/i18n/LanguageContext';
+import { LANGUAGE_COOKIE } from '@/i18n/language';
 import { translator } from '@/i18n/translate';
 import { translations, type Language } from '@/i18n/translations';
 
-const page = vi.hoisted(() => ({ pathname: '/duel/7', query: 'from=list' }));
 const toastError = vi.hoisted(() => vi.fn());
 
-vi.mock('next/navigation', () => ({
-  usePathname: () => page.pathname,
-  useSearchParams: () => new URLSearchParams(page.query),
-}));
 vi.mock('sonner', () => ({ toast: { error: toastError, info: vi.fn(), success: vi.fn() } }));
 
-/** What the browser would post: the form's fields with the button pressed. */
-let posted: Record<string, FormDataEntryValue> | null = null;
+const reload = vi.fn();
+const fetchMock = vi.fn();
 
-// happy-dom does not navigate: a submit that went through is caught here instead.
-function catchSubmit(event: Event) {
-  if (event.target instanceof HTMLFormElement && event instanceof SubmitEvent) {
-    posted = Object.fromEntries(new FormData(event.target, event.submitter));
-  }
-  event.preventDefault();
+/** The server's answer to a good post: it sets the cookie the browser then keeps. */
+function serverKeeps(language: Language) {
+  fetchMock.mockImplementation(async () => {
+    setCookie(language);
+    return new Response(null, { status: 204 });
+  });
+}
+
+function setCookie(language: Language) {
+  document.cookie = `${LANGUAGE_COOKIE}=${language}; path=/`;
 }
 
 function renderIn(language: Language) {
@@ -34,62 +34,98 @@ function renderIn(language: Language) {
   );
 }
 
-function press(name: string) {
-  fireEvent.click(screen.getByRole('button', { name }));
+async function press(name: string) {
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name }));
+  });
 }
 
 beforeEach(() => {
-  posted = null;
-  page.pathname = '/duel/7';
-  page.query = 'from=list';
-  window.history.replaceState(null, '', '/duel/7?from=list#0xabc');
-  document.addEventListener('submit', catchSubmit);
+  // A date in the past: happy-dom keeps a cookie with `max-age=0` until its clock ticks over.
+  document.cookie = `${LANGUAGE_COOKIE}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  vi.stubGlobal('fetch', fetchMock);
+  vi.spyOn(window.location, 'reload').mockImplementation(reload);
 });
 
 afterEach(() => {
-  document.removeEventListener('submit', catchSubmit);
   cleanup();
-  toastError.mockClear();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+  fetchMock.mockReset();
+  reload.mockReset();
+  toastError.mockClear();
 });
 
 describe('LanguageToggle', () => {
-  it('posts the language to the switch’s route', () => {
-    renderIn('en');
-
-    expect(screen.getByRole('button', { name: 'RU' }).closest('form')?.getAttribute('action')).toBe('/api/language');
-  });
-
-  it('sends the whole address back, with the hash a private duel keeps its invite secret in', () => {
-    renderIn('en');
-
-    press('RU');
-
-    expect(posted).toEqual({ back: '/duel/7?from=list#0xabc', language: 'ru' });
-  });
-
-  it('carries the page and its query from the server, for a press before the page’s script runs', () => {
-    renderIn('en');
-
-    expect(document.querySelector<HTMLInputElement>('input[name="back"]')?.value).toBe('/duel/7?from=list');
-  });
-
-  it('marks the language shown and does nothing when it is pressed', () => {
+  it('names the choice it offers', () => {
     renderIn('ru');
 
-    press('RU');
-
-    expect(screen.getByRole('button', { name: 'RU' }).getAttribute('aria-pressed')).toBe('true');
-    expect(posted).toBeNull();
+    expect(screen.getByRole('group', { name: translations.ru['nav.language'] })).toBeTruthy();
   });
 
-  it('says why nothing changes when the browser keeps no cookies', () => {
-    vi.stubGlobal('navigator', { ...navigator, cookieEnabled: false });
+  it('posts the language as JSON, then loads the same page anew', async () => {
+    serverKeeps('ru');
     renderIn('en');
 
-    press('RU');
+    await press('RU');
 
-    expect(posted).toBeNull();
+    expect(fetchMock).toHaveBeenCalledWith('/api/language', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{"language":"ru"}',
+    });
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('marks the language shown and does nothing when it is pressed', async () => {
+    setCookie('ru');
+    renderIn('ru');
+
+    await press('RU');
+
+    expect(screen.getByRole('button', { name: 'RU' }).getAttribute('aria-pressed')).toBe('true');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('takes no cookie as English, the language the server then shows', async () => {
+    renderIn('en');
+
+    await press('EN');
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps the language shown again when another tab chose a different one', async () => {
+    setCookie('ru');
+    serverKeeps('en');
+    renderIn('en');
+
+    await press('EN');
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['the server refuses', async () => new Response(null, { status: 400 })],
+    ['the network fails', async () => Promise.reject(new TypeError('Failed to fetch'))],
+  ])('says the language did not change when %s, and stays', async (_, answer) => {
+    fetchMock.mockImplementation(answer);
+    renderIn('en');
+
+    await press('RU');
+
+    expect(toastError).toHaveBeenCalledWith(translations.en['toast.languageNotSaved']);
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  it('says why nothing changes when the browser keeps no cookies', async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+    renderIn('en');
+
+    await press('RU');
+
     expect(toastError).toHaveBeenCalledWith(translations.en['toast.languageNotKept']);
+    expect(reload).not.toHaveBeenCalled();
   });
 });

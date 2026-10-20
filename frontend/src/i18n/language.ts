@@ -8,14 +8,17 @@ export const DEFAULT_LANGUAGE: Language = 'en';
 /** Set by the server alone, in a response, which Safari keeps for the full year rather than a week. */
 export const LANGUAGE_COOKIE_OPTIONS = { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax' } as const;
 
-function isLanguage(value: unknown): value is Language {
+/** Where the language switch posts the reader's choice. */
+export const LANGUAGE_ROUTE = '/api/language';
+
+export function isLanguage(value: unknown): value is Language {
   return typeof value === 'string' && Object.hasOwn(translations, value);
 }
 
 /** The site's languages, in the order the switch offers them. */
 export const LANGUAGES: readonly Language[] = Object.keys(translations).filter(isLanguage);
 
-/** The language a cookie or a form names, or English for anything else, since a browser may send any value. */
+/** The language a cookie names, or English for anything else, since a browser may send any value. */
 export function parseLanguage(value: unknown): Language {
   return isLanguage(value) ? value : DEFAULT_LANGUAGE;
 }

@@ -4,12 +4,16 @@ import { collectPageErrors } from './helpers/pageErrors';
 const GAMES_HEADING = { en: 'Game Catalog', ru: 'Каталог игр' };
 
 /**
- * The switch is a form, so it works whether or not the page's script has loaded yet. The wait allows
- * for a dev server compiling the route on its first post.
+ * A press does nothing until the page's script has loaded, so the press is repeated until the page
+ * is Russian; pressing RU on a Russian page changes nothing. The wait allows for a dev server
+ * compiling the route on its first post.
  */
 async function switchToRussian(page: Page) {
-  await page.getByRole('button', { name: 'RU', exact: true }).first().click();
-  await expect(page.locator('html')).toHaveAttribute('lang', 'ru', { timeout: 15_000 });
+  const button = page.getByRole('button', { name: 'RU', exact: true }).first();
+  await expect(async () => {
+    await button.click();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'ru', { timeout: 3_000 });
+  }).toPass({ timeout: 30_000 });
 }
 
 test.describe('Language', () => {
@@ -26,12 +30,15 @@ test.describe('Language', () => {
   });
 
   test('the switch reloads the same page in the language and keeps the choice', async ({ page }) => {
-    await page.goto('/games?q=chess');
+    // The hash stands in for a private duel's invite secret, which has to survive the switch.
+    await page.goto('/games?q=chess#0xabc');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(GAMES_HEADING.en);
+    const entries = await page.evaluate(() => history.length);
 
     await switchToRussian(page);
 
-    await expect(page).toHaveURL(/\/games\?q=chess$/);
+    await expect(page).toHaveURL(/\/games\?q=chess#0xabc$/);
+    expect(await page.evaluate(() => history.length)).toBe(entries);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(GAMES_HEADING.ru);
     await page.reload();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(GAMES_HEADING.ru);

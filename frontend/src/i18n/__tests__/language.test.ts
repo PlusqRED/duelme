@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LANGUAGE_COOKIE, parseLanguage, readLanguageCookie } from '@/i18n/language';
+import { isLanguage, LANGUAGE_COOKIE, parseLanguage, readLanguageCookie } from '@/i18n/language';
 
 describe('parseLanguage', () => {
   it.each(['en', 'ru'] as const)('keeps %s', (language) => {
@@ -12,6 +12,16 @@ describe('parseLanguage', () => {
       expect(parseLanguage(value)).toBe('en');
     }
   );
+});
+
+describe('isLanguage', () => {
+  it.each(['en', 'ru'])('knows %s', (value) => {
+    expect(isLanguage(value)).toBe(true);
+  });
+
+  it.each([undefined, null, '', 'de', 'RU', 'constructor', '__proto__', ['ru'], 7])('does not take %j', (value) => {
+    expect(isLanguage(value)).toBe(false);
+  });
 });
 
 describe('readLanguageCookie', () => {

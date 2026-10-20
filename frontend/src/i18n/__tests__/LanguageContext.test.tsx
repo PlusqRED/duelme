@@ -74,6 +74,7 @@ describe('LanguageProvider', () => {
   it.each([
     ['is shown again', () => document.dispatchEvent(new Event('visibilitychange'))],
     ['comes back from the back/forward cache', () => window.dispatchEvent(new Event('pageshow'))],
+    ['is focused, having stayed in view beside the other', () => window.dispatchEvent(new Event('focus'))],
   ])('catches up with another tab’s choice when it %s', (_, event) => {
     render(app('en'));
     chooseInAnotherTab('ru');
