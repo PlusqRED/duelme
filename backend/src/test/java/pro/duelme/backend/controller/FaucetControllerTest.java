@@ -8,8 +8,11 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import pro.duelme.backend.security.WalletAuthenticationToken;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -29,12 +32,33 @@ class FaucetControllerTest {
     @Test
     void claimReturns503WhenFaucetDisabled() throws Exception {
         // duelme.faucet.enabled defaults to false in application.yml, so the
-        // FaucetService bean isn't wired; the controller should respond 503
+        // service refuses the claim; the controller should respond 503
         // Service Unavailable (the endpoint exists but the feature is off here).
         var auth = new WalletAuthenticationToken("0xfaucettest");
 
         mockMvc.perform(post("/api/v1/faucet/claim")
                 .with(authentication(auth)))
             .andExpect(status().isServiceUnavailable());
+    }
+
+    @Test
+    void statusRequiresAuth() throws Exception {
+        mockMvc.perform(get("/api/v1/faucet/status"))
+            .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void statusSaysTheFaucetIsOffWhenDisabled() throws Exception {
+        // Off is an answer, not an error: the wallet menu reads it to leave the faucet out.
+        var auth = new WalletAuthenticationToken("0xfaucettest");
+
+        mockMvc.perform(get("/api/v1/faucet/status")
+                .with(authentication(auth)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.enabled").value(false))
+            .andExpect(jsonPath("$.claimed").value(nullValue()))
+            .andExpect(jsonPath("$.chainId").value(nullValue()))
+            .andExpect(jsonPath("$.usdtAmountRaw").value(nullValue()))
+            .andExpect(jsonPath("$.ethAmountWei").value(nullValue()));
     }
 }

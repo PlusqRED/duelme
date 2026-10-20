@@ -120,6 +120,50 @@ class FaucetServiceTest {
     }
 
     @Test
+    void statusOffersTheConfiguredAmountsOnTheFaucetsChain() {
+        var status = faucetService.status(WALLET_A);
+
+        assertThat(status.enabled()).isTrue();
+        assertThat(status.claimed()).isFalse();
+        assertThat(status.chainId()).isEqualTo(421614L);
+        assertThat(status.usdtAmountRaw()).isEqualTo("100000000");
+        assertThat(status.ethAmountWei()).isEqualTo("1000000000000000");
+    }
+
+    @Test
+    void statusSaysClaimedOnceTheMintLanded() {
+        repository.save(new FaucetClaim(null, WALLET_A, TOKEN, "0xeth", "0xusdt", Instant.now()));
+
+        assertThat(faucetService.status(WALLET_A_MIXED).claimed()).isTrue();
+    }
+
+    @Test
+    void statusSaysNotClaimedWhileTheMintIsStillOwed() {
+        // The next claim resumes from the mint, so the faucet still has something to give.
+        repository.save(new FaucetClaim(null, WALLET_A, TOKEN, "0xeth", null, Instant.now()));
+
+        assertThat(faucetService.status(WALLET_A).claimed()).isFalse();
+    }
+
+    @Test
+    void statusOffersNoEthWhenAnEarlierClaimSentIt() {
+        // Resuming that claim mints the USDT and skips the ETH leg, so promising ETH would be wrong.
+        repository.save(new FaucetClaim(null, WALLET_A, TOKEN, "0xeth", null, Instant.now()));
+
+        var status = faucetService.status(WALLET_A);
+
+        assertThat(status.ethAmountWei()).isEqualTo("0");
+        assertThat(status.usdtAmountRaw()).isEqualTo("100000000");
+    }
+
+    @Test
+    void statusIgnoresAClaimAgainstTheTokenARedeployRetired() {
+        repository.save(new FaucetClaim(null, WALLET_A, RETIRED_TOKEN, "0xeth", "0xusdt", Instant.now()));
+
+        assertThat(faucetService.status(WALLET_A).claimed()).isFalse();
+    }
+
+    @Test
     void rejectsMalformedAddress() {
         assertThatThrownBy(() -> faucetService.claim("0xnothex"))
             .isInstanceOf(FaucetExecutionException.class);
