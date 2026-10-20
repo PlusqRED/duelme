@@ -146,6 +146,17 @@ class FaucetServiceTest {
     }
 
     @Test
+    void statusOffersNoEthWhenAnEarlierClaimSentIt() {
+        // Resuming that claim mints the USDT and skips the ETH leg, so promising ETH would be wrong.
+        repository.save(new FaucetClaim(null, WALLET_A, TOKEN, "0xeth", null, Instant.now()));
+
+        var status = faucetService.status(WALLET_A);
+
+        assertThat(status.ethAmountWei()).isEqualTo("0");
+        assertThat(status.usdtAmountRaw()).isEqualTo("100000000");
+    }
+
+    @Test
     void statusIgnoresAClaimAgainstTheTokenARedeployRetired() {
         repository.save(new FaucetClaim(null, WALLET_A, RETIRED_TOKEN, "0xeth", "0xusdt", Instant.now()));
 

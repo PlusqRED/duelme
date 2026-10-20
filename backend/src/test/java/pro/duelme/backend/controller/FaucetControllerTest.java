@@ -32,7 +32,7 @@ class FaucetControllerTest {
     @Test
     void claimReturns503WhenFaucetDisabled() throws Exception {
         // duelme.faucet.enabled defaults to false in application.yml, so the
-        // FaucetService bean isn't wired; the controller should respond 503
+        // service refuses the claim; the controller should respond 503
         // Service Unavailable (the endpoint exists but the feature is off here).
         var auth = new WalletAuthenticationToken("0xfaucettest");
 

@@ -1,9 +1,10 @@
 package pro.duelme.backend.dto;
 
 /**
- * Whether the faucet runs here, what one claim gives, and whether the caller already has it from the
- * live MockUSDT. Amounts are in each token's smallest unit, as decimal strings so no client rounds
- * them. Every field but {@code enabled} is null when the faucet is off.
+ * Whether the faucet runs here, what the caller's next claim gives, and whether they already have it
+ * from the live MockUSDT. Amounts are in each token's smallest unit, as decimal strings so no client
+ * rounds them; the ETH is zero once a claim sent it, since resuming that claim mints only the USDT.
+ * Every field but {@code enabled} is null when the faucet is off.
  */
 public record FaucetStatusResponse(
     boolean enabled,

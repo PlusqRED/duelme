@@ -195,21 +195,21 @@ public class FaucetService {
         }
     }
 
-    /** What a claim gives and whether the caller already has it. */
+    /** What the caller's next claim gives and whether they already have it. */
     public FaucetStatusResponse status(String walletAddress) {
         if (!props.enabled()) {
             return FaucetStatusResponse.disabled();
         }
-        boolean claimed = repository
-            .findByWalletAddressAndTokenAddress(walletAddress.toLowerCase(), liveToken())
-            .map(FaucetService::minted)
-            .orElse(false);
+        Optional<FaucetClaim> claim = repository
+            .findByWalletAddressAndTokenAddress(walletAddress.toLowerCase(), liveToken());
+        // A claim resumed after a failed mint sends only the USDT: its ETH already went out.
+        boolean ethSent = claim.map(c -> c.ethTxHash() != null).orElse(false);
         return new FaucetStatusResponse(
             true,
-            claimed,
+            claim.map(FaucetService::minted).orElse(false),
             props.chainId(),
             props.usdtAmountRaw().toString(),
-            ethPerClaimWei().toString()
+            (ethSent ? BigInteger.ZERO : ethPerClaimWei()).toString()
         );
     }
 
