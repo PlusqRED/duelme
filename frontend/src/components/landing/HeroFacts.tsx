@@ -23,7 +23,8 @@ export function HeroFacts() {
   );
 }
 
-function Fact({ value, label }: { value: string; label: string }) {
+/** One figure and what it counts, the figure first. */
+export function Fact({ value, label }: { value: string; label: string }) {
   return (
     <div className="flex items-baseline gap-1.5">
       <dt className="text-ink-3">{label}</dt>

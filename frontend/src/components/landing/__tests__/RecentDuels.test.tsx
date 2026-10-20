@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { WonDuel } from '@/hooks/useWonDuels';
+import { DuelState } from '@/lib/contracts';
+import type { FeedDuel } from '@/lib/duelFeed';
 import { duelMeta } from '@/lib/__tests__/helpers/duelMeta';
 import { FakeIntersectionObserver } from '@/lib/__tests__/helpers/intersectionObserver';
 import type { DuelMeta, Game } from '@/lib/game';
@@ -11,7 +12,7 @@ const OPPONENT = '0x4bfa0000000000000000000000000000000076a5';
 
 const arena = vi.hoisted(() => ({
   games: [] as Game[],
-  won: [] as WonDuel[],
+  won: [] as FeedDuel[],
   isLoading: false,
   isError: false,
   askedFor: [] as (string | null)[],
@@ -42,17 +43,24 @@ function meta(duelId: number, gameSlug: string, gameName: string): DuelMeta {
   return duelMeta(duelId, gameSlug, { gameName });
 }
 
-function won(id: number, game: DuelMeta | undefined, overrides: Partial<WonDuel> = {}): WonDuel {
+function won(id: number, game: DuelMeta | undefined, overrides: Partial<FeedDuel> = {}): FeedDuel {
+  const winner = overrides.winner ?? CREATOR;
   return {
     id,
-    creator: CREATOR,
-    opponent: OPPONENT,
+    player1: CREATOR,
+    player2: OPPONENT,
     creatorName: '0x32a3…AA23',
     opponentName: '0x4BFa…76a5',
-    winner: 'creator',
-    stake: 25_000_000n,
-    note: 'go 1x1 on sf mid',
-    endedAt: 1_700_000_000n,
+    winner,
+    wagerAmount: 25_000_000n,
+    message: 'go 1x1 on sf mid',
+    lastEventAt: 1_700_000_000n,
+    claimTimestamp: 1_699_990_000n,
+    state: DuelState.Resolved,
+    creatorPayout: winner === CREATOR ? 50_000_000n : 0n,
+    opponentPayout: winner === OPPONENT ? 50_000_000n : 0n,
+    creatorClaimed: false,
+    opponentClaimed: false,
     game,
     ...overrides,
   };
@@ -66,7 +74,7 @@ beforeEach(() => {
   FakeIntersectionObserver.instances = [];
   vi.stubGlobal('IntersectionObserver', FakeIntersectionObserver);
   arena.games = [game('dota-2', 'Dota 2', 2), game('chess', 'Chess', 1), game('new-game', 'New Game', 0)];
-  arena.won = [won(3, meta(3, 'dota-2', 'Dota 2')), won(2, meta(2, 'cs-2', 'CS 2'), { winner: 'opponent' }), won(0, meta(0, 'dota-2', 'Dota 2'))];
+  arena.won = [won(3, meta(3, 'dota-2', 'Dota 2')), won(2, meta(2, 'cs-2', 'CS 2'), { winner: OPPONENT }), won(0, meta(0, 'dota-2', 'Dota 2'))];
   arena.isLoading = false;
   arena.isError = false;
   arena.askedFor = [];

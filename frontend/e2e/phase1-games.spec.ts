@@ -1,10 +1,27 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { collectPageErrors } from './helpers/pageErrors';
+
+/** The game catalogue, as the backend would give it: the backend is not run here. */
+async function serveGames(page: Page) {
+  const game = (slug: string, name: string, category: string, duelCount: number) => ({
+    slug,
+    name,
+    iconUrl: null,
+    category,
+    duelCount,
+    createdAt: null,
+    updatedAt: null,
+  });
+  await page.route('**/api/v1/games?**', (route) => route.fulfill({ json: [game('chess', 'Chess', 'STRATEGY', 1)] }));
+  await page.route('**/api/v1/games', (route) =>
+    route.fulfill({ json: [game('dota-2', 'Dota 2', 'MOBA', 2), game('chess', 'Chess', 'STRATEGY', 1)] })
+  );
+}
 
 test.describe('Game catalog', () => {
   test('/games page loads with its title', async ({ page }) => {
     await page.goto('/games');
-    await expect(page.getByRole('heading', { level: 1 })).toContainText(/Game Catalog|Каталог игр/);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(/Game catalog|Каталог игр/);
   });
 
   test('/games page has category filters', async ({ page }) => {
@@ -15,15 +32,25 @@ test.describe('Game catalog', () => {
 
   test('/games page has a search field that takes input', async ({ page }) => {
     await page.goto('/games');
-    const search = page.getByRole('textbox');
+    const search = page.getByRole('searchbox');
     await expect(search).toBeVisible();
     await search.fill('test');
     await expect(search).toHaveValue('test');
   });
 
-  test('/games/nonexistent shows not found', async ({ page }) => {
+  test('/games lists the games played most first, each opening its own page', async ({ page }) => {
+    await serveGames(page);
+    await page.goto('/games');
+    const games = page.getByRole('link', { name: /Dota 2|Chess/ });
+    await expect(games.first()).toHaveAttribute('href', '/games/dota-2');
+    await expect(games).toHaveCount(2);
+  });
+
+  test('/games/nonexistent says the catalog has no such game', async ({ page }) => {
+    await page.route('**/api/v1/games/nonexistent-game-slug', (route) => route.fulfill({ status: 404 }));
     await page.goto('/games/nonexistent-game-slug');
-    await expect(page.locator('body')).toContainText(/not found|не найдена/i);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(/No such game|Такой игры/);
+    await expect(page.getByRole('link', { name: /View all games|Все игры/ })).toHaveAttribute('href', '/games');
   });
 
   // The landing's top bar lists its own sections; every other page's lists the app's pages.
@@ -33,7 +60,7 @@ test.describe('Game catalog', () => {
     await expect(gamesLink).toBeVisible();
     await gamesLink.click();
     await expect(page).toHaveURL(/\/games/);
-    await expect(page.getByRole('heading', { level: 1 })).toContainText(/Game Catalog|Каталог игр/);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(/Game catalog|Каталог игр/);
   });
 
   test('/duel/create has a game search that takes input', async ({ page }) => {

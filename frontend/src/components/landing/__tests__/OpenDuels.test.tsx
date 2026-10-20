@@ -25,7 +25,6 @@ function duel(id: number, overrides: Partial<EnrichedDuel> = {}): EnrichedDuel {
   return {
     id,
     creator: CREATOR,
-    wager: 14,
     wagerAmount: 14_500_000n,
     message: 'go 1x1 on pals in valley',
     createdAt: 1_700_000_000n,

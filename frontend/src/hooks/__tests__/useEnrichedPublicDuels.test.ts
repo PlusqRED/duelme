@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PublicDuel } from '@/hooks/usePublicDuels';
+import type { PublicDuel } from '@/lib/publicDuelsFilters';
 import type { DuelMeta } from '@/lib/game';
 
 const CREATOR = '0x32a3000000000000000000000000000000aa23';
@@ -27,10 +27,8 @@ function duel(id: number): PublicDuel {
   return {
     id,
     creator: CREATOR,
-    wager: 14,
     wagerAmount: 14_000_000n,
     message: 'go 1x1',
-    inviteHash: '0x0000000000000000000000000000000000000000000000000000000000000000',
     createdAt: 1_700_000_000n,
     chainId: 421614,
   };

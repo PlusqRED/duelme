@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
 import { DuelState } from '@/lib/contracts';
 import { toPlayerDuel } from '@/lib/duel';
-import { buildDashboardDuelSearchText, buildPublicDuelSearchText, normalizeSearchQuery } from '@/lib/duelSearch';
+import { toFeedDuel, toRecentDuel, type RecentDuel } from '@/lib/duelFeed';
+import { buildDashboardDuelSearchText, buildFeedSearchText, buildPublicDuelSearchText, normalizeSearchQuery } from '@/lib/duelSearch';
 import { translations, type TranslationKey } from '@/i18n/translations';
 import { enrichPublicDuel } from '@/lib/publicDuelsFilters';
 import { getReputationSummaryFromStats } from '@/lib/reputation';
@@ -67,7 +68,7 @@ describe('buildDashboardDuelSearchText', () => {
 describe('buildPublicDuelSearchText', () => {
   // Abandoned more than honored: the card calls this creator Risky.
   const open = enrichPublicDuel({
-    duel: { id: 1, creator: WINNER, wager: 0.5, wagerAmount: 500_000n, message: '', createdAt: 1n, chainId: DEFAULT_CHAIN_ID },
+    duel: { id: 1, creator: WINNER, wagerAmount: 500_000n, message: '', createdAt: 1n, chainId: DEFAULT_CHAIN_ID },
     meta: undefined,
     resolveDisplay: () => 'alice',
     reputationStatsByAddress: { [WINNER.toLowerCase()]: getReputationSummaryFromStats(1, 4) },
@@ -110,5 +111,51 @@ describe('normalizeSearchQuery', () => {
 
   it('reads ё as е, the way it is often typed', () => {
     expect(normalizeSearchQuery('Идёт', 'ru')).toBe('идет');
+  });
+});
+
+describe('buildFeedSearchText', () => {
+  const OPPONENT = '0xBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBb';
+  const joined = toRecentDuel({
+    ...duelView({ opponent: OPPONENT, state: DuelState.Funded, fundedAt: 2n, wagerAmount: 1_234_500_000n, message: 'best of three' }),
+    id: 12,
+  }) as RecentDuel;
+  const row = toFeedDuel(joined, (address) => (address === WINNER ? 'alice' : 'bob'), {
+    duelId: 12,
+    chainId: DEFAULT_CHAIN_ID,
+    contractAddress: '0x0000000000000000000000000000000000000001',
+    gameSlug: 'chess',
+    gameName: 'Chess',
+    category: 'STRATEGY',
+    creatorAddress: WINNER,
+    createdAt: null,
+  });
+
+  function findsRow(language: 'en' | 'ru', query: string) {
+    return buildFeedSearchText(row, 'In play', language).includes(normalizeSearchQuery(query, language));
+  }
+
+  it('finds a duel by its number as the row writes it', () => {
+    expect(findsRow('en', '#12')).toBe(true);
+  });
+
+  it('finds a duel by its game and by either player’s name', () => {
+    expect([findsRow('en', 'chess'), findsRow('en', 'alice'), findsRow('en', 'bob')]).toEqual([true, true, true]);
+  });
+
+  it('finds the pot as the row writes it in Russian', () => {
+    expect(findsRow('ru', '2\u00a0469')).toBe(true);
+  });
+
+  it('finds the stake typed with a point', () => {
+    expect(findsRow('en', '1234.5')).toBe(true);
+  });
+
+  it('finds a duel by the state its pill names', () => {
+    expect(findsRow('en', 'in play')).toBe(true);
+  });
+
+  it('does not find a duel by another game', () => {
+    expect(findsRow('en', 'dota')).toBe(false);
   });
 });

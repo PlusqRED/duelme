@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { PHASE_TONES } from '@/components/duel/phaseTones';
 import { GameTile } from '@/components/identity/GameTile';
 import { Chip } from '@/components/ui/chip';
 import { Icon } from '@/components/ui/icon';
@@ -20,16 +21,6 @@ interface DuelHeadProps {
   createdAt: bigint;
   label: PhaseLabel;
 }
-
-const pillTones: Record<PhaseLabel['tone'], string> = {
-  waiting: '[--tone:var(--color-blue)] bg-blue-soft',
-  live: '[--tone:var(--color-ink)] bg-canvas-deep',
-  paused: '[--tone:var(--color-ink-3)] bg-canvas',
-  confirm: '[--tone:var(--color-sun-edge)] bg-sun-soft',
-  late: '[--tone:var(--color-orange)] bg-orange-soft',
-  paid: '[--tone:var(--color-sun-edge)] bg-sun-soft',
-  back: '[--tone:var(--color-ink-3)] bg-canvas',
-};
 
 /**
  * The arena's head: the game's tile and name, the duel's number, who may join, the game's category
@@ -65,7 +56,7 @@ export function DuelHead({ duelId, titleId, game, isPublic, createdAt, label }: 
           key={label.key}
           className={cn(
             'inline-flex min-h-[34px] items-center gap-[9px] rounded-full py-1 pr-3.5 pl-3 text-body-sm/[1.2] font-strong',
-            pillTones[label.tone],
+            PHASE_TONES[label.tone],
             label.key !== firstKey && 'animate-pop'
           )}
         >

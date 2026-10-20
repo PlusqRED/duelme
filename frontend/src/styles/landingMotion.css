@@ -1,6 +1,7 @@
 /* The landing's own moves, as `animate-*` utilities: its developer's note, its demo duel, its
-   lists, its first-duel quest and its reputation scale. The rules every move keeps, and the moves
-   the app shares, are in `motion.css`. */
+   lists (whose rows and receipts the duel feeds of other pages share), its first-duel quest and
+   its reputation scale. The rules every move keeps, and the moves the app shares, are in
+   `motion.css`. */
 @theme {
   --animate-stick: stick 0.7s var(--ease-spring) 0.35s backwards;
   --animate-lay: lay 2.4s var(--ease-spring) infinite;

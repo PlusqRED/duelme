@@ -25,7 +25,6 @@ export const duelTranslations = defineSection({
     'duel.disputed': 'Result disputed',
     'duel.cancellationPending': 'Cancellation requested',
     'duel.mutuallyCancelled': 'Cancelled by agreement',
-    'duel.creator': 'Creator',
     'duel.public': 'Public',
     'duel.private': 'Private',
     'duel.privateInviteMissing':
@@ -35,7 +34,6 @@ export const duelTranslations = defineSection({
     'duel.title': 'Duel #{id}',
     'duel.cannotJoinOwnDuel': 'You cannot join your own duel.',
     'action.tryAgain': 'Try again',
-    'action.join': 'Join Duel',
     'action.viewDuel': 'View Duel',
     'action.previous': 'Previous',
     'action.next': 'Next',
@@ -64,7 +62,6 @@ export const duelTranslations = defineSection({
     'duel.disputed': 'Результат оспорен',
     'duel.cancellationPending': 'Запрос на отмену',
     'duel.mutuallyCancelled': 'Отменена по согласию',
-    'duel.creator': 'Создатель',
     'duel.public': 'Публичная',
     'duel.private': 'Приватная',
     'duel.privateInviteMissing':
@@ -74,7 +71,6 @@ export const duelTranslations = defineSection({
     'duel.title': 'Дуэль #{id}',
     'duel.cannotJoinOwnDuel': 'Нельзя присоединиться к собственной дуэли.',
     'action.tryAgain': 'Попробовать снова',
-    'action.join': 'Присоединиться',
     'action.viewDuel': 'Открыть дуэль',
     'action.previous': 'Назад',
     'action.next': 'Далее',

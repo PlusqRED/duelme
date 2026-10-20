@@ -3,13 +3,9 @@ import { defineSection } from './defineSection';
 export const dashboardWalletTranslations = defineSection({
   en: {
     'dashboard.history': 'History',
-    'dashboard.noMatches': 'No duels match your search yet.',
-    'dashboard.clearSearch': 'Clear filters',
     'dashboard.wins': 'Wins',
     'dashboard.losses': 'Losses',
     'dashboard.pageSummary': 'Page {current} of {total}',
-    'dashboard.lastUpdateLabel': 'Last update',
-    'dashboard.opponentLabel': 'Opponent',
     'dashboard.waitingOpponent': 'Waiting for opponent',
     'dashboard.outcomeWon': 'Won',
     'dashboard.outcomeLost': 'Lost',
@@ -43,13 +39,9 @@ export const dashboardWalletTranslations = defineSection({
   },
   ru: {
     'dashboard.history': 'История',
-    'dashboard.noMatches': 'По вашему запросу пока ничего не найдено.',
-    'dashboard.clearSearch': 'Сбросить фильтры',
     'dashboard.wins': 'Победы',
     'dashboard.losses': 'Поражения',
     'dashboard.pageSummary': 'Страница {current} из {total}',
-    'dashboard.lastUpdateLabel': 'Последнее обновление',
-    'dashboard.opponentLabel': 'Соперник',
     'dashboard.waitingOpponent': 'Ожидаем соперника',
     'dashboard.outcomeWon': 'Победа',
     'dashboard.outcomeLost': 'Поражение',

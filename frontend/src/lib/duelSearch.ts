@@ -1,11 +1,11 @@
 import type { PlayerDuel } from '@/lib/duel';
-import type { RecentDuel } from '@/hooks/useRecentDuels';
 import type { Language, TranslationKey, TranslationParams } from '@/i18n/translations';
 import { formatUnits } from 'viem';
 import { USDT_DECIMALS, ZERO_ADDRESS } from '@/lib/constants';
 import { DuelState } from '@/lib/contracts';
 import { getCategoryLabelKey } from '@/lib/game';
-import { formatPublicDuelAmount, type EnrichedDuel } from '@/lib/publicDuelsFilters';
+import type { FeedDuel } from '@/lib/duelFeed';
+import type { EnrichedDuel } from '@/lib/publicDuelsFilters';
 import { formatDateTime, formatUSDT } from '@/lib/utils';
 import {
   getClaimableAmountForAddress,
@@ -141,46 +141,31 @@ export function buildDashboardDuelSearchText(
   ], language);
 }
 
-export function buildRecentDuelSearchText(
-  duel: RecentDuel,
-  t: Translate,
-  language: Language,
-  reputationByAddress: Record<string, ReputationLevel>,
-  nicknameByAddress?: Record<string, string | null>,
-  gameName?: string | null
-) {
-  const isTimedOut = duel.state === DuelState.WinnerClaimed && isDuelClaimTimedOut(duel.claimTimestamp);
-  const stateLabel = t(getDuelStateLabelKey(duel.state, isTimedOut));
-
+/**
+ * A feed row's search text: what the row shows, its number, game, players by name and address, note,
+ * stake and pot as the row writes them, the stake as typed with its currency, and its state as its
+ * pill names it.
+ */
+export function buildFeedSearchText(duel: FeedDuel, stateLabel: string, language: Language) {
   return normalizeSearchParts([
-    duel.id,
-    duel.wager,
-    `${duel.wager} usdt`,
-    duel.message,
+    `#${duel.id}`,
+    duel.game?.gameName,
+    duel.creatorName,
+    duel.opponentName,
     duel.player1,
     duel.player2,
-    duel.winner,
+    duel.message,
+    formatUSDT(duel.wagerAmount, language),
+    formatUSDT(duel.wagerAmount * 2n, language),
+    `${formatUnits(duel.wagerAmount, USDT_DECIMALS)} usdt`,
     stateLabel,
-    ...CANONICAL_STATE_TERMS[duel.state],
-    isTimedOut ? 'timed out' : '',
-    isTimedOut ? 'response timed out' : '',
-    duel.chainName,
-    duel.state === DuelState.Resolved ? t('recent.won') : '',
-    duel.state === DuelState.Resolved ? 'won' : '',
-    duel.state === DuelState.Resolved ? 'winner' : '',
-    formatDateTime(duel.lastEventAt, language),
-    getReputationLabel(reputationByAddress, duel.player1, t),
-    getReputationLabel(reputationByAddress, duel.player2, t),
-    nicknameByAddress?.[duel.player1.toLowerCase()] ?? '',
-    nicknameByAddress?.[duel.player2.toLowerCase()] ?? '',
-    gameName ?? '',
   ], language);
 }
 
 /**
- * An open duel's search text: its creator and their level as the card names it, its stake raw, with
- * its currency and as the card writes it, the pot as the card writes it, its game and the game's
- * category.
+ * An open duel's search text: its creator and their level as the card names it, its stake as typed
+ * with its currency and as the card writes it, the pot as the card writes it, its game and the
+ * game's category.
  */
 export function buildPublicDuelSearchText(duel: EnrichedDuel, t: Translate, language: Language) {
   const stats = duel.reputationStats;
@@ -188,10 +173,9 @@ export function buildPublicDuelSearchText(duel: EnrichedDuel, t: Translate, lang
   return normalizeSearchParts([
     duel.creatorName,
     duel.creator,
-    duel.wager,
-    `${duel.wager} usdt`,
-    formatPublicDuelAmount(duel.wager, language),
-    formatPublicDuelAmount(duel.wager * 2, language),
+    `${formatUnits(duel.wagerAmount, USDT_DECIMALS)} usdt`,
+    formatUSDT(duel.wagerAmount, language),
+    formatUSDT(duel.wagerAmount * 2n, language),
     duel.message,
     duel.gameName,
     duel.gameCategory && t(getCategoryLabelKey(duel.gameCategory)),

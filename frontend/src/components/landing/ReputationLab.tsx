@@ -49,7 +49,8 @@ const markLooks: Record<ReputationMark, MarkLook> = {
 
 const markOrder: readonly ReputationMark[] = ['honored', 'abandoned'];
 
-const verdictTints: Record<ReputationLevel, string> = {
+/** A verdict's ground, in the soft shade of its level. */
+export const verdictTints: Record<ReputationLevel, string> = {
   new: 'bg-level-new-soft',
   unreliable: 'bg-orange-soft',
   fair: 'bg-sun-soft',

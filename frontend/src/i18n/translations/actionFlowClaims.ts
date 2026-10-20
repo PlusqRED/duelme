@@ -42,7 +42,6 @@ export const actionFlowClaimsTranslations = defineSection({
     'actionFlow.refundAndClaim.success.title': 'Refund claimed',
     'actionFlow.refundAndClaim.success.description': 'Your refund has been sent to your wallet.',
     'actionFlow.refundAndClaim.success.hint': 'Check your wallet balance.',
-    'dashboard.refundAvailable': 'Refund available',
   },
   ru: {
     'actionFlow.claimPayout.title': 'Забрать выплату',
@@ -85,6 +84,5 @@ export const actionFlowClaimsTranslations = defineSection({
     'actionFlow.refundAndClaim.success.title': 'Возврат получен',
     'actionFlow.refundAndClaim.success.description': 'Возврат отправлен в ваш кошелёк.',
     'actionFlow.refundAndClaim.success.hint': 'Проверьте баланс кошелька.',
-    'dashboard.refundAvailable': 'Возврат доступен',
   },
 });

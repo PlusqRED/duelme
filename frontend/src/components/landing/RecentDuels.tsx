@@ -3,11 +3,10 @@
 import Link from 'next/link';
 import { useId, useMemo, useRef, useState } from 'react';
 import { PartialDataNotice } from '@/components/duel/PartialDataNotice';
-import { GameTile } from '@/components/identity/GameTile';
-import { DuelResultRow } from '@/components/landing/DuelResultRow';
+import { DuelRow } from '@/components/feed/DuelRow';
+import { PickedGameChip } from '@/components/feed/PickedGameChip';
 import { PopularGames } from '@/components/landing/PopularGames';
 import { SectionHead } from '@/components/landing/SectionHead';
-import { Icon } from '@/components/ui/icon';
 import { LEAVE_MS, useGameFilter } from '@/hooks/useGameFilter';
 import { useGames } from '@/hooks/useGames';
 import { useListReflow } from '@/hooks/useListReflow';
@@ -69,24 +68,7 @@ export function RecentDuels() {
 
         <div className="grid wide:[grid-area:main]">
           <PartialDataNotice when={isError} onRetry={retry} />
-          <div aria-live="polite">
-            {pickedGame && (
-              <button
-                key={pickedGame.slug}
-                type="button"
-                onClick={() => pick(null)}
-                className="group/chip mb-3 inline-flex min-h-11 animate-pop cursor-pointer items-center gap-2.5 rounded-full border-[1.5px] border-ink bg-paper py-1 pr-3.5 pl-1 text-body-sm font-bold"
-              >
-                <GameTile name={pickedGame.name} category={pickedGame.category} className="size-[34px] rounded-full text-xs" />
-                {t('recent.only', { game: pickedGame.name })}
-                <span className="sr-only">{t('recent.showAll')}</span>
-                <Icon
-                  name="x"
-                  className="size-4 text-ink-3 transition-[color,rotate] duration-300 ease-spring group-hover/chip:rotate-90 group-hover/chip:text-ink"
-                />
-              </button>
-            )}
-          </div>
+          <PickedGameChip game={pickedGame} onClear={() => pick(null)} />
           <ol
             ref={listRef}
             style={{ '--leave': `${LEAVE_MS}ms` }}
@@ -97,7 +79,7 @@ export function RecentDuels() {
                 <li key={index} aria-hidden="true" className="m-1 h-[88px] animate-pulse rounded-[20px] bg-canvas" />
               ))}
             {results.map((duel) => (
-              <DuelResultRow
+              <DuelRow
                 key={duel.id}
                 duel={duel}
                 isOpen={openId === duel.id}

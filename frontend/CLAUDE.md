@@ -231,7 +231,7 @@ and controls; the guard tests below list it.
 | `frontend/src/components/landing/Safety.tsx` | The landing's navy band: the escrow contract to check (`EscrowCard`: its address settling out of noise via `useScrambleReveal`, copy, three explorer tabs) and the four guarantees as badges that unlock (`Guarantees`; the test count and coverage are `lib/contractFacts.ts`) |
 | `frontend/src/components/landing/ReputationLab.tsx` | How reputation works, by hand: a sample player (`useReputationSample`) marked honored or abandoned walks the scale (`ReputationGauge`; where on it from `lib/reputationGauge.ts`), with the level reached and what it tells an opponent |
 | `frontend/src/lib/contractFacts.ts` | The contract's test count, which a test keeps equal to the `test*`/`invariant*` functions in `contracts/test`, and its measured line coverage with the date: measure again (`forge coverage --profile coverage`) when the tests change much |
-| `frontend/src/components/landing/RecentDuels.tsx` | The landing's finished duels (`useWonDuels`, won duels only) beside the popular games that filter them (`useGameFilter`: rows step out, then `useListReflow` slides the rest; a picked game's duels come from that game's own, `useDuelsByGame`); a row opens into its `PayoutReceipt`. The sizes and the pure rules are `lib/landingDuels.ts` |
+| `frontend/src/components/landing/RecentDuels.tsx` | The landing's finished duels (`useWonDuels`, won duels only) beside the popular games that filter them (`useGameFilter`: rows step out, then `useListReflow` slides the rest; a picked game's duels come from that game's own, `useDuelsByGame`); a row is the feed's `DuelRow`, opening into its `DuelReceipt`. The sizes and the pure rules are `lib/landingDuels.ts` |
 | `frontend/src/components/arena/` | The table a duel is drawn on, the landing demo's and a real duel's: `Seat`, `Safe`, `Stake`, `Track`, `Match`, `Bubble`, `CountdownRing` (measures a real clock when given `left`), `OpenSeat`, `RepChip`, `MoneyChip`, `GainTag`, `CountedUsdt`; `SafeLock`, the padlock the safe and the wallet menu's `SafeMini` share |
 | `frontend/src/app/duel/[id]/page.tsx` | The duel page: takes whole-digit ids only, then `DuelRoom` |
 | `frontend/src/components/duel/room/` | The duel page's parts: `DuelRoom` (the duel, its phase, the layout), `DuelArena` (`DuelHead`, `ArenaStage` with its `RoomSeat`s, `DuelSteps`); `RoomGrid` (the arena, the turn panel under it pointing at the reader's seat, the facts and history beside); `DuelTurn` (the "your move" panel and the windows its moves open: join flow, guided window, top-up) on `TurnPanel` (notch, whose pill, swap and 700 ms arming; shared with the create page, as are `DuelFacts` and `InviteLinkBox`) and `TurnBlocks`; `RoomFacts` ("This duel" on `DuelFacts`); `DuelHistory` |
@@ -291,13 +291,17 @@ and controls; the guard tests below list it.
 | `frontend/src/hooks/useMyProfile.ts` | Current user's profile (read/write) |
 | `frontend/src/hooks/useProfile.ts` | Read any player's profile by wallet |
 | `frontend/src/hooks/useNicknames.ts` | Batch nickname resolution for duel feeds |
-| `frontend/src/components/duel/CopyableAddress.tsx` | Address display with copy + profile link |
-| `frontend/src/app/profile/page.tsx` | Own profile page |
-| `frontend/src/app/profile/[walletAddress]/page.tsx` | Public profile page |
-| `frontend/src/components/profile/SocialLinksSection.tsx` | Own-profile connected-accounts section |
-| `frontend/src/components/profile/SocialLinksDisplay.tsx` | Public-profile read-only social pills |
+| `frontend/src/components/profile/MyProfile.tsx` | The own profile (`/profile`): the head, `ProfileEditor` (each field edited where it stands; the request rules are `lib/profileEdit.ts`), the linked accounts, the record; signed out, `SignedOutProfile` |
+| `frontend/src/app/profile/[walletAddress]/page.tsx` | A player's profile: anything but an address is a 404, an address opens `PlayerProfile` (head, `ReputationCard` on the landing's scale, `RecordCard`, `ProfileAbout`) |
+| `frontend/src/components/profile/SocialLinksSection.tsx` | The owner's linked accounts, a `SocialAccountTile` per platform to connect, change or unlink; `SocialAccounts` lists a player's read-only |
 | `frontend/src/components/profile/OAuthCallbackHandler.tsx` | Reads `?steam=`/`?telegram=` query and toasts |
 | `frontend/src/hooks/useSocialLinks.ts` | Social-link mutations (initiate + set/unlink) |
+| `frontend/src/components/feed/` | Duels someone joined as rows: `DuelFeed` (search, state filters with their counts, pages of 20) of `DuelRow`s, each opening into its `DuelReceipt`; the rules are `lib/duelFeed.ts` |
+| `frontend/src/components/lists/` | What every list page shares: `SearchField`, `FilterPill`, `Pager` (`lib/pages.ts`) |
+| `frontend/src/components/duels/` | `/duels/public` (`OpenDuelsBoard`: search, game and stake-band filters, `OpenDuelGrid`) and `/duels/recent` (`RecentDuelsBoard`: the feed beside the popular games, its search kept in `?q=` by `useSearchQuery`) |
+| `frontend/src/components/game/GameCatalog.tsx` | `/games`: search, category pills and the games as cards (`CatalogGame`), most played first |
+| `frontend/src/components/game/GameDetail.tsx` | `/games/[slug]`: `GameHead`, the game's open duels (`GameOpenDuels`) and its `DuelFeed`; no such game, or a failed read, as a `LostPage` |
+| `frontend/src/components/layout/LostPage.tsx` | A page with nothing to show, drawn as the brand mark: `app/not-found.tsx`, `app/error.tsx`, a missing game |
 | `frontend/Dockerfile` | Frontend container (multi-stage, Node 22) |
 | `frontend/src/app/duel/create/page.tsx` | The create page: `CreateDuelRoom` |
 | `frontend/src/components/duel/create/` | The create page's parts: `CreateDuelRoom` (layout, balance, top-up, the way on), `DraftArena` (`DraftHead` until the duel exists, then the duel page's `DuelHead`; `DraftStage` with the stakes outlined in the safe), `SetupPanel` and its `SetupStep`s (`GameStepBody` with `AddGameForm`, `StakeStepBody` with `StakeCharge`, `StakeSum` and `WalletPurse`, `AccessStepBody`, `MessageStepBody`), `WayOnBar`, `CreatedPanel`, `CreateFacts`; `CreateSigning` is the page's one tie to the signing window |

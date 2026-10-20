@@ -32,3 +32,8 @@ export interface DuelMeta {
 export const GAME_CATEGORIES: GameCategory[] = [
   'FPS', 'MOBA', 'SPORT', 'STRATEGY', 'FIGHTING', 'RACING', 'CARD', 'OTHER',
 ];
+
+/** The games played most first; of games played as often, by name. */
+export function byPopularity(a: Game, b: Game): number {
+  return b.duelCount - a.duelCount || a.name.localeCompare(b.name);
+}

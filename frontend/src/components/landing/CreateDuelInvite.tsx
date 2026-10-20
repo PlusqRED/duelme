@@ -14,11 +14,14 @@ interface CreateDuelInviteProps {
   variant: 'card' | 'strip';
   /** No open duel at all: the card says so first. */
   isEmpty?: boolean;
+  /** What the invitation says where a page has its own reason to make a duel, a game it lacks, say. */
+  title?: string;
+  description?: string;
   className?: string;
 }
 
 /** The way to a duel on other terms than the open ones: make your own. */
-export function CreateDuelInvite({ variant, isEmpty = false, className }: CreateDuelInviteProps) {
+export function CreateDuelInvite({ variant, isEmpty = false, title, description, className }: CreateDuelInviteProps) {
   const { t } = useTranslation();
   const isStrip = variant === 'strip';
 
@@ -35,9 +38,11 @@ export function CreateDuelInvite({ variant, isEmpty = false, className }: Create
       <BrandMark size="lg" />
       <div className={cn(isStrip ? 'flex-[1_1_260px]' : 'contents')}>
         <h3 className={cn(isStrip ? 'text-lg' : 'text-xl')}>
-          {t(isEmpty ? 'publicDuels.empty' : 'publicDuels.createTitle')}
+          {title ?? t(isEmpty ? 'publicDuels.empty' : 'publicDuels.createTitle')}
         </h3>
-        <p className={cn('text-ink-2', isStrip ? 'text-body-sm' : 'max-w-[38ch]')}>{t('publicDuels.createDesc')}</p>
+        <p className={cn('text-ink-2', isStrip ? 'text-body-sm' : 'max-w-[38ch]')}>
+          {description ?? t('publicDuels.createDesc')}
+        </p>
       </div>
       <Link
         href="/duel/create"

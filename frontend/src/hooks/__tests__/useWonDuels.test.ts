@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { RecentDuel } from '@/hooks/useRecentDuels';
+import type { RecentDuel } from '@/lib/duelFeed';
 import { duelMeta } from '@/lib/__tests__/helpers/duelMeta';
 import { DuelState } from '@/lib/contracts';
 import type { DuelMeta } from '@/lib/game';
@@ -63,15 +63,16 @@ function duel(id: number, overrides: Partial<RecentDuel> = {}): RecentDuel {
     id,
     player1: CREATOR,
     player2: OPPONENT,
-    wager: 25,
     wagerAmount: 25_000_000n,
     message: 'go 1x1',
     winner: CREATOR,
     lastEventAt: 1_700_000_000n,
     claimTimestamp: 0n,
-    chainId: 421614,
-    chainName: 'Arbitrum Sepolia',
     state: DuelState.Resolved,
+    creatorPayout: 50_000_000n,
+    opponentPayout: 0n,
+    creatorClaimed: true,
+    opponentClaimed: false,
     ...overrides,
   };
 }
@@ -92,25 +93,14 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('useWonDuels', () => {
-  it('lists a finished duel with both players, the winner’s seat, the stake and its game', () => {
+  it('lists a finished duel with both players named and its game', () => {
     backend.duels = [duel(3, { winner: OPPONENT })];
     backend.metas = { 3: duelMeta(3, 'dota-2') };
 
     const { result } = renderHook(() => useWonDuels(null));
 
     expect(result.current.results).toEqual([
-      {
-        id: 3,
-        creator: CREATOR,
-        opponent: OPPONENT,
-        creatorName: 'alice',
-        opponentName: 'bob',
-        winner: 'opponent',
-        stake: 25_000_000n,
-        note: 'go 1x1',
-        endedAt: 1_700_000_000n,
-        game: duelMeta(3, 'dota-2'),
-      },
+      { ...duel(3, { winner: OPPONENT }), creatorName: 'alice', opponentName: 'bob', game: duelMeta(3, 'dota-2') },
     ]);
   });
 

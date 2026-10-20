@@ -20,6 +20,7 @@ import { walletTranslations } from './translations/wallet';
 import { duelTurnTranslations } from './translations/duelTurn';
 import { duelMovesTranslations } from './translations/duelMoves';
 import { signingTranslations } from './translations/signing';
+import { browseTranslations } from './translations/browse';
 
 export const translations = {
   en: {
@@ -45,6 +46,7 @@ export const translations = {
     ...duelMovesTranslations.en,
     ...signingTranslations.en,
     ...dashboardTranslations.en,
+    ...browseTranslations.en,
   },
   ru: {
     ...navigationTranslations.ru,
@@ -69,6 +71,7 @@ export const translations = {
     ...duelMovesTranslations.ru,
     ...signingTranslations.ru,
     ...dashboardTranslations.ru,
+    ...browseTranslations.ru,
   },
 } as const;
 

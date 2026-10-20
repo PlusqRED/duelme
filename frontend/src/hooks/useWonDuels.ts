@@ -2,29 +2,12 @@
 
 import { useCallback, useMemo } from 'react';
 import { useDuelsByGame } from '@/hooks/useDuelsByGame';
-import { useNicknames } from '@/hooks/useNicknames';
+import { useFeedDuels } from '@/hooks/useFeedDuels';
 import { useDuelMetas } from '@/hooks/useDuelMetas';
 import { useRecentDuels } from '@/hooks/useRecentDuels';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
-import type { SeatSide } from '@/lib/duel';
 import type { DuelMeta } from '@/lib/game';
-import { isWon, pickResults, RESULTS_SHOWN, winnerSide } from '@/lib/landingDuels';
-
-export interface WonDuel {
-  id: number;
-  creator: `0x${string}`;
-  opponent: `0x${string}`;
-  creatorName: string;
-  opponentName: string;
-  winner: SeatSide;
-  /** Each player's stake, in USDT's base units; the winner took both. */
-  stake: bigint;
-  note: string;
-  /** When it ended, in seconds. */
-  endedAt: bigint;
-  /** Unknown until the duel's metadata arrives, and for a duel created without a game. */
-  game: DuelMeta | undefined;
-}
+import { isWon, pickResults, RESULTS_SHOWN } from '@/lib/landingDuels';
 
 const NO_IDS: number[] = [];
 
@@ -51,26 +34,7 @@ export function useWonDuels(gameSlug: string | null, upcoming: string | null = g
   // A picked game's duels come with their metadata; every game's are looked up, the few shown only.
   const { metaByDuelId } = useDuelMetas(gameDuels === null ? shownIds : NO_IDS, DEFAULT_CHAIN_ID);
   const gameMetas = useMemo(() => byDuelId(gameDuels ?? []), [gameDuels]);
-  const metas = gameDuels === null ? metaByDuelId : gameMetas;
-  const players = useMemo(() => shown.flatMap((duel) => [duel.player1, duel.player2]), [shown]);
-  const { resolveDisplay } = useNicknames(players);
-
-  const results = useMemo<WonDuel[]>(
-    () =>
-      shown.map((duel) => ({
-        id: duel.id,
-        creator: duel.player1,
-        opponent: duel.player2,
-        creatorName: resolveDisplay(duel.player1),
-        opponentName: resolveDisplay(duel.player2),
-        winner: winnerSide(duel),
-        stake: duel.wagerAmount,
-        note: duel.message,
-        endedAt: duel.lastEventAt,
-        game: metas[duel.id],
-      })),
-    [shown, metas, resolveDisplay]
-  );
+  const results = useFeedDuels(shown, gameDuels === null ? metaByDuelId : gameMetas);
 
   const refetchGame = game.refetch;
   // Joins a read already running, so pressing Try again twice does not start it over.
