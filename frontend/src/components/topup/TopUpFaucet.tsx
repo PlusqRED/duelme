@@ -6,7 +6,7 @@ import { Icon } from '@/components/ui/icon';
 import { Spinner } from '@/components/ui/spinner';
 import { useFaucetClaim } from '@/hooks/useFaucetClaim';
 import { useTranslation } from '@/i18n/useTranslation';
-import { faucetAmounts } from '@/lib/faucetApi';
+import { faucetGift } from '@/lib/faucetApi';
 
 interface TopUpFaucetProps {
   chainId: number;
@@ -25,13 +25,13 @@ export function TopUpFaucet({ chainId }: TopUpFaucetProps) {
   if (offer.kind === 'none') {
     return null;
   }
-  const amounts = faucetAmounts(offer, language);
+  const gift = { gift: faucetGift(offer, language, t) };
 
   if (offer.kind === 'claimed' || isSent) {
     return (
       <p className="flex min-h-12 items-center gap-[7px] font-bold text-good-ink">
         <Icon name="check" className="size-[18px] stroke-[2.6]" />
-        {t('wallet.faucet.done', amounts)}
+        {t('wallet.faucet.done', gift)}
       </p>
     );
   }
@@ -48,7 +48,7 @@ export function TopUpFaucet({ chainId }: TopUpFaucetProps) {
         {isClaiming ? <Spinner /> : <Icon name="plus" />}
         {t('wallet.faucet')}
       </Button>
-      <p className="text-sm text-pretty text-ink-3">{t('wallet.faucet.note', amounts)}</p>
+      <p className="text-sm text-pretty text-ink-3">{t('wallet.faucet.note', gift)}</p>
     </div>
   );
 }

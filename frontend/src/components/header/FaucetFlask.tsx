@@ -4,7 +4,7 @@ import { useId } from 'react';
 import { Icon } from '@/components/ui/icon';
 import type { TranslationKey } from '@/i18n/translations';
 import { useTranslation } from '@/i18n/useTranslation';
-import { faucetAmounts, type FaucetOffer } from '@/lib/faucetApi';
+import { faucetGift, type FaucetOffer } from '@/lib/faucetApi';
 import type { FlaskPhase } from '@/lib/faucetFlask';
 import { cn } from '@/lib/utils';
 
@@ -35,14 +35,14 @@ export function FaucetFlask({ phase, offer, onClaim, onPoured }: FaucetFlaskProp
   if (phase === 'hidden' || offer.kind === 'none') {
     return null;
   }
-  const amounts = faucetAmounts(offer, language);
+  const gift = { gift: faucetGift(offer, language, t) };
 
   if (phase === 'landed' || phase === 'claimed') {
     const isPouring = phase === 'landed';
     return (
       <p className="grid min-h-[60px] grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-x-3 rounded-tile bg-good-soft py-2.5 pr-3.5 pl-2.5 text-sm font-label text-good-ink">
         <Flask level={isPouring ? 'pouring' : 'empty'} onPoured={onPoured} className="bg-paper" />
-        <span>{t('wallet.faucet.done', amounts)}</span>
+        <span>{t('wallet.faucet.done', gift)}</span>
         <Icon name="check" className={cn('size-5 stroke-[2.6]', isPouring && 'animate-pop [animation-delay:0.6s]')} />
       </p>
     );
@@ -60,7 +60,7 @@ export function FaucetFlask({ phase, offer, onClaim, onPoured }: FaucetFlaskProp
       <Flask level={CLAIM_LEVEL[phase]} />
       <span className="grid gap-px">
         <b className="text-body-sm font-bold">{t('wallet.faucet')}</b>
-        <small className="text-note text-pretty text-ink-3">{t(CLAIM_NOTE[phase], amounts)}</small>
+        <small className="text-note text-pretty text-ink-3">{t(CLAIM_NOTE[phase], gift)}</small>
       </span>
     </button>
   );

@@ -77,7 +77,7 @@ export function SendForm({ address, network, faucetOffer, draft, onDraft, onSubm
       : problems.amount === 'tooMuch' && usdtRaw !== null
         ? t('send.err.amount', { amount: formatUSDT(usdtRaw, language) })
         : undefined;
-  const offersEth = faucetOffer.kind === 'ready' ? ` ${t('send.err.eth.faucet', { eth: formatEth(faucetOffer.ethAmountWei, language) })}` : '';
+  const offersEth = faucetOffer.kind === 'ready' && faucetOffer.ethAmountWei > 0n ? ` ${t('send.err.eth.faucet', { eth: formatEth(faucetOffer.ethAmountWei, language) })}` : '';
 
   return (
     <form noValidate onSubmit={submit} className="grid gap-3">

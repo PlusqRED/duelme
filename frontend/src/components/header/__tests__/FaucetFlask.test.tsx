@@ -47,6 +47,6 @@ describe('FaucetFlask', () => {
     renderFlask(phase);
 
     expect(screen.queryByRole('button')).toBeNull();
-    expect(screen.getByText('Received: 100 test USDT and 0.001 ETH')).toBeTruthy();
+    expect(screen.getByText('Received: 100 USDT and 0.001 ETH')).toBeTruthy();
   });
 });

@@ -102,4 +102,15 @@ describe('SendForm', () => {
     expect(screen.getByText('No ETH for the network fee on Arbitrum Sepolia. The faucet gives 0.001 ETH once.')).toBeTruthy();
     expect(onSubmit).not.toHaveBeenCalled();
   });
+
+  it('does not point at a faucet that has no ETH left to give this wallet', () => {
+    const offer: FaucetOffer = { kind: 'ready', usdtAmountRaw: 100_000_000n, ethAmountWei: 0n };
+    const { to, amount, send } = renderForm({ ...NETWORK, eth: { kind: 'ready', raw: 0n } }, offer);
+    fireEvent.change(to, { target: { value: THEIRS } });
+    fireEvent.change(amount, { target: { value: '10' } });
+
+    send();
+
+    expect(screen.getByText('No ETH for the network fee on Arbitrum Sepolia.')).toBeTruthy();
+  });
 });

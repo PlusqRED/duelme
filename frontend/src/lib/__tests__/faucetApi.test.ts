@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { faucetAmounts, faucetOffer, getFaucetStatus, parseFaucetStatus, type FaucetStatus } from '@/lib/faucetApi';
+import { translator } from '@/i18n/translate';
+import { faucetGift, faucetOffer, getFaucetStatus, parseFaucetStatus, type FaucetStatus } from '@/lib/faucetApi';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -87,11 +88,14 @@ describe('faucetOffer', () => {
   });
 });
 
-describe('faucetAmounts', () => {
+describe('faucetGift', () => {
   const offer = { kind: 'ready', usdtAmountRaw: 100_000_000n, ethAmountWei: 1_000_000_000_000_000n } as const;
 
-  it('names what the faucet sends in the reader’s language', () => {
-    expect(faucetAmounts(offer, 'en')).toEqual({ usdt: '100', eth: '0.001' });
-    expect(faucetAmounts({ ...offer, usdtAmountRaw: 1_500_000_000n }, 'ru')).toEqual({ usdt: '1\u00a0500', eth: '0,001' });
+  it('names both tokens in the reader’s language', () => {
+    expect(faucetGift({ ...offer, usdtAmountRaw: 1_500_000_000n }, 'ru', translator('ru').t)).toBe('1\u00a0500\u00a0USDT и 0,001 ETH');
+  });
+
+  it('leaves out the ETH an earlier claim already sent', () => {
+    expect(faucetGift({ ...offer, ethAmountWei: 0n }, 'en', translator('en').t)).toBe('100\u00a0USDT');
   });
 });

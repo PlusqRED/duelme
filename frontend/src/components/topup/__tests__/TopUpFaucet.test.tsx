@@ -54,7 +54,7 @@ describe('TopUpFaucet', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Get test ETH and USDT' }));
 
-    expect(await screen.findByText('Received: 100 test USDT and 0.001 ETH')).toBeTruthy();
+    expect(await screen.findByText('Received: 100 USDT and 0.001 ETH')).toBeTruthy();
     expect(screen.queryByRole('button')).toBeNull();
   });
 
@@ -72,6 +72,6 @@ describe('TopUpFaucet', () => {
     faucet.offer = { ...READY, kind: 'claimed' };
     render(<TopUpFaucet chainId={CHAIN} />);
 
-    expect(screen.getByText('Received: 100 test USDT and 0.001 ETH')).toBeTruthy();
+    expect(screen.getByText('Received: 100 USDT and 0.001 ETH')).toBeTruthy();
   });
 });

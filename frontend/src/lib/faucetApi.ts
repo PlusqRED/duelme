@@ -1,3 +1,4 @@
+import type { Translator } from '@/i18n/translate';
 import type { Language } from '@/i18n/translations';
 import { isRecord, parseUintString } from '@/lib/parsing';
 import { formatEth, formatUSDT } from '@/lib/utils';
@@ -117,10 +118,13 @@ export function faucetOffer(status: FaucetStatus | undefined, chainId: number): 
   };
 }
 
-/** What a faucet that gives sends, for the copy that names it: `{usdt}` and `{eth}`. */
-export function faucetAmounts(
-  offer: Exclude<FaucetOffer, { kind: 'none' }>,
-  language: Language
-): { usdt: string; eth: string } {
-  return { usdt: formatUSDT(offer.usdtAmountRaw, language), eth: formatEth(offer.ethAmountWei, language) };
+/**
+ * What a faucet that gives sends, in words for the copy's `{gift}`: the USDT, and the ETH unless an
+ * earlier claim already sent it — resuming that claim mints only the USDT.
+ */
+export function faucetGift(offer: Exclude<FaucetOffer, { kind: 'none' }>, language: Language, t: Translator['t']): string {
+  const usdt = formatUSDT(offer.usdtAmountRaw, language);
+  return offer.ethAmountWei > 0n
+    ? t('wallet.faucet.gift', { usdt, eth: formatEth(offer.ethAmountWei, language) })
+    : t('wallet.faucet.giftUsdt', { usdt });
 }
