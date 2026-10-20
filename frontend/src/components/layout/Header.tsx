@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DepositDialog } from '@/components/wallet/DepositDialog';
 import { FaucetButton } from '@/components/wallet/FaucetButton';
+import { LanguageToggle } from '@/components/layout/LanguageToggle';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAppToast } from '@/hooks/useAppToast';
 import { useCopyFeedback } from '@/hooks/useCopyFeedback';
@@ -28,7 +29,7 @@ import { useRelayerStatus } from '@/hooks/useRelayerStatus';
 const CAN_SWITCH_CHAIN = AVAILABLE_CHAINS.length > 1;
 
 export function Header() {
-  const { t, language, setLanguage } = useTranslation();
+  const { t } = useTranslation();
   const appToast = useAppToast();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -204,26 +205,6 @@ export function Header() {
       setIsSending(false);
     }
   }
-
-  const langToggle = (
-    <div className="flex items-center rounded-lg border border-slate-200 p-0.5">
-      {(['en', 'ru'] as const).map((next) => (
-        <button
-          key={next}
-          onClick={() => {
-            void setLanguage(next).then((result) => {
-              if (result !== 'saved') appToast.error(result === 'blocked' ? 'toast.languageNotKept' : 'toast.languageNotSaved');
-            });
-          }}
-          className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
-            language === next ? 'bg-indigo-600 text-white' : 'text-ink-3 hover:text-slate-900'
-          }`}
-        >
-          {next.toUpperCase()}
-        </button>
-      ))}
-    </div>
-  );
 
   // Wallet dropdown panel (shared between desktop & mobile)
   const walletDropdown = (
@@ -424,7 +405,7 @@ export function Header() {
                 <Instagram className="h-3.5 w-3.5" />
               </a>
             </div>
-            {langToggle}
+            <LanguageToggle />
           </div>
         </div>
 

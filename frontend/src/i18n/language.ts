@@ -5,14 +5,18 @@ export const LANGUAGE_COOKIE = 'duelme-lang';
 
 export const DEFAULT_LANGUAGE: Language = 'en';
 
-const LANGUAGE_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
+/** Set by the server alone, in a response, which Safari keeps for the full year rather than a week. */
+export const LANGUAGE_COOKIE_OPTIONS = { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax' } as const;
 
-function isLanguage(value: string | undefined): value is Language {
-  return value !== undefined && Object.hasOwn(translations, value);
+function isLanguage(value: unknown): value is Language {
+  return typeof value === 'string' && Object.hasOwn(translations, value);
 }
 
-/** The language a cookie names, or English for anything else, since the browser may send any value. */
-export function parseLanguage(value: string | undefined): Language {
+/** The site's languages, in the order the switch offers them. */
+export const LANGUAGES: readonly Language[] = Object.keys(translations).filter(isLanguage);
+
+/** The language a cookie or a form names, or English for anything else, since a browser may send any value. */
+export function parseLanguage(value: unknown): Language {
   return isLanguage(value) ? value : DEFAULT_LANGUAGE;
 }
 
@@ -23,16 +27,4 @@ export function readLanguageCookie(cookies: string): string | undefined {
     .split('; ')
     .find((cookie) => cookie.startsWith(prefix))
     ?.slice(prefix.length);
-}
-
-/**
- * Where and how long the cookie lives, for the server's write and the browser's alike: two writes
- * that differ would be two cookies, or one the browser refuses to replace.
- */
-export const LANGUAGE_COOKIE_OPTIONS = { path: '/', maxAge: LANGUAGE_COOKIE_MAX_AGE_SECONDS, sameSite: 'lax' } as const;
-
-/** The `document.cookie` assignment that keeps `language` for a year. */
-export function languageCookie(language: Language): string {
-  const { path, maxAge, sameSite } = LANGUAGE_COOKIE_OPTIONS;
-  return `${LANGUAGE_COOKIE}=${language}; path=${path}; max-age=${maxAge}; samesite=${sameSite}`;
 }
