@@ -15,6 +15,10 @@ interface QuestLineProps {
   quest: LevelQuest;
   /** Light the cells one by one, the first time the quest is shown. */
   isEntering?: boolean;
+  /** Before they light: the cells done still dark, for an entrance that starts later. */
+  isWaiting?: boolean;
+  /** The score under the cells, the badge beside both: for a card narrower than the menu's. */
+  isStacked?: boolean;
   className?: string;
 }
 
@@ -22,7 +26,7 @@ interface QuestLineProps {
  * The way to the next level as a quest: a cell per honored duel it needs, the ones done lit in the
  * next level's colour, the next one breathing, and the next level's badge still locked.
  */
-export function QuestLine({ quest, isEntering = false, className }: QuestLineProps) {
+export function QuestLine({ quest, isEntering = false, isWaiting = false, isStacked = false, className }: QuestLineProps) {
   const { t } = useTranslation();
   const zone = quest.next ?? quest.level;
   const colours = ZONE[zone];
@@ -35,11 +39,19 @@ export function QuestLine({ quest, isEntering = false, className }: QuestLinePro
     : { label: t('wallet.quest.top', { level: t(getReputationLabelKey(quest.level)) }), score: t('quest.top') };
 
   return (
-    <div role="img" aria-label={label} className={cn('grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2.5', className)}>
-      <span className="flex gap-1">
+    <div
+      role="img"
+      aria-label={label}
+      className={cn(
+        'grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2.5',
+        isStacked && "grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 [grid-template-areas:'cells_goal'_'score_goal']",
+        className
+      )}
+    >
+      <span className={cn('flex gap-1', isStacked && '[grid-area:cells]')}>
         {Array.from({ length: cells.count }, (_, index) => (
           <span key={index} className="relative h-3.5 max-w-[34px] flex-1 overflow-hidden rounded-[4px] bg-canvas-deep">
-            {index < cells.lit && (
+            {index < cells.lit && !isWaiting && (
               <span
                 style={{ '--i': index }}
                 className={cn(
@@ -57,8 +69,8 @@ export function QuestLine({ quest, isEntering = false, className }: QuestLinePro
           </span>
         ))}
       </span>
-      <span className="text-note font-bold text-ink-2 tabular-nums">{score}</span>
-      <LevelBadge level={zone} isLocked={quest.next !== null} className="h-[34px] pr-3 pl-2.5 text-sm" />
+      <span className={cn('text-note font-bold text-ink-2 tabular-nums', isStacked && '[grid-area:score]')}>{score}</span>
+      <LevelBadge level={zone} isLocked={quest.next !== null} className={cn('h-[34px] pr-3 pl-2.5 text-sm', isStacked && '[grid-area:goal]')} />
     </div>
   );
 }

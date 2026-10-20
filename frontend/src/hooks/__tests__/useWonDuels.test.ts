@@ -30,8 +30,8 @@ vi.mock('@/hooks/useRecentDuels', () => ({
     },
   }),
 }));
-vi.mock('@/hooks/usePublicDuelMetas', () => ({
-  usePublicDuelMetas: (ids: number[]) => {
+vi.mock('@/hooks/useDuelMetas', () => ({
+  useDuelMetas: (ids: number[]) => {
     backend.askedIds = ids;
     return { metaByDuelId: Object.fromEntries(ids.flatMap((id) => (backend.metas[id] ? [[id, backend.metas[id]]] : []))) };
   },

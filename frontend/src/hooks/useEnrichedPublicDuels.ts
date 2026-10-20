@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useNicknames } from '@/hooks/useNicknames';
-import { usePublicDuelMetas } from '@/hooks/usePublicDuelMetas';
+import { useDuelMetas } from '@/hooks/useDuelMetas';
 import type { PublicDuel } from '@/hooks/usePublicDuels';
 import { useReputationLevels } from '@/hooks/useReputationLevels';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
@@ -12,7 +12,7 @@ import { enrichPublicDuel, type EnrichedDuel } from '@/lib/publicDuelsFilters';
 export function useEnrichedPublicDuels(duels: readonly PublicDuel[]): EnrichedDuel[] {
   const duelIds = useMemo(() => duels.map((duel) => duel.id), [duels]);
   const creators = useMemo(() => duels.map((duel) => duel.creator), [duels]);
-  const { metaByDuelId } = usePublicDuelMetas(duelIds, DEFAULT_CHAIN_ID);
+  const { metaByDuelId } = useDuelMetas(duelIds, DEFAULT_CHAIN_ID);
   const { resolveDisplay } = useNicknames(creators);
   const { reputationStatsByAddress } = useReputationLevels(creators, DEFAULT_CHAIN_ID);
 

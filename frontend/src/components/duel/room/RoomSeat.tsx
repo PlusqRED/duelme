@@ -53,6 +53,8 @@ interface RoomSeatProps {
   faceRef: Ref<HTMLSpanElement>;
   /** Set on an open seat the reader could take. */
   takeable?: TakeableSeat;
+  /** A small copy of the duel, one of several on a page: the face, what is said and the name only. */
+  isCompact?: boolean;
 }
 
 /**
@@ -62,7 +64,7 @@ interface RoomSeatProps {
  * to their record. An open seat the reader could take carries their wallet's USDT, and shows them
  * sitting down while they point at Join.
  */
-export function RoomSeat({ side, seat, address, name, isYou, level, note, clock, gain, faceRef, takeable }: RoomSeatProps) {
+export function RoomSeat({ side, seat, address, name, isYou, level, note, clock, gain, faceRef, takeable, isCompact = false }: RoomSeatProps) {
   const purse = takeable?.purse;
   const { t } = useTranslation();
   // A player who sits down while the page is open pops in.
@@ -84,25 +86,26 @@ export function RoomSeat({ side, seat, address, name, isYou, level, note, clock,
               )}
             />
           ) : (
-            <OpenSeat className="size-full" you={takeable && t('room.you')} isTaking={takeable?.isTaking} />
+            // On a page of several duels a waiting seat keeps still.
+            <OpenSeat className={cn('size-full', isCompact && 'before:hidden')} you={takeable && t('room.you')} isTaking={takeable?.isTaking} />
           )}
         </span>
       }
       above={
         <>
           {say ? (
-            <Bubble side={side} kind="say" icon={say.icon}>
+            <Bubble side={side} kind="say" icon={say.icon} isCompact={isCompact}>
               {t(say.key)}
             </Bubble>
           ) : (
             note && (
-              <Bubble side={side} kind="note">
+              <Bubble side={side} kind="note" isCompact={isCompact}>
                 “{note}”
               </Bubble>
             )
           )}
           {seat.timer && (
-            <Bubble side={side} kind="timer" icon="clock">
+            <Bubble side={side} kind="timer" icon="clock" isCompact={isCompact}>
               {seat.timer === 'up' || !clock ? t('sim.timeUp') : t('room.timer.left', { time: clock.text })}
             </Bubble>
           )}
@@ -120,30 +123,35 @@ export function RoomSeat({ side, seat, address, name, isYou, level, note, clock,
       name={name}
       isOpen={!address}
       isYou={isYou && !!address}
+      isCompact={isCompact}
     >
-      {isYou && address && <p className="-mt-1 text-note text-ink-3 tabular-nums max-xs:text-xs">{truncateAddress(address)}</p>}
-      <p className="flex min-h-7 max-w-full flex-col items-center gap-1">
-        {level && (
-          <span title={t('room.rep.stats', { honored: level.honored, abandoned: level.abandoned })}>
-            <ReputationPill level={level.level} className="text-xs max-xs:h-[22px] max-xs:pr-[7px] max-xs:pl-1.5 max-xs:text-micro" />
-          </span>
-        )}
-        {seat.money && <MoneyChip kind={seat.money.kind} raw={seat.money.raw} />}
-        {seat.marks.map((mark) => (
-          <RepChip key={mark} mark={mark} />
-        ))}
-        {purse && (
-          <span
-            className={cn(
-              'inline-flex min-h-6 max-w-full items-center gap-1 rounded-full bg-canvas py-0.5 pr-[9px] pl-[7px] text-xs/[1.2] font-strong text-ink-2 tabular-nums max-xs:rounded-[10px] max-xs:px-2 max-xs:py-[3px] max-xs:text-center max-xs:text-micro',
-              purse.isShort && 'bg-orange-wash text-orange-ink shadow-[inset_0_0_0_1px_var(--color-orange-line)]'
+      {!isCompact && (
+        <>
+          {isYou && address && <p className="-mt-1 text-note text-ink-3 tabular-nums max-xs:text-xs">{truncateAddress(address)}</p>}
+          <p className="flex min-h-7 max-w-full flex-col items-center gap-1">
+            {level && (
+              <span title={t('room.rep.stats', { honored: level.honored, abandoned: level.abandoned })}>
+                <ReputationPill level={level.level} className="text-xs max-xs:h-[22px] max-xs:pr-[7px] max-xs:pl-1.5 max-xs:text-micro" />
+              </span>
             )}
-          >
-            <Icon name="wallet" className={cn('size-3.5 max-xs:hidden', purse.isShort ? 'text-orange-ink' : 'text-ink-3')} />
-            {purse.text}
-          </span>
-        )}
-      </p>
+            {seat.money && <MoneyChip kind={seat.money.kind} raw={seat.money.raw} />}
+            {seat.marks.map((mark) => (
+              <RepChip key={mark} mark={mark} />
+            ))}
+            {purse && (
+              <span
+                className={cn(
+                  'inline-flex min-h-6 max-w-full items-center gap-1 rounded-full bg-canvas py-0.5 pr-[9px] pl-[7px] text-xs/[1.2] font-strong text-ink-2 tabular-nums max-xs:rounded-[10px] max-xs:px-2 max-xs:py-[3px] max-xs:text-center max-xs:text-micro',
+                  purse.isShort && 'bg-orange-wash text-orange-ink shadow-[inset_0_0_0_1px_var(--color-orange-line)]'
+                )}
+              >
+                <Icon name="wallet" className={cn('size-3.5 max-xs:hidden', purse.isShort ? 'text-orange-ink' : 'text-ink-3')} />
+                {purse.text}
+              </span>
+            )}
+          </p>
+        </>
+      )}
     </Seat>
   );
 }

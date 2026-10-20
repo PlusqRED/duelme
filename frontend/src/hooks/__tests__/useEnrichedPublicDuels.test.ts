@@ -7,8 +7,8 @@ import type { DuelMeta } from '@/lib/game';
 const CREATOR = '0x32a3000000000000000000000000000000aa23';
 
 const chain = vi.hoisted(() => ({ duels: [] as PublicDuel[], metas: {} as Record<number, DuelMeta>, askedFor: [] as number[] }));
-vi.mock('@/hooks/usePublicDuelMetas', () => ({
-  usePublicDuelMetas: (ids: number[]) => {
+vi.mock('@/hooks/useDuelMetas', () => ({
+  useDuelMetas: (ids: number[]) => {
     chain.askedFor = ids;
     return { metaByDuelId: chain.metas };
   },

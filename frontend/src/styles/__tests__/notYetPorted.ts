@@ -5,7 +5,6 @@
 
 /** Files still coloured from Tailwind's own palette (`bg-slate-50`, `text-white`) instead of the theme. */
 export const STILL_ON_PALETTE: readonly string[] = [
-  'app/dashboard/page.tsx',
   'app/duel/create/page.tsx',
   'app/duels/public/page.tsx',
   'app/duels/recent/page.tsx',

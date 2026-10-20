@@ -24,7 +24,7 @@ interface SafeMiniProps {
    * another and is counted, and a win's Take glints once the last of it has landed.
    */
   isEntering: boolean;
-  /** Take leads to the dashboard, out of the menu. */
+  /** Take leads to the dashboard's safe, out of the menu. */
   onLeave: () => void;
 }
 
@@ -61,12 +61,11 @@ export function SafeMini({ owed, isEntering, onLeave }: SafeMiniProps) {
         ))}
       </span>
       <Link
-        href="/dashboard"
+        href="/dashboard#collect"
         onClick={onLeave}
         className={cn(
-          buttonVariants({ variant: owed.hasWin ? 'sun' : 'paper', size: 'sm' }),
-          'relative [grid-area:take] max-2xs:mt-2',
-          !owed.hasWin && '[--keycap-edge:var(--color-ink-edge)]'
+          buttonVariants({ variant: owed.hasWin ? 'sun' : 'paperOnNavy', size: 'sm' }),
+          'relative [grid-area:take] max-2xs:mt-2'
         )}
       >
         <Icon name={owed.hasWin ? 'trophy' : 'wallet'} className="size-[18px]" />

@@ -16,10 +16,13 @@ interface SafeProps {
   isLocked: boolean;
   /** The stakes in the window are the winner's now: they take the sun. */
   isPayout?: boolean;
-  name: string;
+  /** Its name under it; a small copy of the table, one of several on a page, goes without. */
+  name?: string;
   state: { label: string; tone: SafeTone };
   /** What happens over the safe while the money is locked: the match being played. */
   above?: ReactNode;
+  /** A small copy of the table, one of several on a page: smaller figures and state. */
+  isCompact?: boolean;
 }
 
 /**
@@ -27,7 +30,7 @@ interface SafeProps {
  * sum it holds, and a lock that shuts in the sun once both stakes are in, with a flash as it seals.
  * Its stage gives its height as `--box`.
  */
-export function Safe({ filled, slotRefs, stakeLabel, total, isLocked, isPayout = false, name, state, above }: SafeProps) {
+export function Safe({ filled, slotRefs, stakeLabel, total, isLocked, isPayout = false, name, state, above, isCompact = false }: SafeProps) {
   return (
     <div className="relative flex flex-col items-center gap-1.5">
       {above}
@@ -48,18 +51,23 @@ export function Safe({ filled, slotRefs, stakeLabel, total, isLocked, isPayout =
                 side={side}
                 isPrize={isPayout}
                 aria-hidden="true"
-                className={cn('-m-[1.5px]', !filled[side] && 'invisible', isPayout && 'animate-bump')}
+                className={cn('-m-[1.5px]', isCompact && 'text-xs', !filled[side] && 'invisible', isPayout && 'animate-bump')}
               >
                 {stakeLabel}
               </Stake>
             </span>
           ))}
         </span>
-        <p className="text-center text-xl/none font-extrabold tracking-[-0.02em] text-paper tabular-nums max-xs:text-[1.0625rem]/none">
+        <p
+          className={cn(
+            'text-center text-xl/none font-extrabold tracking-[-0.02em] text-paper tabular-nums max-xs:text-[1.0625rem]/none',
+            isCompact && 'text-[1.0625rem]/none'
+          )}
+        >
           {total} <small className="text-micro font-semibold tracking-normal opacity-70">USDT</small>
         </p>
       </div>
-      <p className="mt-1.5 text-center text-sm/[1.2] font-bold whitespace-nowrap max-xs:text-note/[1.2]">{name}</p>
+      {name && <p className="mt-1.5 text-center text-sm/[1.2] font-bold whitespace-nowrap max-xs:text-note/[1.2]">{name}</p>}
       <Chip
         data-tone={state.tone}
         className={cn(
@@ -67,7 +75,8 @@ export function Safe({ filled, slotRefs, stakeLabel, total, isLocked, isPayout =
           'data-[tone=locked]:bg-ink data-[tone=locked]:text-paper data-[tone=paid]:bg-sun data-[tone=paid]:text-ink',
           'data-[tone=waiting]:bg-blue-soft data-[tone=waiting]:text-blue-deep data-[tone=paused]:bg-canvas-deep data-[tone=paused]:text-ink-2',
           'data-[tone=forWinner]:bg-sun-soft data-[tone=forWinner]:text-sun-ink',
-          'data-[tone=returning]:bg-good-soft data-[tone=returning]:text-good-ink data-[tone=unlocked]:bg-good-soft data-[tone=unlocked]:text-good-ink'
+          'data-[tone=returning]:bg-good-soft data-[tone=returning]:text-good-ink data-[tone=unlocked]:bg-good-soft data-[tone=unlocked]:text-good-ink',
+          isCompact && 'h-[22px] text-micro max-xs:h-[22px]'
         )}
       >
         {state.label}

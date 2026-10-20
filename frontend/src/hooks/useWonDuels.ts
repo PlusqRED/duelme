@@ -3,7 +3,7 @@
 import { useCallback, useMemo } from 'react';
 import { useDuelsByGame } from '@/hooks/useDuelsByGame';
 import { useNicknames } from '@/hooks/useNicknames';
-import { usePublicDuelMetas } from '@/hooks/usePublicDuelMetas';
+import { useDuelMetas } from '@/hooks/useDuelMetas';
 import { useRecentDuels } from '@/hooks/useRecentDuels';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
 import type { SeatSide } from '@/lib/duel';
@@ -49,7 +49,7 @@ export function useWonDuels(gameSlug: string | null, upcoming: string | null = g
   const shown = useMemo(() => pickResults(won, gameDuels, RESULTS_SHOWN), [won, gameDuels]);
   const shownIds = useMemo(() => shown.map((duel) => duel.id), [shown]);
   // A picked game's duels come with their metadata; every game's are looked up, the few shown only.
-  const { metaByDuelId } = usePublicDuelMetas(gameDuels === null ? shownIds : NO_IDS, DEFAULT_CHAIN_ID);
+  const { metaByDuelId } = useDuelMetas(gameDuels === null ? shownIds : NO_IDS, DEFAULT_CHAIN_ID);
   const gameMetas = useMemo(() => byDuelId(gameDuels ?? []), [gameDuels]);
   const metas = gameDuels === null ? metaByDuelId : gameMetas;
   const players = useMemo(() => shown.flatMap((duel) => [duel.player1, duel.player2]), [shown]);

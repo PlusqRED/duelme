@@ -234,32 +234,3 @@ export function refundAndClaimConfig(execute: () => void): ActionFlowConfig {
     ],
   };
 }
-
-export function refundAndClaimAllConfig(execute: () => void, totalDisplay: string, duelCount: number): ActionFlowConfig {
-  return {
-    type: 'refundAndClaimAll',
-    execute,
-    onSuccess: emitBalanceRefresh,
-    icon: RotateCcw,
-    labels: {
-      dialogTitle: 'actionFlow.refundAndClaimAll.title',
-      dialogDescription: 'actionFlow.refundAndClaimAll.description',
-      reviewTitle: 'actionFlow.refundAndClaimAll.review.title',
-      reviewDescription: 'actionFlow.refundAndClaimAll.review.description',
-      reviewHint: 'actionFlow.refundAndClaimAll.review.hint',
-      reviewHintSwitch: 'actionFlow.refundAndClaimAll.review.hintSwitch',
-      executeTitle: 'actionFlow.refundAndClaimAll.execute.title',
-      executeDescription: 'actionFlow.refundAndClaimAll.execute.description',
-      executeHint: 'actionFlow.refundAndClaimAll.execute.hint',
-      executeButton: 'actionFlow.refundAndClaimAll.execute.button',
-      successTitle: 'actionFlow.refundAndClaimAll.success.title',
-      successDescription: 'actionFlow.refundAndClaimAll.success.description',
-      successHint: 'actionFlow.refundAndClaimAll.success.hint',
-    },
-    summaryItems: (ctx) => [
-      { label: ctx.t('actionFlow.summary.totalClaimable'), value: totalDisplay, emphasize: true },
-      { label: ctx.t('actionFlow.summary.duelCount'), value: String(duelCount) },
-      { label: ctx.t('actionFlow.summary.chain'), value: ctx.chainName },
-    ],
-  };
-}

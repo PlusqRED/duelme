@@ -59,13 +59,13 @@ describe('SafeMini', () => {
     expect(bars().at(-1)).toEqual(['more', '+2']);
   });
 
-  it('leads Take to the dashboard, out of the menu', () => {
+  it('leads Take to the dashboard\'s safe, out of the menu', () => {
     const onLeave = renderSafe(owedOf([BACK]));
     const take = screen.getByRole('link', { name: 'Take' });
 
     fireEvent.click(take);
 
-    expect(take.getAttribute('href')).toBe('/dashboard');
+    expect(take.getAttribute('href')).toBe('/dashboard#collect');
     expect(onLeave).toHaveBeenCalledOnce();
   });
 

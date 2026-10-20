@@ -20,6 +20,14 @@ describe('Button', () => {
     expect(screen.getByRole('button', { name: 'Take 20 USDT' }).className).toContain('bg-sun');
   });
 
+  it('stands paper on a dark edge on the contract\'s navy safe', () => {
+    render(<Button variant="paperOnNavy">Take 5 USDT</Button>);
+
+    const { className } = screen.getByRole('button', { name: 'Take 5 USDT' });
+    expect(className).toContain('bg-paper');
+    expect(className).toContain('[--keycap-edge:var(--color-ink-edge)]');
+  });
+
   it('draws no keycap for a ghost button', () => {
     render(<Button variant="ghost">Sign out</Button>);
 

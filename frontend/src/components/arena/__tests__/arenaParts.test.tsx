@@ -95,9 +95,26 @@ describe('Safe', () => {
     expect(container.querySelector('.bg-canvas-deep.rounded-full')).not.toBeNull();
     expect(container.querySelector('.bg-sun.rounded-full.size-10')).toBeNull();
   });
+
+  it('goes without its name on a dashboard card, where there is no room for it', () => {
+    render(safe({ name: undefined, isCompact: true }));
+
+    expect(screen.queryByText('Smart contract')).toBeNull();
+    expect(screen.getByText('198').className).toContain('text-[1.0625rem]/none');
+  });
 });
 
 describe('Bubble', () => {
+  it('sits straight over a small seat, its words centred, rather than leaning out', () => {
+    const { container } = render(
+      <Bubble side="creator" kind="say" isCompact>
+        Victory is mine
+      </Bubble>
+    );
+
+    expect(container.firstElementChild?.className).toContain('text-center');
+  });
+
   it('carries a player’s own words without an icon, wrapping', () => {
     const { container } = render(
       <Bubble side="creator" kind="note">
@@ -119,5 +136,15 @@ describe('Seat', () => {
     );
 
     expect(screen.getByText(en['room.you']).className).toContain('bg-ink');
+  });
+
+  it('sets a small seat\'s name smaller', () => {
+    render(
+      <Seat face={null} timer={null} isWinner={false} name="0x32a3...aa23" isOpen={false} isYou={false} isCompact>
+        {null}
+      </Seat>
+    );
+
+    expect(screen.getByText('0x32a3...aa23').className).toContain('text-note/[1.2]');
   });
 });

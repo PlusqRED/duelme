@@ -98,4 +98,15 @@ describe('ArenaStage', () => {
     expect(faceRefs.creator.current).not.toBeNull();
     expect(faceRefs.opponent.current).not.toBeNull();
   });
+
+  it('draws a dashboard card\'s small copy without the match, the safe\'s name or the players\' levels', () => {
+    const joined = duelView({ opponent: OPPONENT, state: DuelState.Funded });
+
+    render(stage({ view: arenaView(joined, 'funded'), players: { creator: CREATOR, opponent: OPPONENT }, isCompact: true }));
+
+    expect(screen.queryByText('Match in Chess')).toBeNull();
+    expect(screen.queryByText(en['sim.contract'])).toBeNull();
+    expect(screen.queryByTitle(en['room.rep.stats'].replace('{honored}', '4').replace('{abandoned}', '0'))).toBeNull();
+    expect(screen.getByText('Ace')).toBeTruthy();
+  });
 });

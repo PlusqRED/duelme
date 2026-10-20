@@ -8,7 +8,7 @@ import { RecentDuelsFilters } from '@/components/duel/recent/RecentDuelsFilters'
 import { RecentDuelsGrid } from '@/components/duel/recent/RecentDuelsGrid';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { useNicknames } from '@/hooks/useNicknames';
-import { usePublicDuelMetas } from '@/hooks/usePublicDuelMetas';
+import { useDuelMetas } from '@/hooks/useDuelMetas';
 import { useRecentDuels } from '@/hooks/useRecentDuels';
 import { useReputationLevels } from '@/hooks/useReputationLevels';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -55,7 +55,7 @@ export default function RecentDuelsPage() {
     [duels],
   );
 
-  const { metaByDuelId } = usePublicDuelMetas(duelIds, DEFAULT_CHAIN_ID);
+  const { metaByDuelId } = useDuelMetas(duelIds, DEFAULT_CHAIN_ID);
   const { reputationByAddress } = useReputationLevels(addresses, DEFAULT_CHAIN_ID);
   const { resolveDisplay, nicknameByAddress } = useNicknames(addresses);
 

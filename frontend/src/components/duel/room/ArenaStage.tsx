@@ -14,7 +14,10 @@ import type { TranslationKey } from '@/i18n/translations';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { ArenaView } from '@/lib/arenaView';
 import type { SafeTone, SeatSide } from '@/lib/duel';
-import { formatUSDT } from '@/lib/utils';
+import { cn, formatUSDT } from '@/lib/utils';
+
+/** A small copy of the table reads nobody's level. */
+const NO_PLAYERS: (string | undefined)[] = [];
 
 const vaultLabels: Record<SafeTone, TranslationKey> = {
   open: 'sim.vault.open',
@@ -42,13 +45,18 @@ interface ArenaStageProps {
   faceRefs?: Record<SeatSide, RefObject<HTMLSpanElement | null>>;
   /** The open seat, for a reader who could take it: shown sitting down while they point at Join, and their wallet under it. */
   openSeat?: TakeableSeat;
+  /**
+   * A small copy of the table, one of several on a page: smaller seats and safe, and only who sits
+   * where, what they say and the money; no levels, no match, no names under the safe.
+   */
+  isCompact?: boolean;
 }
 
 /**
  * A real duel's table: the creator on the left, the opponent's seat on the right, the contract's
  * safe between, and the stakes flying between them as the duel moves.
  */
-export function ArenaStage({ view, players, viewerSide, chainId, matchLabel, clock, faceRefs, openSeat }: ArenaStageProps) {
+export function ArenaStage({ view, players, viewerSide, chainId, matchLabel, clock, faceRefs, openSeat, isCompact = false }: ArenaStageProps) {
   const { t, language } = useTranslation();
   const flightsRef = useRef<HTMLDivElement>(null);
   const ownCreatorFace = useRef<HTMLSpanElement>(null);
@@ -70,7 +78,7 @@ export function ArenaStage({ view, players, viewerSide, chainId, matchLabel, clo
 
   const addresses = useMemo(() => [players.creator ?? undefined, players.opponent ?? undefined], [players.creator, players.opponent]);
   const { resolveDisplay } = useNicknames(addresses);
-  const { reputationStatsByAddress } = useReputationLevels(addresses, chainId);
+  const { reputationStatsByAddress } = useReputationLevels(isCompact ? NO_PLAYERS : addresses, chainId);
 
   const seat = (side: SeatSide) => {
     const address = players[side];
@@ -88,13 +96,19 @@ export function ArenaStage({ view, players, viewerSide, chainId, matchLabel, clo
         gain={gains[side]}
         faceRef={side === 'creator' ? creatorFace : opponentFace}
         takeable={address ? undefined : openSeat}
+        isCompact={isCompact}
       />
     );
   };
 
   return (
     <div
-      className="relative mx-auto grid max-w-[660px] grid-cols-[minmax(0,1fr)_minmax(12px,0.6fr)_var(--vault-w)_minmax(12px,0.6fr)_minmax(0,1fr)] items-start pt-[78px] [--av:84px] [--box:116px] [--vault-w:140px] max-xs:grid-cols-[minmax(0,1fr)_8px_var(--vault-w)_8px_minmax(0,1fr)] max-xs:pt-[70px] max-xs:[--av:58px] max-xs:[--box:100px] max-xs:[--vault-w:96px]"
+      className={cn(
+        'relative mx-auto grid items-start',
+        isCompact
+          ? 'w-full max-w-[400px] grid-cols-[minmax(0,1fr)_8px_var(--vault-w)_8px_minmax(0,1fr)] pt-[60px] [--av:52px] [--box:86px] [--vault-w:94px]'
+          : 'max-w-[660px] grid-cols-[minmax(0,1fr)_minmax(12px,0.6fr)_var(--vault-w)_minmax(12px,0.6fr)_minmax(0,1fr)] pt-[78px] [--av:84px] [--box:116px] [--vault-w:140px] max-xs:grid-cols-[minmax(0,1fr)_8px_var(--vault-w)_8px_minmax(0,1fr)] max-xs:pt-[70px] max-xs:[--av:58px] max-xs:[--box:100px] max-xs:[--vault-w:96px]'
+      )}
     >
       {seat('creator')}
       <Track side="creator" isLit={shown.staked.creator} />
@@ -105,9 +119,13 @@ export function ArenaStage({ view, players, viewerSide, chainId, matchLabel, clo
         total={<CountedUsdt raw={shown.totalRaw} />}
         isLocked={shown.isLocked}
         isPayout={shown.isPayout}
-        name={t('sim.contract')}
+        name={isCompact ? undefined : t('sim.contract')}
         state={{ label: t(vaultLabels[shown.vault]), tone: shown.vault }}
-        above={shown.match && <Match label={shown.match === 'paused' ? t('room.paused') : matchLabel} isPaused={shown.match === 'paused'} />}
+        above={
+          !isCompact &&
+          shown.match && <Match label={shown.match === 'paused' ? t('room.paused') : matchLabel} isPaused={shown.match === 'paused'} />
+        }
+        isCompact={isCompact}
       />
       <Track side="opponent" isLit={shown.staked.opponent} />
       {seat('opponent')}

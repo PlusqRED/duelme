@@ -46,6 +46,13 @@ interface ReputationGaugeProps {
   change: SampleChange | null;
   /** The sample player's face, standing on the scale. */
   face: ReactNode;
+  /**
+   * The pin's entrance, for a scale shown off the first time it is seen: `waiting` keeps it at the
+   * scale's start, and `walking` glides it from there to its place.
+   */
+  entrance?: 'waiting' | 'walking';
+  /** A narrow card's scale: a smaller pin and smaller names, which break with a hyphen when long. */
+  isCompact?: boolean;
 }
 
 /**
@@ -54,7 +61,7 @@ interface ReputationGaugeProps {
  * what the verdict beside it says, so screen readers skip it. On the narrowest phones the zones
  * keep their share of the width and a long name breaks with a hyphen instead.
  */
-export function ReputationGauge({ point, change, face }: ReputationGaugeProps) {
+export function ReputationGauge({ point, change, face, entrance, isCompact = false }: ReputationGaugeProps) {
   const { t } = useTranslation();
   const scaleRef = useRef<HTMLDivElement>(null);
   const pinX = usePinX(scaleRef, reputationLevels.indexOf(point.level), point.spot);
@@ -64,7 +71,10 @@ export function ReputationGauge({ point, change, face }: ReputationGaugeProps) {
     <div aria-hidden="true" className="relative">
       <div
         ref={scaleRef}
-        className="grid grid-cols-[0.6fr_1fr_1fr_1fr] items-center gap-x-1.5 gap-y-3 pt-[58px] text-center text-sm font-label text-ink-3 @max-[380px]/lab:text-xs @max-[300px]/lab:grid-cols-[minmax(0,0.6fr)_repeat(3,minmax(0,1fr))] @max-[300px]/lab:text-micro"
+        className={cn(
+          'grid grid-cols-[0.6fr_1fr_1fr_1fr] items-center gap-x-1.5 gap-y-3 pt-[58px] text-center text-sm font-label text-ink-3 @max-[380px]/lab:text-xs @max-[300px]/lab:grid-cols-[minmax(0,0.6fr)_repeat(3,minmax(0,1fr))] @max-[300px]/lab:text-micro',
+          isCompact && 'grid-cols-[minmax(0,0.6fr)_repeat(3,minmax(0,1fr))] gap-y-2.5 pt-[50px] text-xs/[1.55]'
+        )}
       >
         {reputationLevels.map((level) => (
           <span
@@ -81,6 +91,7 @@ export function ReputationGauge({ point, change, face }: ReputationGaugeProps) {
             key={level}
             className={cn(
               '@max-[300px]/lab:hyphens-auto @max-[300px]/lab:[overflow-wrap:break-word]',
+              isCompact && 'hyphens-auto [overflow-wrap:break-word]',
               level === 'new' && 'whitespace-nowrap',
               level === point.level && cn('font-extrabold', zoneLooks[level].ink)
             )}
@@ -91,11 +102,11 @@ export function ReputationGauge({ point, change, face }: ReputationGaugeProps) {
       </div>
       {pinX !== null && (
         <span
-          style={{ '--pin-x': `${pinX}px` }}
-          className={cn('absolute top-0 left-0 translate-x-(--pin-x)', change && 'transition-[translate] duration-650 ease-spring')}
+          style={{ '--pin-x': `${entrance === 'waiting' ? 0 : pinX}px` }}
+          className={cn('absolute top-0 left-0 translate-x-(--pin-x)', (change || entrance === 'walking') && 'transition-[translate] duration-650 ease-spring')}
         >
-          <span className="relative grid w-11 -translate-x-1/2 justify-items-center after:mt-0.5 after:border-6 after:border-transparent after:border-t-ink">
-            <span className="block size-11 rounded-full bg-paper p-[3px] shadow-pin ring-2 ring-ink">{face}</span>
+          <span className={cn('relative grid w-11 -translate-x-1/2 justify-items-center after:mt-0.5 after:border-6 after:border-transparent after:border-t-ink', isCompact && 'w-[38px]')}>
+            <span className={cn('block size-11 rounded-full bg-paper p-[3px] shadow-pin ring-2 ring-ink', isCompact && 'size-[38px]')}>{face}</span>
             {mark && (
               <span
                 key={change?.id}

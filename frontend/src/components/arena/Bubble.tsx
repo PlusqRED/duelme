@@ -20,6 +20,8 @@ interface BubbleProps {
    */
   kind: 'say' | 'note' | 'timer';
   icon?: IconName;
+  /** Over a small copy of the table: centred on the avatar whatever the screen, small, and wrapping. */
+  isCompact?: boolean;
   children: ReactNode;
 }
 
@@ -29,32 +31,39 @@ interface BubbleProps {
  * phone; a clock, whose length depends on the contract's timeout, always keeps to the seat's outer
  * edge and grows towards the safe. Its seat gives the avatar's size as `--av`.
  */
-export function Bubble({ side, kind, icon, children }: BubbleProps) {
+export function Bubble({ side, kind, icon, isCompact = false, children }: BubbleProps) {
+  // Leaning outwards is for the one big table on a page; a small one keeps everything centred, and a
+  // word too long for its narrow bubble is hyphenated where the language allows before it is broken.
+  const leans = !isCompact;
   return (
     <p
       data-side={side}
       className={cn(
         'absolute bottom-[calc(100%+14px)] left-1/2 z-2 inline-flex origin-bottom -translate-x-1/2 animate-pop items-center gap-1.5 rounded-[14px] px-3 py-[7px] text-sm font-bold whitespace-nowrap',
-        'max-xs:gap-1 max-xs:px-[9px] max-xs:py-1.5 max-xs:text-xs',
-        'max-xs:data-[side=creator]:-left-[18px] max-xs:data-[side=creator]:translate-x-0',
-        'max-xs:data-[side=opponent]:-right-[18px] max-xs:data-[side=opponent]:left-auto max-xs:data-[side=opponent]:translate-x-0',
+        isCompact && 'w-max max-w-[calc(var(--av)+56px)] gap-1 px-[9px] py-[5px] text-center text-xs/[1.25] whitespace-normal hyphens-auto [overflow-wrap:break-word]',
+        leans && [
+          'max-xs:gap-1 max-xs:px-[9px] max-xs:py-1.5 max-xs:text-xs',
+          'max-xs:data-[side=creator]:-left-[18px] max-xs:data-[side=creator]:translate-x-0',
+          'max-xs:data-[side=opponent]:-right-[18px] max-xs:data-[side=opponent]:left-auto max-xs:data-[side=opponent]:translate-x-0',
+        ],
         kind === 'timer' && [
           'bg-sun-soft text-sun-ink',
-          'data-[side=creator]:-left-[18px] data-[side=creator]:translate-x-0',
-          'data-[side=opponent]:-right-[18px] data-[side=opponent]:left-auto data-[side=opponent]:translate-x-0',
+          leans && 'data-[side=creator]:-left-[18px] data-[side=creator]:translate-x-0',
+          leans && 'data-[side=opponent]:-right-[18px] data-[side=opponent]:left-auto data-[side=opponent]:translate-x-0',
         ],
-        kind === 'note' && 'w-max max-w-[220px] text-center whitespace-normal [overflow-wrap:anywhere] max-xs:max-w-[120px]',
+        kind === 'note' && leans && 'w-max max-w-[220px] text-center whitespace-normal [overflow-wrap:anywhere] max-xs:max-w-[120px]',
         // A longer phrase on a phone wraps rather than reaching over the safe's lock.
-        kind === 'say' && 'max-xs:w-max max-xs:max-w-[120px] max-xs:text-left max-xs:whitespace-normal',
+        kind === 'say' && leans && 'max-xs:w-max max-xs:max-w-[120px] max-xs:text-left max-xs:whitespace-normal',
         kind !== 'timer' && [
           speechClassName,
           'text-ink [--tone:var(--color-red)] data-[side=opponent]:[--tone:var(--color-blue)]',
-          'max-xs:data-[side=creator]:after:left-[calc(18px+var(--av)/2)]',
-          'max-xs:data-[side=opponent]:after:right-[calc(18px+var(--av)/2)] max-xs:data-[side=opponent]:after:left-auto max-xs:data-[side=opponent]:after:translate-x-1/2',
+          leans && 'max-xs:data-[side=creator]:after:left-[calc(18px+var(--av)/2)]',
+          leans &&
+            'max-xs:data-[side=opponent]:after:right-[calc(18px+var(--av)/2)] max-xs:data-[side=opponent]:after:left-auto max-xs:data-[side=opponent]:after:translate-x-1/2',
         ]
       )}
     >
-      {icon && <Icon name={icon} className={cn('size-4 max-xs:size-[13px]', kind === 'say' && 'text-(--tone)')} />}
+      {icon && <Icon name={icon} className={cn('size-4 max-xs:size-[13px]', isCompact && 'size-[13px]', kind === 'say' && 'text-(--tone)')} />}
       <span>{children}</span>
     </p>
   );

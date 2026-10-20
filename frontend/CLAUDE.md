@@ -145,7 +145,7 @@ and controls; the guard tests below list it.
   and two SVG rings whose dash offset moves: a player's clock (`arena/CountdownRing`), which
   drains, and the landing's test coverage (`landing/Guarantees`), which fills as its figure counts.
   The moves are `animate-*` utilities from the `@theme` in `styles/motion.css`, the landing's own
-  in `styles/landingMotion.css`; a colour that should flash or a glow that should breathe is an
+  in `styles/landingMotion.css`, the dashboard's in `styles/dashboardMotion.css`; a colour that should flash or a glow that should breathe is an
   overlay whose opacity moves (the green ring when money arrives, the safe's seal, an open seat, a
   payout in a receipt). With `prefers-reduced-motion` everything is in its final place at once (a
   delayed move too: `motion.css` zeroes delays as well as durations), and
@@ -176,7 +176,7 @@ and controls; the guard tests below list it.
 | `frontend/src/lib/contracts.ts` | ABI, DuelState enum, ACTIVE_STATES, ERC20 ABIs, getUsdtAddress |
 | `frontend/src/styles/theme.css` | The design's tokens as Tailwind's theme: colours by role, type, weights, easing, shadows |
 | `frontend/src/styles/base.css` | Element defaults (font, headings, focus ring), the `keycap` utility every button's press comes from, `link` for a link that reads as one, and `swipe-strip` for a row of cards swiped sideways on a phone |
-| `frontend/src/components/ui/button.tsx` | Keycap buttons (navy, paper, sun, ghost); `buttonVariants` gives a link the same face |
+| `frontend/src/components/ui/button.tsx` | Keycap buttons (navy, paper, paper on the navy safe, sun, ghost); `buttonVariants` gives a link the same face |
 | `frontend/src/components/ui/iconPaths.ts` | The design's icons as shapes, drawn by `ui/icon.tsx` |
 | `frontend/src/components/ui/dialog.tsx` | The one window: a card from a fixed top on a wide screen, a sheet below 560px; `--dialog-width` widens it; `DialogFooter isPinned` keeps a long sheet's last action on screen on a phone |
 | `frontend/src/components/ui/popover.tsx` | The menus: a panel under its button on a wide screen, a modal sheet below 560px, with a title the sheet shows and a panel only reads out |
@@ -216,8 +216,13 @@ and controls; the guard tests below list it.
 | `frontend/src/hooks/useWriteWithGas.ts` | Duel write dispatcher: relayed / resilient / plain routing + merged hash/isPending/error surface |
 | `frontend/src/lib/writeReceipt.ts` | Waits for a write's receipt and decides by it: the receipt, `TransactionRevertedError` with the replayed reason, or `TransactionReplacedError` |
 | `frontend/src/lib/writeErrors.ts` | The ways a write ends without running (reverted, replaced, wallet not ready), which the guided flows word for the player |
-| `frontend/src/hooks/useDashboardClaims.ts` | Dashboard claim/refund handlers and computed state |
-| `frontend/src/hooks/usePlayerDuels.ts` | Filters `useDuelRange` down to one player; wins/losses/volume/withdrawn totals |
+| `frontend/src/app/dashboard/page.tsx` | My duels: the title and Create a duel, then `components/dashboard/Dashboard` |
+| `frontend/src/components/dashboard/` | The dashboard's parts: `Dashboard` (the guest's invitation, loading, a wallet with no duels, the desk), `TakeSafe` (the navy safe and its one Take; `TakenLine` once emptied), `DuelBoard`s of `MiniDuelCard`s (a small `ArenaStage`), `History` (`FormLine`, search, filters, `HistoryRow`, `HistoryPager`), `StandingCard` (`StandingReputation` on the landing's `ReputationGauge`, `StandingTotals`); `TakeFlowDialog` is the one place Take's signing window is rendered |
+| `frontend/src/hooks/useDashboard.ts` | The reader's duels filed for the dashboard: on (their move or waiting), finished, the money waiting, totals, each duel's game and the other players' names |
+| `frontend/src/hooks/useDashboardTake.ts` | The safe's one Take: `refundAndClaimPayouts` over every duel that holds money for the reader, through `useActionFlow`; what was taken stays out of the safe from the confirmation |
+| `frontend/src/lib/dashboard.ts` | A duel as the dashboard files it: whose move, how urgent, its outcome, the signed amount, why it ended without a winner, and the reader's totals |
+| `frontend/src/lib/dashboardHistory.ts` | The history's search (spaces ignored), filters with their counts, and pages of 20 |
+| `frontend/src/hooks/useDuelMetas.ts` | Duel metadata (the game) by id, read in the backend's batches of 200 and keyed with the contract address |
 | `frontend/src/lib/owed.ts` | What the contract keeps for a player — wins, stakes coming back, timed-out claims — and the safe's bars; `useOwed` reads it from the shared `useDuelRange` history and looks again when a claim runs out of time |
 | `frontend/src/components/landing/Hero.tsx` | The landing's first screen: the motto, the two ways in, the developer's note (`DevNote`; its last update is the build's time, which `next.config.ts` writes in as `DUELME_BUILT_AT`), the platform's figures and the demo duel |
 | `frontend/src/components/landing/DemoDuel.tsx` | The demo duel: stills of a 10 USDT duel from `lib/demoDuel.ts`, moved between by `useDemoDuel` (steps, three endings, one play by itself once in view), stakes flown by `useStakeFlights` |
@@ -282,7 +287,7 @@ and controls; the guard tests below list it.
 | `frontend/src/lib/__tests__/contractAddresses.test.ts` | Fails the build when an in-app address map stops agreeing with `constants.ts` |
 | `frontend/src/lib/profile.ts` | Profile types and validation constants |
 | `frontend/src/lib/profileApi.ts` | Backend profile API client |
-| `frontend/src/lib/gameApi.ts` | Backend game-catalog and duel-metadata API client; every duel-metadata call carries the contract address |
+| `frontend/src/lib/gameApi.ts` | Backend game-catalog and duel-metadata API client; every duel-metadata call carries the contract address, and `duelMetaBatches` splits ids into the backend's batches of 200 |
 | `frontend/src/hooks/useMyProfile.ts` | Current user's profile (read/write) |
 | `frontend/src/hooks/useProfile.ts` | Read any player's profile by wallet |
 | `frontend/src/hooks/useNicknames.ts` | Batch nickname resolution for duel feeds |
@@ -372,7 +377,7 @@ and controls; the guard tests below list it.
 - Use shared constants from `constants.ts` (`ZERO_ADDRESS`, `CHAIN_NAMES`) and `contracts.ts` (`ACTIVE_STATES`, `balanceOfAbi`, `transferAbi`, `getUsdtAddress`) — never redefine locally.
 - **The CI `next build` has no Privy app id.** The `frontend` job builds without secrets, so `NEXT_PUBLIC_PRIVY_APP_ID` is undefined there, and that works only because the root layout is `force-dynamic` and nothing under it is prerendered. Remove `force-dynamic` and the job fails with `Cannot initialize the Privy provider with an invalid Privy app ID`, while the image build, which gets the real id, passes.
 - Frontend npm pinned to `^11.12.1` via `frontend/package.json` `engines` + `frontend/.npmrc` `engine-strict=true`. CI and `frontend/Dockerfile` both pin it with `corepack enable npm && corepack prepare npm@11.12.1 --activate` — `corepack enable` alone does **not** shim npm (npm ships with Node), so npm has to be named explicitly or the `packageManager` field is ignored. A mismatch caused `EUSAGE` / `EBADENGINE` in `npm ci`.
-- `overrides.eslint-plugin-react-hooks: 7.0.1` is a temporary pin — `7.1.x` adds `react-hooks/set-state-in-effect`, which flags existing patterns in `dashboard/page.tsx`, `useCreateDuelFlow.ts`, `useJoinDuelFlow.ts`. Lift only after refactoring those files.
+- `overrides.eslint-plugin-react-hooks: 7.0.1` is a temporary pin — `7.1.x` adds `react-hooks/set-state-in-effect`, which flags existing patterns in `useCreateDuelFlow.ts`, `useJoinDuelFlow.ts`. Lift only after refactoring those files.
 - **CSP `connect-src` must allowlist every external host the frontend calls** — otherwise the browser silently blocks the `fetch` ("Refused to connect ... Content Security Policy"). Set in the `Content-Security-Policy` header in `ops/caddy/{dev.duelme.pro,duelme.pro}.Caddyfile`. Must include the RPC fallback chain from `wagmi.ts` (`https://gateway.tenderly.co`, `https://*.drpc.org`, `arb1.arbitrum.io`, `sepolia-rollup.arbitrum.io`) — plus any custom `NEXT_PUBLIC_*_RPC_URL` host. The Privy wallet-login UI (`loginMethods` includes `'wallet'`) also needs the WalletConnect/Privy set per [Privy's CSP guide](https://docs.privy.io/security/implementation-guide/content-security-policy): `connect-src` += `https://explorer-api.walletconnect.com wss://relay.walletconnect.com wss://relay.walletconnect.org wss://www.walletlink.org https://*.rpc.privy.systems`; `frame-src` += `https://verify.walletconnect.com https://verify.walletconnect.org https://challenges.cloudflare.com`; `script-src` += `https://challenges.cloudflare.com` (Privy Turnstile). The **live** `/etc/caddy/Caddyfile` is a hand-maintained combined file (other sites too) and is **NOT** auto-deployed by CI — edit it on the host and `sudo systemctl reload caddy` (the repo `ops/caddy/*` files are the reference copy).
 - Four frontend rules live in `contracts/CLAUDE.md`, beside the contract they mirror: `duelMeAbi` /
   `DuelState` in `lib/contracts.ts` and the invite-hash formula in `lib/invite.ts` ("ABI sync",

@@ -32,6 +32,13 @@ function seat(overrides: Partial<Parameters<typeof RoomSeat>[0]> = {}) {
 }
 
 describe('RoomSeat', () => {
+  it('keeps a small seat on a dashboard card to the name, without the address and level under it', () => {
+    render(seat({ isYou: true, name: en['room.you'], level: getReputationSummaryFromStats(4, 0), isCompact: true }));
+
+    expect(screen.queryByText('0x32a3...aa23')).toBeNull();
+    expect(screen.queryByTitle(en['room.rep.stats'].replace('{honored}', '4').replace('{abandoned}', '0'))).toBeNull();
+  });
+
   it('shows an open seat until someone joins', () => {
     const { container } = render(seat({ address: null, name: en['sim.openSeat'] }));
 

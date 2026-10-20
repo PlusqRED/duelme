@@ -11,8 +11,8 @@ const chain = vi.hoisted(() => ({ duels: [] as PublicDuel[], metas: {} as Record
 vi.mock('@/hooks/usePublicDuels', () => ({
   usePublicDuels: () => ({ duels: chain.duels, isLoading: false, isError: false, retry: vi.fn() }),
 }));
-vi.mock('@/hooks/usePublicDuelMetas', () => ({
-  usePublicDuelMetas: (ids: number[]) => {
+vi.mock('@/hooks/useDuelMetas', () => ({
+  useDuelMetas: (ids: number[]) => {
     chain.askedFor = ids;
     return { metaByDuelId: chain.metas };
   },

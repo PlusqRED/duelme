@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { Chip } from '@/components/ui/chip';
-import { Button } from '@/components/ui/button';
 import type { PlayerDuel } from '@/lib/duel';
 import { useTranslation } from '@/i18n/useTranslation';
 import { ZERO_ADDRESS } from '@/lib/constants';
@@ -21,17 +20,13 @@ import {
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
 import { DUEL_STATE_CONFIG, TIMED_OUT_CONFIG } from '@/lib/duelStateColors';
 import { formatDateTime, formatUSDT, truncateAddress } from '@/lib/utils';
-import { ArrowUpRight, CheckCircle2, Coins, RotateCcw } from 'lucide-react';
+import { CheckCircle2, Coins, RotateCcw } from 'lucide-react';
 import { GameBadge } from '@/components/game/GameBadge';
 import { ReputationBadge } from '@/components/identity/ReputationBadge';
 
 interface DuelCardProps {
   duel: PlayerDuel;
   viewerAddress?: string;
-  onClaim?: () => void;
-  isClaiming?: boolean;
-  onRefundClaim?: () => void;
-  isRefundClaiming?: boolean;
   resolveDisplay?: (address: string) => string;
   gameName?: string;
   gameSlug?: string;
@@ -55,10 +50,6 @@ const TERMINAL_STATES = new Set([
 export function DuelCard({
   duel,
   viewerAddress,
-  onClaim,
-  isClaiming = false,
-  onRefundClaim,
-  isRefundClaiming = false,
   resolveDisplay,
   gameName,
   gameSlug,
@@ -164,55 +155,6 @@ export function DuelCard({
                 {formatUSDT(claimableAmount, language)} USDT
               </div>
             </div>
-          )}
-
-          {hasClaimableAmount && onClaim && (
-            <Button
-              variant="sun"
-              size="lg"
-              className="w-full lg:w-auto"
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                onClaim();
-              }}
-              disabled={isClaiming}
-            >
-              {!isClaiming && <ArrowUpRight className="h-4 w-4" />}
-              {isClaiming
-                ? t('status.claiming')
-                : t('dashboard.claimButton')}
-            </Button>
-          )}
-
-          {isRefundable && onRefundClaim && (
-            <div className="rounded-2xl border border-red-200 bg-gradient-to-br from-red-50 via-white to-red-100 px-4 py-3 text-left lg:text-right">
-              <div className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-red-700">
-                <RotateCcw className="h-3.5 w-3.5" />
-                {t('dashboard.refundAvailable')}
-              </div>
-              <div className="mt-1 text-lg font-bold text-red-900">
-                {formatUSDT(duel.wagerAmount, language)} USDT
-              </div>
-            </div>
-          )}
-
-          {isRefundable && onRefundClaim && (
-            <Button
-              size="lg"
-              className="w-full lg:w-auto"
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                onRefundClaim();
-              }}
-              disabled={isRefundClaiming}
-            >
-              {!isRefundClaiming && <RotateCcw className="h-4 w-4" />}
-              {isRefundClaiming
-                ? t('status.claiming')
-                : t('action.claimRefund')}
-            </Button>
           )}
         </div>
       </div>

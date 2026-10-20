@@ -1,6 +1,7 @@
 import { actionFlowClaimsTranslations } from './translations/actionFlowClaims';
 import { actionFlowResultsTranslations } from './translations/actionFlowResults';
 import { createDuelTranslations } from './translations/createDuel';
+import { dashboardTranslations } from './translations/dashboard';
 import { dashboardWalletTranslations } from './translations/dashboardWallet';
 import { demoDuelTranslations } from './translations/demoDuel';
 import { duelTranslations } from './translations/duel';
@@ -43,6 +44,7 @@ export const translations = {
     ...duelTurnTranslations.en,
     ...duelMovesTranslations.en,
     ...signingTranslations.en,
+    ...dashboardTranslations.en,
   },
   ru: {
     ...navigationTranslations.ru,
@@ -66,6 +68,7 @@ export const translations = {
     ...duelTurnTranslations.ru,
     ...duelMovesTranslations.ru,
     ...signingTranslations.ru,
+    ...dashboardTranslations.ru,
   },
 } as const;
 
