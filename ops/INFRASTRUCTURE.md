@@ -25,7 +25,7 @@ Comprehensive hardening applied across CI/CD, Docker, reverse proxy, and runtime
 | Measure | Details |
 |---------|---------|
 | Network isolation | Separate `backend` and `frontend` Docker networks — frontend cannot reach MongoDB |
-| MongoDB authentication | Root credentials via `--auth` flag, authenticated healthcheck, connection URI with `authSource=admin` |
+| MongoDB authentication | Root credentials via `--auth` flag, unauthenticated `ping` healthcheck (no credentials in any argv), connection URI with `authSource=admin` |
 | Secrets management | `.env` files generated at deploy time from GitHub environment secrets — no secrets in repo or on disk manually |
 | Swagger blocked in prod | Switched off in `application-prod.yml` and denied at runtime by `SecurityConfig` (the native image ignores the profile's springdoc switches) and blocked at Caddy level (404 for `/api/v1/swagger-ui*`, `/api/v1/docs*`, `/api/v1/v3/api-docs*`) |
 
@@ -79,6 +79,6 @@ Comprehensive hardening applied across CI/CD, Docker, reverse proxy, and runtime
 
 | Service | Endpoint | Interval | Timeout | Start period | Retries |
 |---------|----------|----------|---------|--------------|---------|
-| MongoDB | `mongosh` ping with auth | 10s | 3s | 10s | 3 |
+| MongoDB | `mongosh` ping (needs no auth) | 10s | 3s | 10s | 3 |
 | Backend | `GET /api/v1/health` | 10s | 3s | 5s | 3 |
 | Frontend | `GET /api/health` | 10s | 3s | 5s | 3 |
