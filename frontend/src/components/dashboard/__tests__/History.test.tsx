@@ -33,7 +33,7 @@ function rows() {
 }
 
 function search(query: string) {
-  fireEvent.change(screen.getByRole('searchbox', { name: 'Search your duels' }), { target: { value: query } });
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Game, number, address or message' }), { target: { value: query } });
 }
 
 beforeEach(() => {
@@ -107,7 +107,8 @@ describe('History', () => {
     search('zzz');
 
     expect(screen.getByText('No duel matches “zzz”.')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Clear the search' }));
+    // The field's own cross clears it too; this is the one under the empty list.
+    fireEvent.click(screen.getAllByRole('button', { name: 'Clear the search' }).at(-1)!);
 
     expect(rows()).toEqual(['/duel/1']);
   });
@@ -138,7 +139,7 @@ describe('History', () => {
 
   it('starts from the first page after a search', () => {
     renderHistory(Array.from({ length: 45 }, (_, index) => won(45 - index)));
-    fireEvent.click(screen.getByRole('button', { name: 'Page 3 of 3' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Page 3' }));
 
     search('#4');
 

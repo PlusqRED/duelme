@@ -1,9 +1,16 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Pager } from '@/components/lists/Pager';
 
 afterEach(cleanup);
+
+/** A pager over 57 items that turns its own page, as a list does. */
+function TurningPager({ start }: { start: number }) {
+  const [page, setPage] = useState(start);
+  return <Pager page={page} total={57} pageSize={20} onPage={setPage} />;
+}
 
 describe('Pager', () => {
   it('shows nothing for a list that fits on one page', () => {
@@ -46,5 +53,13 @@ describe('Pager', () => {
     render(<Pager page={1} total={57} pageSize={20} onPage={vi.fn()} />);
 
     expect((screen.getByRole('button', { name: 'Previous' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('gives the focus to the page shown after a step, since the step pressed may have turned off', () => {
+    render(<TurningPager start={2} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Page 3' }));
   });
 });

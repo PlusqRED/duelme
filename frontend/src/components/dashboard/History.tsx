@@ -3,17 +3,26 @@
 import { useId, useMemo, useRef, useState } from 'react';
 import { DeskTitle } from '@/components/dashboard/DeskTitle';
 import { FormLine } from '@/components/dashboard/FormLine';
-import { HistoryPager } from '@/components/dashboard/HistoryPager';
 import { HistoryRow, OUTCOME_LOOKS } from '@/components/dashboard/HistoryRow';
-import { Icon } from '@/components/ui/icon';
-import { Input } from '@/components/ui/input';
+import { FilterPill } from '@/components/lists/FilterPill';
+import { Pager } from '@/components/lists/Pager';
+import { SearchField } from '@/components/lists/SearchField';
 import type { DuelGame } from '@/hooks/useDashboard';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useSeenOnce } from '@/hooks/useSeenOnce';
 import type { TranslationKey } from '@/i18n/translations';
 import { useTranslation } from '@/i18n/useTranslation';
 import { NO_WINNER_REASONS, otherOf, outcomeOf, type MyDuel } from '@/lib/dashboard';
-import { compactSearchText, filterHistory, HISTORY_FILTERS, historyCounts, historyPage, searchHistory, type HistoryFilter } from '@/lib/dashboardHistory';
+import {
+  compactSearchText,
+  filterHistory,
+  HISTORY_FILTERS,
+  HISTORY_PAGE_SIZE,
+  historyCounts,
+  historyPage,
+  searchHistory,
+  type HistoryFilter,
+} from '@/lib/dashboardHistory';
 import type { OwedItem } from '@/lib/owed';
 import { cn, truncateAddress } from '@/lib/utils';
 
@@ -57,7 +66,6 @@ export function History({ past, gameOf, nameOf, owedById }: HistoryProps) {
   const { t, language } = useTranslation();
   const reducedMotion = useReducedMotion();
   const titleId = useId();
-  const searchId = useId();
   const sectionRef = useRef<HTMLElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -95,7 +103,7 @@ export function History({ past, gameOf, nameOf, owedById }: HistoryProps) {
   const found = searchHistory(past, view.query, textOf, language);
   const counts = historyCounts(found);
   const shown = filterHistory(found, view.filter);
-  const { rows, page, pages, from } = historyPage(shown, view.page);
+  const { rows, page } = historyPage(shown, view.page);
   const query = view.query.trim();
 
   function show(change: Partial<typeof view>, motion: RowMotion) {
@@ -125,34 +133,17 @@ export function History({ past, gameOf, nameOf, owedById }: HistoryProps) {
         <FormLine past={past} gameOf={gameOf} />
       </div>
       <div className="mb-3.5 grid gap-3">
-        <div className="relative">
-          <label htmlFor={searchId} className="sr-only">
-            {t('dash.search.label')}
-          </label>
-          <Icon name="search" className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-ink-3" />
-          <Input
-            ref={searchRef}
-            id={searchId}
-            type="search"
-            autoComplete="off"
-            placeholder={t('dash.search.placeholder')}
-            value={view.query}
-            onChange={(event) => show({ query: event.target.value }, 'swap')}
-            className="h-[52px] pl-[46px]"
-          />
-        </div>
+        <SearchField
+          ref={searchRef}
+          value={view.query}
+          onChange={(query) => show({ query }, 'swap')}
+          placeholder={t('dash.search.placeholder')}
+        />
         <div role="group" aria-label={t('dash.filter.label')} className="flex flex-wrap gap-2">
           {HISTORY_FILTERS.map((filter) => (
-            <button
-              key={filter}
-              type="button"
-              aria-pressed={view.filter === filter}
-              onClick={() => show({ filter }, 'swap')}
-              className="group/filter inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border-[1.5px] border-line-strong bg-paper px-3.5 text-body-sm font-label text-ink transition-colors duration-200 hover:border-ink-3 aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-paper"
-            >
-              <span>{t(FILTER_LABELS[filter])}</span>
-              <b className="font-strong text-ink-3 tabular-nums group-aria-pressed/filter:text-paper/70">{counts[filter]}</b>
-            </button>
+            <FilterPill key={filter} isPressed={view.filter === filter} onClick={() => show({ filter }, 'swap')} count={counts[filter]}>
+              {t(FILTER_LABELS[filter])}
+            </FilterPill>
           ))}
         </div>
       </div>
@@ -162,7 +153,7 @@ export function History({ past, gameOf, nameOf, owedById }: HistoryProps) {
             <p>{query ? t('dash.history.none', { q: query }) : t('dash.history.noneFilter')}</p>
             {query && (
               <button type="button" onClick={clearSearch} className="link inline-flex min-h-11 cursor-pointer items-center">
-                {t('dash.history.clear')}
+                {t('lists.clearSearch')}
               </button>
             )}
           </div>
@@ -185,7 +176,7 @@ export function History({ past, gameOf, nameOf, owedById }: HistoryProps) {
             ))}
           </ol>
         )}
-        {pages > 1 && <HistoryPager page={page} pages={pages} from={from} count={rows.length} total={shown.length} onPage={turnTo} />}
+        <Pager page={page} total={shown.length} pageSize={HISTORY_PAGE_SIZE} onPage={turnTo} />
       </div>
     </section>
   );

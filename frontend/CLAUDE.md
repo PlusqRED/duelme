@@ -217,7 +217,7 @@ and controls; the guard tests below list it.
 | `frontend/src/lib/writeReceipt.ts` | Waits for a write's receipt and decides by it: the receipt, `TransactionRevertedError` with the replayed reason, or `TransactionReplacedError` |
 | `frontend/src/lib/writeErrors.ts` | The ways a write ends without running (reverted, replaced, wallet not ready), which the guided flows word for the player |
 | `frontend/src/app/dashboard/page.tsx` | My duels: the title and Create a duel, then `components/dashboard/Dashboard` |
-| `frontend/src/components/dashboard/` | The dashboard's parts: `Dashboard` (the guest's invitation, loading, a wallet with no duels, the desk), `TakeSafe` (the navy safe and its one Take; `TakenLine` once emptied), `DuelBoard`s of `MiniDuelCard`s (a small `ArenaStage`), `History` (`FormLine`, search, filters, `HistoryRow`, `HistoryPager`), `StandingCard` (`StandingReputation` on the landing's `ReputationGauge`, `StandingTotals`); `TakeFlowDialog` is the one place Take's signing window is rendered |
+| `frontend/src/components/dashboard/` | The dashboard's parts: `Dashboard` (the guest's invitation, loading, a wallet with no duels, the desk), `TakeSafe` (the navy safe and its one Take; `TakenLine` once emptied), `DuelBoard`s of `MiniDuelCard`s (a small `ArenaStage`), `History` (`FormLine`, the lists' search, filters and pager, `HistoryRow`), `StandingCard` (`StandingReputation` on the landing's `ReputationGauge`, `StandingTotals` on `identity/PlayerTotals`); `TakeFlowDialog` is the one place Take's signing window is rendered |
 | `frontend/src/hooks/useDashboard.ts` | The reader's duels filed for the dashboard: on (their move or waiting), finished, the money waiting, totals, each duel's game and the other players' names |
 | `frontend/src/hooks/useDashboardTake.ts` | The safe's one Take: `refundAndClaimPayouts` over every duel that holds money for the reader, through `useActionFlow`; what was taken stays out of the safe from the confirmation |
 | `frontend/src/lib/dashboard.ts` | A duel as the dashboard files it: whose move, how urgent, its outcome, the signed amount, why it ended without a winner, and the reader's totals |
@@ -297,7 +297,7 @@ and controls; the guard tests below list it.
 | `frontend/src/components/profile/OAuthCallbackHandler.tsx` | Reads `?steam=`/`?telegram=` query and toasts |
 | `frontend/src/hooks/useSocialLinks.ts` | Social-link mutations (initiate + set/unlink) |
 | `frontend/src/components/feed/` | Duels someone joined as rows: `DuelFeed` (search, state filters with their counts, pages of 20) of `DuelRow`s, each opening into its `DuelReceipt`; the rules are `lib/duelFeed.ts` |
-| `frontend/src/components/lists/` | What every list page shares: `SearchField`, `FilterPill`, `Pager` (`lib/pages.ts`) |
+| `frontend/src/components/lists/` | What every list shares, the dashboard's history too: `SearchField`, `FilterPill`, `Pager` (`lib/pages.ts`; the focus moves to the page shown after a turn) |
 | `frontend/src/components/duels/` | `/duels/public` (`OpenDuelsBoard`: search, game and stake-band filters, `OpenDuelGrid`) and `/duels/recent` (`RecentDuelsBoard`: the feed beside the popular games, its search kept in `?q=` by `useSearchQuery`) |
 | `frontend/src/components/game/GameCatalog.tsx` | `/games`: search, category pills and the games as cards (`CatalogGame`), most played first |
 | `frontend/src/components/game/GameDetail.tsx` | `/games/[slug]`: `GameHead`, the game's open duels (`GameOpenDuels`) and its `DuelFeed`; no such game, or a failed read, as a `LostPage` |

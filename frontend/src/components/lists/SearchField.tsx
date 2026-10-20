@@ -1,5 +1,6 @@
 'use client';
 
+import type { Ref } from 'react';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -9,17 +10,20 @@ interface SearchFieldProps {
   onChange: (value: string) => void;
   /** What can be searched for; it names the field as well. */
   placeholder: string;
+  ref?: Ref<HTMLInputElement>;
 }
 
 /** A list's search: a magnifier in the field, and a cross that empties it once something is typed. */
-export function SearchField({ value, onChange, placeholder }: SearchFieldProps) {
+export function SearchField({ value, onChange, placeholder, ref }: SearchFieldProps) {
   const { t } = useTranslation();
 
   return (
     <div className="relative">
       <Icon name="search" className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-ink-3" />
       <Input
+        ref={ref}
         type="search"
+        autoComplete="off"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}

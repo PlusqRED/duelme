@@ -108,7 +108,7 @@ describe('StandingCard', () => {
     const staked = () => screen.getByText('Staked').nextElementSibling?.textContent;
     expect(staked()).toBe('0 USDT');
 
-    const totals = screen.getByRole('heading', { name: 'Totals' }).parentElement;
+    const totals = screen.getByRole('img', { name: /^Wins/ }).parentElement;
     if (!totals) throw new Error('The totals have a box');
     act(() => FakeIntersectionObserver.watching(totals).report(totals, true));
     act(() => vi.advanceTimersByTime(1000));

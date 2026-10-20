@@ -44,7 +44,6 @@ export const dashboardTranslations = defineSection({
 
     'dash.form.label': 'Latest',
     'dash.form.aria': 'Latest results, newest first: {list}',
-    'dash.search.label': 'Search your duels',
     'dash.search.placeholder': 'Game, number, address or message',
     'dash.filter.label': 'Show',
     'dash.filter.all': 'All',
@@ -55,9 +54,6 @@ export const dashboardTranslations = defineSection({
     'dash.row.waiting': 'Yours to take: {amount} USDT',
     'dash.history.none': 'No duel matches “{q}”.',
     'dash.history.noneFilter': 'No duels like this yet.',
-    'dash.history.clear': 'Clear the search',
-    'dash.pages': 'Pages of the history',
-    'dash.shown': '{from}–{to} of {total}',
 
     'dash.rep.next.new': 'Your first finished duel gives +1 honored.',
     'dash.rep.next.clean': '{n} more {duels} without an abandoned one, and you’re {level}.',
@@ -114,7 +110,6 @@ export const dashboardTranslations = defineSection({
 
     'dash.form.label': 'Последние',
     'dash.form.aria': 'Последние результаты, сначала новые: {list}',
-    'dash.search.label': 'Поиск по твоим дуэлям',
     'dash.search.placeholder': 'Игра, номер, адрес или сообщение',
     'dash.filter.label': 'Показать',
     'dash.filter.all': 'Все',
@@ -125,9 +120,6 @@ export const dashboardTranslations = defineSection({
     'dash.row.waiting': 'Ждёт тебя: {amount} USDT',
     'dash.history.none': 'Ни одна дуэль не подходит под «{q}».',
     'dash.history.noneFilter': 'Таких дуэлей пока нет.',
-    'dash.history.clear': 'Очистить поиск',
-    'dash.pages': 'Страницы истории',
-    'dash.shown': '{from}–{to} из {total}',
 
     'dash.rep.next.new': 'Первая завершённая дуэль даст +1 к выполненным.',
     'dash.rep.next.clean': 'Ещё {n} {duels} без брошенных — и уровень «{level}».',

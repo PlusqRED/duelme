@@ -18,6 +18,8 @@ const viewer = vi.hoisted(() => ({
   duels: { wins: 1, losses: 3, isLoading: false },
 }));
 vi.mock('@privy-io/react-auth', () => ({ usePrivy: () => ({ authenticated: viewer.authenticated }) }));
+// Without motion the figures stand at their values at once, instead of counting up once seen.
+vi.mock('@/hooks/useReducedMotion', () => ({ useReducedMotion: () => true }));
 vi.mock('@/hooks/useActiveWallet', () => ({ useActiveWallet: () => ({ walletAddress: viewer.wallet }) }));
 vi.mock('@/hooks/useProfile', () => ({ useProfile: () => ({ profile: viewer.profile, isLoading: viewer.isLoading }) }));
 vi.mock('@/hooks/useReputation', () => ({
