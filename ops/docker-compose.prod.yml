@@ -11,11 +11,9 @@ services:
     volumes:
       - mongodb_data:/data/db
     healthcheck:
-      # `$$` keeps the credentials out of `docker inspect .Config.Healthcheck.Test`.
-      # Compose leaves `$$VAR` as `$VAR` at apply time; the container's sh
-      # expands it at runtime against MONGO_INITDB_ROOT_USERNAME/_PASSWORD,
-      # which the mongo entrypoint already exports from `environment:` above.
-      test: ["CMD-SHELL", "mongosh --quiet -u \"$$MONGO_INITDB_ROOT_USERNAME\" -p \"$$MONGO_INITDB_ROOT_PASSWORD\" --authenticationDatabase admin --eval 'db.runCommand({ping:1}).ok'"]
+      # `ping` needs no authentication, so the probe carries no credentials: a password given
+      # with -p sits in mongosh's argv, which any local user on the host can read with `ps`.
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ping:1}).ok"]
       interval: 10s
       timeout: 3s
       start_period: 10s
