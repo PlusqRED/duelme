@@ -92,7 +92,7 @@ address, no relayer key — is the case the self-paid path still covers.
 
 **Performance:** `next/dynamic` + `{ ssr: false }` for wallet-dependent UI. `useMemo` for derived lists. Don't create objects/arrays in render. `next/image` with explicit width/height + `loading="lazy"` for below-fold.
 
-**i18n:** All visible strings via `useTranslation()`. Add the key to the matching section file under `frontend/src/i18n/translations/` — with **both** `en` and `ru`; `defineSection` makes a missing `ru` a type error. `translations.ts` only merges the sections. Interpolation is `{token}` placeholders filled from the second argument (`t('dashboard.pageSummary', { current, total })`); there is no ICU, so an ICU `plural` block would render literally. A word that agrees with a number goes through `plural(key, count)` from `useTranslation()` (`i18n/pluralize.ts`): give the base key `.one`, `.few`, `.many` and `.other` in both languages: Russian picks among the first three for whole numbers, and `.other` is the fallback a key needs to count as a `PluralKey` at all. It returns the word alone and the caller places the number: `{game.duelCount} {plural('games.duelsCount', game.duelCount)}`.
+**i18n:** All visible strings via `useTranslation()` in a client component, or `await getTranslation()` (`i18n/serverTranslation.ts`) in a server one. The language is the `duelme-lang` cookie: the root layout reads it, sets `<html lang>` and hands it to `LanguageProvider`, so the server renders the page in it. The switch (`components/layout/LanguageToggle.tsx`) posts the choice as JSON to `/api/language`, which sets the cookie in its response (a cookie the server sets is one Safari keeps for the year; one written by `document.cookie` it drops after a week), and then reloads the page: a full load at the same address, so no part of the page is left in the old language, the hash with a private duel's invite secret never leaves the browser, and the history gains no entry. It was a Server Action with an optimistic switch first, then a form with a redirect back; five review rounds kept finding races and lost hashes, so keep it a post and a reload. The route takes only JSON, which another site's page cannot send without the browser asking first, so it needs no check of where a request came from beyond `Sec-Fetch-Site`. Until the page's script has loaded a press does nothing; a press while a post is still out cancels it, so the last press wins. Another open tab catches up from the cookie, once per language, when it is shown again or focused, comes back from the back/forward cache, or finished loading after the switch. A part that needs no browser API reads the language on the server and stays a server component. Add the key to the matching section file under `frontend/src/i18n/translations/` — with **both** `en` and `ru`; `defineSection` makes a missing `ru` a type error. `translations.ts` only merges the sections. Interpolation is `{token}` placeholders filled from the second argument (`t('dashboard.pageSummary', { current, total })`); there is no ICU, so an ICU `plural` block would render literally. A word that agrees with a number goes through `plural(key, count)` from `useTranslation()` (`i18n/translate.ts`): give the base key `.one`, `.few`, `.many` and `.other` in both languages: Russian picks among the first three for whole numbers, and `.other` is the fallback a key needs to count as a `PluralKey` at all. It returns the word alone and the caller places the number: `{game.duelCount} {plural('games.duelsCount', game.duelCount)}`.
 
 **Naming:** Components `PascalCase.tsx`, hooks `camelCase.ts` prefixed `use`, utils `camelCase.ts`, primitive constants `UPPER_SNAKE_CASE`, object constants `camelCase`, types `PascalCase` (prefer `interface` for object shapes).
 
@@ -172,11 +172,17 @@ and controls; the guard tests below list it.
 | `frontend/src/components/identity/Avatar.tsx` | A player's face: the address's identicon (`lib/identicon.ts`) on their seat's colour |
 | `frontend/src/components/identity/ReputationPill.tsx` | A reputation level as a pill with its three-bar meter; `ReputationBadge` reads a player's level and draws it |
 | `frontend/src/i18n/intlLocales.ts` | The locale `Intl` formats each language's numbers and dates in |
+| `frontend/src/i18n/serverTranslation.ts` | The reader's language on the server, from the cookie, read once per request, and `getTranslation()` for server components |
+| `frontend/src/i18n/language.ts` | The language cookie: its name and settings, how it is read back and parsed (anything unknown is English), the site's languages and the switch's route |
+| `frontend/src/i18n/translate.ts` | One cached `t` and `plural` per language, the same for server components and the browser's context |
+| `frontend/src/i18n/LanguageContext.tsx` | The language in the browser: the layout's, and a refresh when another tab chose another |
+| `frontend/src/app/api/language/route.ts` | Sets the language cookie from the switch's JSON post |
+| `frontend/src/components/layout/LanguageToggle.tsx` | The language switch: posts the choice, then reloads the page at the same address |
 | `frontend/src/styles/__tests__/designGuard.test.ts` | Fails on palette classes and variables, colour values, `dark:`, `font-mono` and unused legacy classes outside what `notYetPorted.ts` lists |
 | `frontend/src/i18n/__tests__/translationsGuard.test.ts` | Fails on a translation key nothing uses and on Russian «вы» outside `stillFormalKeys.ts` |
 | `frontend/src/lib/__tests__/helpers/sourceFiles.ts` | What the guards read: the shipped source files, the theme's tokens, and `shrinkingList` for lists that may only shrink |
 | `frontend/src/lib/constants.ts` | Chain configs, contract addresses, ZERO_ADDRESS, CHAIN_NAMES |
-| `frontend/src/components/providers/Providers.tsx` | Privy + wagmi + QueryClient providers |
+| `frontend/src/components/providers/Providers.tsx` | Privy + wagmi + QueryClient providers, the relayer status and the language the root layout read |
 | `frontend/src/hooks/useDuel.ts` | Read single duel, polled until it is over and paid out; a failed poll keeps the last duel |
 | `frontend/src/hooks/useDuelReads.ts` | Paged `getDuels` / `getDuelsByIds` readers shared by every listing screen |
 | `frontend/src/lib/duel.ts` | `DuelRecord` / `PlayerDuel` shapes, `toPlayerDuel`, claimable-amount and outcome helpers |
@@ -286,6 +292,10 @@ and controls; the guard tests below list it.
   probe once did this job: a flow opened before it answered planned the self-paid path, approve
   included, for a player the relayer would carry, and every fix for that (gates, retries,
   timeouts, writes waiting for the answer) added a failure of its own.
+- **Nothing in the browser may pick the language before hydration.** A first render that reads
+  `localStorage` or `navigator.language` draws other words than the server did from the cookie
+  ("i18n" under Standards), and React reports a hydration mismatch on every page; that is why the
+  language left `localStorage`.
 - **The image build copies root config files by name.** `Dockerfile` lists them in a `COPY`, and a
   pull request's CI does not build the image, so deleting one of them (as with shadcn's
   `components.json`) passes every check and breaks the deploy only after the merge.

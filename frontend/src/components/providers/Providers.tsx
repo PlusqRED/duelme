@@ -12,6 +12,7 @@ import { RelayerStatusContext } from '@/hooks/useRelayerStatus';
 import { brandColors } from '@/lib/brandColors';
 import type { RelayerStatus } from '@/lib/relayRequest';
 import { LanguageProvider } from '@/i18n/LanguageContext';
+import type { Language } from '@/i18n/translations';
 import { BrandMark } from '@/components/identity/BrandMark';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -67,11 +68,13 @@ const privyConfig: PrivyClientConfig = {
 
 interface ProvidersProps {
   children: ReactNode;
+  /** Read by the root layout from the request, so the server renders the page in it. */
+  language: Language;
   /** Read by the root layout from the server's relayer config, so it is known on the first render. */
   relayerStatus: RelayerStatus;
 }
 
-export function Providers({ children, relayerStatus }: ProvidersProps) {
+export function Providers({ children, language, relayerStatus }: ProvidersProps) {
   const selectActiveWallet = useCallback<SetActiveWalletForWagmiType>(
     ({ wallets, user }) => selectWallet(wallets, user) ?? undefined,
     []
@@ -87,7 +90,7 @@ export function Providers({ children, relayerStatus }: ProvidersProps) {
         <WagmiProvider config={wagmiConfig} setActiveWalletForWagmi={selectActiveWallet}>
           <ContractConfigLoader />
           <RelayerStatusContext.Provider value={relayerStatus}>
-            <LanguageProvider>
+            <LanguageProvider language={language}>
               <TooltipProvider>
                 {children}
               </TooltipProvider>

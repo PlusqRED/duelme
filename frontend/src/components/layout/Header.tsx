@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DepositDialog } from '@/components/wallet/DepositDialog';
 import { FaucetButton } from '@/components/wallet/FaucetButton';
+import { LanguageToggle } from '@/components/layout/LanguageToggle';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAppToast } from '@/hooks/useAppToast';
 import { useCopyFeedback } from '@/hooks/useCopyFeedback';
@@ -28,7 +29,7 @@ import { useRelayerStatus } from '@/hooks/useRelayerStatus';
 const CAN_SWITCH_CHAIN = AVAILABLE_CHAINS.length > 1;
 
 export function Header() {
-  const { t, language, setLanguage } = useTranslation();
+  const { t } = useTranslation();
   const appToast = useAppToast();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -204,27 +205,6 @@ export function Header() {
       setIsSending(false);
     }
   }
-
-  const langToggle = (
-    <div className="flex items-center rounded-lg border border-slate-200 p-0.5">
-      <button
-        onClick={() => setLanguage('en')}
-        className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
-          language === 'en' ? 'bg-indigo-600 text-white' : 'text-ink-3 hover:text-slate-900'
-        }`}
-      >
-        EN
-      </button>
-      <button
-        onClick={() => setLanguage('ru')}
-        className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
-          language === 'ru' ? 'bg-indigo-600 text-white' : 'text-ink-3 hover:text-slate-900'
-        }`}
-      >
-        RU
-      </button>
-    </div>
-  );
 
   // Wallet dropdown panel (shared between desktop & mobile)
   const walletDropdown = (
@@ -403,7 +383,7 @@ export function Header() {
             <span className="text-xl font-extrabold tracking-[-0.03em] text-ink">{SITE_NAME}</span>
           </Link>
           <div className="flex shrink-0 items-center gap-1.5">
-            <div className="flex items-center gap-1">
+            <div className="hidden items-center gap-1 min-[400px]:flex">
               <a
                 href={TELEGRAM_URL}
                 target="_blank"
@@ -425,7 +405,7 @@ export function Header() {
                 <Instagram className="h-3.5 w-3.5" />
               </a>
             </div>
-            {langToggle}
+            <LanguageToggle />
           </div>
         </div>
 

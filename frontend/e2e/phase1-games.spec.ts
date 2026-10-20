@@ -1,10 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
-
-function collectPageErrors(page: Page): string[] {
-  const errors: string[] = [];
-  page.on('pageerror', (error) => errors.push(error.message));
-  return errors;
-}
+import { test, expect } from '@playwright/test';
+import { collectPageErrors } from './helpers/pageErrors';
 
 test.describe('Game catalog', () => {
   test('/games page loads with its title', async ({ page }) => {
