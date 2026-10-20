@@ -62,13 +62,33 @@ describe('LanguageProvider', () => {
     expect(router.refresh).toHaveBeenCalledTimes(1);
   });
 
-  it('fetches nothing while the cookie names the language shown, or no language at all', () => {
+  it('fetches nothing without a cookie', () => {
     render(app('en'));
-    act(() => document.dispatchEvent(new Event('visibilitychange')));
-    chooseInAnotherTab('en');
+
     act(() => document.dispatchEvent(new Event('visibilitychange')));
 
     expect(router.refresh).not.toHaveBeenCalled();
+  });
+
+  it('fetches nothing while the cookie names the language shown', () => {
+    render(app('en'));
+    chooseInAnotherTab('en');
+
+    act(() => document.dispatchEvent(new Event('visibilitychange')));
+
+    expect(router.refresh).not.toHaveBeenCalled();
+  });
+
+  it('fetches once when coming back fires both visibilitychange and focus', () => {
+    render(app('en'));
+    chooseInAnotherTab('ru');
+
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+      window.dispatchEvent(new Event('focus'));
+    });
+
+    expect(router.refresh).toHaveBeenCalledTimes(1);
   });
 
   it.each([

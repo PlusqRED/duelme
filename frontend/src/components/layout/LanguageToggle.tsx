@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef } from 'react';
 import { useAppToast } from '@/hooks/useAppToast';
 import { LANGUAGE_ROUTE, LANGUAGES, parseLanguage, readLanguageCookie } from '@/i18n/language';
 import type { Language } from '@/i18n/translations';
@@ -14,16 +15,26 @@ export function LanguageToggle() {
   const { t, language } = useTranslation();
   const appToast = useAppToast();
 
+  // The post still out, if any: a press while it is out corrects it, so the last press wins.
+  const sending = useRef<AbortController | null>(null);
+
   async function choose(next: Language) {
     // Another tab may have chosen a language this page has not caught up with: pressing the one
     // shown then keeps it again.
-    if (next === language && parseLanguage(readLanguageCookie(document.cookie)) === next) return;
+    const isKept = next === language && parseLanguage(readLanguageCookie(document.cookie)) === next;
+    if (isKept && !sending.current) return;
 
+    sending.current?.abort();
+    const post = new AbortController();
+    sending.current = post;
     const response = await fetch(LANGUAGE_ROUTE, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ language: next }),
+      signal: post.signal,
     }).catch(() => null);
+    if (post.signal.aborted) return;
+    sending.current = null;
     if (!response?.ok) {
       appToast.error('toast.languageNotSaved');
       return;

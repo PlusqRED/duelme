@@ -29,7 +29,11 @@ describe('readLanguageCookie', () => {
     expect(readLanguageCookie(`theme=dark; ${LANGUAGE_COOKIE}=ru; other=1`)).toBe('ru');
   });
 
-  it('is undefined without the cookie, and not fooled by a name that only ends like it', () => {
-    expect([readLanguageCookie(''), readLanguageCookie(`x${LANGUAGE_COOKIE}=ru`)]).toEqual([undefined, undefined]);
+  it('is undefined without the cookie', () => {
+    expect(readLanguageCookie('theme=dark')).toBeUndefined();
+  });
+
+  it('is not fooled by a cookie whose name only ends like it', () => {
+    expect(readLanguageCookie(`x${LANGUAGE_COOKIE}=ru`)).toBeUndefined();
   });
 });

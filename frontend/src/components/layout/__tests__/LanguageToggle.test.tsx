@@ -73,6 +73,7 @@ describe('LanguageToggle', () => {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: '{"language":"ru"}',
+      signal: expect.any(AbortSignal),
     });
     expect(reload).toHaveBeenCalledTimes(1);
   });
@@ -103,6 +104,23 @@ describe('LanguageToggle', () => {
     await press('EN');
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets a press while the post is out correct it: the last press wins', async () => {
+    fetchMock.mockImplementationOnce(
+      (_: string, init: RequestInit) =>
+        new Promise((_resolve, reject) => init.signal?.addEventListener('abort', () => reject(new DOMException('', 'AbortError'))))
+    );
+    renderIn('en');
+    await press('RU');
+    serverKeeps('en');
+
+    await press('EN');
+
+    expect(fetchMock.mock.calls.map(([, init]) => init.body)).toEqual(['{"language":"ru"}', '{"language":"en"}']);
+    expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(true);
+    expect(toastError).not.toHaveBeenCalled();
     expect(reload).toHaveBeenCalledTimes(1);
   });
 

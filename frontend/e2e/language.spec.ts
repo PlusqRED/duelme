@@ -13,7 +13,7 @@ async function switchToRussian(page: Page) {
   await expect(async () => {
     await button.click();
     await expect(page.locator('html')).toHaveAttribute('lang', 'ru', { timeout: 3_000 });
-  }).toPass({ timeout: 30_000 });
+  }).toPass({ timeout: 20_000 });
 }
 
 test.describe('Language', () => {

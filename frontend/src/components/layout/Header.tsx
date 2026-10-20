@@ -383,7 +383,7 @@ export function Header() {
             <span className="text-xl font-extrabold tracking-[-0.03em] text-ink">{SITE_NAME}</span>
           </Link>
           <div className="flex shrink-0 items-center gap-1.5">
-            <div className="flex items-center gap-1">
+            <div className="hidden items-center gap-1 min-[400px]:flex">
               <a
                 href={TELEGRAM_URL}
                 target="_blank"

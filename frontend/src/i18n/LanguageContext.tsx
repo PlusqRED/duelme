@@ -28,9 +28,15 @@ export function LanguageProvider({ language, children }: LanguageProviderProps) 
   // reader's choice, when it is shown again or focused (a window that stayed in view beside the
   // other), comes back from the back/forward cache, or finished loading after the switch.
   useEffect(() => {
+    // Coming back to a tab fires both `visibilitychange` and `focus`: one refresh per language is enough.
+    let refreshedFor: Language | null = null;
     const followCookie = () => {
       const chosen = readLanguageCookie(document.cookie);
-      if (chosen !== undefined && parseLanguage(chosen) !== language) router.refresh();
+      if (chosen === undefined) return;
+      const next = parseLanguage(chosen);
+      if (next === language || next === refreshedFor) return;
+      refreshedFor = next;
+      router.refresh();
     };
     const followWhenSeen = () => {
       if (document.visibilityState === 'visible') followCookie();

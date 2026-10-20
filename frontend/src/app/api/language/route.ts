@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     return refuse(415);
   }
   const body: unknown = await request.json().catch(() => null);
-  const language = typeof body === 'object' && body !== null ? (body as { language?: unknown }).language : undefined;
+  const language = typeof body === 'object' && body !== null && 'language' in body ? body.language : undefined;
   if (!isLanguage(language)) {
     return refuse(400);
   }
