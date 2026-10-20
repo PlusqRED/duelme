@@ -15,6 +15,15 @@ export function durationWords(seconds: number, plural: Translator['plural']): st
   return `${minutes}\u00a0${plural('time.minutes', minutes)}`;
 }
 
+/** The time left on a running clock: "42:05", or "1:02:05" past an hour. Never below zero. */
+export function countdownClock(seconds: number): string {
+  const left = Math.max(0, Math.floor(seconds));
+  const hours = Math.floor(left / 3600);
+  const minutes = Math.floor((left % 3600) / 60);
+  const rest = String(left % 60).padStart(2, '0');
+  return hours > 0 ? `${hours}:${String(minutes).padStart(2, '0')}:${rest}` : `${minutes}:${rest}`;
+}
+
 /**
  * When something happened, by the calendar: today, yesterday, or how many days ago. Days are UTC
  * days, so the server says the same thing to every reader.

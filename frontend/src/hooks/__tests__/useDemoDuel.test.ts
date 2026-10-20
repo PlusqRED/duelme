@@ -88,7 +88,7 @@ describe('useDemoDuel', () => {
     act(() => result.current.pickStep(1));
     await wait(0);
 
-    expect(fly).toHaveBeenCalledWith('creator', 'in', 0);
+    expect(fly).toHaveBeenCalledWith('creator', 'in', { delay: 0 });
     expect(result.current.stage.wallets.creator).toBe(40_000_000n);
     expect(result.current.stage.staked.creator).toBe(false);
     await landAll();
@@ -108,7 +108,7 @@ describe('useDemoDuel', () => {
     expect(result.current.stage.wallets.opponent).toBe(50_000_000n);
     expect(fly).toHaveBeenCalledTimes(1);
     await wait(700);
-    expect(fly).toHaveBeenLastCalledWith('opponent', 'in', 120);
+    expect(fly).toHaveBeenLastCalledWith('opponent', 'in', { delay: 120 });
   });
 
   it('unlocks the safe before the payout, then sends both stakes to the winner', async () => {
@@ -124,8 +124,8 @@ describe('useDemoDuel', () => {
     expect(fly).not.toHaveBeenCalled();
     await wait(420);
     expect(fly.mock.calls).toEqual([
-      ['creator', 'out', 0, 'creator'],
-      ['opponent', 'out', 140, 'creator'],
+      ['creator', 'out', { delay: 0, home: 'creator' }],
+      ['opponent', 'out', { delay: 140, home: 'creator' }],
     ]);
     await landAll();
     expect(result.current.stage).toEqual(demoStage(5, 'confirm'));
@@ -140,7 +140,7 @@ describe('useDemoDuel', () => {
     act(() => result.current.pickOutcome('dispute'));
     await wait(2000);
 
-    expect(fly.mock.calls.map(([side, , , home]) => [side, home])).toEqual([
+    expect(fly.mock.calls.map(([side, , { home }]) => [side, home])).toEqual([
       ['creator', 'creator'],
       ['opponent', 'opponent'],
     ]);

@@ -91,7 +91,7 @@ export function useDemoDuel({ root, fly, cancelFlights }: UseDemoDuelArgs) {
         if (from.staked[side] || !to.staked[side]) return;
         current = { ...current, wallets: { ...current.wallets, [side]: to.wallets[side] } };
         flights.push(
-          fly(side, 'in', index * 120).then((landed) => {
+          fly(side, 'in', { delay: index * 120 }).then((landed) => {
             if (!landed || !alive()) return;
             current = { ...current, staked: { ...current.staked, [side]: true } };
             paint(current);
@@ -109,7 +109,7 @@ export function useDemoDuel({ root, fly, cancelFlights }: UseDemoDuelArgs) {
         if (!alive()) return;
         leaving.forEach((side, index) => {
           current = { ...current, staked: { ...current.staked, [side]: false } };
-          flights.push(fly(side, 'out', index * 140, to.hasWinner ? 'creator' : side));
+          flights.push(fly(side, 'out', { delay: index * 140, home: to.hasWinner ? 'creator' : side }));
         });
         paint(current);
       }

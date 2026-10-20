@@ -4,6 +4,7 @@ import { createDuelTranslations } from './translations/createDuel';
 import { dashboardWalletTranslations } from './translations/dashboardWallet';
 import { demoDuelTranslations } from './translations/demoDuel';
 import { duelTranslations } from './translations/duel';
+import { duelRoomTranslations } from './translations/duelRoom';
 import { homeTranslations } from './translations/home';
 import { joinDuelFlowTranslations } from './translations/joinDuelFlow';
 import { landingTranslations } from './translations/landing';
@@ -29,6 +30,7 @@ export const translations = {
     ...actionFlowResultsTranslations.en,
     ...actionFlowClaimsTranslations.en,
     ...duelTranslations.en,
+    ...duelRoomTranslations.en,
     ...dashboardWalletTranslations.en,
     ...walletTranslations.en,
     ...topupTranslations.en,
@@ -48,6 +50,7 @@ export const translations = {
     ...actionFlowResultsTranslations.ru,
     ...actionFlowClaimsTranslations.ru,
     ...duelTranslations.ru,
+    ...duelRoomTranslations.ru,
     ...dashboardWalletTranslations.ru,
     ...walletTranslations.ru,
     ...topupTranslations.ru,

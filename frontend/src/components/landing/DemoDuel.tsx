@@ -43,7 +43,7 @@ export function DemoDuel() {
   const anchors = useMemo(
     () => ({
       stage: flightsRef,
-      wallets: { creator: creatorWallet, opponent: opponentWallet },
+      homes: { creator: creatorWallet, opponent: opponentWallet },
       slots: { creator: creatorSlot, opponent: opponentSlot },
     }),
     []

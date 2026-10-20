@@ -25,10 +25,7 @@ export const duelTranslations = defineSection({
     'duel.disputed': 'Result disputed',
     'duel.cancellationPending': 'Cancellation requested',
     'duel.mutuallyCancelled': 'Cancelled by agreement',
-    'duel.wager': 'Wager',
-    'duel.pot': 'Total Pot',
     'duel.creator': 'Creator',
-    'duel.opponent': 'Opponent',
     'duel.timeLeft': 'Time left to confirm',
     'duel.timeoutReputationHint':
       'The non-responding player receives +1 abandoned. The reporting player receives +1 honored.',
@@ -111,7 +108,6 @@ export const duelTranslations = defineSection({
     'duel.notFound': 'Duel not found or contract not deployed yet.',
     'duel.partiallyLoaded': 'Not every duel loaded, so this list may be incomplete or out of date.',
     'duel.title': 'Duel #{id}',
-    'duel.messageTitle': 'Challenge note',
     'duel.spectatorFundedTitle': 'Duel is live',
     'duel.spectatorFundedHint':
       'Only the two players can report the result or request a cancellation. Everyone else can follow the status and timeline here.',
@@ -163,10 +159,7 @@ export const duelTranslations = defineSection({
     'duel.disputed': 'Результат оспорен',
     'duel.cancellationPending': 'Запрос на отмену',
     'duel.mutuallyCancelled': 'Отменена по согласию',
-    'duel.wager': 'Ставка',
-    'duel.pot': 'Общий банк',
     'duel.creator': 'Создатель',
-    'duel.opponent': 'Соперник',
     'duel.timeLeft': 'Осталось времени на подтверждение',
     'duel.timeoutReputationHint': 'Не ответивший игрок получит +1 к брошенным. Заявитель получит +1 к выполненным.',
     'duel.timeoutReputationClaimer':
@@ -248,7 +241,6 @@ export const duelTranslations = defineSection({
     'duel.notFound': 'Дуэль не найдена или контракт ещё не задеплоен.',
     'duel.partiallyLoaded': 'Загрузились не все дуэли, так что список может быть неполным или устаревшим.',
     'duel.title': 'Дуэль #{id}',
-    'duel.messageTitle': 'Сообщение к дуэли',
     'duel.spectatorFundedTitle': 'Дуэль в процессе',
     'duel.spectatorFundedHint':
       'Только сами участники могут отправить результат или запросить отмену. Остальные могут следить за статусом и хронологией здесь.',

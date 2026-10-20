@@ -14,7 +14,7 @@ export function usePublicDuelMetas(duelIds: number[], chainId: number) {
   );
 
   const { data } = useQuery<DuelMeta[]>({
-    queryKey: ['duelMeta', 'batch', chainId, sortedIds],
+    queryKey: ['duelMeta', 'batch', chainId, contractAddress?.toLowerCase(), sortedIds],
     queryFn: () => fetchDuelMetaBatch(chainId, contractAddress, sortedIds),
     enabled: sortedIds.length > 0 && !!contractAddress,
     staleTime: 30_000,

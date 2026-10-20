@@ -14,8 +14,24 @@ export type DuelRecord = Duel & { id: number };
 export type SeatSide = 'creator' | 'opponent';
 export const SEAT_SIDES: readonly SeatSide[] = ['creator', 'opponent'];
 
-/** What the contract's safe, drawn between the seats, says it is doing with the money. */
-export type SafeTone = 'open' | 'locked' | 'paid' | 'refunded';
+/**
+ * What the contract's safe, drawn between the seats, says it is doing with the money: empty, one
+ * stake in, both locked, paused while the players talk of stopping, unlocked once time ran out, the
+ * pot kept for the winner or paid, the stakes going back or returned.
+ */
+export type SafeTone =
+  | 'open'
+  | 'waiting'
+  | 'locked'
+  | 'paused'
+  | 'unlocked'
+  | 'forWinner'
+  | 'paid'
+  | 'returning'
+  | 'returned';
+
+/** What a player says over their seat about the duel. */
+export type SeatSay = 'won' | 'lost' | 'confirm' | 'dispute' | 'callOff' | 'agree' | 'decline';
 
 /** A player's time to answer a reported win: running, run out, or not asked for. */
 export type CountdownTimer = 'running' | 'up' | null;
@@ -120,6 +136,15 @@ export function isDuelFullySettled(
     (duel.creatorPayout === 0n || duel.creatorClaimed)
     && (duel.opponentPayout === 0n || duel.opponentClaimed)
   );
+}
+
+/** The seat `address` sits in, or null for anyone else; the zero address sits nowhere. */
+export function seatOf(duel: Pick<Duel, 'creator' | 'opponent'>, address: string | null | undefined): SeatSide | null {
+  const normalized = address?.toLowerCase();
+  if (!normalized || normalized === ZERO_ADDRESS) return null;
+  if (normalized === duel.creator.toLowerCase()) return 'creator';
+  if (normalized === duel.opponent.toLowerCase()) return 'opponent';
+  return null;
 }
 
 export function getCounterpartyAddress(

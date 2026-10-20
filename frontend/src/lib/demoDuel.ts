@@ -1,5 +1,5 @@
 import type { TranslationKey } from '@/i18n/translations';
-import type { CountdownTimer, SafeTone, SeatSide } from '@/lib/duel';
+import type { CountdownTimer, SafeTone, SeatSay, SeatSide } from '@/lib/duel';
 import type { ReputationMark } from '@/lib/reputation';
 
 /**
@@ -9,7 +9,8 @@ import type { ReputationMark } from '@/lib/reputation';
  */
 
 export type DemoOutcome = 'confirm' | 'dispute' | 'timeout';
-export type DemoSay = 'won' | 'confirm' | 'dispute';
+/** The safe in the demo: empty, locked, paid to the winner, or the stakes returned. */
+export type DemoVault = Extract<SafeTone, 'open' | 'locked' | 'paid' | 'returned'>;
 
 /** In USDT's smallest unit, like every amount in the app. */
 export const DEMO_STAKE_RAW = 10_000_000n;
@@ -28,9 +29,9 @@ export interface DemoStill {
   isJoined: boolean;
   /** The safe's lock is shut: from the second stake until the contract pays out. */
   isLocked: boolean;
-  vault: SafeTone;
+  vault: DemoVault;
   isPlaying: boolean;
-  says: Record<SeatSide, DemoSay | null>;
+  says: Record<SeatSide, SeatSay | null>;
   /** The opponent's time to answer a reported win. */
   timer: CountdownTimer;
   marks: Record<SeatSide, ReputationMark[]>;
@@ -84,7 +85,7 @@ function settle(stage: DemoStill, outcome: DemoOutcome): DemoStill {
     wallets: { creator: START_RAW, opponent: START_RAW },
     staked: { creator: false, opponent: false },
     isLocked: false,
-    vault: 'refunded',
+    vault: 'returned',
     timer: null,
   };
   switch (outcome) {

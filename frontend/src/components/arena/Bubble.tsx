@@ -14,15 +14,18 @@ export const speechClassName =
 interface BubbleProps {
   /** Whose avatar it sits above. On a phone it leans outwards, away from the safe. */
   side: SeatSide;
-  /** A player speaking, in their seat's colour with a tail to them, or their clock, in the sun. */
-  kind: 'say' | 'timer';
-  icon: IconName;
+  /**
+   * A player speaking, in their seat's colour with a tail to them; their own words, the same speech
+   * wrapping over a few lines without an icon; or their clock, in the sun.
+   */
+  kind: 'say' | 'note' | 'timer';
+  icon?: IconName;
   children: ReactNode;
 }
 
 /**
- * What sits above a player's avatar: what they say about the result, or the time they have left to
- * answer. It pops in each time it appears. Speech is centred on the avatar and leans outwards on a
+ * What sits above a player's avatar: what they say about the result or the note they left, or the
+ * time they have left to answer. It pops in each time it appears. Speech is centred on the avatar and leans outwards on a
  * phone; a clock, whose length depends on the contract's timeout, always keeps to the seat's outer
  * edge and grows towards the safe. Its seat gives the avatar's size as `--av`.
  */
@@ -40,7 +43,10 @@ export function Bubble({ side, kind, icon, children }: BubbleProps) {
           'data-[side=creator]:-left-[18px] data-[side=creator]:translate-x-0',
           'data-[side=opponent]:-right-[18px] data-[side=opponent]:left-auto data-[side=opponent]:translate-x-0',
         ],
-        kind === 'say' && [
+        kind === 'note' && 'w-max max-w-[220px] text-center whitespace-normal [overflow-wrap:anywhere] max-xs:max-w-[120px]',
+        // A longer phrase on a phone wraps rather than reaching over the safe's lock.
+        kind === 'say' && 'max-xs:w-max max-xs:max-w-[120px] max-xs:text-left max-xs:whitespace-normal',
+        kind !== 'timer' && [
           speechClassName,
           'text-ink [--tone:var(--color-red)] data-[side=opponent]:[--tone:var(--color-blue)]',
           'max-xs:data-[side=creator]:after:left-[calc(18px+var(--av)/2)]',
@@ -48,7 +54,7 @@ export function Bubble({ side, kind, icon, children }: BubbleProps) {
         ]
       )}
     >
-      <Icon name={icon} className={cn('size-4 max-xs:size-[13px]', kind === 'say' && 'text-(--tone)')} />
+      {icon && <Icon name={icon} className={cn('size-4 max-xs:size-[13px]', kind === 'say' && 'text-(--tone)')} />}
       <span>{children}</span>
     </p>
   );

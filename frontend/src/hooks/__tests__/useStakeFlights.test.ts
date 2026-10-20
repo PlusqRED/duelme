@@ -40,7 +40,7 @@ function anchors(): FlightAnchors {
   document.body.append(stage);
   return {
     stage: { current: stage },
-    wallets: { creator: { current: box(0, 200) }, opponent: { current: box(360, 200) } },
+    homes: { creator: { current: box(0, 200) }, opponent: { current: box(360, 200) } },
     slots: { creator: { current: box(160, 100, 40, '10') }, opponent: { current: box(200, 100, 40, '10') } },
   };
 }
@@ -65,7 +65,7 @@ describe('useStakeFlights', () => {
     const where = anchors();
     const { result } = renderHook(() => useStakeFlights(where));
 
-    void result.current.fly('opponent', 'in', 120);
+    void result.current.fly('opponent', 'in', { delay: 120 });
 
     const [token] = tokens(where);
     expect(token.textContent).toBe('10');
@@ -74,11 +74,22 @@ describe('useStakeFlights', () => {
     expect(animations[0].options).toMatchObject({ delay: 120, duration: 900 });
   });
 
+  it('flies a stake that is the winner’s now in the sun', () => {
+    const where = anchors();
+    const { result } = renderHook(() => useStakeFlights(where));
+
+    void result.current.fly('opponent', 'out', { delay: 0, home: 'creator', isPrize: true });
+
+    const [token] = tokens(where);
+    expect(token.className).toContain('bg-sun');
+    expect(token.className).not.toContain('bg-blue');
+  });
+
   it('flies from the wallet to the slot on the way in', () => {
     const where = anchors();
     const { result } = renderHook(() => useStakeFlights(where));
 
-    void result.current.fly('creator', 'in', 0);
+    void result.current.fly('creator', 'in', { delay: 0 });
 
     const { keyframes } = animations[0];
     expect(keyframes[0].transform).toBe('translate(0px, 200px) scale(0.4)');
@@ -89,7 +100,7 @@ describe('useStakeFlights', () => {
     const where = anchors();
     const { result } = renderHook(() => useStakeFlights(where));
 
-    void result.current.fly('opponent', 'out', 0, 'creator');
+    void result.current.fly('opponent', 'out', { delay: 0, home: 'creator' });
 
     const { keyframes } = animations[0];
     expect(keyframes[0].transform).toBe('translate(200px, 100px) scale(1)');
@@ -99,7 +110,7 @@ describe('useStakeFlights', () => {
   it('takes the stake away and says it landed once the flight is over', async () => {
     const where = anchors();
     const { result } = renderHook(() => useStakeFlights(where));
-    const landed = result.current.fly('creator', 'in', 0);
+    const landed = result.current.fly('creator', 'in', { delay: 0 });
 
     animations[0].land();
 
@@ -110,8 +121,8 @@ describe('useStakeFlights', () => {
   it('drops every stake in flight on cancel, and says none of them landed', async () => {
     const where = anchors();
     const { result } = renderHook(() => useStakeFlights(where));
-    const first = result.current.fly('creator', 'in', 0);
-    const second = result.current.fly('opponent', 'in', 120);
+    const first = result.current.fly('creator', 'in', { delay: 0 });
+    const second = result.current.fly('opponent', 'in', { delay: 120 });
 
     result.current.cancel();
 
@@ -123,7 +134,7 @@ describe('useStakeFlights', () => {
     const where = { ...anchors(), stage: { current: null } };
     const { result } = renderHook(() => useStakeFlights(where));
 
-    await expect(result.current.fly('creator', 'in', 0)).resolves.toBe(false);
+    await expect(result.current.fly('creator', 'in', { delay: 0 })).resolves.toBe(false);
     expect(animations).toEqual([]);
   });
 });

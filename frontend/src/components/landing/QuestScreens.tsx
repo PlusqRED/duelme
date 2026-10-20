@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { GameTile } from '@/components/identity/GameTile';
-import { GainTag } from '@/components/landing/GainTag';
+import { GainTag } from '@/components/arena/GainTag';
 import { MAIN_MOCK, MockButton, Part, ScreenNote, ScreenTitle, WalletCard } from '@/components/landing/QuestScreenParts';
 import { Sparks } from '@/components/landing/Sparks';
 import { Icon } from '@/components/ui/icon';

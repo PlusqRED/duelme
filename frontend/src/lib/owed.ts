@@ -1,6 +1,6 @@
 import { getContractConfig } from '@/lib/contractConfig';
 import { DuelState } from '@/lib/contracts';
-import { getClaimableAmountForAddress, isRefundableDuel, type DuelRecord, type SeatSide } from '@/lib/duel';
+import { getClaimableAmountForAddress, isRefundableDuel, seatOf, type DuelRecord, type SeatSide } from '@/lib/duel';
 
 /**
  * Why the contract holds money for a player: a win to take, a stake coming back, or the stake of a
@@ -101,10 +101,4 @@ export function owedBars(items: readonly OwedItem[], max: number): OwedBar[] {
     ...items.slice(0, max - 1).map((item): OwedBar => ({ kind: 'duel', item })),
     { kind: 'more', raw: rest.reduce((total, item) => total + item.raw, 0n), count: rest.length },
   ];
-}
-
-function seatOf(duel: DuelRecord, viewer: string): SeatSide | null {
-  if (duel.creator.toLowerCase() === viewer) return 'creator';
-  if (duel.opponent.toLowerCase() === viewer) return 'opponent';
-  return null;
 }

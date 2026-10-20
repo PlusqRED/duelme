@@ -6,7 +6,6 @@
 /** Files still coloured from Tailwind's own palette (`bg-slate-50`, `text-white`) instead of the theme. */
 export const STILL_ON_PALETTE: readonly string[] = [
   'app/dashboard/page.tsx',
-  'app/duel/[id]/page.tsx',
   'app/duel/create/page.tsx',
   'app/duels/public/page.tsx',
   'app/duels/recent/page.tsx',
@@ -20,7 +19,6 @@ export const STILL_ON_PALETTE: readonly string[] = [
   'components/duel/GuidedTransactionDialog.tsx',
   'components/duel/GuidedTransactionStepIndicator.tsx',
   'components/duel/MutualCancellationCard.tsx',
-  'components/duel/PlayerCard.tsx',
   'components/duel/PublicDuelCard.tsx',
   'components/duel/PublicDuelsFiltersPanel.tsx',
   'components/duel/ShareLink.tsx',

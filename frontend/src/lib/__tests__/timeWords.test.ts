@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { translator } from '@/i18n/translate';
-import { daysAgoWords, durationWords } from '@/lib/timeWords';
+import { countdownClock, daysAgoWords, durationWords } from '@/lib/timeWords';
 
 const en = translator('en').plural;
 const ru = translator('ru').plural;
@@ -21,6 +21,22 @@ describe('durationWords', () => {
   it('says a time that is not whole hours in minutes', () => {
     expect(durationWords(5400, en)).toBe('90\u00a0minutes');
     expect(durationWords(1800, ru)).toBe('30\u00a0минут');
+  });
+});
+
+describe('countdownClock', () => {
+  it('shows minutes and seconds within the hour', () => {
+    expect(countdownClock(42 * 60 + 5)).toBe('42:05');
+    expect(countdownClock(59)).toBe('0:59');
+  });
+
+  it('adds the hours past an hour', () => {
+    expect(countdownClock(3600 + 2 * 60 + 5)).toBe('1:02:05');
+  });
+
+  it('stops at zero and drops part seconds', () => {
+    expect(countdownClock(-30)).toBe('0:00');
+    expect(countdownClock(61.9)).toBe('1:01');
   });
 });
 

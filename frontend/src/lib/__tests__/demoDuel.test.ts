@@ -43,13 +43,13 @@ describe('demoStage', () => {
     const stage = demoStage(5, 'dispute');
 
     expect(stage.wallets).toEqual({ creator: 50_000_000n, opponent: 50_000_000n });
-    expect(stage).toMatchObject({ vault: 'refunded', says: { opponent: 'dispute' }, marks: { creator: [], opponent: [] } });
+    expect(stage).toMatchObject({ vault: 'returned', says: { opponent: 'dispute' }, marks: { creator: [], opponent: [] } });
   });
 
   it('gives the stakes back when time runs out, and the silent side an abandoned', () => {
     const stage = demoStage(5, 'timeout');
 
-    expect(stage).toMatchObject({ vault: 'refunded', timer: 'up', marks: { creator: ['honored'], opponent: ['abandoned'] } });
+    expect(stage).toMatchObject({ vault: 'returned', timer: 'up', marks: { creator: ['honored'], opponent: ['abandoned'] } });
   });
 
   it('ends as confirmed when no ending is named', () => {

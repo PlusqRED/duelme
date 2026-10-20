@@ -10,10 +10,14 @@ interface SeatProps {
   /** What sits above the face: the player speaking, or their clock. */
   above?: ReactNode;
   timer: CountdownTimer;
+  /** The share of a real duel's time to answer still left, from 0 to 1, for the ring to measure. */
+  timerLeft?: number;
   isWinner: boolean;
   name: string;
   /** Nobody sits here yet: the name is the invitation, in the opponent's blue. */
   isOpen: boolean;
+  /** The reader sits here: the name, "You", is set in navy. */
+  isYou?: boolean;
   /** Under the name: the player's money and what the duel added to their record. */
   children: ReactNode;
 }
@@ -23,12 +27,12 @@ interface SeatProps {
  * trophy once they win, then their name and whatever the screen shows under it. Its stage gives the
  * avatar's size as `--av` and the safe's height as `--box`, so the face sits level with the safe.
  */
-export function Seat({ face, above, timer, isWinner, name, isOpen, children }: SeatProps) {
+export function Seat({ face, above, timer, timerLeft, isWinner, name, isOpen, isYou = false, children }: SeatProps) {
   return (
     <div className="flex min-w-0 flex-col items-center gap-1.5 pt-[calc((var(--box)-var(--av))/2)] text-center">
       <div className="relative mb-1 size-(--av)">
         {above}
-        <CountdownRing timer={timer} />
+        <CountdownRing timer={timer} left={timerLeft} />
         {face}
         <span
           aria-hidden="true"
@@ -40,7 +44,15 @@ export function Seat({ face, above, timer, isWinner, name, isOpen, children }: S
           <Icon name="trophy" className="size-4" />
         </span>
       </div>
-      <p className={cn('text-body-sm/[1.2] font-bold max-xs:text-note/[1.2]', isOpen && 'text-blue-deep')}>{name}</p>
+      <p
+        className={cn(
+          'text-body-sm/[1.2] font-bold max-xs:text-note/[1.2]',
+          isOpen && 'text-blue-deep',
+          isYou && 'rounded-full bg-ink px-2.5 py-0.5 text-paper'
+        )}
+      >
+        {name}
+      </p>
       {children}
     </div>
   );
