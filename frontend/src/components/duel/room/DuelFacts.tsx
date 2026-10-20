@@ -14,7 +14,7 @@ export interface DuelFact {
 const valueTones: Record<NonNullable<DuelFact['tone']>, string> = {
   good: 'text-good-ink',
   pot: 'text-lg font-extrabold',
-  unset: 'font-normal text-ink-3',
+  unset: 'font-semibold text-ink-3',
 };
 
 interface DuelFactsProps {
