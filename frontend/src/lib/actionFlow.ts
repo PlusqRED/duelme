@@ -13,7 +13,6 @@ export type ActionFlowType =
   | 'disputeResult'
   | 'requestMutualCancellation'
   | 'claimPayout'
-  | 'refund'
   | 'claimAll'
   | 'refundAndClaim'
   | 'refundAndClaimAll';

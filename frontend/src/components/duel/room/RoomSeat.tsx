@@ -10,6 +10,7 @@ import { Seat } from '@/components/arena/Seat';
 import { seatSays } from '@/components/arena/seatSays';
 import { Avatar } from '@/components/identity/Avatar';
 import { ReputationPill } from '@/components/identity/ReputationPill';
+import { Icon } from '@/components/ui/icon';
 import type { ArenaGain } from '@/hooks/useArenaMotion';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { ArenaSeat } from '@/lib/arenaView';
@@ -21,6 +22,18 @@ import { cn, truncateAddress } from '@/lib/utils';
 export interface AnswerClock {
   left: number;
   text: string;
+}
+
+/** The open seat's wallet line for a reader who could join: their USDT, orange when it can't cover the stake. */
+export interface SeatPurse {
+  text: string;
+  isShort: boolean;
+}
+
+/** An open seat the reader could take: shown with them in it while they point at Join, and their wallet under it. */
+export interface TakeableSeat {
+  isTaking: boolean;
+  purse: SeatPurse | null;
 }
 
 interface RoomSeatProps {
@@ -38,15 +51,19 @@ interface RoomSeatProps {
   gain: ArenaGain | undefined;
   /** Where this seat's money flies from and lands. */
   faceRef: Ref<HTMLSpanElement>;
+  /** Set on an open seat the reader could take. */
+  takeable?: TakeableSeat;
 }
 
 /**
  * One player's seat in a real duel: their face, or an open seat until someone joins; what they say,
  * their note or their clock above it; their name, "You" on the reader's own seat with the address
  * under it; then their level while the duel runs, and once it is over their money and what it added
- * to their record.
+ * to their record. An open seat the reader could take carries their wallet's USDT, and shows them
+ * sitting down while they point at Join.
  */
-export function RoomSeat({ side, seat, address, name, isYou, level, note, clock, gain, faceRef }: RoomSeatProps) {
+export function RoomSeat({ side, seat, address, name, isYou, level, note, clock, gain, faceRef, takeable }: RoomSeatProps) {
+  const purse = takeable?.purse;
   const { t } = useTranslation();
   // A player who sits down while the page is open pops in.
   const [firstAddress] = useState(address);
@@ -67,7 +84,7 @@ export function RoomSeat({ side, seat, address, name, isYou, level, note, clock,
               )}
             />
           ) : (
-            <OpenSeat className="size-full" />
+            <OpenSeat className="size-full" you={takeable && t('room.you')} isTaking={takeable?.isTaking} />
           )}
         </span>
       }
@@ -115,6 +132,17 @@ export function RoomSeat({ side, seat, address, name, isYou, level, note, clock,
         {seat.marks.map((mark) => (
           <RepChip key={mark} mark={mark} />
         ))}
+        {purse && (
+          <span
+            className={cn(
+              'inline-flex min-h-6 max-w-full items-center gap-1 rounded-full bg-canvas py-0.5 pr-[9px] pl-[7px] text-xs/[1.2] font-strong text-ink-2 tabular-nums max-xs:rounded-[10px] max-xs:px-2 max-xs:py-[3px] max-xs:text-center max-xs:text-micro',
+              purse.isShort && 'bg-orange-wash text-orange-ink shadow-[inset_0_0_0_1px_var(--color-orange-line)]'
+            )}
+          >
+            <Icon name="wallet" className={cn('size-3.5 max-xs:hidden', purse.isShort ? 'text-orange-ink' : 'text-ink-3')} />
+            {purse.text}
+          </span>
+        )}
       </p>
     </Seat>
   );

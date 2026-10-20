@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { cleanup, render, screen } from '@testing-library/react';
+import { createRef } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { translations } from '@/i18n/translations';
 import { arenaView } from '@/lib/arenaView';
@@ -81,5 +82,20 @@ describe('ArenaStage', () => {
     expect(screen.queryByText('Match in Chess')).toBeNull();
     // The match over the safe and the safe itself both say so.
     expect(screen.getAllByText(en['room.paused'])).toHaveLength(2);
+  });
+
+  it('puts the reader’s wallet under the open seat they could take', () => {
+    render(stage({ openSeat: { isTaking: false, purse: { text: '2 USDT', isShort: false } } }));
+
+    expect(screen.getByText('2 USDT')).toBeTruthy();
+  });
+
+  it('hands the seats’ faces to the page, for the panel below to point at', () => {
+    const faceRefs = { creator: createRef<HTMLSpanElement>(), opponent: createRef<HTMLSpanElement>() };
+
+    render(stage({ faceRefs }));
+
+    expect(faceRefs.creator.current).not.toBeNull();
+    expect(faceRefs.opponent.current).not.toBeNull();
   });
 });

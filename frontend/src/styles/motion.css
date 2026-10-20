@@ -230,3 +230,41 @@
     }
   }
 }
+
+/* The stake against the wallet (`ChargeCells`) and the move it opens. */
+@theme {
+  --animate-cell-charge: cell-charge 0.34s var(--ease-spring) both;
+  --animate-cells-glint: cells-glint 0.7s ease-out both;
+  --animate-arrive: arrive 0.45s var(--ease-spring) both;
+
+  /* Money landed: each cell it covers charges, one after another. */
+  @keyframes cell-charge {
+    from {
+      opacity: 0;
+      scale: 0.55;
+    }
+    60% {
+      opacity: 1;
+      scale: 1.18;
+    }
+  }
+
+  /* A stake just covered in full glints once, left to right. */
+  @keyframes cells-glint {
+    from {
+      translate: -100% 0;
+    }
+    to {
+      translate: 250% 0;
+    }
+  }
+
+  /* Join arrives in Top up's place. */
+  @keyframes arrive {
+    from {
+      opacity: 0;
+      translate: 0 8px;
+      scale: 0.94;
+    }
+  }
+}

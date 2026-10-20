@@ -22,13 +22,11 @@ vi.mock('@/hooks/useDuel', () => ({
   useDuel: () => ({ duel: reads.duel, isLoading: reads.isLoading, isError: reads.isError, refetch: vi.fn() }),
 }));
 vi.mock('@/hooks/useDuelMeta', () => ({ useDuelMeta: () => ({ meta: reads.meta, isLoading: false }) }));
-vi.mock('@/components/duel/room/DuelArena', () => ({
-  DuelArena: (props: { phase: string; viewerSide: string | null; game: { name: string } | null }) => (
-    <p data-testid="arena">{`${props.phase}|${props.viewerSide}|${props.game?.name ?? 'no game'}`}</p>
+vi.mock('@/components/duel/room/RoomGrid', () => ({
+  RoomGrid: (props: { phase: string; isSignedIn: boolean; walletAddress?: string; game: { name: string } | null }) => (
+    <p data-testid="grid">{`${props.phase}|${props.isSignedIn}|${props.walletAddress ?? 'no wallet'}|${props.game?.name ?? 'no game'}`}</p>
   ),
 }));
-vi.mock('@/components/duel/room/DuelActions', () => ({ DuelActions: () => <p data-testid="actions" /> }));
-vi.mock('@/components/duel/room/DuelTimeline', () => ({ DuelTimeline: () => <p data-testid="timeline" /> }));
 
 const { DuelRoom } = await import('@/components/duel/room/DuelRoom');
 
@@ -46,7 +44,7 @@ describe('DuelRoom', () => {
 
     render(<DuelRoom duelId={6} />);
 
-    expect(screen.queryByTestId('arena')).toBeNull();
+    expect(screen.queryByTestId('grid')).toBeNull();
     expect(document.querySelector('.animate-spin')).not.toBeNull();
   });
 
@@ -59,17 +57,15 @@ describe('DuelRoom', () => {
     render(<DuelRoom duelId={6} />);
 
     expect(screen.getByText(en['duel.notFound'])).toBeTruthy();
-    expect(screen.queryByTestId('arena')).toBeNull();
+    expect(screen.queryByTestId('grid')).toBeNull();
   });
 
-  it('shows the arena, the actions and the timeline of a duel', () => {
+  it('lays out the duel in its phase, with its game', () => {
     reads.meta = { gameName: 'Chess', category: null };
 
     render(<DuelRoom duelId={6} />);
 
-    expect(screen.getByTestId('arena').textContent).toBe('created|null|Chess');
-    expect(screen.getByTestId('actions')).toBeTruthy();
-    expect(screen.getByTestId('timeline')).toBeTruthy();
+    expect(screen.getByTestId('grid').textContent).toBe('created|false|no wallet|Chess');
   });
 
   it('leads a passer-by back to the public duels', () => {
@@ -84,7 +80,7 @@ describe('DuelRoom', () => {
     render(<DuelRoom duelId={6} />);
 
     expect(screen.getByRole('link', { name: en['room.back.mine'] }).getAttribute('href')).toBe('/dashboard');
-    expect(screen.getByTestId('arena').textContent).toBe('created|creator|no game');
+    expect(screen.getByTestId('grid').textContent).toBe(`created|true|${CREATOR.toLowerCase()}|no game`);
   });
 
   it('reads a reported win whose time ran out as timed out', () => {
@@ -92,6 +88,6 @@ describe('DuelRoom', () => {
 
     render(<DuelRoom duelId={6} />);
 
-    expect(screen.getByTestId('arena').textContent).toMatch(/^timeout\|/);
+    expect(screen.getByTestId('grid').textContent).toMatch(/^timeout\|/);
   });
 });

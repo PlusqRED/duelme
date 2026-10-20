@@ -112,8 +112,10 @@ export function useDuelResponses(duelId: number, duel: Duel | undefined, inviteS
     withdrawMutualCancellationRequest(BigInt(duelId));
   }
 
+  const pending: PendingResponse = (isBusy && sent) || 'idle';
+
   return {
-    pending: (isBusy && sent) || 'idle',
+    pending,
     isBusy,
     decline,
     cancel,

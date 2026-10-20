@@ -90,4 +90,22 @@ describe('RoomSeat', () => {
 
     expect(document.querySelector('.animate-float-up')?.textContent).toContain('198');
   });
+
+  it('shows the reader sitting down in an open seat while they point at Join', () => {
+    render(seat({ address: null, name: en['sim.openSeat'], takeable: { isTaking: true, purse: null } }));
+
+    expect(screen.getByText(en['room.you']).className).toContain('opacity-100');
+  });
+
+  it('keeps an open seat empty for a reader who could not take it', () => {
+    render(seat({ address: null, name: en['sim.openSeat'] }));
+
+    expect(screen.queryByText(en['room.you'])).toBeNull();
+  });
+
+  it('carries the wallet’s USDT under an open seat the reader could take, orange when it falls short', () => {
+    render(seat({ address: null, name: en['sim.openSeat'], takeable: { isTaking: false, purse: { text: '2 USDT', isShort: true } } }));
+
+    expect(screen.getByText('2 USDT').className).toContain('text-orange-ink');
+  });
 });

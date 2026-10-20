@@ -1,6 +1,6 @@
 'use client';
 
-import { useId } from 'react';
+import { useId, type ComponentProps } from 'react';
 import { ArenaStage } from '@/components/duel/room/ArenaStage';
 import { DuelHead } from '@/components/duel/room/DuelHead';
 import { DuelSteps } from '@/components/duel/room/DuelSteps';
@@ -14,7 +14,7 @@ import type { GameCategory } from '@/lib/game';
 import { isPublicDuel } from '@/lib/invite';
 import { countdownClock } from '@/lib/timeWords';
 
-interface DuelArenaProps {
+interface DuelArenaProps extends Pick<ComponentProps<typeof ArenaStage>, 'faceRefs' | 'openSeat'> {
   duelId: number;
   duel: Duel;
   phase: DuelPhase;
@@ -29,7 +29,7 @@ interface DuelArenaProps {
  * seats and the contract's safe, and the five steps under them. While a reported win waits for an
  * answer, its clock ticks here every second, and only here.
  */
-export function DuelArena({ duelId, duel, phase, viewerSide, chainId, claimTimeout, game }: DuelArenaProps) {
+export function DuelArena({ duelId, duel, phase, viewerSide, chainId, claimTimeout, game, faceRefs, openSeat }: DuelArenaProps) {
   const { t } = useTranslation();
   const titleId = useId();
   const secondsLeft = useClockValue((now) => (phase === 'claimed' ? secondsToAnswer(duel, now, claimTimeout) : 0));
@@ -56,6 +56,8 @@ export function DuelArena({ duelId, duel, phase, viewerSide, chainId, claimTimeo
         chainId={chainId}
         matchLabel={game ? t('room.match', { game: game.name }) : t('room.matchUnnamed')}
         clock={clock}
+        faceRefs={faceRefs}
+        openSeat={openSeat}
       />
       <DuelSteps steps={duelSteps(duel, phase)} timeUsed={clock ? 1 - clock.left : 0} />
     </section>

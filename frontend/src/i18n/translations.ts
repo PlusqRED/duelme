@@ -16,6 +16,9 @@ import { socialLinksTranslations } from './translations/socialLinks';
 import { topupTranslations } from './translations/topup';
 import { uiTranslations } from './translations/ui';
 import { walletTranslations } from './translations/wallet';
+import { duelTurnTranslations } from './translations/duelTurn';
+import { duelMovesTranslations } from './translations/duelMoves';
+import { signingTranslations } from './translations/signing';
 
 export const translations = {
   en: {
@@ -37,6 +40,9 @@ export const translations = {
     ...profileGamesTranslations.en,
     ...socialLinksTranslations.en,
     ...uiTranslations.en,
+    ...duelTurnTranslations.en,
+    ...duelMovesTranslations.en,
+    ...signingTranslations.en,
   },
   ru: {
     ...navigationTranslations.ru,
@@ -57,6 +63,9 @@ export const translations = {
     ...profileGamesTranslations.ru,
     ...socialLinksTranslations.ru,
     ...uiTranslations.ru,
+    ...duelTurnTranslations.ru,
+    ...duelMovesTranslations.ru,
+    ...signingTranslations.ru,
   },
 } as const;
 

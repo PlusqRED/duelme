@@ -1,11 +1,11 @@
 'use client';
 
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, type RefObject } from 'react';
 import { CountedUsdt } from '@/components/arena/CountedUsdt';
 import { Match } from '@/components/arena/Match';
 import { Safe } from '@/components/arena/Safe';
 import { Track } from '@/components/arena/Track';
-import { RoomSeat, type AnswerClock } from '@/components/duel/room/RoomSeat';
+import { RoomSeat, type AnswerClock, type TakeableSeat } from '@/components/duel/room/RoomSeat';
 import { useArenaMotion } from '@/hooks/useArenaMotion';
 import { useNicknames } from '@/hooks/useNicknames';
 import { useReputationLevels } from '@/hooks/useReputationLevels';
@@ -38,17 +38,23 @@ interface ArenaStageProps {
   /** The game being played, over the safe while the money is locked. */
   matchLabel: string;
   clock: AnswerClock | null;
+  /** The seats' faces, when the page points at them too (the turn panel's notch). */
+  faceRefs?: Record<SeatSide, RefObject<HTMLSpanElement | null>>;
+  /** The open seat, for a reader who could take it: shown sitting down while they point at Join, and their wallet under it. */
+  openSeat?: TakeableSeat;
 }
 
 /**
  * A real duel's table: the creator on the left, the opponent's seat on the right, the contract's
  * safe between, and the stakes flying between them as the duel moves.
  */
-export function ArenaStage({ view, players, viewerSide, chainId, matchLabel, clock }: ArenaStageProps) {
+export function ArenaStage({ view, players, viewerSide, chainId, matchLabel, clock, faceRefs, openSeat }: ArenaStageProps) {
   const { t, language } = useTranslation();
   const flightsRef = useRef<HTMLDivElement>(null);
-  const creatorFace = useRef<HTMLSpanElement>(null);
-  const opponentFace = useRef<HTMLSpanElement>(null);
+  const ownCreatorFace = useRef<HTMLSpanElement>(null);
+  const ownOpponentFace = useRef<HTMLSpanElement>(null);
+  const creatorFace = faceRefs?.creator ?? ownCreatorFace;
+  const opponentFace = faceRefs?.opponent ?? ownOpponentFace;
   const creatorSlot = useRef<HTMLSpanElement>(null);
   const opponentSlot = useRef<HTMLSpanElement>(null);
   const anchors = useMemo(
@@ -57,7 +63,7 @@ export function ArenaStage({ view, players, viewerSide, chainId, matchLabel, clo
       homes: { creator: creatorFace, opponent: opponentFace },
       slots: { creator: creatorSlot, opponent: opponentSlot },
     }),
-    []
+    [creatorFace, opponentFace]
   );
   const flights = useStakeFlights(anchors);
   const { shown, gains } = useArenaMotion(view, flights.fly, flights.cancel);
@@ -81,6 +87,7 @@ export function ArenaStage({ view, players, viewerSide, chainId, matchLabel, clo
         clock={clock}
         gain={gains[side]}
         faceRef={side === 'creator' ? creatorFace : opponentFace}
+        takeable={address ? undefined : openSeat}
       />
     );
   };

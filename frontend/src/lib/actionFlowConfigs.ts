@@ -177,34 +177,6 @@ export function claimPayoutConfig(execute: () => void): ActionFlowConfig {
   };
 }
 
-export function refundConfig(execute: () => void): ActionFlowConfig {
-  return {
-    type: 'refund',
-    execute,
-    icon: RotateCcw,
-    labels: {
-      dialogTitle: 'actionFlow.refund.title',
-      dialogDescription: 'actionFlow.refund.description',
-      reviewTitle: 'actionFlow.refund.review.title',
-      reviewDescription: 'actionFlow.refund.review.description',
-      reviewHint: 'actionFlow.refund.review.hint',
-      reviewHintSwitch: 'actionFlow.refund.review.hintSwitch',
-      executeTitle: 'actionFlow.refund.execute.title',
-      executeDescription: 'actionFlow.refund.execute.description',
-      executeHint: 'actionFlow.refund.execute.hint',
-      executeButton: 'actionFlow.refund.execute.button',
-      successTitle: 'actionFlow.refund.success.title',
-      successDescription: 'actionFlow.refund.success.description',
-      successHint: 'actionFlow.refund.success.hint',
-    },
-    summaryItems: (ctx) => [
-      { label: ctx.t('actionFlow.summary.duel'), value: `#${ctx.duelId}` },
-      { label: ctx.t('actionFlow.summary.pot'), value: ctx.formattedPot, emphasize: true },
-      { label: ctx.t('actionFlow.summary.chain'), value: ctx.chainName },
-    ],
-  };
-}
-
 export function claimAllConfig(execute: () => void, totalDisplay: string, duelCount: number): ActionFlowConfig {
   return {
     type: 'claimAll',

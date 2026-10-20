@@ -47,11 +47,7 @@ export const dashboardWalletTranslations = defineSection({
     'toast.cancellationDeclined': 'Cancellation request declined.',
     'toast.cancellationWithdrawn': 'Cancellation request withdrawn.',
     'status.confirmWallet': 'Confirm in wallet...',
-    'status.processing': 'Processing...',
-    'status.declining': 'Declining...',
     'status.claiming': 'Claiming...',
-    'status.acceptingCancellation': 'Accepting...',
-    'status.withdrawing': 'Withdrawing...',
   },
   ru: {
     'dashboard.title': 'Мои дуэли',
@@ -99,10 +95,6 @@ export const dashboardWalletTranslations = defineSection({
     'toast.cancellationDeclined': 'Запрос на отмену отклонён.',
     'toast.cancellationWithdrawn': 'Запрос на отмену отозван.',
     'status.confirmWallet': 'Подтвердите в кошельке...',
-    'status.processing': 'Обрабатываем...',
-    'status.declining': 'Отклоняем...',
     'status.claiming': 'Запрашиваем...',
-    'status.acceptingCancellation': 'Подтверждаем...',
-    'status.withdrawing': 'Отзываем...',
   },
 });
