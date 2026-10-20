@@ -14,7 +14,7 @@ import type { TranslationKey } from '@/i18n/translations';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { ArenaView } from '@/lib/arenaView';
 import type { SafeTone, SeatSide } from '@/lib/duel';
-import { cn, formatUSDT } from '@/lib/utils';
+import { formatUSDT } from '@/lib/utils';
 
 /** A small copy of the table reads nobody's level. */
 const NO_PLAYERS: (string | undefined)[] = [];
@@ -30,6 +30,14 @@ const vaultLabels: Record<SafeTone, TranslationKey> = {
   returning: 'room.vault.returning',
   returned: 'room.vault.returned',
 };
+
+/** The table's grid: seat, track, safe, track, seat; the avatar's size `--av` and the safe's `--box`. */
+export const arenaStageClassName =
+  'relative mx-auto grid max-w-[660px] grid-cols-[minmax(0,1fr)_minmax(12px,0.6fr)_var(--vault-w)_minmax(12px,0.6fr)_minmax(0,1fr)] items-start pt-[78px] [--av:84px] [--box:116px] [--vault-w:140px] max-xs:grid-cols-[minmax(0,1fr)_8px_var(--vault-w)_8px_minmax(0,1fr)] max-xs:pt-[70px] max-xs:[--av:58px] max-xs:[--box:100px] max-xs:[--vault-w:96px]';
+
+/** The same table as a small copy, one of several on a page. */
+const compactStageClassName =
+  'relative mx-auto grid w-full max-w-[400px] grid-cols-[minmax(0,1fr)_8px_var(--vault-w)_8px_minmax(0,1fr)] items-start pt-[60px] [--av:52px] [--box:86px] [--vault-w:94px]';
 
 interface ArenaStageProps {
   /** The arena to show; changes to it play out in the landing demo's order. */
@@ -102,14 +110,7 @@ export function ArenaStage({ view, players, viewerSide, chainId, matchLabel, clo
   };
 
   return (
-    <div
-      className={cn(
-        'relative mx-auto grid items-start',
-        isCompact
-          ? 'w-full max-w-[400px] grid-cols-[minmax(0,1fr)_8px_var(--vault-w)_8px_minmax(0,1fr)] pt-[60px] [--av:52px] [--box:86px] [--vault-w:94px]'
-          : 'max-w-[660px] grid-cols-[minmax(0,1fr)_minmax(12px,0.6fr)_var(--vault-w)_minmax(12px,0.6fr)_minmax(0,1fr)] pt-[78px] [--av:84px] [--box:116px] [--vault-w:140px] max-xs:grid-cols-[minmax(0,1fr)_8px_var(--vault-w)_8px_minmax(0,1fr)] max-xs:pt-[70px] max-xs:[--av:58px] max-xs:[--box:100px] max-xs:[--vault-w:96px]'
-      )}
-    >
+    <div className={isCompact ? compactStageClassName : arenaStageClassName}>
       {seat('creator')}
       <Track side="creator" isLit={shown.staked.creator} />
       <Safe

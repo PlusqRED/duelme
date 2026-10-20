@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAccount, useReadContract, useSwitchChain } from 'wagmi';
 import { useIdentityToken, usePrivy } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
@@ -14,11 +13,14 @@ import { createDuelFlowActions } from '@/lib/createDuelFlowActions';
 import type { CreateDuelFlowSession } from '@/lib/createDuelFlow';
 import { DUELME_ADDRESSES, SUPPORTED_CHAINS } from '@/lib/constants';
 import { erc20Abi } from '@/lib/contracts';
+import type { GameCategory } from '@/lib/game';
 
 interface UseCreateDuelFlowArgs {
   amount: string;
   message: string;
   gameName: string;
+  /** The game's category, so a game new to the catalog is added under it. */
+  gameCategory?: GameCategory | null;
   isPublic: boolean;
   selectedChain: keyof typeof SUPPORTED_CHAINS;
   isValidAmount: boolean;
@@ -31,6 +33,7 @@ export function useCreateDuelFlow({
   amount,
   message,
   gameName,
+  gameCategory = null,
   isPublic,
   selectedChain,
   isValidAmount,
@@ -39,9 +42,10 @@ export function useCreateDuelFlow({
 }: UseCreateDuelFlowArgs) {
   const { t } = useTranslation();
   const appToast = useAppToast();
-  const router = useRouter();
   const [flow, setFlow] = useState<CreateDuelFlowSession | null>(null);
-  const [redirectTarget, setRedirectTarget] = useState<string | null>(null);
+  // The new duel's page, its invite secret in the fragment: the page offers it as the link to send
+  // rather than leaving for it, so the creator sends the link before anything else.
+  const [createdDuelPath, setCreatedDuelPath] = useState<string | null>(null);
   const [allowanceRefreshCount, setAllowanceRefreshCount] = useState(0);
 
   const { ready, authenticated, login } = usePrivy();
@@ -88,10 +92,7 @@ export function useCreateDuelFlow({
     await refetchAllowance();
   }, [fundsViaPermit, refetchAllowance]);
 
-  const canCloseFlow =
-    flow?.actionState !== 'awaiting-wallet' &&
-    flow?.actionState !== 'confirming' &&
-    flow?.stage !== 'success';
+  const canCloseFlow = flow?.actionState !== 'awaiting-wallet' && flow?.actionState !== 'confirming';
   const needsNetworkSwitch =
     flow !== null &&
     (flow.stage === 'switch-network' ||
@@ -129,6 +130,7 @@ export function useCreateDuelFlow({
     createDuel: duelActions.createDuel,
     fundsViaPermit,
     gameName,
+    gameCategory,
     isPublic,
     isValidAmount,
     isValidMessage,
@@ -138,7 +140,7 @@ export function useCreateDuelFlow({
     reset: duelActions.reset,
     readLatestAllowance,
     setFlow,
-    setRedirectTarget,
+    setRedirectTarget: setCreatedDuelPath,
     switchChainAsync,
     t,
     tokenAddress: chainConfig.usdt,
@@ -157,7 +159,7 @@ export function useCreateDuelFlow({
     refetchAllowance: refetchAllowanceIfRelevant,
     reset: duelActions.reset,
     setFlow,
-    setRedirectTarget,
+    setRedirectTarget: setCreatedDuelPath,
     t,
   });
 
@@ -172,22 +174,11 @@ export function useCreateDuelFlow({
     void readLatestAllowance().catch(() => undefined);
   }, [shouldRefreshReviewAllowance, fundsViaPermit, readLatestAllowance]);
 
-  useEffect(() => {
-    if (!redirectTarget) {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      router.push(redirectTarget);
-    }, 1200);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [redirectTarget, router]);
-
   return {
     authenticated,
     canCloseFlow,
     closeFlow: actions.closeFlow,
+    createdDuelPath,
     flow,
     handleApprove: () => actions.handleApprove(flow),
     handleContinueFlow: () => {

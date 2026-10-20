@@ -17,6 +17,7 @@ vi.mock('@/lib/createDuelFlowRuntime', () => ({
 }));
 
 const { useCreateDuelFlowLifecycle } = await import('@/hooks/useCreateDuelFlowLifecycle');
+const { attachGameToDuel } = await import('@/lib/gameApi');
 
 afterEach(cleanup);
 
@@ -31,6 +32,7 @@ const flow: CreateDuelFlowSession = {
     inviteSecret: null,
     isPublic: true,
     gameName: 'CS2',
+    gameCategory: 'FPS',
     message: '',
   },
   completedSteps: { switchNetwork: false, approve: true },
@@ -68,5 +70,13 @@ describe('useCreateDuelFlowLifecycle', () => {
 
     await waitFor(() => expect(appToast.error).toHaveBeenCalledWith('toast.gameAttachFailed'));
     expect(appToast.info).not.toHaveBeenCalled();
+  });
+
+  it('saves the game with its category, so a game added on the create page joins the catalog', async () => {
+    renderCreatedDuel();
+
+    await waitFor(() =>
+      expect(attachGameToDuel).toHaveBeenCalledWith('token', 7, DEFAULT_CHAIN.id, DUELME_ADDRESSES[DEFAULT_CHAIN.id], 'CS2', 'FPS')
+    );
   });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DuelState } from '@/lib/contracts';
-import { duelPhase, duelSteps, phaseLabel, secondsToAnswer, type DuelPhase } from '@/lib/duelPhase';
+import { draftSteps, duelPhase, duelSteps, phaseLabel, secondsToAnswer, type DuelPhase } from '@/lib/duelPhase';
 import { duelView } from './helpers/duelView';
 
 const CLAIM_TIMEOUT = 3600;
@@ -130,5 +130,22 @@ describe('duelSteps', () => {
   it('skips everything after the first step of a duel nobody joined', () => {
     expect(stepsOf('cancelled')).toEqual(['done', 'skipped', 'skipped', 'skipped', 'end back room.step.cancelled']);
     expect(stepsOf('declined')).toEqual(['done', 'skipped', 'skipped', 'skipped', 'end back room.step.declined']);
+  });
+});
+
+describe('draftSteps', () => {
+  it('stands a duel being set up on its first step, with no clock on it', () => {
+    // Act
+    const steps = draftSteps();
+
+    // Assert
+    expect(steps.map((step) => `${step.kind} ${step.label}`)).toEqual([
+      'current sim.step.1',
+      'todo sim.step.2',
+      'todo sim.step.3',
+      'todo sim.step.4',
+      'todo sim.step.5',
+    ]);
+    expect(steps[0].mode).toBeUndefined();
   });
 });

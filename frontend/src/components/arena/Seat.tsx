@@ -20,6 +20,8 @@ interface SeatProps {
   isYou?: boolean;
   /** A small copy of the table, one of several on a page: the name in small type. */
   isCompact?: boolean;
+  /** The reader's own seat while they are not signed in: the name is in their red. */
+  isYoursEmpty?: boolean;
   /** Under the name: the player's money and what the duel added to their record. */
   children: ReactNode;
 }
@@ -29,7 +31,7 @@ interface SeatProps {
  * trophy once they win, then their name and whatever the screen shows under it. Its stage gives the
  * avatar's size as `--av` and the safe's height as `--box`, so the face sits level with the safe.
  */
-export function Seat({ face, above, timer, timerLeft, isWinner, name, isOpen, isYou = false, isCompact = false, children }: SeatProps) {
+export function Seat({ face, above, timer, timerLeft, isWinner, name, isOpen, isYou = false, isCompact = false, isYoursEmpty = false, children }: SeatProps) {
   return (
     <div className="flex min-w-0 flex-col items-center gap-1.5 pt-[calc((var(--box)-var(--av))/2)] text-center">
       <div className="relative mb-1 size-(--av)">
@@ -50,7 +52,7 @@ export function Seat({ face, above, timer, timerLeft, isWinner, name, isOpen, is
         className={cn(
           'text-body-sm/[1.2] font-bold max-xs:text-note/[1.2]',
           isCompact && 'text-note/[1.2]',
-          isOpen && 'text-blue-deep',
+          isOpen && (isYoursEmpty ? 'text-red-deep' : 'text-blue-deep'),
           isYou && 'rounded-full bg-ink px-2.5 py-0.5 text-paper'
         )}
       >

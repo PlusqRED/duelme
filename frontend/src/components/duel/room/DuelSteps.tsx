@@ -41,7 +41,8 @@ function barClass(step: DuelStep): string {
   // Waiting on a person with no deadline: a light runs along the bar.
   if (step.mode === 'waiting') return 'w-[36%] animate-scan bg-ink';
   if (step.mode === 'paused') return cn('scale-x-100', PAUSED_STRIPES);
-  return 'bg-sun-edge';
+  // Against the clock the bar fills with the time used; a step being set up has nothing to show yet.
+  return step.mode === 'timed' ? 'bg-sun-edge' : 'scale-x-0';
 }
 
 /**

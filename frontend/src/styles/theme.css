@@ -44,6 +44,9 @@
   --color-ink-raised: #1c2553;
   /* The developer's sticky note on the landing, warm against the cool page. */
   --color-sticky: #fff0b8;
+  /* A stake only planned, outlined on the navy safe before the duel is signed: the seats' colours, lit. */
+  --color-red-lit: #ff8d80;
+  --color-blue-lit: #8aaaff;
 
   /* Reputation levels: Reliable is good, Risky orange, Mixed the sun and New grey. The sun is too
      pale for a bar on paper, so Mixed's bars take a deeper one. */

@@ -1,20 +1,29 @@
-import { describe, it, expect } from 'vitest';
-import { MESSAGE_PLACEHOLDER_KEYS } from '@/components/duel/wizard/TypeMessageStep';
+import { describe, expect, it } from 'vitest';
 import { translations } from '@/i18n/translations';
+import { isDuelMessageValid, normalizeDuelMessage } from '@/lib/duelMessage';
 
-describe('MESSAGE_PLACEHOLDER_KEYS', () => {
-  it('has the expected pool size', () => {
-    expect(MESSAGE_PLACEHOLDER_KEYS).toHaveLength(14);
+// The message field shows this example when the game has no note of its own, so it must read as a
+// message the field would take.
+describe('the message example', () => {
+  it.each(['en', 'ru'] as const)('fits the contract limits in %s', (language) => {
+    // Arrange
+    const example = translations[language]['create.message.example'];
+
+    // Act
+    const isValid = isDuelMessageValid(normalizeDuelMessage(example));
+
+    // Assert
+    expect(isValid).toBe(true);
   });
 
-  it('has no duplicate keys', () => {
-    expect(new Set(MESSAGE_PLACEHOLDER_KEYS).size).toBe(MESSAGE_PLACEHOLDER_KEYS.length);
-  });
+  it.each(['en', 'ru'] as const)('has no spaces around it in %s', (language) => {
+    // Arrange
+    const example = translations[language]['create.message.example'];
 
-  it.each(['en', 'ru'] as const)('has a non-empty %s string for every key', (lang) => {
-    for (const key of MESSAGE_PLACEHOLDER_KEYS) {
-      expect(translations[lang][key]).toBeTypeOf('string');
-      expect(translations[lang][key].trim().length).toBeGreaterThan(0);
-    }
+    // Act
+    const normalized = normalizeDuelMessage(example);
+
+    // Assert
+    expect(normalized).toBe(example);
   });
 });

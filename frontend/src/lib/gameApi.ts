@@ -22,23 +22,6 @@ export async function fetchGames(
   return res.json();
 }
 
-export async function createGame(
-  token: string,
-  name: string,
-  category: GameCategory,
-): Promise<Game> {
-  const res = await fetch(`${API_BASE}/games`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ name, category }),
-  });
-  if (!res.ok) throw new Error('Failed to create game');
-  return res.json();
-}
-
 export async function fetchGameBySlug(slug: string): Promise<Game | null> {
   const res = await fetch(`${API_BASE}/games/${encodeURIComponent(slug)}`);
   if (res.status === 404) return null;

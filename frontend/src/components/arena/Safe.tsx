@@ -23,14 +23,26 @@ interface SafeProps {
   above?: ReactNode;
   /** A small copy of the table, one of several on a page: smaller figures and state. */
   isCompact?: boolean;
+  /**
+   * Stakes not in the window yet, outlined where they will go: planned on the create page before
+   * signing, and gone once the duel is created without them, which fades the outline out.
+   */
+  ghosts?: Partial<Record<SeatSide, 'planned' | 'gone'>>;
+  /** Raised, it bumps the stakes in the window once, the opponent's a beat later: a stake set anew. */
+  bumpKey?: number;
 }
+
+const ghostClasses: Record<SeatSide, string> = {
+  creator: 'border-red-lit/90 bg-red/16',
+  opponent: 'border-blue-lit/90 bg-blue/20',
+};
 
 /**
  * The contract between the seats: a navy safe with a window that shows each player's stake, the
  * sum it holds, and a lock that shuts in the sun once both stakes are in, with a flash as it seals.
  * Its stage gives its height as `--box`.
  */
-export function Safe({ filled, slotRefs, stakeLabel, total, isLocked, isPayout = false, name, state, above, isCompact = false }: SafeProps) {
+export function Safe({ filled, slotRefs, stakeLabel, total, isLocked, isPayout = false, name, state, above, isCompact = false, ghosts, bumpKey = 0 }: SafeProps) {
   return (
     <div className="relative flex flex-col items-center gap-1.5">
       {above}
@@ -43,20 +55,34 @@ export function Safe({ filled, slotRefs, stakeLabel, total, isLocked, isPayout =
         )}
         <SafeLock isShut={isLocked} isPaused={state.tone === 'paused'} className="absolute -top-5 left-1/2 -translate-x-1/2 border-2 border-ink" />
         <span className="flex flex-1 gap-1.5 rounded-[14px] bg-paper/7 p-[5px] ring-1 ring-paper/12 ring-inset">
-          {SEAT_SIDES.map((side) => (
-            <span key={side} ref={slotRefs[side]} className="grid flex-1 rounded-[9px] border-[1.5px] border-dashed border-paper/20">
-              <Stake
-                // A stake that becomes the winner's is drawn anew, so it bumps as it takes the sun.
-                key={isPayout ? 'prize' : 'stake'}
-                side={side}
-                isPrize={isPayout}
-                aria-hidden="true"
-                className={cn('-m-[1.5px]', isCompact && 'text-xs', !filled[side] && 'invisible', isPayout && 'animate-bump')}
-              >
-                {stakeLabel}
-              </Stake>
-            </span>
-          ))}
+          {SEAT_SIDES.map((side) => {
+            const ghost = filled[side] ? undefined : ghosts?.[side];
+            return (
+              <span key={side} ref={slotRefs[side]} className="grid flex-1 rounded-[9px] border-[1.5px] border-dashed border-paper/20">
+                <Stake
+                  // A stake that becomes the winner's, or is set anew, is drawn anew, so it bumps.
+                  key={`${isPayout ? 'prize' : 'stake'}-${bumpKey}`}
+                  side={side}
+                  isPrize={isPayout}
+                  aria-hidden="true"
+                  className={cn(
+                    '-m-[1.5px]',
+                    isCompact && 'text-xs',
+                    !filled[side] && !ghost && 'invisible',
+                    ghost && [
+                      'border-[1.5px] border-dashed text-paper/82 inset-shadow-none transition-[opacity,scale] duration-450 ease-out',
+                      ghostClasses[side],
+                    ],
+                    ghost === 'gone' && 'scale-92 opacity-0',
+                    (isPayout || bumpKey > 0) && 'animate-bump',
+                    bumpKey > 0 && side === 'opponent' && '[animation-delay:70ms]'
+                  )}
+                >
+                  {stakeLabel}
+                </Stake>
+              </span>
+            );
+          })}
         </span>
         <p
           className={cn(

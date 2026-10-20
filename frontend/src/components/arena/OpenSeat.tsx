@@ -9,17 +9,20 @@ interface OpenSeatProps {
   you?: string;
   /** Show the reader in the seat now: the duel page does while they point at Join. */
   isTaking?: boolean;
+  /** The reader's own seat while they are not signed in: theirs, in their red, waiting for them. */
+  isYours?: boolean;
   className?: string;
 }
 
 /** A seat nobody has taken yet: a dashed blue place for the opponent, breathing while it waits. */
-export function OpenSeat({ you, isTaking = false, className }: OpenSeatProps) {
+export function OpenSeat({ you, isTaking = false, isYours = false, className }: OpenSeatProps) {
   return (
     <span
       aria-hidden="true"
       className={cn(
         'relative grid place-items-center rounded-full border-2 border-dashed border-blue bg-paper text-blue transition-colors duration-250',
         'before:pointer-events-none before:absolute before:-inset-[9px] before:animate-breathe before:rounded-full before:border-7 before:border-blue/12 before:opacity-0',
+        isYours && 'border-red text-red before:border-red/12',
         you &&
           'group-focus-within/duel:border-solid group-focus-within/duel:bg-blue group-focus-within/duel:text-paper group-focus-within/duel:before:hidden group-hover/duel:border-solid group-hover/duel:bg-blue group-hover/duel:text-paper group-hover/duel:before:hidden',
         you && isTaking && 'border-solid bg-blue text-paper before:hidden',

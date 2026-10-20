@@ -127,7 +127,8 @@ export function useCreateDuelFlowLifecycle({
         Number(duelId),
         flow.draft.chainId,
         flow.draft.contractAddress,
-        flow.draft.gameName
+        flow.draft.gameName,
+        flow.draft.gameCategory ?? undefined
       ).catch(() => {
         appToast.error('toast.gameAttachFailed');
       });

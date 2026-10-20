@@ -9,6 +9,7 @@ import {
   getNextCreateDuelFlowStageFromReview,
 } from '@/lib/createDuelFlow';
 import { USDT_DECIMALS } from '@/lib/constants';
+import type { GameCategory } from '@/lib/game';
 import { getContractConfig } from '@/lib/contractConfig';
 import { getGuidedFlowErrorMessage } from '@/lib/guidedFlowRuntime';
 import { resolveNeedsApproval } from '@/lib/guidedFlowSteps';
@@ -37,6 +38,7 @@ interface CreateDuelFlowActionsOptions {
   fundsViaPermit: boolean;
 
   gameName: string;
+  gameCategory: GameCategory | null;
   isPublic: boolean;
   isValidAmount: boolean;
   isValidMessage: boolean;
@@ -65,6 +67,7 @@ export function createDuelFlowActions({
   createDuel,
   fundsViaPermit,
   gameName,
+  gameCategory,
   isPublic,
   isValidAmount,
   isValidMessage,
@@ -120,6 +123,7 @@ export function createDuelFlowActions({
         inviteSecret,
         isPublic,
         gameName: gameName.trim(),
+        gameCategory,
         message,
       },
       completedSteps: {

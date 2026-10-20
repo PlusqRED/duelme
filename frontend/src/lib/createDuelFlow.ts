@@ -3,6 +3,7 @@ import type {
   GuidedFlowCompletedSteps,
   GuidedFlowStep,
 } from '@/lib/guidedTransaction';
+import type { GameCategory } from '@/lib/game';
 import { getOptionalStepStatus } from '@/lib/guidedFlowSteps';
 
 export type CreateDuelFlowStage =
@@ -26,6 +27,8 @@ export interface CreateDuelFlowDraft {
   inviteSecret: `0x${string}` | null;
   isPublic: boolean;
   gameName: string;
+  /** The game's category, so a game new to the catalog is added under it when the duel's game is saved. */
+  gameCategory: GameCategory | null;
   message: string;
 }
 

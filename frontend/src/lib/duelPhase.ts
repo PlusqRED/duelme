@@ -99,6 +99,11 @@ export interface DuelStep {
 
 const STEP_LABELS: readonly TranslationKey[] = ['sim.step.1', 'sim.step.2', 'sim.step.3', 'sim.step.4', 'sim.step.5'];
 
+/** The five steps of a duel not created yet: the create page is the first of them. */
+export function draftSteps(): DuelStep[] {
+  return STEP_LABELS.map((label, index) => ({ kind: index === 0 ? 'current' : 'todo', label }));
+}
+
 /**
  * The landing demo's five steps, Create to Outcome, for this duel: those done, the one it is on,
  * those it skipped, and the last one named after how it ended. A win says Paid out only once the

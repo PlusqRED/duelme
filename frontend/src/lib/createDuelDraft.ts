@@ -4,7 +4,7 @@ import { isRecord } from '@/lib/parsing';
 /** Versioned, so a later change of shape reads an old entry as nothing rather than as garbage. */
 export const CREATE_DUEL_DRAFT_KEY = 'duelme:create-duel-draft:v1';
 
-/** The game as the wizard holds it once picked. */
+/** The game as the create form holds it once picked. */
 export type CreateDuelDraftGame = Pick<Game, 'slug' | 'name' | 'category'>;
 
 /**

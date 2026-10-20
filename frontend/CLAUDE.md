@@ -252,7 +252,7 @@ and controls; the guard tests below list it.
 | `frontend/src/hooks/useReputation.ts` | Wilson Score reputation calculation |
 | `frontend/src/hooks/useReputationLevels.ts` | Batch reputation reads for feed/search |
 | `frontend/src/lib/invite.ts` | Secure invite-secret generation/storage |
-| `frontend/src/lib/duelMessage.ts` | Frontend Unicode duel-message validation |
+| `frontend/src/lib/duelMessage.ts` | Frontend Unicode duel-message validation; `normalizeDuelMessage`, the one trim the create page's field, counter, check and create call all judge |
 | `frontend/src/lib/duelSearch.ts` | Shared visible-field search indexing |
 | `frontend/src/lib/actionFlowConfigs.ts` | Guided transaction flow configs for duel actions |
 | `frontend/src/lib/balanceRefresh.ts` | Shared client-side balance refresh event bus |
@@ -260,7 +260,7 @@ and controls; the guard tests below list it.
 | `frontend/src/lib/topup.ts` | The top-up window's words for a network (`topUpCopy`) and the address in groups of four |
 | `frontend/src/lib/balanceStatus.ts` | Balance freshness / sufficiency rule: `resolveBalanceReading` for a wallet, `resolveBalanceStatus` where there may be none, `resolveFunding` |
 | `frontend/src/hooks/useFlowFunding.ts` | Balance gate on the create and join review steps, and whether the top-up window is open over them |
-| `frontend/src/lib/createDuelDraft.ts` | Versioned `sessionStorage` draft of the create form, kept across a top-up (no invite secret) |
+| `frontend/src/lib/createDuelDraft.ts` | Versioned `sessionStorage` draft of the create form, kept as it is typed so a reload, a sign-in or a top-up brings it back (no invite secret); `useCreateDuelDraftStorage` keeps it and drops it once the create call is under way |
 | `frontend/src/lib/clipboard.ts` | `copyText` — the one clipboard write; confirm "Copied" only when it returns `true` |
 | `frontend/src/hooks/useCopyFeedback.ts` | Copy-button state on top of `copyText`: "Copied" only for a write that landed, a toast otherwise |
 | `frontend/src/lib/addressQr.ts` | QR of a bare string as an SVG path, rendered as plain React markup |
@@ -299,6 +299,15 @@ and controls; the guard tests below list it.
 | `frontend/src/components/profile/OAuthCallbackHandler.tsx` | Reads `?steam=`/`?telegram=` query and toasts |
 | `frontend/src/hooks/useSocialLinks.ts` | Social-link mutations (initiate + set/unlink) |
 | `frontend/Dockerfile` | Frontend container (multi-stage, Node 22) |
+| `frontend/src/app/duel/create/page.tsx` | The create page: `CreateDuelRoom` |
+| `frontend/src/components/duel/create/` | The create page's parts: `CreateDuelRoom` (layout, balance, top-up, the way on), `DraftArena` (`DraftHead` until the duel exists, then the duel page's `DuelHead`; `DraftStage` with the stakes outlined in the safe), `SetupPanel` and its `SetupStep`s (`GameStepBody` with `AddGameForm`, `StakeStepBody` with `StakeCharge`, `StakeSum` and `WalletPurse`, `AccessStepBody`, `MessageStepBody`), `WayOnBar`, `CreatedPanel`, `CreateFacts`; `CreateSigning` is the page's one tie to the signing window |
+| `frontend/src/hooks/useCreateSetup.ts` | The create page's setup: the form as typed, the open step and the way between the steps, kept in the tab |
+| `frontend/src/lib/createSetup.ts` | The setup's rules: which steps are reachable, done or a problem, where to go next, a restored draft's steps, the way on, adding a game (`addedGame`) |
+| `frontend/src/lib/wagerInput.ts` | The stake field read the way people type it («4,2» is 4.2), as the decimal string `parseUnits` takes, or why it is refused |
+| `frontend/src/lib/stakeScale.ts` | The stake slider's scale: its marks (minimum, presets, end), the steps between them, the detents and the cells |
+| `frontend/src/hooks/useChargeMotion.ts` | The stake slider's spring motion (`lib/spring.ts`), drawn straight onto its parts each frame |
+| `frontend/src/hooks/useGameNote.ts` | A note players really made a duel of a game with (`lib/gameNote.ts`): the message field's example |
+| `frontend/src/components/duel/room/TurnPanel.tsx` | The "your move" panel under a duel's arena, with `WhosePill`; beside it `DuelFacts`, the card of a duel's facts, and `InviteLinkBox`, the link to copy and send |
 
 ## Environment
 

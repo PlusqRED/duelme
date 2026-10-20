@@ -5,7 +5,6 @@
 
 /** Files still coloured from Tailwind's own palette (`bg-slate-50`, `text-white`) instead of the theme. */
 export const STILL_ON_PALETTE: readonly string[] = [
-  'app/duel/create/page.tsx',
   'app/duels/public/page.tsx',
   'app/duels/recent/page.tsx',
   'app/games/GamesClient.tsx',
@@ -22,22 +21,8 @@ export const STILL_ON_PALETTE: readonly string[] = [
   'components/duel/recent/RecentDuelsFilters.tsx',
   'components/duel/recent/RecentDuelsGrid.tsx',
   'components/duel/recent/StateFilterChips.tsx',
-  'components/duel/wizard/CreateDuelWizard.tsx',
-  'components/duel/wizard/GameStep.tsx',
-  'components/duel/wizard/NetworkChip.tsx',
-  'components/duel/wizard/RestoredDraftNotice.tsx',
-  'components/duel/wizard/ReviewStep.tsx',
-  'components/duel/wizard/StepIndicator.tsx',
-  'components/duel/wizard/TypeMessageStep.tsx',
-  'components/duel/wizard/WagerStep.tsx',
-  'components/duel/wizard/WizardNavBar.tsx',
-  'components/game/CreateGameInline.tsx',
   'components/game/GameBadge.tsx',
   'components/game/GameCard.tsx',
-  'components/game/GamePicker.tsx',
-  'components/game/GameSearchEmptyState.tsx',
-  'components/game/GameSearchResultRow.tsx',
-  'components/game/GameSelect.tsx',
   'components/profile/InstagramHandleDialog.tsx',
   'components/profile/ProfileAvatar.tsx',
   'components/profile/SocialLinkCard.tsx',
@@ -49,6 +34,5 @@ export const STILL_ON_PALETTE: readonly string[] = [
 /** Files still holding colour values (`#eef2ff`, `rgba(…)`) outside the theme. */
 export const STILL_RAW_COLOURS: readonly string[] = [
   'components/duel/GuidedTransactionStepIndicator.tsx',
-  'components/duel/wizard/WagerStep.tsx',
   'styles/legacy.css',
 ];

@@ -166,6 +166,7 @@ export function CreateDuelFlowDialog({
     onApprove,
     onContinue,
     onCreateDuel,
+    onDone: onBackToForm,
     onSwitchNetwork,
     stage,
     t,

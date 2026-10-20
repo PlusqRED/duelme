@@ -20,6 +20,8 @@ interface GetCreateDuelDialogConfigOptions {
   onSwitchNetwork: () => void;
   onApprove: () => void;
   onCreateDuel: () => void;
+  /** Done: the window closes on the page, which now holds the link to send. */
+  onDone: () => void;
   t: ReturnType<typeof useTranslation>['t'];
 }
 
@@ -130,10 +132,8 @@ export function getCreateDuelDialogConfig(
     hint: options.t('create.flow.success.hint'),
     icon: Sparkles,
     primaryAction: {
-      label: options.t('create.flow.success.opening'),
-      onClick: options.onCreateDuel,
-      disabled: true,
-      loading: true,
+      label: options.t('create.flow.success.send'),
+      onClick: options.onDone,
     },
   };
 }

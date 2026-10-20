@@ -36,9 +36,9 @@ test.describe('Game catalog', () => {
     await expect(page.getByRole('heading', { level: 1 })).toContainText(/Game Catalog|Каталог игр/);
   });
 
-  test('/duel/create has a game field that takes input', async ({ page }) => {
+  test('/duel/create has a game search that takes input', async ({ page }) => {
     await page.goto('/duel/create');
-    const gameInput = page.getByPlaceholder(/game|игр/i);
+    const gameInput = page.getByRole('searchbox', { name: /Search games|Найти игру/ });
     await expect(gameInput).toBeVisible();
     await gameInput.fill('Valorant');
     await expect(gameInput).toHaveValue('Valorant');

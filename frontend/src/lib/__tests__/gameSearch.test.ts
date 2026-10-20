@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import type { Game } from '../game';
-import { buildHighlightSet, searchGames } from '../gameSearch';
+import {
+  buildHighlightSet,
+  findGameByName,
+  gamesOnOffer,
+  highlightRuns,
+  normalizeGameName,
+  searchGames,
+} from '../gameSearch';
 
 const VALORANT: Game = {
   slug: 'valorant',
@@ -80,5 +87,64 @@ describe('buildHighlightSet', () => {
       [3, 4],
     ]);
     expect(Array.from(set).sort()).toEqual([0, 1, 3, 4]);
+  });
+});
+
+describe('highlightRuns', () => {
+  it('splits a name into the matched letters and the rest', () => {
+    const runs = highlightRuns('Dota 2', [[0, 2]]);
+
+    expect(runs).toEqual([
+      { text: 'Dot', isMatch: true },
+      { text: 'a 2', isMatch: false },
+    ]);
+  });
+
+  it('leaves a name with no match as one run', () => {
+    expect(highlightRuns('Chess', [])).toEqual([{ text: 'Chess', isMatch: false }]);
+  });
+});
+
+describe('normalizeGameName', () => {
+  it('ignores case, spaces and punctuation', () => {
+    expect(normalizeGameName(' CS: 2 ')).toBe('cs2');
+  });
+
+  it('keeps letters of any script', () => {
+    expect(normalizeGameName('Шахматы 960')).toBe('шахматы960');
+  });
+});
+
+describe('findGameByName', () => {
+  it('finds a game however its name is spelled', () => {
+    expect(findGameByName(CATALOG, 'counter strike 2')).toBe(CS2);
+  });
+
+  it('finds nothing for a game the catalog lacks', () => {
+    expect(findGameByName(CATALOG, 'Valorant Mobile')).toBeUndefined();
+  });
+
+  it('finds nothing for a name of punctuation alone', () => {
+    expect(findGameByName([{ name: '!!' }], '?')).toBeUndefined();
+  });
+});
+
+describe('gamesOnOffer', () => {
+  it('offers the most played games first', () => {
+    expect(gamesOnOffer(CATALOG, null, 2)).toEqual([CS2, VALORANT]);
+  });
+
+  it('adds the picked game when it is not among them', () => {
+    expect(gamesOnOffer(CATALOG, DOTA2, 2)).toEqual([CS2, VALORANT, DOTA2]);
+  });
+
+  it('does not repeat a picked game that is among them', () => {
+    expect(gamesOnOffer(CATALOG, VALORANT, 2)).toEqual([CS2, VALORANT]);
+  });
+
+  it('orders games played as often by name', () => {
+    const tie = [{ ...DOTA2, duelCount: 30 }, CS2];
+
+    expect(gamesOnOffer(tie, null, 2).map((game) => game.name)).toEqual(['Counter-Strike 2', 'Dota 2']);
   });
 });

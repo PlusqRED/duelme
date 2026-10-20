@@ -24,7 +24,7 @@ const DEFAULT_CONFIG: ContractConfig = {
 };
 
 // Module-level cache of the owner-adjustable on-chain parameters, so pure
-// helpers (isWagerStepValid, isDuelClaimTimedOut, ...) can read the live
+// helpers (isDuelMessageValid, isDuelClaimTimedOut, ...) can read the live
 // values without threading them through every call site. Synced from the
 // chain by useContractConfig (mounted app-wide in Providers); until the
 // first read resolves the constants above serve as fallbacks.
