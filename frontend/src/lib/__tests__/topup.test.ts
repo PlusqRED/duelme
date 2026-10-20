@@ -33,4 +33,17 @@ describe('topUpCopy', () => {
 
     expect(copy.notes).toEqual(['topup.gas', 'topup.notHeld']);
   });
+
+  it('asks for test ETH on the test network when the fee is the wallet\'s', () => {
+    const copy = topUpCopy({ testnet: true, isDuelNetwork: true, isRelayEnabled: false, isEth: true });
+
+    expect(copy).toEqual({ send: 'topup.send.eth.testnet', warnings: ['topup.testnet.eth'], notes: ['topup.gas.self'] });
+  });
+
+  it('asks for real ETH on a real network with the same warning about the network', () => {
+    const copy = topUpCopy({ testnet: false, isDuelNetwork: true, isRelayEnabled: false, isEth: true });
+
+    expect(copy.send).toBe('topup.send.eth.mainnet');
+    expect(copy.warnings).toEqual(['topup.mainnet']);
+  });
 });

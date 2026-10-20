@@ -1,9 +1,4 @@
-import type {
-  GuidedFlowActionState,
-  GuidedFlowCompletedSteps,
-  GuidedFlowStep,
-} from '@/lib/guidedTransaction';
-import { getOptionalStepStatus } from '@/lib/guidedFlowSteps';
+import type { FlowCore } from '@/lib/flowSession';
 
 export type JoinDuelFlowStage =
   | 'review'
@@ -11,12 +6,6 @@ export type JoinDuelFlowStage =
   | 'approve'
   | 'join-duel'
   | 'success';
-
-export type JoinDuelFlowActionState = GuidedFlowActionState;
-
-export type JoinDuelFlowStep = GuidedFlowStep<JoinDuelFlowStage>;
-
-export type JoinDuelPendingTransaction = 'approve' | 'join-duel' | null;
 
 export interface JoinDuelFlowDraft {
   duelId: bigint;
@@ -29,18 +18,12 @@ export interface JoinDuelFlowDraft {
   creatorAddress: string;
 }
 
-export type JoinDuelFlowCompletedSteps = GuidedFlowCompletedSteps;
-
-export interface JoinDuelFlowSession {
+export interface JoinDuelFlowSession extends FlowCore<JoinDuelFlowStage> {
   draft: JoinDuelFlowDraft;
-  completedSteps: JoinDuelFlowCompletedSteps;
-  stage: JoinDuelFlowStage;
-  actionState: JoinDuelFlowActionState;
-  errorMessage: string | null;
-  pendingTransaction: JoinDuelPendingTransaction;
 }
 
-export function getNextJoinDuelFlowStageFromReview(options: {
+/** The first step that needs the wallet once the checks pass: the network, an allowance, or the join itself. */
+export function joinStageAfterChecks(options: {
   needsNetworkSwitch: boolean;
   needsApproval: boolean;
 }): JoinDuelFlowStage {
@@ -48,74 +31,5 @@ export function getNextJoinDuelFlowStageFromReview(options: {
     return 'switch-network';
   }
 
-  if (options.needsApproval) {
-    return 'approve';
-  }
-
-  return 'join-duel';
-}
-
-export function getJoinDuelFlowStageAfterNetwork(options: {
-  needsApproval: boolean;
-}): JoinDuelFlowStage {
   return options.needsApproval ? 'approve' : 'join-duel';
-}
-
-export function getJoinDuelFlowSteps(options: {
-  stage: JoinDuelFlowStage;
-  actionState: JoinDuelFlowActionState;
-  needsNetworkSwitch: boolean;
-  needsApproval: boolean;
-  completedSwitchNetwork: boolean;
-  completedApproval: boolean;
-}): JoinDuelFlowStep[] {
-  const switchStatus = getOptionalStepStatus({
-    stage: options.stage,
-    actionState: options.actionState,
-    stepId: 'switch-network',
-    isRequired: options.needsNetworkSwitch,
-    completedInFlow: options.completedSwitchNetwork,
-    completedStages: ['approve', 'join-duel', 'success'],
-  });
-
-  const approveStatus = getOptionalStepStatus({
-    stage: options.stage,
-    actionState: options.actionState,
-    stepId: 'approve',
-    isRequired: options.needsApproval,
-    completedInFlow: options.completedApproval,
-    completedStages: ['join-duel', 'success'],
-  });
-
-  const joinStatus =
-    options.stage === 'success'
-      ? 'completed'
-      : options.stage === 'join-duel'
-        ? options.actionState === 'error'
-          ? 'error'
-          : 'active'
-        : 'upcoming';
-
-  return [
-    {
-      id: 'review',
-      status: options.stage === 'review' ? 'active' : 'completed',
-    },
-    {
-      id: 'switch-network',
-      status: switchStatus,
-    },
-    {
-      id: 'approve',
-      status: approveStatus,
-    },
-    {
-      id: 'join-duel',
-      status: joinStatus,
-    },
-    {
-      id: 'success',
-      status: options.stage === 'success' ? 'active' : 'upcoming',
-    },
-  ];
 }

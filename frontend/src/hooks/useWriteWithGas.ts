@@ -15,14 +15,10 @@ import { buildSignedForwardRequest } from '@/lib/forwardRequest';
 import { submitRelayRequest } from '@/lib/relayApi';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useRelayerStatus } from '@/hooks/useRelayerStatus';
+import { ARBITRUM_SEPOLIA_DEFAULT_MIN_GAS } from '@/lib/testnetGas';
 import { EMBEDDED_WALLET_CLIENT_TYPE } from '@/lib/walletSelection';
 import { isFinalReceiptError, WalletNotReadyError } from '@/lib/writeErrors';
 import { waitForWriteReceipt } from '@/lib/writeReceipt';
-
-// Default min-gas floor used for non-create/approve actions on Sepolia.
-// Sepolia's eth_estimateGas occasionally under-reports; this is generous but
-// still fits inside a single L2 block. Mainnet ignores the floor.
-const DEFAULT_TESTNET_MIN_GAS = 200_000n;
 
 function toError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value));
@@ -178,7 +174,7 @@ export function useWriteWithGas(chainId: number) {
   //   - Injected wallets accept the pre-filled values as-is and skip their own
   //     estimation round-trip.
   const writeWithGas = useCallback(
-    async (config: WriteConfig, minimumTestnetGas: bigint = DEFAULT_TESTNET_MIN_GAS) => {
+    async (config: WriteConfig, minimumTestnetGas: bigint = ARBITRUM_SEPOLIA_DEFAULT_MIN_GAS) => {
       // A guard that bails reports through the managed error for every wallet type: nothing has
       // reached wagmi, so its own state would never tell the caller the write is over.
       if (!publicClient || !accountAddress) {

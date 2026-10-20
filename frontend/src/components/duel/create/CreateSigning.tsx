@@ -1,6 +1,6 @@
 'use client';
 
-import { CreateDuelFlowDialog } from '@/components/duel/CreateDuelFlowDialog';
+import { CreateSigningWindow } from '@/components/sign/CreateSigningWindow';
 import type { useCreateDuelFlow } from '@/hooks/useCreateDuelFlow';
 
 /**
@@ -9,7 +9,7 @@ import type { useCreateDuelFlow } from '@/hooks/useCreateDuelFlow';
  */
 export function CreateSigning({ flow }: { flow: ReturnType<typeof useCreateDuelFlow> }) {
   return (
-    <CreateDuelFlowDialog
+    <CreateSigningWindow
       open={flow.flow !== null}
       canClose={flow.canCloseFlow}
       draft={flow.flow?.draft ?? null}

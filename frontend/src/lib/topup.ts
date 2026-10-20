@@ -22,8 +22,10 @@ export function topUpCopy(view: {
   isDuelNetwork: boolean;
   isRelayEnabled: boolean;
   duel?: { isJoining: boolean };
+  /** ETH for the network fee, asked for by a signing window whose wallet pays it. */
+  isEth?: boolean;
 }): TopUpCopy {
-  const warnings: TranslationKey[] = [view.testnet ? 'topup.testnet' : 'topup.mainnet'];
+  const warnings: TranslationKey[] = [view.testnet ? (view.isEth ? 'topup.testnet.eth' : 'topup.testnet') : 'topup.mainnet'];
   const notes: TranslationKey[] = [];
   if (view.isDuelNetwork) {
     notes.push(view.isRelayEnabled ? 'topup.gas' : 'topup.gas.self');
@@ -32,6 +34,9 @@ export function topUpCopy(view: {
   }
   if (view.duel) {
     notes.push(view.duel.isJoining ? 'topup.notHeld' : 'topup.kept');
+  }
+  if (view.isEth) {
+    return { send: view.testnet ? 'topup.send.eth.testnet' : 'topup.send.eth.mainnet', warnings, notes };
   }
   return { send: view.testnet ? 'topup.send.testnet' : 'topup.send.mainnet', warnings, notes };
 }

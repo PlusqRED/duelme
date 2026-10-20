@@ -3,13 +3,22 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TakeFlowDialog } from '@/components/dashboard/TakeFlowDialog';
 import type { useActionFlow } from '@/hooks/useActionFlow';
-import { claimAllConfig } from '@/lib/actionFlowConfigs';
+import { refundAndClaimAllConfig } from '@/lib/actionFlowConfigs';
 import { DEFAULT_CHAIN } from '@/lib/constants';
+import { startFlow } from '@/lib/flowSession';
+
+vi.mock('@/hooks/useActiveWallet', () => ({ useActiveWallet: () => ({ activeWallet: null, walletAddress: undefined }) }));
+vi.mock('@/hooks/useSignGas', () => ({
+  useSignGas: () => ({ eth: undefined, fix: null, isFaucetBusy: false, feeOf: () => null, isTopUpOpen: false }),
+}));
+vi.mock('@/hooks/useRelayerStatus', () => ({ useRelayerStatus: () => ({ isRelayEnabled: true }) }));
+vi.mock('@/hooks/useContractConfig', () => ({ useContractConfig: () => ({ claimTimeout: 3600 }) }));
+vi.mock('@/hooks/useReducedMotion', () => ({ useReducedMotion: () => true }));
 
 type ActionFlow = ReturnType<typeof useActionFlow>;
 
 function actionFlow(isOpen: boolean): ActionFlow {
-  const config = claimAllConfig(vi.fn(), '17.5 USDT', 3);
+  const config = refundAndClaimAllConfig(vi.fn(), '17.5 USDT', 3, false);
   const handlers = {
     openFlow: vi.fn(),
     closeFlow: vi.fn(),
@@ -22,15 +31,12 @@ function actionFlow(isOpen: boolean): ActionFlow {
     ...handlers,
     flow: isOpen
       ? {
-          actionType: 'claimAll',
+          ...startFlow('review'),
+          actionType: config.type,
           duelId: 0n,
           chainId: DEFAULT_CHAIN.id,
           chainName: DEFAULT_CHAIN.name,
-          stage: 'review',
-          actionState: 'idle',
-          errorMessage: null,
-          pendingTransaction: false,
-          completedSwitchNetwork: false,
+          signing: { phase: null, hash: undefined, failedWhile: null, feePaidWei: 0n, createdDuelId: null },
         }
       : null,
     activeConfig: isOpen ? config : null,

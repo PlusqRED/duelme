@@ -1,10 +1,5 @@
-import type {
-  GuidedFlowActionState,
-  GuidedFlowCompletedSteps,
-  GuidedFlowStep,
-} from '@/lib/guidedTransaction';
+import type { FlowCore } from '@/lib/flowSession';
 import type { GameCategory } from '@/lib/game';
-import { getOptionalStepStatus } from '@/lib/guidedFlowSteps';
 
 export type CreateDuelFlowStage =
   | 'review'
@@ -12,10 +7,6 @@ export type CreateDuelFlowStage =
   | 'approve'
   | 'create-duel'
   | 'success';
-
-export type CreateDuelFlowActionState = GuidedFlowActionState;
-
-export type GuidedTransactionStep = GuidedFlowStep<CreateDuelFlowStage>;
 
 export interface CreateDuelFlowDraft {
   rawAmount: bigint;
@@ -32,20 +23,14 @@ export interface CreateDuelFlowDraft {
   message: string;
 }
 
-export type CreateDuelFlowCompletedSteps = GuidedFlowCompletedSteps;
-
-export type CreateDuelPendingTransaction = 'approve' | 'create-duel' | null;
-
-export interface CreateDuelFlowSession {
+export interface CreateDuelFlowSession extends FlowCore<CreateDuelFlowStage> {
   draft: CreateDuelFlowDraft;
-  completedSteps: CreateDuelFlowCompletedSteps;
-  stage: CreateDuelFlowStage;
-  actionState: CreateDuelFlowActionState;
-  errorMessage: string | null;
-  pendingTransaction: CreateDuelPendingTransaction;
+  /** The duel the create made, once its receipt names it. */
+  createdDuelId: number | null;
 }
 
-export function getNextCreateDuelFlowStageFromReview(options: {
+/** The first step that needs the wallet once the checks pass: the network, an allowance, or the create itself. */
+export function createStageAfterChecks(options: {
   needsNetworkSwitch: boolean;
   needsApproval: boolean;
 }): CreateDuelFlowStage {
@@ -53,74 +38,5 @@ export function getNextCreateDuelFlowStageFromReview(options: {
     return 'switch-network';
   }
 
-  if (options.needsApproval) {
-    return 'approve';
-  }
-
-  return 'create-duel';
-}
-
-export function getCreateDuelFlowStageAfterNetwork(options: {
-  needsApproval: boolean;
-}): CreateDuelFlowStage {
   return options.needsApproval ? 'approve' : 'create-duel';
-}
-
-export function getCreateDuelFlowSteps(options: {
-  stage: CreateDuelFlowStage;
-  actionState: CreateDuelFlowActionState;
-  needsNetworkSwitch: boolean;
-  needsApproval: boolean;
-  completedSwitchNetwork: boolean;
-  completedApproval: boolean;
-}): GuidedTransactionStep[] {
-  const switchStatus = getOptionalStepStatus({
-    stage: options.stage,
-    actionState: options.actionState,
-    stepId: 'switch-network',
-    isRequired: options.needsNetworkSwitch,
-    completedInFlow: options.completedSwitchNetwork,
-    completedStages: ['approve', 'create-duel', 'success'],
-  });
-
-  const approveStatus = getOptionalStepStatus({
-    stage: options.stage,
-    actionState: options.actionState,
-    stepId: 'approve',
-    isRequired: options.needsApproval,
-    completedInFlow: options.completedApproval,
-    completedStages: ['create-duel', 'success'],
-  });
-
-  const createStatus =
-    options.stage === 'success'
-      ? 'completed'
-      : options.stage === 'create-duel'
-        ? options.actionState === 'error'
-          ? 'error'
-          : 'active'
-        : 'upcoming';
-
-  return [
-    {
-      id: 'review',
-      status: options.stage === 'review' ? 'active' : 'completed',
-    },
-    {
-      id: 'switch-network',
-      status: switchStatus,
-    },
-    {
-      id: 'approve',
-      status: approveStatus,
-    },
-    {
-      id: 'create-duel',
-      status: createStatus,
-    },
-    {
-      id: 'success',
-      status: options.stage === 'success' ? 'active' : 'upcoming',
-    },
-  ];
 }

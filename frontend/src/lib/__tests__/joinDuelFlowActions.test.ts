@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { TranslationKey, TranslationParams } from '@/i18n/translations';
-import { translations } from '@/i18n/translations';
+import { flowError } from '@/lib/flowError';
 import type { JoinDuelFlowSession } from '@/lib/joinDuelFlow';
 import { joinDuelFlowActions } from '@/lib/joinDuelFlowActions';
 import { hashInviteSecret } from '@/lib/invite';
@@ -15,20 +14,6 @@ const TOKEN = '0x4444444444444444444444444444444444444444' as const;
 const INVITE_SECRET = `0x${'5'.repeat(64)}` as const;
 const CHAIN_ID = 421614;
 const INVITE_HASH = hashInviteSecret(INVITE_SECRET, CONTRACT, CHAIN_ID);
-
-function t(key: TranslationKey, params?: TranslationParams) {
-  let value = String(translations.en[key]);
-
-  if (!params) {
-    return value;
-  }
-
-  for (const [paramKey, paramValue] of Object.entries(params)) {
-    value = value.replaceAll(`{${paramKey}}`, String(paramValue));
-  }
-
-  return value;
-}
 
 function setup(overrides: Partial<JoinDuelFlowActionsOptions> = {}) {
   const state = captureFlowState<JoinDuelFlowSession>();
@@ -48,7 +33,6 @@ function setup(overrides: Partial<JoinDuelFlowActionsOptions> = {}) {
     reset: vi.fn(),
     setFlow: state.setFlow,
     switchChainAsync: vi.fn(async () => undefined),
-    t,
     tokenAddress: TOKEN,
     approveToken: vi.fn(),
     wagerAmount: 100n,
@@ -105,7 +89,7 @@ describe('joinDuelFlowActions', () => {
     expect(switched.options.readLatestAllowance).not.toHaveBeenCalled();
     expect(switched.options.joinDuel).not.toHaveBeenCalled();
     expect(switched.flow?.actionState).toBe('error');
-    expect(switched.flow?.errorMessage).toBe('You cannot join your own duel.');
+    expect(switched.flow?.errorMessage).toEqual(flowError('ownDuel'));
   });
 
   it('opens the join flow for a non-creator with a valid invite secret', () => {
@@ -163,5 +147,59 @@ describe('joinDuelFlowActions — permit-funded (relayed) path', () => {
     // Zero allowance and it still reaches the join step: the permit is the authorisation.
     expect(harness.options.readLatestAllowance).not.toHaveBeenCalled();
     expect(harness.options.joinDuel).toHaveBeenCalledWith(7n, INVITE_SECRET, 100n);
+  });
+});
+
+describe('joinDuelFlowActions — when a step stops', () => {
+  it('testHandleJoinTransactionSaysTheWalletIsNotReadyInsideTheWindow', async () => {
+    const opened = setup();
+    opened.actions.handleOpenJoinFlow();
+    const harness = setup({ viewerAddress: undefined });
+    harness.setFlowDirect(opened.flow);
+
+    await harness.actions.handleJoinTransaction(opened.flow);
+
+    expect(harness.flow?.errorMessage).toEqual(flowError('walletNotReady'));
+  });
+
+  it('testHandleSwitchNetworkCallsAFailedSwitchTheNetworksFault', async () => {
+    const harness = setup({
+      connectedChainId: 42161,
+      switchChainAsync: vi.fn(async () => {
+        throw new Error('User rejected the request.');
+      }),
+    });
+    harness.actions.handleOpenJoinFlow();
+
+    await harness.actions.handleSwitchNetwork(harness.flow);
+
+    expect(harness.flow?.errorMessage?.kind).toBe('network');
+    expect(harness.flow?.completedSteps.switchNetwork).toBe(false);
+  });
+
+  it('testHandleJoinTransactionTellsAPermitTurnedDownFromAWrite', async () => {
+    const harness = setup({
+      fundsViaPermit: true,
+      joinDuel: vi.fn(async () => {
+        throw Object.assign(new Error('User rejected the request.'), { code: 4001 });
+      }),
+    });
+    harness.actions.handleOpenJoinFlow();
+
+    await harness.actions.handleJoinTransaction(harness.flow);
+    await Promise.resolve();
+
+    expect(harness.flow).toMatchObject({ actionState: 'error', pendingTransaction: null, failedWhile: 'awaiting-wallet' });
+    expect(harness.flow?.errorMessage?.kind).toBe('rejected');
+  });
+
+  it('testHandleApproveStartsTheApproveInTheWallet', () => {
+    const harness = setup();
+    harness.actions.handleOpenJoinFlow();
+
+    harness.actions.handleApprove(harness.flow);
+
+    expect(harness.options.approveToken).toHaveBeenCalledWith(TOKEN, 100n);
+    expect(harness.flow).toMatchObject({ stage: 'approve', actionState: 'awaiting-wallet', pendingTransaction: 'approve' });
   });
 });

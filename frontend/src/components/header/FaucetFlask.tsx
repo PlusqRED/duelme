@@ -66,7 +66,7 @@ export function FaucetFlask({ phase, offer, onClaim, onPoured }: FaucetFlaskProp
   );
 }
 
-type FlaskLevel = 'low' | 'filling' | 'full' | 'pouring' | 'empty';
+export type FlaskLevel = 'low' | 'filling' | 'full' | 'pouring' | 'empty';
 
 /** How far down the liquid sits in the 32-unit flask: low while waiting, high once filled. */
 const LEVELS: Record<FlaskLevel, string> = {
@@ -83,7 +83,8 @@ interface FlaskProps {
   className?: string;
 }
 
-function Flask({ level, onPoured, className }: FlaskProps) {
+/** The flask alone, at a level; the signing window puts it in place of the fee's fuel mark. */
+export function Flask({ level, onPoured, className }: FlaskProps) {
   const inside = useId();
   const isSloshing = level === 'filling' || level === 'full';
 

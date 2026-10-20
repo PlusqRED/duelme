@@ -11,7 +11,7 @@ const RELAY_ENDPOINT = '/api/relay';
 /**
  * Ceiling on one relayed write, every post of it included. The server answers only once the
  * transaction is mined (or its own 30s receipt wait gives up) and requests queue behind one
- * another, so this has to be generous — but never unbounded: the guided flow disables its close
+ * another, so this has to be generous — but never unbounded: the signing window disables its close
  * button while a write is in flight, so a stalled connection would otherwise trap the player in
  * the dialog.
  */

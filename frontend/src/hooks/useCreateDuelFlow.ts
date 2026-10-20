@@ -1,16 +1,18 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import type { TransactionReceipt } from 'viem';
 import { useAccount, useReadContract, useSwitchChain } from 'wagmi';
 import { useIdentityToken, usePrivy } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useAppToast } from '@/hooks/useAppToast';
-import { useCreateDuelFlowLifecycle } from '@/hooks/useCreateDuelFlowLifecycle';
 import { useDuelActions } from '@/hooks/useDuelActions';
 import { type FlowReviewGate, useFlowFunding } from '@/hooks/useFlowFunding';
-import { useTranslation } from '@/i18n/useTranslation';
+import { useFlowLifecycle } from '@/hooks/useFlowLifecycle';
+import { emitBalanceRefresh } from '@/lib/balanceRefresh';
 import { createDuelFlowActions } from '@/lib/createDuelFlowActions';
-import type { CreateDuelFlowSession } from '@/lib/createDuelFlow';
+import type { CreateDuelFlowSession, CreateDuelFlowStage } from '@/lib/createDuelFlow';
+import { buildDuelPath, recordCreatedDuel } from '@/lib/createDuelFlowRuntime';
 import { DUELME_ADDRESSES, SUPPORTED_CHAINS } from '@/lib/constants';
 import { erc20Abi } from '@/lib/contracts';
 import type { GameCategory } from '@/lib/game';
@@ -40,12 +42,8 @@ export function useCreateDuelFlow({
   isValidMessage,
   onOpenTopUp,
 }: UseCreateDuelFlowArgs) {
-  const { t } = useTranslation();
   const appToast = useAppToast();
   const [flow, setFlow] = useState<CreateDuelFlowSession | null>(null);
-  // The new duel's page, its invite secret in the fragment: the page offers it as the link to send
-  // rather than leaving for it, so the creator sends the link before anything else.
-  const [createdDuelPath, setCreatedDuelPath] = useState<string | null>(null);
   const [allowanceRefreshCount, setAllowanceRefreshCount] = useState(0);
 
   const { ready, authenticated, login } = usePrivy();
@@ -92,6 +90,7 @@ export function useCreateDuelFlow({
     await refetchAllowance();
   }, [fundsViaPermit, refetchAllowance]);
 
+  // Closing while the wallet or the network still works on it would hide a result that is coming.
   const canCloseFlow = flow?.actionState !== 'awaiting-wallet' && flow?.actionState !== 'confirming';
   const needsNetworkSwitch =
     flow !== null &&
@@ -116,6 +115,13 @@ export function useCreateDuelFlow({
     funding,
     canContinue: funding.status.kind === 'enough',
     blockedReason: null,
+    signing: {
+      phase: duelActions.signingPhase,
+      hash: duelActions.hash,
+      failedWhile: flow?.failedWhile ?? null,
+      feePaidWei: flow?.feePaidWei ?? 0n,
+      createdDuelId: flow?.createdDuelId ?? null,
+    },
   };
 
   const actions = createDuelFlowActions({
@@ -140,27 +146,43 @@ export function useCreateDuelFlow({
     reset: duelActions.reset,
     readLatestAllowance,
     setFlow,
-    setRedirectTarget: setCreatedDuelPath,
     switchChainAsync,
-    t,
     tokenAddress: chainConfig.usdt,
     approveToken: duelActions.approveToken,
   });
 
-  useCreateDuelFlowLifecycle({
-    appToast,
-    error: duelActions.error,
+  const draft = flow?.draft ?? null;
+  const onWritten = useCallback(
+    (step: CreateDuelFlowStage, receipt: TransactionReceipt | undefined): CreateDuelFlowStage | null => {
+      if (step === 'approve') {
+        void refetchAllowanceIfRelevant();
+        return 'create-duel';
+      }
+      // The new duel's id comes from the receipt, so a confirmation without one waits for it.
+      if (!receipt || !draft) {
+        return null;
+      }
+      emitBalanceRefresh();
+      void refetchAllowanceIfRelevant();
+      const createdDuelId = recordCreatedDuel({
+        receipt,
+        draft,
+        identityToken,
+        onGameAttachFailed: () => appToast.error('toast.gameAttachFailed'),
+      });
+      setFlow((current) => current && { ...current, createdDuelId });
+      return 'success';
+    },
+    [draft, identityToken, appToast, refetchAllowanceIfRelevant]
+  );
+
+  useFlowLifecycle<CreateDuelFlowStage, CreateDuelFlowSession>({
     flow,
-    identityToken,
-    isConfirming: duelActions.isConfirming,
-    isPending: duelActions.isPending,
-    isSuccess: duelActions.isSuccess,
-    receipt: duelActions.receipt,
-    refetchAllowance: refetchAllowanceIfRelevant,
-    reset: duelActions.reset,
     setFlow,
-    setRedirectTarget: setCreatedDuelPath,
-    t,
+    write: duelActions,
+    chainId: chainConfig.id,
+    paysOwnFees: !fundsViaPermit,
+    onWritten,
   });
 
   const shouldRefreshReviewAllowance = flow?.stage === 'review';
@@ -178,7 +200,9 @@ export function useCreateDuelFlow({
     authenticated,
     canCloseFlow,
     closeFlow: actions.closeFlow,
-    createdDuelPath,
+    // The page shows the new duel's link itself once the window closes; nothing navigates there.
+    createdDuelPath:
+      flow?.createdDuelId != null ? buildDuelPath(String(flow.createdDuelId), flow.draft.inviteSecret) : null,
     flow,
     handleApprove: () => actions.handleApprove(flow),
     handleContinueFlow: () => {

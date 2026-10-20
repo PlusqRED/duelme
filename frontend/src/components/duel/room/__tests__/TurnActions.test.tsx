@@ -18,7 +18,7 @@ function label(key: TranslationKey, vars: Record<string, string> = VARS) {
 }
 
 function button(overrides: Partial<ComponentProps<typeof TurnActionButton>> = {}) {
-  return <TurnActionButton action={{ id: 'join' }} vars={VARS} onMove={vi.fn()} pending={null} isBusy={false} {...overrides} />;
+  return <TurnActionButton action={{ id: 'join' }} vars={VARS} onMove={vi.fn()} isBusy={false} {...overrides} />;
 }
 
 describe('TurnActionButton', () => {
@@ -47,12 +47,6 @@ describe('TurnActionButton', () => {
     render(button({ isBusy: true }));
 
     expect(screen.getByRole<HTMLButtonElement>('button').disabled).toBe(true);
-  });
-
-  it('turns its icon into a spinner while its answer is on its way', () => {
-    const { container } = render(button({ action: { id: 'decline' }, pending: 'decline', isBusy: true }));
-
-    expect(container.querySelector('.animate-spin')).not.toBeNull();
   });
 
   it('leads to the public duels rather than making a move', () => {
@@ -96,7 +90,7 @@ describe('TurnActionButton', () => {
 
 describe('TurnActions', () => {
   it('lays the moves out in a row, in order', () => {
-    render(<TurnActions actions={[{ id: 'confirm' }, { id: 'dispute' }]} vars={VARS} onMove={vi.fn()} pending={null} isBusy={false} />);
+    render(<TurnActions actions={[{ id: 'confirm' }, { id: 'dispute' }]} vars={VARS} onMove={vi.fn()} isBusy={false} />);
 
     expect(screen.getAllByRole('button').map((item) => item.textContent)).toEqual([en['room.action.confirm'], en['room.action.dispute']]);
   });

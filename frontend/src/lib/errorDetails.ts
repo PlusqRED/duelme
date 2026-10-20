@@ -4,7 +4,7 @@
  * normalized to lowercase single-space strings.
  *
  * Wallet and RPC errors nest the useful text at unpredictable depths, so the
- * callers that classify a failure — guidedFlowRuntime's message mapping, the
+ * callers that classify a failure — `classifyFlowError` (lib/flowError.ts), the
  * relayer's error reporting — match against this flattened list rather than
  * guessing which field holds the reason this time.
  */

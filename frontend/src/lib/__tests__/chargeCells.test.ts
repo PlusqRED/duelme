@@ -1,49 +1,49 @@
 import { describe, expect, it } from 'vitest';
-import { CHARGE_CELL_COUNT, chargeCells } from '@/lib/chargeCells';
-
-const STAKE = 10_000_000n;
+import { chargeCells } from '@/lib/chargeCells';
 
 describe('chargeCells', () => {
-  it('draws the stake as ten cells', () => {
-    expect(chargeCells(0n, STAKE).cells).toHaveLength(CHARGE_CELL_COUNT);
+  it('testChargeCellsLightEveryCellForAWalletThatCovers', () => {
+    const view = chargeCells(10_000_000n, 5_000_000n);
+
+    expect(view.cells.every((cell) => cell.fill === 1)).toBe(true);
+    expect(view.isFull).toBe(true);
   });
 
-  it('lights a cell for each tenth of the stake the wallet covers, and part of the next', () => {
-    const fills = chargeCells(4_500_000n, STAKE).cells.map((cell) => cell.fill);
+  it('testChargeCellsLeaveEveryCellShortForAnEmptyWallet', () => {
+    const view = chargeCells(0n, 5_000_000n);
 
-    expect(fills).toEqual([1, 1, 1, 1, 0.5, 0, 0, 0, 0, 0]);
+    expect(view.cells.every((cell) => cell.fill === 0)).toBe(true);
+    expect(view.isFull).toBe(false);
   });
 
-  it('is full once the wallet covers the stake, more money changing nothing', () => {
-    const view = chargeCells(25_000_000n, STAKE);
+  it('testChargeCellsPartLightTheCellWhereTheMoneyRunsOut', () => {
+    const view = chargeCells(1_250_000n, 5_000_000n);
+
+    expect(view.cells.map((cell) => cell.fill).slice(0, 4)).toEqual([1, 1, 0.5, 0]);
+  });
+
+  it('testChargeCellsCountAStakeOfZeroAsCovered', () => {
+    const view = chargeCells(0n, 0n);
 
     expect(view.isFull).toBe(true);
-    expect(view.cells.every((cell) => cell.fill === 1)).toBe(true);
   });
 
-  it('is full for a stake of nothing', () => {
-    expect(chargeCells(0n, 0n).isFull).toBe(true);
+  it('testChargeCellsChargeOnlyTheCellsTheNewMoneyCovers', () => {
+    const view = chargeCells(5_000_000n, 5_000_000n, 3_000_000n);
+
+    expect(view.cells.map((cell) => cell.fresh)).toEqual([null, null, null, null, null, null, 0, 1, 2, 3]);
+    expect(view.freshCount).toBe(4);
   });
 
-  it('charges nothing without a balance from before', () => {
-    expect(chargeCells(5_000_000n, STAKE).charging).toBe(0);
+  it('testChargeCellsChargeNothingWithoutABalanceBefore', () => {
+    const view = chargeCells(5_000_000n, 5_000_000n);
+
+    expect(view.freshCount).toBe(0);
   });
 
-  it('charges the cells money just covered, one after another', () => {
-    const view = chargeCells(STAKE, STAKE, 4_500_000n);
+  it('testChargeCellsChargeNothingWhenTheBalanceWentDown', () => {
+    const view = chargeCells(1_000_000n, 5_000_000n, 4_000_000n);
 
-    expect(view.charging).toBe(6);
-    expect(view.cells.slice(4).map((cell) => [cell.isNew, cell.order])).toEqual([
-      [true, 0],
-      [true, 1],
-      [true, 2],
-      [true, 3],
-      [true, 4],
-      [true, 5],
-    ]);
-  });
-
-  it('leaves the cells that were already lit still', () => {
-    expect(chargeCells(STAKE, STAKE, 4_500_000n).cells.slice(0, 4).some((cell) => cell.isNew)).toBe(false);
+    expect(view.freshCount).toBe(0);
   });
 });

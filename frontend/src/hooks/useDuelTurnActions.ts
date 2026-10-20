@@ -3,37 +3,34 @@
 import { useMemo } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useActionFlow } from '@/hooks/useActionFlow';
-import { useDuelResponses, type PendingResponse } from '@/hooks/useDuelResponses';
 import { useJoinDuelFlow } from '@/hooks/useJoinDuelFlow';
 import { useNicknames } from '@/hooks/useNicknames';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { ActionFlowSummaryContext } from '@/lib/actionFlow';
 import {
+  acceptMutualCancellationConfig,
   admitDefeatConfig,
+  cancelDuelConfig,
   claimPayoutConfig,
   claimVictoryConfig,
   confirmResultConfig,
+  declineDuelConfig,
+  declineMutualCancellationConfig,
   disputeResultConfig,
   refundAndClaimConfig,
   requestMutualCancellationConfig,
+  withdrawMutualCancellationConfig,
 } from '@/lib/actionFlowConfigs';
 import { DEFAULT_CHAIN, ZERO_ADDRESS } from '@/lib/constants';
 import { DuelState, type Duel } from '@/lib/contracts';
 import { getClaimableAmountForAddress } from '@/lib/duel';
 import type { DuelPhase } from '@/lib/duelPhase';
+import { OPEN_DUEL_INVITE_SECRET } from '@/lib/invite';
 import type { TurnActionId } from '@/lib/turnView';
 import { formatUSDT } from '@/lib/utils';
 
 /** What the panel's buttons do; the two links (browse, a new duel) go where they say. */
 export type TurnMove = Exclude<TurnActionId, 'browse' | 'newDuel'>;
-
-const pendingMoves: Record<Exclude<PendingResponse, 'idle'>, TurnMove> = {
-  declining: 'decline',
-  canceling: 'cancel',
-  acceptingMutualCancel: 'agree',
-  decliningMutualCancelRequest: 'keepPlaying',
-  withdrawingMutualCancelRequest: 'withdraw',
-};
 
 interface UseDuelTurnActionsArgs {
   duelId: number;
@@ -47,9 +44,8 @@ interface UseDuelTurnActionsArgs {
 }
 
 /**
- * Every move the panel offers, wired as the duel page always wired it: joining through the join
- * flow, a report, an answer or a payout through the guided window, the one-transaction answers
- * straight from the page, and Privy's sign-in. Taking a stake back after the time to answer ran out
+ * Every move the panel offers: joining through the join flow, every other write through the signing
+ * window, and Privy's sign-in. Taking a stake back after the time to answer ran out
  * is one call that closes the duel and pays out (`refundAndClaimPayouts`); a finished duel's stake
  * or winnings are `claimPayout`.
  */
@@ -58,7 +54,6 @@ export function useDuelTurnActions({ duelId, duel, phase, inviteSecret, walletAd
   const { login } = usePrivy();
   const nicknameAddresses = useMemo(() => [duel.creator, duel.opponent, duel.claimedWinner], [duel.creator, duel.opponent, duel.claimedWinner]);
   const { resolveDisplay } = useNicknames(nicknameAddresses);
-  const responses = useDuelResponses(duelId, duel, inviteSecret, refetch);
   const joinFlow = useJoinDuelFlow({ duelId, duel, inviteSecret, refetchDuel: refetch });
   const actionFlow = useActionFlow({ duelId, refetchDuel: refetch });
 
@@ -68,13 +63,14 @@ export function useDuelTurnActions({ duelId, duel, phase, inviteSecret, walletAd
   const moves: Record<TurnMove, () => void> = {
     join: joinFlow.handleOpenJoinFlow,
     topUp: openTopUp,
-    decline: () => void responses.decline(),
+    // A duel open to anyone is declined with the open secret; the contract checks it like any other.
+    decline: () => actionFlow.openFlow(declineDuelConfig(() => da.declineDuel(id, inviteSecret ?? OPEN_DUEL_INVITE_SECRET))),
     signIn: () => login(),
-    cancel: () => void responses.cancel(),
+    cancel: () => actionFlow.openFlow(cancelDuelConfig(() => da.cancelDuel(id))),
     callOff: () => actionFlow.openFlow(requestMutualCancellationConfig(() => da.requestMutualCancellation(id))),
-    withdraw: () => void responses.withdrawCancellation(),
-    agree: () => void responses.acceptCancellation(),
-    keepPlaying: () => void responses.declineCancellation(),
+    withdraw: () => actionFlow.openFlow(withdrawMutualCancellationConfig(() => da.withdrawMutualCancellationRequest(id))),
+    agree: () => actionFlow.openFlow(acceptMutualCancellationConfig(() => da.acceptMutualCancellation(id))),
+    keepPlaying: () => actionFlow.openFlow(declineMutualCancellationConfig(() => da.declineMutualCancellation(id))),
     won: () => actionFlow.openFlow(claimVictoryConfig(() => da.claimVictory(id))),
     lost: () => actionFlow.openFlow(admitDefeatConfig(() => da.admitDefeat(id))),
     confirm: () => actionFlow.openFlow(confirmResultConfig(() => da.confirmResult(id))),
@@ -99,10 +95,8 @@ export function useDuelTurnActions({ duelId, duel, phase, inviteSecret, walletAd
 
   return {
     run: (move: TurnMove) => moves[move](),
-    /** The one-transaction answer on its way, whose button turns. */
-    pending: responses.pending === 'idle' ? null : pendingMoves[responses.pending],
     /** A move is under way: nothing else may start until it settles. */
-    isBusy: responses.isBusy || actionFlow.flow !== null || joinFlow.flow !== null,
+    isBusy: actionFlow.flow !== null || joinFlow.flow !== null,
     joinFlow,
     actionFlow,
     summaryContext,

@@ -5,12 +5,12 @@ import { usePrivy } from '@privy-io/react-auth';
 import { notifyManager } from '@tanstack/react-query';
 import { useAccount, useReadContract, useSwitchChain } from 'wagmi';
 import { useAppToast } from '@/hooks/useAppToast';
-import { useJoinDuelFlowLifecycle } from '@/hooks/useJoinDuelFlowLifecycle';
 import { useDuelActions } from '@/hooks/useDuelActions';
 import { type FlowReviewGate, useFlowFunding } from '@/hooks/useFlowFunding';
-import { useTranslation } from '@/i18n/useTranslation';
+import { useFlowLifecycle } from '@/hooks/useFlowLifecycle';
+import { emitBalanceRefresh } from '@/lib/balanceRefresh';
 import { joinDuelFlowActions } from '@/lib/joinDuelFlowActions';
-import type { JoinDuelFlowSession } from '@/lib/joinDuelFlow';
+import type { JoinDuelFlowSession, JoinDuelFlowStage } from '@/lib/joinDuelFlow';
 import { DUELME_ADDRESSES, DEFAULT_CHAIN } from '@/lib/constants';
 import { erc20Abi, type Duel } from '@/lib/contracts';
 import { canJoinWaitingDuel } from '@/lib/duel';
@@ -29,7 +29,6 @@ export function useJoinDuelFlow({
   inviteSecret,
   refetchDuel,
 }: UseJoinDuelFlowArgs) {
-  const { t } = useTranslation();
   const appToast = useAppToast();
   const [flow, setFlow] = useState<JoinDuelFlowSession | null>(null);
   const [allowanceRefreshCount, setAllowanceRefreshCount] = useState(0);
@@ -80,10 +79,8 @@ export function useJoinDuelFlow({
     await refetchAllowance();
   }, [fundsViaPermit, refetchAllowance]);
 
-  const canCloseFlow =
-    flow?.actionState !== 'awaiting-wallet' &&
-    flow?.actionState !== 'confirming' &&
-    flow?.stage !== 'success';
+  // Closing while the wallet or the network still works on it would hide a result that is coming.
+  const canCloseFlow = flow?.actionState !== 'awaiting-wallet' && flow?.actionState !== 'confirming';
 
   const needsNetworkSwitch =
     flow !== null &&
@@ -133,7 +130,14 @@ export function useJoinDuelFlow({
     canContinue: funding.status.kind === 'enough' && canJoin && !isRecheckingDuel,
     // Only once the wallet is known: while it resolves, canJoin is false for no reason the duel gave.
     blockedReason:
-      !canJoin && !isRecheckingDuel && !!walletAddress ? 'join.flow.unavailable' : null,
+      !canJoin && !isRecheckingDuel && !!walletAddress ? 'sign.join.unavailable' : null,
+    signing: {
+      phase: joinActions.signingPhase,
+      hash: joinActions.hash,
+      failedWhile: flow?.failedWhile ?? null,
+      feePaidWei: flow?.feePaidWei ?? 0n,
+      createdDuelId: null,
+    },
   };
 
   const actions = joinDuelFlowActions({
@@ -150,7 +154,6 @@ export function useJoinDuelFlow({
     reset: joinActions.reset,
     setFlow,
     switchChainAsync,
-    t,
     tokenAddress: chainConfig.usdt,
     approveToken: joinActions.approveToken,
     wagerAmount: duel?.wagerAmount ?? 0n,
@@ -159,17 +162,26 @@ export function useJoinDuelFlow({
     duelInviteHash: duel?.inviteHash ?? '',
   });
 
-  useJoinDuelFlowLifecycle({
-    error: joinActions.error,
+  const onWritten = useCallback(
+    (step: JoinDuelFlowStage): JoinDuelFlowStage => {
+      void refetchAllowanceIfRelevant();
+      if (step === 'approve') {
+        return 'join-duel';
+      }
+      emitBalanceRefresh();
+      void refetchDuel();
+      return 'success';
+    },
+    [refetchAllowanceIfRelevant, refetchDuel]
+  );
+
+  useFlowLifecycle<JoinDuelFlowStage, JoinDuelFlowSession>({
     flow,
-    isConfirming: joinActions.isConfirming,
-    isPending: joinActions.isPending,
-    isSuccess: joinActions.isSuccess,
-    refetchAllowance: refetchAllowanceIfRelevant,
-    refetchDuel,
-    reset: joinActions.reset,
     setFlow,
-    t,
+    write: joinActions,
+    chainId: chainConfig.id,
+    paysOwnFees: !fundsViaPermit,
+    onWritten,
   });
 
   const shouldRefreshReviewAllowance = flow?.stage === 'review';

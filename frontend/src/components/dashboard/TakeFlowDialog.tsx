@@ -1,6 +1,6 @@
 'use client';
 
-import { ActionFlowDialog } from '@/components/duel/ActionFlowDialog';
+import { ActionSigningWindow } from '@/components/sign/ActionSigningWindow';
 import type { useActionFlow } from '@/hooks/useActionFlow';
 import { useTranslation } from '@/i18n/useTranslation';
 import { DEFAULT_CHAIN } from '@/lib/constants';
@@ -17,7 +17,7 @@ export function TakeFlowDialog({ actionFlow }: TakeFlowDialogProps) {
   const { t } = useTranslation();
 
   return (
-    <ActionFlowDialog
+    <ActionSigningWindow
       open={actionFlow.flow !== null}
       canClose={actionFlow.canClose}
       flow={actionFlow.flow}

@@ -63,6 +63,6 @@ export function useDuel(duelId: bigint, chainId: number): UseDuelResult {
   const duel: Duel | undefined = data;
 
   // Only a duel that never loaded is an error: a poll that fails keeps the last duel on screen,
-  // with any guided flow above it, until the next poll reads it again.
+  // with any signing window above it, until the next poll reads it again.
   return { duel, isLoading, isError: isLoadingError, refetch };
 }

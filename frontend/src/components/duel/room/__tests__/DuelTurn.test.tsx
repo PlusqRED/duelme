@@ -12,11 +12,11 @@ const reads = vi.hoisted(() => ({
   run: vi.fn(),
 }));
 
-vi.mock('@/components/duel/ActionFlowDialog', () => ({
-  ActionFlowDialog: ({ open }: { open: boolean }) => <div data-testid="action-flow" data-open={String(open)} />,
+vi.mock('@/components/sign/ActionSigningWindow', () => ({
+  ActionSigningWindow: ({ open }: { open: boolean }) => <div data-testid="action-flow" data-open={String(open)} />,
 }));
-vi.mock('@/components/duel/JoinDuelFlowDialog', () => ({
-  JoinDuelFlowDialog: ({ open }: { open: boolean }) => <div data-testid="join-flow" data-open={String(open)} />,
+vi.mock('@/components/sign/JoinSigningWindow', () => ({
+  JoinSigningWindow: ({ open }: { open: boolean }) => <div data-testid="join-flow" data-open={String(open)} />,
 }));
 vi.mock('@/components/topup/TopUpWindow', () => ({
   TopUpWindow: ({ chainId }: { chainId: number | null }) => <div data-testid="top-up" data-chain={String(chainId)} />,
@@ -25,7 +25,6 @@ vi.mock('@/hooks/useActiveWallet', () => ({ useActiveWallet: () => ({ activeWall
 vi.mock('@/hooks/useDuelTurnActions', () => ({
   useDuelTurnActions: () => ({
     run: reads.run,
-    pending: null,
     isBusy: false,
     joinFlow: { flow: null, review: null },
     actionFlow: { flow: null, activeConfig: null },

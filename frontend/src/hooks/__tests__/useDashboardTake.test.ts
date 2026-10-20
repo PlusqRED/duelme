@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ActionFlowConfig, ActionFlowSummaryContext } from '@/lib/actionFlow';
+import type { ActionFlowConfig } from '@/lib/actionFlow';
 import { summarizeOwed, type Owed, type OwedItem } from '@/lib/owed';
 
 const fake = vi.hoisted(() => ({
@@ -26,17 +26,6 @@ const LATE: OwedItem = { duelId: 2, seat: 'creator', kind: 'late', raw: 2_500_00
 function owedOf(items: OwedItem[]): Owed | null {
   return summarizeOwed(items);
 }
-
-const SUMMARY: ActionFlowSummaryContext = {
-  duelId: 0,
-  formattedWager: '',
-  formattedPot: '',
-  chainName: 'Arbitrum Sepolia',
-  opponentDisplay: '',
-  claimedWinnerDisplay: '',
-  claimableDisplay: '',
-  t: (key) => key,
-};
 
 function openedConfig(): ActionFlowConfig {
   const [config] = fake.openFlow.mock.lastCall ?? [];
@@ -68,7 +57,15 @@ describe('useDashboardTake', () => {
 
     act(() => result.current.take());
 
-    expect(openedConfig().summaryItems(SUMMARY).map((item) => item.value)).toEqual(['15 USDT', '2', 'Arbitrum Sepolia']);
+    expect(openedConfig()).toMatchObject({ type: 'refundAndClaimAll', batch: { count: 2, totalDisplay: '15\u00a0USDT', closesTimedOut: false } });
+  });
+
+  it('tells the window when a timed-out duel is among them', () => {
+    const { result } = renderHook(() => useDashboardTake(owedOf([WIN, LATE]), vi.fn()));
+
+    act(() => result.current.take());
+
+    expect(openedConfig().batch?.closesTimedOut).toBe(true);
   });
 
   it('opens no second window while one is open', () => {

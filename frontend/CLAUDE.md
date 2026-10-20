@@ -23,6 +23,18 @@ in the `*WithPermit` variant when the write is relayed (see "Gasless Duel Action
 `joinDuel`/`declineDuel` use the secret. Payouts are pull-based — terminal duel flows expose
 claimable balances, never push transfers.
 
+Every duel write is signed in one window, `components/sign/SigningWindow.tsx`: Check (what each
+signature or transaction does, what the wallet needs, the facts, the technical details folded
+away), then the network switch, the signatures or transactions one by one, the chain confirming,
+and Done or the error with its details. `ActionSigningWindow`, `JoinSigningWindow` and
+`CreateSigningWindow` turn the flows' props (`useActionFlow`, `useJoinDuelFlow`,
+`useCreateDuelFlow`) into its model; the one-transaction answers (cancel, decline, the call-off
+answers) go through `useActionFlow` too, never a toast. One press of the main button carries the
+flow through every wallet step it reaches (`useSigningPress`). The flows move by one reducer
+(`lib/flowSession.ts`) and follow their write with one lifecycle (`useFlowLifecycle`); a failure
+reaches the window as a `FlowError` (`lib/flowError.ts`) in `errorMessage`, and the write's
+progress as `signing` (on the review gate for join and create, on the flow for actions).
+
 ### Data Fetching
 - wagmi `useReadContract` / `useReadContracts` (multicall) for on-chain reads
 - React Query with `refetchInterval: 10_000, staleTime: 0` for live data. The paged duel readers
@@ -50,7 +62,7 @@ signs and sends `forwarder.execute`, one transaction at a time; receipts are awa
 the lock, so several sent transactions can be waiting to be mined at once. Funding uses EIP-2612 —
 `createDuelWithPermit` / `joinDuelWithPermit` — so no separate `approve` is needed. There is
 no automatic fallback: once `useRelayerStatus` reports relaying on, `useDuelActions` routes
-every relayable duel write through `/api/relay` and the guided flows pin `needsApproval` to
+every relayable duel write through `/api/relay` and the signing flows pin `needsApproval` to
 false, so a refusal (spent daily budget, `"Permit failed"` on a delegated EOA) surfaces as an
 error rather than reverting to the self-paid approve path. Relaying being *off* — no forwarder
 address, no relayer key — is the case the self-paid path still covers.
@@ -212,10 +224,10 @@ and controls; the guard tests below list it.
 | `frontend/src/components/duel/PartialDataNotice.tsx` | The one banner saying a duel list may be short or out of date because a page, or the last read of it, failed to load, with Try again |
 | `frontend/src/hooks/useContractConfig.ts` | Reads owner-adjustable on-chain params (minWager, claimTimeout, maxMessageCodepoints, maxMessageBytes), syncs contractConfig store |
 | `frontend/src/lib/contractConfig.ts` | Module-level cache of on-chain params for non-hook helpers (fallbacks from constants.ts) |
-| `frontend/src/hooks/useDuelActions.ts` | Write actions (join, cancel, claim, refundAndClaim, etc.) |
+| `frontend/src/hooks/useDuelActions.ts` | Write actions (join, cancel, claim, refundAndClaimPayouts, etc.) |
 | `frontend/src/hooks/useWriteWithGas.ts` | Duel write dispatcher: relayed / resilient / plain routing + merged hash/isPending/error surface |
 | `frontend/src/lib/writeReceipt.ts` | Waits for a write's receipt and decides by it: the receipt, `TransactionRevertedError` with the replayed reason, or `TransactionReplacedError` |
-| `frontend/src/lib/writeErrors.ts` | The ways a write ends without running (reverted, replaced, wallet not ready), which the guided flows word for the player |
+| `frontend/src/lib/writeErrors.ts` | The ways a write ends without running (reverted, replaced, wallet not ready), which `lib/flowError.ts` words for the signing window |
 | `frontend/src/app/dashboard/page.tsx` | My duels: the title and Create a duel, then `components/dashboard/Dashboard` |
 | `frontend/src/components/dashboard/` | The dashboard's parts: `Dashboard` (the guest's invitation, loading, a wallet with no duels, the desk), `TakeSafe` (the navy safe and its one Take; `TakenLine` once emptied), `DuelBoard`s of `MiniDuelCard`s (a small `ArenaStage`), `History` (`FormLine`, the lists' search, filters and pager, `HistoryRow`), `StandingCard` (`StandingReputation` on the landing's `ReputationGauge`, `StandingTotals` on `identity/PlayerTotals`); `TakeFlowDialog` is the one place Take's signing window is rendered |
 | `frontend/src/hooks/useDashboard.ts` | The reader's duels filed for the dashboard: on (their move or waiting), finished, the money waiting, totals, each duel's game and the other players' names |
@@ -239,13 +251,11 @@ and controls; the guard tests below list it.
 | `frontend/src/lib/arenaView.ts` | What the duel page's arena shows for a duel in a phase, and the beats a change plays in (players first, then the money) |
 | `frontend/src/lib/turnView.ts` | The duel page's "your move" panel as plain data for every phase and reader (whose move, tone, notch, copy keys, blocks); the phases' cases are `lib/turnPhases.ts` |
 | `frontend/src/lib/duelHistory.ts` | A duel's history as events, oldest first: who acted, when, and the creator's message |
-| `frontend/src/hooks/useDuelTurnActions.ts` | Every move of the turn panel wired: join flow, guided window (`refundAndClaimPayouts` once the time to answer ran out, `claimPayout` after), one-transaction answers, Privy sign-in |
+| `frontend/src/hooks/useDuelTurnActions.ts` | Every move of the turn panel wired: the join window, the signing window for every other answer (`refundAndClaimPayouts` once the time to answer ran out, `claimPayout` after), Privy sign-in |
 | `frontend/src/hooks/useStakePurse.ts` | The stake against the wallet of a reader who could join: USDT short, the top-up window, the balance held still while it is open so the cells charge after |
-| `frontend/src/components/sign/` | `ChargeCells` (a stake as ten cells against the wallet, `lib/chargeCells.ts`) and `NeedsList` (what a signature takes from the wallet) |
 | `frontend/src/hooks/useArenaMotion.ts` | Plays a change of the arena in the landing demo's order, flying the stakes; at once with motion reduced |
 | `frontend/src/hooks/useNow.ts` | One clock ticking each second for the whole screen; `useClockValue` re-renders only when a value read off it changes |
 | `frontend/src/hooks/useDuelInvite.ts` | A private duel's invite secret: from the link, or the creator's kept in this browser |
-| `frontend/src/hooks/useDuelResponses.ts` | The one-transaction answers on the duel page: decline, cancel, and the answers to a request to call a duel off |
 | `frontend/src/lib/timeWords.ts` | A contract's duration in words (`durationWords`) and a past day as today, yesterday or days ago |
 | `frontend/src/hooks/usePlatformStats.ts` | Landing-page Total Volume / Duels Played stats |
 | `frontend/src/hooks/useRecentDuels.ts` | Duels someone joined, newest event first: the recent duels page, and the landing's finished ones |
@@ -254,12 +264,12 @@ and controls; the guard tests below list it.
 | `frontend/src/lib/invite.ts` | Secure invite-secret generation/storage |
 | `frontend/src/lib/duelMessage.ts` | Frontend Unicode duel-message validation; `normalizeDuelMessage`, the one trim the create page's field, counter, check and create call all judge |
 | `frontend/src/lib/duelSearch.ts` | Shared visible-field search indexing |
-| `frontend/src/lib/actionFlowConfigs.ts` | Guided transaction flow configs for duel actions |
+| `frontend/src/lib/actionFlowConfigs.ts` | The signing window's configs for duel actions, the one-transaction answers included |
 | `frontend/src/lib/balanceRefresh.ts` | Shared client-side balance refresh event bus |
-| `frontend/src/components/topup/TopUpWindow.tsx` | The site's one top-up window, for the `chainId` it is given: QR and grouped address, what to send and not to, the faucet, the balance there; for a duel (`duel`), what it needs, from the flow's own balance read |
+| `frontend/src/components/topup/TopUpWindow.tsx` | The site's one top-up window, for the `chainId` it is given: QR and grouped address, what to send and not to, the faucet, the balance there; for a duel (`duel`), what it needs, from the flow's own balance read; for a signing window's fees (`eth`), the ETH they need |
 | `frontend/src/lib/topup.ts` | The top-up window's words for a network (`topUpCopy`) and the address in groups of four |
 | `frontend/src/lib/balanceStatus.ts` | Balance freshness / sufficiency rule: `resolveBalanceReading` for a wallet, `resolveBalanceStatus` where there may be none, `resolveFunding` |
-| `frontend/src/hooks/useFlowFunding.ts` | Balance gate on the create and join review steps, and whether the top-up window is open over them |
+| `frontend/src/hooks/useFlowFunding.ts` | Balance gate on the create and join review steps, and whether the top-up window is open over them; the gate also carries the write's progress (`signing`) to the window |
 | `frontend/src/lib/createDuelDraft.ts` | Versioned `sessionStorage` draft of the create form, kept as it is typed so a reload, a sign-in or a top-up brings it back (no invite secret); `useCreateDuelDraftStorage` keeps it and drops it once the create call is under way |
 | `frontend/src/lib/clipboard.ts` | `copyText` — the one clipboard write; confirm "Copied" only when it returns `true` |
 | `frontend/src/hooks/useCopyFeedback.ts` | Copy-button state on top of `copyText`: "Copied" only for a write that landed, a toast otherwise |
@@ -312,6 +322,16 @@ and controls; the guard tests below list it.
 | `frontend/src/hooks/useChargeMotion.ts` | The stake slider's spring motion (`lib/spring.ts`), drawn straight onto its parts each frame |
 | `frontend/src/hooks/useGameNote.ts` | A note players really made a duel of a game with (`lib/gameNote.ts`): the message field's example |
 | `frontend/src/components/duel/room/TurnPanel.tsx` | The "your move" panel under a duel's arena, with `WhosePill`; beside it `DuelFacts`, the card of a duel's facts, and `InviteLinkBox`, the link to copy and send |
+| `frontend/src/components/sign/` | The signing window: `SigningWindow` (stages, rail, the top-up windows over it), its parts (`SignCheck`, `SignProgress`, `SignResult`, `NeedsList` with `ChargeCells`, `TechnicalDetails`, `ErrorDetails`), the model it takes (`signingModel.ts`) and the three windows that build one from a flow's props |
+| `frontend/src/lib/flowSession.ts` | The signing flows' one state and reducer (`reduceFlow`): stage, wallet or chain, failure, fees paid |
+| `frontend/src/lib/flowError.ts` | `classifyFlowError`: a failed step as a kind the window words, its raw detail, and whether another go can help |
+| `frontend/src/lib/writeRoute.ts` | Relayed or self-paid for a write (`resolveWriteRoute`, shared with `useDuelActions`), the funding call it becomes, and `resolveNeedsApproval` |
+| `frontend/src/lib/signPlan.ts` | What a write asks the wallet for, in order: permit, approve, the move; signatures or transactions |
+| `frontend/src/lib/signingSteps.ts` | Where a flow stands on the window's rail, and which steps lock the window |
+| `frontend/src/lib/signingCopy.ts` | Each action's words in the window, and an error's title and text for it |
+| `frontend/src/lib/gasNeeds.ts` | The self-paid path's fees: typical gas per kind, the fee quote, the expected fee and the ETH a wallet must hold |
+| `frontend/src/hooks/useFlowLifecycle.ts` | Follows a flow's write in the wallet and on the network until it is confirmed or fails; each flow says what a confirmed write means |
+| `frontend/src/hooks/useSignGas.ts` | The fee side of a self-paid window: what each transaction costs, the ETH needed against the ETH held, and the faucet or top-up that fixes a shortfall |
 
 ## Environment
 
@@ -372,7 +392,7 @@ and controls; the guard tests below list it.
   the same callback as `switchChainAsync` holds the client of the render before it. So
   `writeWithGas` reads the embedded wallet's client when it writes (`getWalletClient`), and
   `useSendUsdt` switches and writes in one go. The relayer's signature (`relayWrite`) and the
-  permit (`useDuelPermit`) still take the hook's client: the guided flows make the switch a step
+  permit (`useDuelPermit`) still take the hook's client: the signing flows make the switch a step
   of its own for them.
 - **A window that closes because what it shows turned null empties before it is gone.** The window
   plays its closing animation after the value it was opened with (a network, a platform) is already
@@ -380,11 +400,11 @@ and controls; the guard tests below list it.
   `hooks/` instead, as `TopUpWindow` and `UnlinkConfirmDialog` do.
 - **tailwind-merge does not know the theme's own tokens, and a type size clears the line height before it.** Left alone it reads `text-body` as a colour and `font-label` as a font family, so `cn('text-body', 'text-ink')` silently drops the size, and a later shadow or easing does not replace `shadow-menu` or `ease-spring`. `cn()` in `lib/utils.ts` registers the type sizes, weights, shadows, inset shadows, easings, spacing, widths and radii; a new `--text-*`, `--font-weight-*`, `--shadow-*`, `--inset-shadow-*`, `--ease-*`, `--spacing-*`, `--container-*` or `--radius-*` token goes there too (`utils.test.ts` fails until it does). A `text-*` size also drops any `leading-*` that comes before it, so where a variant or a caller sets the size, the line height rides on it: `text-body-sm/[1.1]`, `text-lg/snug`.
 - **`collectErrorDetails` returns viem's multi-line dump first.** An error's own `message` is visited before its `shortMessage` / `reason`, so the first entry is the whole "Contract Call / Request Arguments / Version" blob. Use `bestErrorDetail` (shortest non-placeholder detail) whenever the string reaches a person.
-- **`fundsViaPermit` has to gate every allowance check, not just the last one.** `handleContinueFlow`, `handleSwitchNetwork` and `handleCreateTransaction` / `handleJoinTransaction` all decide the approve step; a relayed flow that reads the allowance in any of them routes a zero-ETH player into a self-paid `approve`. They share `resolveNeedsApproval` from `guidedFlowSteps.ts`.
+- **`fundsViaPermit` has to gate every allowance check, not just the last one.** `handleContinueFlow`, `handleSwitchNetwork` and `handleCreateTransaction` / `handleJoinTransaction` all decide the approve step; a relayed flow that reads the allowance in any of them routes a zero-ETH player into a self-paid `approve`. They share `resolveNeedsApproval` from `lib/writeRoute.ts`.
 - **`FORWARDER_NAME` must match on both sides.** `frontend/src/lib/forwardRequest.ts` and `contracts/script/ForwarderConfig.sol` (which both deploy scripts read) both spell `"DuelMe Forwarder"`; it is the EIP-712 domain name, so a mismatch makes every signature fail `verify` with no other symptom.
 - **`ForwardRequestData` has no `nonce` field in OpenZeppelin 5.x** — the forwarder reads it from `Nonces` at execution time and folds it into the signed struct hash via the typehash. It must be signed but never sent. `deadline` is a `uint48`, not `uint256` (the EIP-2612 permit deadline is `uint256` — do not mix them up).
 - **Mainnet USDT (USD₮0, Arbitrum One) has no ERC-5267 `eip712Domain()`** and its `name()` is `USD₮0` with U+20AE, not an ASCII "T". Build the permit domain from `name()` + version `"1"` and verify it against the token's own `DOMAIN_SEPARATOR()`. `MockUSDT` deliberately mirrors both traits so a mistake fails on dev. Covered by `contracts/test/UsdtPermitFork.t.sol` (skipped without `ARBITRUM_RPC_URL`).
-- **USD₮0 validates permit through ERC-1271 whenever the owner address has code**, which an EIP-7702 delegation gives a plain EOA. Such a player's permit can fail (`"Permit failed"`). The contract still accepts the plain `createDuel` / `joinDuel` once an allowance exists, but the UI does not currently offer that route while relaying is on — the approve step is pinned off — and `approve` cannot be relayed anyway, since the token does not trust our forwarder. So this player is blocked in the guided flow; reaching them needs a product decision, not just ETH.
+- **USD₮0 validates permit through ERC-1271 whenever the owner address has code**, which an EIP-7702 delegation gives a plain EOA. Such a player's permit can fail (`"Permit failed"`). The contract still accepts the plain `createDuel` / `joinDuel` once an allowance exists, but the UI does not currently offer that route while relaying is on — the approve step is pinned off — and `approve` cannot be relayed anyway, since the token does not trust our forwarder. So this player is blocked in the signing window, which says so (`sign.err.permit`); reaching them needs a product decision, not just ETH.
 - **The relayer's budget ledger, per-IP rate limit, repeat memory and signer holds are in-memory**, so they reset on redeploy and are not shared across replicas. Accurate for the current single-container-per-env deployment; more than one replica needs a shared store.
 - **The per-IP rate limit trusts the right-most `X-Forwarded-For` entry** because Caddy, with no `trusted_proxies`, overwrites the header with the address it saw, nothing sits in front of Caddy, and the container listens on `127.0.0.1` only. A CDN or another proxy in front of Caddy makes that entry the proxy's, and every player then shares one bucket: change the rule with it.
 - Use shared constants from `constants.ts` (`ZERO_ADDRESS`, `CHAIN_NAMES`) and `contracts.ts` (`ACTIVE_STATES`, `balanceOfAbi`, `transferAbi`, `getUsdtAddress`) — never redefine locally.
@@ -399,3 +419,9 @@ and controls; the guard tests below list it.
   (the owner-settable params bullet).
 - Both health endpoints report `environment` and `release`, and the deploy passes only when both
   match: see Deployment in `ops/CLAUDE.md` before changing either.
+- **The ETH a self-paid window asks for is the worst case, not the fee.** A node refuses a
+  transaction whose sender holds less than its gas limit times `maxFeePerGas`, after the player
+  has already confirmed it in the wallet, so `ethNeeded` (`lib/gasNeeds.ts`) sums each unsent
+  transaction's limit at the app's own buffers and floors, and the row says "up to". The figures
+  beside each transaction are what it should cost at the network's price now. Compare the
+  balance with the expected fee instead and a wallet that looks covered fails at sending.

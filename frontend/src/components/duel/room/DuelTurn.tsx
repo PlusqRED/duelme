@@ -1,10 +1,10 @@
 'use client';
 
 import { useId, useMemo, useSyncExternalStore, type RefObject } from 'react';
-import { ActionFlowDialog } from '@/components/duel/ActionFlowDialog';
-import { JoinDuelFlowDialog } from '@/components/duel/JoinDuelFlowDialog';
 import { TurnBlocks } from '@/components/duel/room/TurnBlocks';
 import { TurnPanel } from '@/components/duel/room/TurnPanel';
+import { ActionSigningWindow } from '@/components/sign/ActionSigningWindow';
+import { JoinSigningWindow } from '@/components/sign/JoinSigningWindow';
 import { TopUpWindow } from '@/components/topup/TopUpWindow';
 import type { TranslationKey } from '@/i18n/translations';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
@@ -108,7 +108,6 @@ export function DuelTurn({ duelId, duel, phase, view, gameName, inviteSecret, wa
           moves={{
             vars,
             onMove: actions.run,
-            pending: actions.pending,
             isBusy: actions.isBusy,
             isJoinArriving: purse.isCovered,
             onPreviewJoin,
@@ -130,7 +129,7 @@ export function DuelTurn({ duelId, duel, phase, view, gameName, inviteSecret, wa
         />
       )}
 
-      <JoinDuelFlowDialog
+      <JoinSigningWindow
         open={joinFlow.flow !== null}
         canClose={joinFlow.canCloseFlow}
         draft={joinFlow.flow?.draft ?? null}
@@ -150,7 +149,7 @@ export function DuelTurn({ duelId, duel, phase, view, gameName, inviteSecret, wa
         onDone={joinFlow.closeFlow}
       />
 
-      <ActionFlowDialog
+      <ActionSigningWindow
         open={actionFlow.flow !== null}
         canClose={actionFlow.canClose}
         flow={actionFlow.flow}

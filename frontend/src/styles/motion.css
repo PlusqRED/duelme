@@ -42,6 +42,8 @@
   --animate-breathe: breathe 2.6s ease-in-out infinite;
   --animate-seal: seal 0.7s ease-out both;
   --animate-on-air: on-air 1.8s ease-out infinite;
+  --animate-cell-charge: cell-charge 0.34s var(--ease-spring) both;
+  --animate-glint: glint 0.7s ease-out both;
 
   /* The "on air" dot: something happening now — the development, a duel waiting on a player. */
   @keyframes on-air {
@@ -229,35 +231,32 @@
       scale: 1.14;
     }
   }
-}
 
-/* The stake against the wallet (`ChargeCells`) and the move it opens. */
-@theme {
-  --animate-cell-charge: cell-charge 0.34s var(--ease-spring) both;
-  --animate-cells-glint: cells-glint 0.7s ease-out both;
-  --animate-arrive: arrive 0.45s var(--ease-spring) both;
-
-  /* Money landed: each cell it covers charges, one after another. */
+  /* Money that landed charges a stake's cells one after another. */
   @keyframes cell-charge {
     from {
-      opacity: 0;
+      opacity: 0.35;
       scale: 0.55;
     }
     60% {
-      opacity: 1;
       scale: 1.18;
     }
   }
 
-  /* A stake just covered in full glints once, left to right. */
-  @keyframes cells-glint {
+  /* A bar that just filled up glints once: a light crosses it. */
+  @keyframes glint {
     from {
       translate: -100% 0;
     }
     to {
-      translate: 250% 0;
+      translate: 260% 0;
     }
   }
+}
+
+/* The move a covered stake opens. */
+@theme {
+  --animate-arrive: arrive 0.45s var(--ease-spring) both;
 
   /* Join arrives in Top up's place. */
   @keyframes arrive {

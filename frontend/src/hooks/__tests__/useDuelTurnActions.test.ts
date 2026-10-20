@@ -5,6 +5,7 @@ import type { ActionFlowConfig } from '@/lib/actionFlow';
 import { DuelState } from '@/lib/contracts';
 import type { DuelPhase } from '@/lib/duelPhase';
 import { duelView } from '@/lib/__tests__/helpers/duelView';
+import { OPEN_DUEL_INVITE_SECRET } from '@/lib/invite';
 
 const hooks = vi.hoisted(() => ({
   login: vi.fn(),
@@ -19,15 +20,11 @@ const hooks = vi.hoisted(() => ({
     confirmResult: vi.fn(),
     disputeResult: vi.fn(),
     requestMutualCancellation: vi.fn(),
-  },
-  responses: {
-    pending: 'idle' as string,
-    isBusy: false,
-    decline: vi.fn(),
-    cancel: vi.fn(),
-    acceptCancellation: vi.fn(),
-    declineCancellation: vi.fn(),
-    withdrawCancellation: vi.fn(),
+    acceptMutualCancellation: vi.fn(),
+    declineMutualCancellation: vi.fn(),
+    withdrawMutualCancellationRequest: vi.fn(),
+    declineDuel: vi.fn(),
+    cancelDuel: vi.fn(),
   },
   handleOpenJoinFlow: vi.fn(),
 }));
@@ -39,7 +36,6 @@ vi.mock('@/hooks/useActionFlow', () => ({
 vi.mock('@/hooks/useJoinDuelFlow', () => ({
   useJoinDuelFlow: () => hooks.joinFlow ?? { flow: null, handleOpenJoinFlow: hooks.handleOpenJoinFlow },
 }));
-vi.mock('@/hooks/useDuelResponses', () => ({ useDuelResponses: () => hooks.responses }));
 vi.mock('@/hooks/useNicknames', () => ({ useNicknames: () => ({ resolveDisplay: () => 'Bo' }) }));
 
 const { useDuelTurnActions } = await import('@/hooks/useDuelTurnActions');
@@ -51,8 +47,6 @@ const openTopUp = vi.fn();
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
-  hooks.responses.pending = 'idle';
-  hooks.responses.isBusy = false;
   hooks.actionFlow = null;
   hooks.joinFlow = null;
 });
@@ -64,7 +58,7 @@ function actions(phase: DuelPhase = 'funded') {
   ).result.current;
 }
 
-/** The guided window `openFlow` was last asked for, and what it does when signed. */
+/** The signing window `openFlow` was last asked for, and what it does when signed. */
 function openedFlow() {
   const config = hooks.openFlow.mock.lastCall?.[0] as ActionFlowConfig;
   config.execute();
@@ -90,13 +84,21 @@ describe('useDuelTurnActions', () => {
     expect(hooks.login).toHaveBeenCalledOnce();
   });
 
-  it('sends a one-transaction answer straight from the page', () => {
+  it('agrees to call a duel off through the signing window', () => {
     actions('cancelReq').run('agree');
 
-    expect(hooks.responses.acceptCancellation).toHaveBeenCalledOnce();
+    expect(openedFlow()).toBe('acceptMutualCancellation');
+    expect(hooks.duelActions.acceptMutualCancellation).toHaveBeenCalledWith(7n);
   });
 
-  it('reports a win through the guided window', () => {
+  it('declines an open duel with the open secret', () => {
+    actions('created').run('decline');
+
+    expect(openedFlow()).toBe('declineDuel');
+    expect(hooks.duelActions.declineDuel).toHaveBeenCalledWith(7n, OPEN_DUEL_INVITE_SECRET);
+  });
+
+  it('reports a win through the signing window', () => {
     actions().run('won');
 
     expect(openedFlow()).toBe('claimVictory');
@@ -123,23 +125,13 @@ describe('useDuelTurnActions', () => {
     expect(openedFlow()).toBe('claimPayout');
   });
 
-  it('names the answer on its way by its move', () => {
-    hooks.responses.pending = 'decliningMutualCancelRequest';
-    hooks.responses.isBusy = true;
-
-    const { pending, isBusy } = actions('cancelReq');
-
-    expect(pending).toBe('keepPlaying');
-    expect(isBusy).toBe(true);
-  });
-
-  it('is busy while a guided window is open', () => {
+  it('is busy while a signing window is open', () => {
     hooks.actionFlow = { flow: {}, openFlow: hooks.openFlow, duelActions: hooks.duelActions };
 
     expect(actions().isBusy).toBe(true);
   });
 
-  it('gives the guided window the duel’s amounts and the other player', () => {
+  it('gives the signing window the duel’s amounts and the other player', () => {
     const { summaryContext } = actions();
 
     expect(summaryContext).toMatchObject({ duelId: 7, formattedPot: '10 USDT', opponentDisplay: 'Bo' });

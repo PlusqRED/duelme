@@ -21,7 +21,7 @@ function blocks(list: TurnBlock[], onMove = vi.fn()) {
   return render(
     <TurnBlocks
       blocks={list}
-      moves={{ vars: VARS, onMove, pending: null, isBusy: false }}
+      moves={{ vars: VARS, onMove, isBusy: false }}
       share={{ link: 'https://dev.duelme.pro/duel/6', isPublic: true }}
       foe={{ address: CREATOR, name: 'Ace', level: undefined }}
       purse={{ needRaw: 5_000_000n, balance: { kind: 'ready', raw: 0n }, side: 'opponent' }}

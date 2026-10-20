@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { TopUpDuel } from '@/components/topup/TopUpWindow';
+import type { TopUpDuel, TopUpEth } from '@/components/topup/TopUpWindow';
 import { DEFAULT_CHAIN, SUPPORTED_CHAINS } from '@/lib/constants';
 import type { FaucetOffer } from '@/lib/faucetApi';
 
@@ -191,5 +191,44 @@ describe('TopUpWindow', () => {
     rerender(<TopUpWindow address={ADDRESS} walletAddress={WALLET} chainId={null} onClose={vi.fn()} />);
 
     expect(screen.getByText('Send test USDT on Arbitrum Sepolia to this address.')).toBeTruthy();
+  });
+});
+
+describe('TopUpWindow — ETH for a signing window', () => {
+  function renderEth(balance: TopUpEth['balance'], onClose = vi.fn()) {
+    const eth: TopUpEth = { neededWei: 13_400_000_000_000n, balance, retry: vi.fn() };
+    render(<TopUpWindow address={ADDRESS} walletAddress={WALLET} chainId={SEPOLIA.id} eth={eth} backKey="topup.back.sign" onClose={onClose} />);
+    return eth;
+  }
+
+  it('testTopUpWindowAsksForTestEthOnTheTestNetwork', () => {
+    renderEth({ kind: 'ready', raw: 0n });
+
+    expect(screen.getByText('Send test ETH on Arbitrum Sepolia to this address.')).toBeTruthy();
+    expect(screen.getByText('Test network: don’t send real ETH here.')).toBeTruthy();
+  });
+
+  it('testTopUpWindowHoldsTheEthAgainstWhatTheFeesMayTake', () => {
+    renderEth({ kind: 'ready', raw: 0n });
+
+    expect(screen.getByText('Needed for the network fee: up to 0.00002 ETH')).toBeTruthy();
+    expect(screen.getByText('Not enough ETH yet')).toBeTruthy();
+    expect(reads.useUsdtBalance).toHaveBeenCalledWith(SEPOLIA.id, WALLET, false);
+  });
+
+  it('testTopUpWindowSaysTheEthCoversTheFee', () => {
+    renderEth({ kind: 'ready', raw: 7_736_000_000_000_000n });
+
+    expect(screen.getByText('0.007736 ETH')).toBeTruthy();
+    expect(screen.getByText('Enough for the fee')).toBeTruthy();
+  });
+
+  it('testTopUpWindowGoesBackToSigning', () => {
+    const onClose = vi.fn();
+    renderEth({ kind: 'ready', raw: 0n }, onClose);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back to signing' }));
+
+    expect(onClose).toHaveBeenCalledOnce();
   });
 });

@@ -10,6 +10,7 @@ import {
   resolveBalanceStatus,
   resolveFunding,
 } from '@/lib/balanceStatus';
+import type { SigningProgress } from '@/lib/flowSession';
 
 export interface FlowFunding {
   balance: BalanceStatus;
@@ -22,13 +23,18 @@ export interface FlowFunding {
   closeTopUp: () => void;
 }
 
-/** What the review step of a create or join flow needs to decide whether Continue is open. */
+/** What the check step of a create or join flow needs to decide whether Continue is open. */
 export interface FlowReviewGate {
   funding: FlowFunding;
   /** Checked again inside the flow's Continue handler; `disabled` alone is not the gate. */
   canContinue: boolean;
   /** Why Continue is closed for a reason other than the balance, e.g. the duel stopped waiting. */
   blockedReason: TranslationKey | null;
+  /**
+   * The write under way, for the signing window. It rides on the review gate because the window
+   * takes the same props the flow's dialog took, and this is the one of them that is an object.
+   */
+  signing: SigningProgress;
 }
 
 interface UseFlowFundingArgs {

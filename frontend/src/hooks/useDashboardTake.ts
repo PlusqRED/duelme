@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useActionFlow } from '@/hooks/useActionFlow';
 import { useTranslation } from '@/i18n/useTranslation';
-import { claimAllConfig } from '@/lib/actionFlowConfigs';
+import { refundAndClaimAllConfig } from '@/lib/actionFlowConfigs';
 import { summarizeOwed, type Owed } from '@/lib/owed';
 import { formatUSDT } from '@/lib/utils';
 
@@ -38,10 +38,11 @@ export function useDashboardTake(owed: Owed | null, refetch: () => void) {
     const duelIds = left.items.map((item) => item.duelId);
     setAsked({ duelIds, raw: left.totalRaw });
     actionFlow.openFlow(
-      claimAllConfig(
+      refundAndClaimAllConfig(
         () => actionFlow.duelActions.refundAndClaimPayouts(duelIds.map(BigInt)),
         `${formatUSDT(left.totalRaw, language)} USDT`,
-        duelIds.length
+        duelIds.length,
+        left.items.some((item) => item.kind === 'late')
       )
     );
   }

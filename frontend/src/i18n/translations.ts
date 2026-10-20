@@ -1,5 +1,3 @@
-import { actionFlowClaimsTranslations } from './translations/actionFlowClaims';
-import { actionFlowResultsTranslations } from './translations/actionFlowResults';
 import { createDuelTranslations } from './translations/createDuel';
 import { dashboardTranslations } from './translations/dashboard';
 import { dashboardWalletTranslations } from './translations/dashboardWallet';
@@ -7,7 +5,6 @@ import { demoDuelTranslations } from './translations/demoDuel';
 import { duelTranslations } from './translations/duel';
 import { duelRoomTranslations } from './translations/duelRoom';
 import { homeTranslations } from './translations/home';
-import { joinDuelFlowTranslations } from './translations/joinDuelFlow';
 import { landingTranslations } from './translations/landing';
 import { landingListsTranslations } from './translations/landingLists';
 import { landingTrustTranslations } from './translations/landingTrust';
@@ -21,6 +18,7 @@ import { duelTurnTranslations } from './translations/duelTurn';
 import { duelMovesTranslations } from './translations/duelMoves';
 import { signingTranslations } from './translations/signing';
 import { browseTranslations } from './translations/browse';
+import { signingActionsTranslations } from './translations/signingActions';
 
 export const translations = {
   en: {
@@ -31,9 +29,6 @@ export const translations = {
     ...landingListsTranslations.en,
     ...landingTrustTranslations.en,
     ...createDuelTranslations.en,
-    ...joinDuelFlowTranslations.en,
-    ...actionFlowResultsTranslations.en,
-    ...actionFlowClaimsTranslations.en,
     ...duelTranslations.en,
     ...duelRoomTranslations.en,
     ...dashboardWalletTranslations.en,
@@ -47,6 +42,7 @@ export const translations = {
     ...signingTranslations.en,
     ...dashboardTranslations.en,
     ...browseTranslations.en,
+    ...signingActionsTranslations.en,
   },
   ru: {
     ...navigationTranslations.ru,
@@ -56,9 +52,6 @@ export const translations = {
     ...landingListsTranslations.ru,
     ...landingTrustTranslations.ru,
     ...createDuelTranslations.ru,
-    ...joinDuelFlowTranslations.ru,
-    ...actionFlowResultsTranslations.ru,
-    ...actionFlowClaimsTranslations.ru,
     ...duelTranslations.ru,
     ...duelRoomTranslations.ru,
     ...dashboardWalletTranslations.ru,
@@ -72,6 +65,7 @@ export const translations = {
     ...signingTranslations.ru,
     ...dashboardTranslations.ru,
     ...browseTranslations.ru,
+    ...signingActionsTranslations.ru,
   },
 } as const;
 

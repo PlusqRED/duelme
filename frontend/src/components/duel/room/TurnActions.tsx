@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import type { IconName } from '@/components/ui/iconPaths';
-import { Spinner } from '@/components/ui/spinner';
 import type { TurnMove } from '@/hooks/useDuelTurnActions';
 import type { TranslationKey, TranslationParams } from '@/i18n/translations';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -46,8 +45,6 @@ export interface TurnMoves {
   /** The copy's names and amounts, the same for every line of the panel. */
   vars: TranslationParams;
   onMove: (move: TurnMove) => void;
-  /** The answer on its way, whose button turns. */
-  pending: TurnMove | null;
   /** A move is under way, so no button starts another. */
   isBusy: boolean;
   /** Join arrives in Top up's place once money covered the stake, and takes the focus. */
@@ -62,7 +59,7 @@ interface TurnActionButtonProps extends TurnMoves {
 }
 
 /** One move as a keycap, or a link that looks like one. */
-export function TurnActionButton({ action, vars, onMove, pending, isBusy, isJoinArriving, onPreviewJoin, className }: TurnActionButtonProps) {
+export function TurnActionButton({ action, vars, onMove, isBusy, isJoinArriving, onPreviewJoin, className }: TurnActionButtonProps) {
   const { t, language } = useTranslation();
   const look = looks[action.id];
   const joinRef = useRef<HTMLButtonElement>(null);
@@ -104,7 +101,7 @@ export function TurnActionButton({ action, vars, onMove, pending, isBusy, isJoin
       onBlur={preview?.(false)}
       className={cn(isJoin && isJoinArriving && 'animate-arrive', className)}
     >
-      {pending === move ? <Spinner /> : look.icon && <Icon name={look.icon} />}
+      {look.icon && <Icon name={look.icon} />}
       {label}
     </Button>
   );

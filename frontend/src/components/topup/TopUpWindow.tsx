@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { AddressGroups } from '@/components/topup/AddressGroups';
 import { AddressQr } from '@/components/topup/AddressQr';
 import { TopUpBalance } from '@/components/topup/TopUpBalance';
+import { TopUpEthBalance } from '@/components/topup/TopUpEthBalance';
 import { TopUpFaucet } from '@/components/topup/TopUpFaucet';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -13,6 +14,7 @@ import { useLastNonNull } from '@/hooks/useLastNonNull';
 import { useRelayerStatus } from '@/hooks/useRelayerStatus';
 import { useUsdtBalance } from '@/hooks/useUsdtBalance';
 import type { WalletNetwork } from '@/hooks/useWalletBalances';
+import type { TranslationKey } from '@/i18n/translations';
 import { useTranslation } from '@/i18n/useTranslation';
 import { resolveBalanceReading, type BalanceReading } from '@/lib/balanceStatus';
 import { AVAILABLE_CHAINS, DEFAULT_CHAIN } from '@/lib/constants';
@@ -28,6 +30,13 @@ export interface TopUpDuel {
   funding: { balance: BalanceReading; retry: () => void };
 }
 
+/** A signing window short of ETH for the fees its wallet pays: what they may take, and the ETH read. */
+export interface TopUpEth {
+  neededWei: bigint;
+  balance: BalanceReading;
+  retry: () => void;
+}
+
 interface TopUpWindowProps {
   /** Checksummed: shown, copied and put in the QR code as it is. */
   address: string;
@@ -35,6 +44,10 @@ interface TopUpWindowProps {
   /** The network to top up on; null keeps the window closed. */
   chainId: number | null;
   duel?: TopUpDuel;
+  /** Opened for ETH instead of USDT: what to send and the balance shown are ETH. */
+  eth?: TopUpEth;
+  /** The way back, when it leads somewhere other than the duel. */
+  backKey?: TranslationKey;
   onClose: () => void;
 }
 
@@ -75,12 +88,18 @@ interface TopUpBodyProps extends Omit<TopUpWindowProps, 'chainId'> {
   network: WalletNetwork;
 }
 
-function TopUpBody({ address, walletAddress, network, duel, onClose }: TopUpBodyProps) {
+function TopUpBody({ address, walletAddress, network, duel, eth, backKey, onClose }: TopUpBodyProps) {
   const { t } = useTranslation();
   const { isRelayEnabled } = useRelayerStatus(network.id);
-  const ownRead = useUsdtBalance(network.id, walletAddress, !duel);
+  const ownRead = useUsdtBalance(network.id, walletAddress, !duel && !eth);
   const balance = duel?.funding.balance ?? resolveBalanceReading(ownRead.read, { chainId: network.id, walletAddress });
-  const copy = topUpCopy({ testnet: network.testnet, isDuelNetwork: network.id === DEFAULT_CHAIN.id, isRelayEnabled, duel });
+  const copy = topUpCopy({
+    testnet: network.testnet,
+    isDuelNetwork: network.id === DEFAULT_CHAIN.id,
+    isRelayEnabled,
+    duel,
+    isEth: !!eth,
+  });
 
   return (
     <>
@@ -108,12 +127,16 @@ function TopUpBody({ address, walletAddress, network, duel, onClose }: TopUpBody
         </div>
       </div>
       <TopUpFaucet key={network.id} chainId={network.id} />
-      <TopUpBalance
-        networkName={network.name}
-        balance={balance}
-        onRetry={duel?.funding.retry ?? ownRead.refetch}
-        neededRaw={duel?.neededRaw}
-      />
+      {eth ? (
+        <TopUpEthBalance networkName={network.name} balance={eth.balance} neededWei={eth.neededWei} onRetry={eth.retry} />
+      ) : (
+        <TopUpBalance
+          networkName={network.name}
+          balance={balance}
+          onRetry={duel?.funding.retry ?? ownRead.refetch}
+          neededRaw={duel?.neededRaw}
+        />
+      )}
       {copy.notes.length > 0 && (
         <div className="grid gap-1">
           {copy.notes.map((key) => (
@@ -125,7 +148,7 @@ function TopUpBody({ address, walletAddress, network, duel, onClose }: TopUpBody
       )}
       <DialogFooter isPinned>
         <Button type="button" size="lg" onClick={onClose} data-initial-focus className="w-full">
-          {t(duel ? 'topup.back' : 'topup.done')}
+          {t(backKey ?? (duel ? 'topup.back' : 'topup.done'))}
         </Button>
       </DialogFooter>
     </>
