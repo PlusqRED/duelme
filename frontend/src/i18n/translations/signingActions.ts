@@ -4,6 +4,7 @@ import { defineSection } from './defineSection';
 export const signingActionsTranslations = defineSection({
   en: {
     'sign.create.slow.text': 'The network hasn’t decided yet. You can close this window: this page shows the new duel and its link once it does. Stay on the page until then, since the link to a private duel comes only here.',
+    'sign.create.slow.approve.text': 'The network hasn’t confirmed the permission yet. If you close this window, the duel isn’t created: press Create duel again once the permission goes through.',
     'sign.join.title': 'Join duel #{id}',
     'sign.join.caption': 'Your {wager}\u00a0USDT goes into the safe next to theirs, and the safe locks {pot}\u00a0USDT until the result.',
     'sign.join.move': 'Join duel #{id} against {other}',
@@ -120,6 +121,7 @@ export const signingActionsTranslations = defineSection({
   },
   ru: {
     'sign.create.slow.text': 'Сеть пока не решила. Окно можно закрыть: эта страница покажет новую дуэль и ссылку на неё, когда решение придёт. До тех пор не уходи со страницы: ссылку на закрытую дуэль показывают только здесь.',
+    'sign.create.slow.approve.text': 'Сеть пока не подтвердила разрешение. Если закрыть окно, дуэль не создастся: нажми «Создать дуэль» ещё раз, когда разрешение пройдёт.',
     'sign.join.title': 'Принять дуэль #{id}',
     'sign.join.caption': 'Твои {wager}\u00a0USDT лягут в сейф рядом со ставкой соперника, и сейф закроет {pot}\u00a0USDT до результата.',
     'sign.join.move': 'Принять дуэль #{id} против {other}',

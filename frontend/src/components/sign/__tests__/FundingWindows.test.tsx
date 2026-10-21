@@ -175,7 +175,7 @@ function renderCreate(overrides: Partial<Parameters<typeof CreateSigningWindow>[
     onCreateDuel: vi.fn(),
     onBackToForm: vi.fn(),
   };
-  render(<CreateSigningWindow {...flowProps} draft={CREATE_DRAFT} stage="review" review={review()} {...handlers} {...overrides} />);
+  render(<CreateSigningWindow {...flowProps} wasLeft={false} draft={CREATE_DRAFT} stage="review" review={review()} {...handlers} {...overrides} />);
   return handlers;
 }
 
@@ -214,6 +214,20 @@ describe('CreateSigningWindow', () => {
 
     expect(handlers.onBackToForm).toHaveBeenCalledOnce();
     expect(handlers.onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it('testCreateSigningWindowSaysTheNewDuelStillComesWhenLeftWhileTheCreateConfirms', () => {
+    renderCreate({ stage: 'create-duel', actionState: 'confirming', wasLeft: true });
+
+    expect(screen.getByText(/this page shows the new duel and its link once it does/)).toBeTruthy();
+  });
+
+  it('testCreateSigningWindowSaysLeavingASlowApproveCreatesNoDuel', () => {
+    relayer.isRelayEnabled = false;
+
+    renderCreate({ stage: 'approve', actionState: 'confirming', needsApproval: true, wasLeft: true });
+
+    expect(screen.getByText(/If you close this window, the duel isn’t created/)).toBeTruthy();
   });
 
   it('testCreateSigningWindowOffersThePublicDuelOnDone', () => {

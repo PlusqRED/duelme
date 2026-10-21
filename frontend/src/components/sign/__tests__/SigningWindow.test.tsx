@@ -194,6 +194,14 @@ describe('SigningWindow — the wallet and the network at work', () => {
 
     expect(model.onClose).toHaveBeenCalledOnce();
   });
+
+  it('testSigningWindowOffersTheWayOutAtOnceOnAWaitAlreadyLeft', () => {
+    const model = joinModel({ place: 'write', actionState: 'confirming', wasLeft: true, signing: { ...joinModel().signing, hash: HASH } });
+
+    render(<SigningWindow model={model} />);
+
+    expect(screen.getByRole('button', { name: 'Close and check later' })).toBeTruthy();
+  });
 });
 
 describe('SigningWindow — how it went', () => {

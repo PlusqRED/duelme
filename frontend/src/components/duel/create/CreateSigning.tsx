@@ -12,6 +12,7 @@ export function CreateSigning({ flow }: { flow: ReturnType<typeof useCreateDuelF
     <CreateSigningWindow
       open={flow.isFlowOpen}
       canClose={flow.canCloseFlow}
+      wasLeft={flow.wasLeft}
       draft={flow.flow?.draft ?? null}
       stage={flow.flow?.stage ?? 'review'}
       actionState={flow.flow?.actionState ?? 'idle'}

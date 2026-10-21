@@ -16,6 +16,7 @@ import { formatUSDT } from '@/lib/utils';
 interface CreateSigningWindowProps {
   open: boolean;
   canClose: boolean;
+  wasLeft: boolean;
   draft: CreateDuelFlowDraft | null;
   stage: CreateDuelFlowStage;
   actionState: FlowActionState;
@@ -76,7 +77,9 @@ export function CreateSigningWindow(props: CreateSigningWindowProps) {
         doneText: t(draft.isPublic ? 'sign.create.public.done.text' : copy.doneText, params),
         doneButton: t(draft.isPublic ? 'sign.create.public.done.button' : 'sign.create.done.button'),
         backLabel: t(copy.back),
-        slowText: t('sign.create.slow.text'),
+        // Closing on a slow approve stops the flow: no create is sent once the approve lands.
+        slowText: t(props.stage === 'approve' ? 'sign.create.slow.approve.text' : 'sign.create.slow.text'),
+        wasLeft: props.wasLeft,
         onContinue: props.onContinue,
         run: { 'switch-network': props.onSwitchNetwork, approve: props.onApprove, write: props.onCreateDuel },
         onClose: () => props.onOpenChange(false),

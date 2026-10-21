@@ -47,9 +47,10 @@ export function useCreateDuelFlow({
   const [allowanceRefreshCount, setAllowanceRefreshCount] = useState(0);
   // Outlives the window: the page shows the new duel's link once the window is closed.
   const [createdDuelPath, setCreatedDuelPath] = useState<string | null>(null);
-  // Left while the chain confirms: the window is out of the way, but the flow runs on, so the new
-  // duel is still recorded (its invite secret, its game) and its link shown when the receipt lands.
-  const [isHidden, setIsHidden] = useState(false);
+  // Left while the chain confirms: 'away' keeps the window out of the way while the flow runs on, so
+  // the new duel is still recorded (its invite secret, its game) and its link shown when the receipt
+  // lands; 'back' once Create brings it into view again, where it offers its way out at once.
+  const [left, setLeft] = useState<'away' | 'back' | null>(null);
 
   const { ready, authenticated, login } = usePrivy();
   const { identityToken } = useIdentityToken();
@@ -195,15 +196,15 @@ export function useCreateDuelFlow({
 
   // A flow left to finish out of sight ends with the page showing the new duel, so there is no
   // Done to close it on; a failure brings the window back for good, Try again included.
-  if (isHidden && flow?.stage === 'success') {
-    setIsHidden(false);
+  if (left === 'away' && flow?.stage === 'success') {
+    setLeft(null);
     setFlow(null);
-  } else if (isHidden && flow?.actionState === 'error') {
-    setIsHidden(false);
+  } else if (left !== null && flow?.actionState === 'error') {
+    setLeft(null);
   }
 
   function closeFlow() {
-    setIsHidden(false);
+    setLeft(null);
     actions.closeFlow();
   }
 
@@ -225,9 +226,11 @@ export function useCreateDuelFlow({
     // The page shows the new duel's link itself once the window closes; nothing navigates there.
     createdDuelPath,
     flow,
-    isFlowOpen: flow !== null && !isHidden,
+    isFlowOpen: flow !== null && left !== 'away',
     /** The create runs on behind a closed window: the setup stays as it was sent until it lands. */
-    isRunningOutOfSight: flow !== null && isHidden,
+    isRunningOutOfSight: flow !== null && left === 'away',
+    /** The window was left once and is back: the wait's way out shows without another long wait. */
+    wasLeft: left === 'back',
     handleApprove: () => actions.handleApprove(flow),
     handleContinueFlow: () => {
       // The button is disabled too, but the gate is here: nothing past review without a fresh
@@ -240,7 +243,9 @@ export function useCreateDuelFlow({
     handleCreateDuelClick: () => {
       // A create still running out of sight comes back into view; a second one would drop its receipt.
       if (flow !== null) {
-        setIsHidden(false);
+        if (left === 'away') {
+          setLeft('back');
+        }
         return;
       }
       markOpened();
@@ -254,7 +259,7 @@ export function useCreateDuelFlow({
       // Only the slow notice's way out closes a window while the chain confirms. The create itself
       // runs on out of sight, to be recorded when it lands; a slow approve simply stops the flow.
       if (flow?.actionState === 'confirming' && flow.pendingTransaction === 'create-duel') {
-        setIsHidden(true);
+        setLeft('away');
       } else {
         closeFlow();
       }

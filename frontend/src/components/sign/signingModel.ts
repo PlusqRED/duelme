@@ -62,6 +62,8 @@ export interface SigningModel {
   backLabel: string;
   /** Said when the network takes long to decide, with the way out it offers. */
   slowText: string;
+  /** The wait was left once already: its way out shows at once, without another long wait. */
+  wasLeft?: boolean;
   route: WriteRoute;
   items: SignItem[];
   place: FlowPlace;

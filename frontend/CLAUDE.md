@@ -263,7 +263,7 @@ test can check.
 | `frontend/src/lib/duelMessage.ts` | Frontend Unicode duel-message validation; `normalizeDuelMessage`, the one trim the create page's field, counter, check and create call all judge |
 | `frontend/src/lib/duelSearch.ts` | The lists' search text (feed rows, open duels) and the query folding they share |
 | `frontend/src/lib/actionFlowConfigs.ts` | The signing window's configs for duel actions, the one-transaction answers included |
-| `frontend/src/lib/balanceRefresh.ts` | Shared client-side balance refresh event bus |
+| `frontend/src/lib/balanceRefresh.ts` | Shared client-side balance refresh event bus; `subscribeToSharedRefresh` gives the readers of one query a single fresh read per event |
 | `frontend/src/components/topup/TopUpWindow.tsx` | The site's one top-up window, for the `chainId` it is given: QR and grouped address, what to send and not to, the faucet, the balance there; for a duel (`duel`), what it needs, from the flow's own balance read; for a signing window's fees (`eth`), the ETH they need |
 | `frontend/src/lib/topup.ts` | The top-up window's words for a network (`topUpCopy`) and the address in groups of four |
 | `frontend/src/lib/balanceStatus.ts` | Balance freshness / sufficiency rule: `resolveBalanceReading` for a wallet, `resolveBalanceStatus` where there may be none, `resolveFunding` |

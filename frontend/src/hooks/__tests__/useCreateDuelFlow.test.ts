@@ -189,6 +189,32 @@ describe('useCreateDuelFlow', () => {
     expect(env.write.reset).not.toHaveBeenCalled();
   });
 
+  it('testUseCreateDuelFlowOffersTheWayOutAtOnceWhenALeftWindowComesBack', async () => {
+    const { result, rerender } = renderCreate();
+    await sendCreate(result);
+    env.write = { ...env.write, isConfirming: true };
+    rerender();
+    act(() => result.current.handleFlowOpenChange(false));
+
+    await act(async () => result.current.handleCreateDuelClick());
+
+    expect(result.current.wasLeft).toBe(true);
+  });
+
+  it('testUseCreateDuelFlowCountsATryAgainsWaitFromZero', async () => {
+    const { result, rerender } = renderCreate();
+    await sendCreate(result);
+    env.write = { ...env.write, isConfirming: true };
+    rerender();
+    act(() => result.current.handleFlowOpenChange(false));
+    await act(async () => result.current.handleCreateDuelClick());
+
+    env.write = { ...env.write, isConfirming: false, error: new Error('execution reverted') };
+    rerender();
+
+    expect(result.current.wasLeft).toBe(false);
+  });
+
   it('testUseCreateDuelFlowStopsASlowApproveRatherThanHidingIt', async () => {
     const { result, rerender } = renderCreate();
     await act(async () => result.current.handleCreateDuelClick());

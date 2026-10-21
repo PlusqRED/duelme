@@ -74,8 +74,12 @@ const GAS_REFUSALS = [
 // a nonce it would not take, which is no word from the contract.
 const REVERT_WORDS = /execution reverted(?! for an unknown reason)|reverted with the following (?:reason|signature)/;
 
-/** viem's lines that repeat the call: its arguments, its calldata, and the RPC request that carried them. */
-const CALL_LINES = ['args:', 'data:', 'Request body:'];
+/** viem's lines that repeat the call: its arguments and its calldata. */
+const CALL_LINES = ['args:', 'data:'];
+
+// The RPC request that carried the call holds its calldata or the signed transaction, so only its
+// method stays: it tells a failed estimate from a failed send.
+const REQUEST_METHOD = /"method":\s*"([^"]+)"/;
 
 /** The longest raw message the details show; a viem dump can run to pages. */
 const MAX_DETAIL_LENGTH = 1500;
@@ -179,12 +183,20 @@ function describe(error: unknown): string | undefined {
     }
     return lines
       .flatMap((line) => line.split('\n'))
-      .map((line) => line.trim())
-      .filter((line) => line && !CALL_LINES.some((start) => line.startsWith(start)))
+      .map((line) => withoutCall(line.trim()))
+      .filter(Boolean)
       .join('\n');
   }
   if (error instanceof Error) {
     return error.message;
   }
   return typeof error === 'string' ? error : undefined;
+}
+
+function withoutCall(line: string): string | null {
+  if (line.startsWith('Request body:')) {
+    const method = REQUEST_METHOD.exec(line)?.[1];
+    return method ? `Request method: ${method}` : null;
+  }
+  return CALL_LINES.some((start) => line.startsWith(start)) ? null : line;
 }

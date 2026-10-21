@@ -38,7 +38,8 @@ export function SigningWindow({ model }: { model: SigningModel }) {
   const statuses = railStatuses(steps, spot);
   const canClose = model.canClose && !isBusy(spot);
   const { press } = useSigningPress({ place: model.open ? place : null, actionState, run: model.run });
-  const isSlow = useTakingLong(model.open && actionState === 'confirming');
+  const isConfirming = model.open && actionState === 'confirming';
+  const isSlow = useTakingLong(isConfirming) || (isConfirming && model.wasLeft === true);
   const lastHash = useLastNonNull(signing.hash ?? null);
 
   const unpaid = place === 'success' ? [] : items.filter((item) => item.kind === 'transaction' && !(item.part === 'approve' && model.approved));

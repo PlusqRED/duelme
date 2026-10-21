@@ -222,6 +222,17 @@ describe('rawErrorText', () => {
     expect([text?.includes('Estimate Gas Arguments:'), text?.includes(secret)]).toEqual([true, false]);
   });
 
+  it('testRawErrorTextKeepsTheRequestsMethodWhichTellsTheEstimateFromTheSend', () => {
+    const signed = `0x02f8${'7'.repeat(200)}`;
+    const error = new BaseError('HTTP request failed.', {
+      metaMessages: [`Request body: {"jsonrpc":"2.0","id":4,"method":"eth_sendRawTransaction","params":["${signed}"]}`],
+    });
+
+    const text = rawErrorText(error);
+
+    expect(text).toBe('HTTP request failed.\nRequest method: eth_sendRawTransaction');
+  });
+
   it('testRawErrorTextLeavesOutTheCallsArgumentsWhichCanHoldAnInviteSecret', () => {
     const secret = `0x${'5'.repeat(64)}`;
     const error = new BaseError('The contract function "joinDuel" reverted.', {
@@ -238,7 +249,7 @@ describe('rawErrorText', () => {
 
     const text = rawErrorText(error);
 
-    expect(text).toBe('HTTP request failed.\nStatus: 503\nURL: https://rpc.example');
+    expect(text).toBe('HTTP request failed.\nStatus: 503\nURL: https://rpc.example\nRequest method: eth_sendRawTransaction');
   });
 
   it('testRawErrorTextHasNothingToSayForANonError', () => {
