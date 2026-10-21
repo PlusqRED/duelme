@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { createRef } from 'react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { RoomSeat } from '@/components/duel/room/RoomSeat';
 import { translations } from '@/i18n/translations';
 import type { ArenaSeat } from '@/lib/arenaView';
@@ -99,7 +99,7 @@ describe('RoomSeat', () => {
   });
 
   it('shows the reader sitting down in an open seat while they point at Join', () => {
-    render(seat({ address: null, name: en['sim.openSeat'], takeable: { isTaking: true, purse: null } }));
+    render(seat({ address: null, name: en['sim.openSeat'], takeable: { isTaking: true, purse: null, onTake: null } }));
 
     expect(screen.getByText(en['room.you']).className).toContain('opacity-100');
   });
@@ -111,8 +111,40 @@ describe('RoomSeat', () => {
   });
 
   it('carries the wallet’s USDT under an open seat the reader could take, orange when it falls short', () => {
-    render(seat({ address: null, name: en['sim.openSeat'], takeable: { isTaking: false, purse: { text: '2 USDT', isShort: true } } }));
+    render(seat({ address: null, name: en['sim.openSeat'], takeable: { isTaking: false, purse: { text: '2 USDT', isShort: true }, onTake: null } }));
 
     expect(screen.getByText('2 USDT').className).toContain('text-orange-ink');
+  });
+
+  it('makes the panel’s move at a press on an open seat the reader could take, under a hand', () => {
+    const onTake = vi.fn();
+    const faceRef = createRef<HTMLSpanElement>();
+    render(seat({ address: null, name: en['sim.openSeat'], faceRef, takeable: { isTaking: false, purse: null, onTake } }));
+
+    fireEvent.click(faceRef.current!);
+
+    expect(onTake).toHaveBeenCalledTimes(1);
+    expect(faceRef.current?.className).toContain('cursor-pointer');
+  });
+
+  it('leaves an open seat with no move to make unpressable', () => {
+    const faceRef = createRef<HTMLSpanElement>();
+    render(seat({ address: null, name: en['sim.openSeat'], faceRef, takeable: { isTaking: false, purse: null, onTake: null } }));
+
+    expect(faceRef.current?.className).not.toContain('cursor-pointer');
+  });
+
+  it('shows the creator a no-entry sign over their own duel’s open seat, and why', () => {
+    render(seat({ address: null, name: en['sim.openSeat'], isOwnOpen: true }));
+
+    const face = screen.getByTitle(en['room.openSeat.own']);
+    expect(face.style.cursor).toContain('not-allowed');
+    expect(face.className).not.toContain('cursor-pointer');
+  });
+
+  it('keeps the no-entry sign off every other seat', () => {
+    render(seat({ address: null, name: en['sim.openSeat'] }));
+
+    expect(screen.queryByTitle(en['room.openSeat.own'])).toBeNull();
   });
 });

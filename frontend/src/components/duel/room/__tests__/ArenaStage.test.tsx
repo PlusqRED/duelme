@@ -85,9 +85,15 @@ describe('ArenaStage', () => {
   });
 
   it('puts the reader’s wallet under the open seat they could take', () => {
-    render(stage({ openSeat: { isTaking: false, purse: { text: '2 USDT', isShort: false } } }));
+    render(stage({ openSeat: { isTaking: false, purse: { text: '2 USDT', isShort: false }, onTake: null } }));
 
     expect(screen.getByText('2 USDT')).toBeTruthy();
+  });
+
+  it('bars the creator from their own duel’s open seat', () => {
+    render(stage({ isOwnOpenSeat: true }));
+
+    expect(screen.getAllByTitle(en['room.openSeat.own'])).toHaveLength(1);
   });
 
   it('hands the seats’ faces to the page, for the panel below to point at', () => {

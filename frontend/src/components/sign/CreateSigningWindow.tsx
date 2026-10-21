@@ -59,7 +59,6 @@ export function CreateSigningWindow(props: CreateSigningWindowProps) {
       isRelayEnabled,
       wager: params.wager,
       move: game ? t(copy.move, params) : t('sign.create.move.noGame', params),
-      side: 'creator',
       t,
     }
   );

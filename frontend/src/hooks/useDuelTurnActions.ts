@@ -111,3 +111,5 @@ export function useDuelTurnActions({ duelId, duel, phase, inviteSecret, walletAd
     summaryContext: openedContext ?? summaryContext,
   };
 }
+
+export type DuelTurnActions = ReturnType<typeof useDuelTurnActions>;

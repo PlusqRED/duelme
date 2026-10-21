@@ -64,7 +64,6 @@ export function SigningWindow({ model }: { model: SigningModel }) {
   const usdt = stake && {
     needRaw: stake.needRaw,
     balance: stake.funding.balance,
-    side: stake.side,
     fromRaw: stake.funding.isTopUpOpen ? undefined : chargeFrom,
   };
   const status = stake?.funding.status;
