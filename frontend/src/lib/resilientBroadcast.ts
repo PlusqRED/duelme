@@ -1,4 +1,4 @@
-import type { UnsignedTransactionRequest } from '@privy-io/react-auth';
+import type { useSignTransaction } from '@privy-io/react-auth';
 import {
   BaseError,
   encodeFunctionData,
@@ -23,8 +23,8 @@ import { getNodeError } from 'viem/utils';
 const EIP1559_TRANSACTION_TYPE = 2;
 
 export interface ResilientBroadcastArgs {
-  /** Signs a transaction in the embedded wallet and returns it serialized, ready to broadcast. */
-  signTransaction: (transaction: UnsignedTransactionRequest) => Promise<Hex>;
+  /** Privy's signer for the embedded wallet, from `useSignTransaction`. */
+  signTransaction: ReturnType<typeof useSignTransaction>['signTransaction'];
   publicClient: PublicClient<Transport, Chain>;
   account: `0x${string}`;
   chainId: number;
@@ -70,18 +70,21 @@ export async function broadcastWithFallback(params: ResilientBroadcastArgs): Pro
   // takes the type only as a number and refuses viem's RPC form, "0x2", with a 400. The limit
   // goes in as `gasLimit` because Privy also sends a `gas` as the gas price. Quantities are hex:
   // Privy's in-browser signer reads a numeric zero nonce as no nonce at all.
-  const signedTx = await params.signTransaction({
-    from: params.account,
-    to: params.to,
-    data,
-    chainId: params.chainId,
-    type: EIP1559_TRANSACTION_TYPE,
-    gasLimit: toHex(params.gas),
-    maxFeePerGas: toHex(params.maxFeePerGas),
-    maxPriorityFeePerGas: toHex(params.maxPriorityFeePerGas),
-    nonce: toHex(params.nonce),
-    value: toHex(0n),
-  });
+  const { signature: signedTx } = await params.signTransaction(
+    {
+      from: params.account,
+      to: params.to,
+      data,
+      chainId: params.chainId,
+      type: EIP1559_TRANSACTION_TYPE,
+      gasLimit: toHex(params.gas),
+      maxFeePerGas: toHex(params.maxFeePerGas),
+      maxPriorityFeePerGas: toHex(params.maxPriorityFeePerGas),
+      nonce: toHex(params.nonce),
+      value: toHex(0n),
+    },
+    { address: params.account }
+  );
 
   try {
     return await params.publicClient.sendRawTransaction({

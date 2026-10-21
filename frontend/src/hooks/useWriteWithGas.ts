@@ -224,8 +224,7 @@ export function useWriteWithGas(chainId: number) {
           broadcastWithFallback({
             // No wallet client: Privy signs for the transaction's own chain id, so a write sent
             // right after a network switch cannot sign with the network from before it.
-            signTransaction: async (transaction) =>
-              (await signTransaction(transaction, { address: accountAddress })).signature,
+            signTransaction,
             publicClient,
             account: accountAddress,
             chainId,

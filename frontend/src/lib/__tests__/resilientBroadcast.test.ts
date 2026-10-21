@@ -61,7 +61,7 @@ function makeArgs(overrides: TestOverrides = {}) {
   const broadcastHash =
     overrides.broadcastHash ??
     ('0xcd96707e59322b0e7966e0003a7c927226fd3c3f41199417d5e071abde846139' as const);
-  const signTransaction = vi.fn().mockResolvedValue(signedTx);
+  const signTransaction = vi.fn().mockResolvedValue({ signature: signedTx });
   const sendRawTransaction = vi.fn().mockResolvedValue(broadcastHash);
   const getTransaction = vi.fn().mockRejectedValue(new Error('Transaction not found'));
 
@@ -102,7 +102,7 @@ describe('broadcastWithFallback', () => {
     expect(sendRawTransaction).toHaveBeenCalledTimes(1);
   });
 
-  it('forwards explicit gas params to signTransaction so Privy never auto-populates', async () => {
+  it('signs as the write\'s account with explicit gas params, so Privy never auto-populates', async () => {
     const { args, signTransaction } = makeArgs();
 
     await broadcastWithFallback(args);
@@ -112,36 +112,26 @@ describe('broadcastWithFallback', () => {
         from: ACCOUNT,
         to: CONTRACT,
         chainId: 42161,
-        type: 2,
         gasLimit: toHex(131_134n),
         maxFeePerGas: toHex(30_009_001n),
         maxPriorityFeePerGas: '0x1',
         nonce: '0x2',
-        value: '0x0',
-      })
+      }),
+      { address: ACCOUNT }
     );
   });
 
-  it('forwards the explicit nonce so Privy never re-derives a zero nonce', async () => {
-    // Privy's prepareTransactionRequest path silently signs with nonce: 0 once
-    // viem caches eth_fillTransaction=false. Passing nonce explicitly is the
-    // documented workaround; this test pins that the helper actually forwards
-    // it instead of dropping it.
-    const { args, signTransaction } = makeArgs({ nonce: 42 });
+  // Privy's populate path signs with nonce 0, and its in-browser signer reads a numeric 0 as no
+  // nonce at all, so the nonce goes in, as hex, every time.
+  it.each([
+    [42, '0x2a'],
+    [0, '0x0'],
+  ])('forwards nonce %i as %s', async (nonce, hex) => {
+    const { args, signTransaction } = makeArgs({ nonce });
 
     await broadcastWithFallback(args);
 
-    expect(signTransaction).toHaveBeenCalledWith(
-      expect.objectContaining({ nonce: '0x2a' })
-    );
-  });
-
-  it('writes a zero nonce as hex, since Privy\'s in-browser signer reads a numeric 0 as no nonce', async () => {
-    const { args, signTransaction } = makeArgs({ nonce: 0 });
-
-    await broadcastWithFallback(args);
-
-    expect(signTransaction.mock.calls[0][0].nonce).toBe('0x0');
+    expect(signTransaction.mock.calls[0][0].nonce).toBe(hex);
   });
 
   it('gives Privy the EIP-1559 type as a number, since its wallet API refuses viem\'s "0x2"', async () => {
@@ -232,9 +222,7 @@ describe('broadcastWithFallback', () => {
 
     await broadcastWithFallback(args);
 
-    expect(signTransaction).toHaveBeenCalledWith(
-      expect.objectContaining({ chainId: 421614 })
-    );
+    expect(signTransaction.mock.calls[0][0].chainId).toBe(421614);
   });
 
   it('sends no value — DuelMe and ERC20 ops are never payable', async () => {
@@ -250,7 +238,7 @@ describe('broadcastWithFallback', () => {
     const { args, signTransaction, sendRawTransaction } = makeArgs();
     signTransaction.mockImplementation(async () => {
       callOrder.push('sign');
-      return '0xabcd';
+      return { signature: '0xabcd' };
     });
     sendRawTransaction.mockImplementation(async () => {
       callOrder.push('broadcast');

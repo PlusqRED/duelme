@@ -366,15 +366,14 @@ test can check.
 - **Top-up details belong to the duel's network, not the wallet's.** `TopUpWindow` takes `chainId` from its caller (the flow's `draft.chainId`, the network picked in the wallet menu), never from `useChainId()` or the connected wallet — a player connected to another network would otherwise be told to send USDT where the duel cannot use it. Its QR encodes the bare address only: no `ethereum:` URI, amount, token or invite secret.
 - Wilson Score gives low scores for small samples — players with 0 abandoned duels are never "unreliable".
 - **Do NOT use `arbitrum-one-rpc.publicnode.com`** — exposes legacy `eth_fillTransaction`, which viem 2.47+ calls during `prepareTransactionRequest` and gets `gasPrice: "0x0"`, producing signed txs with all-zero gas/fees. Privy surfaces as "HTTP request failed". See [viem#4323](https://github.com/wevm/viem/issues/4323) (open as of May 2026). Use Tenderly/drpc/arb1.arbitrum.io, or an authenticated provider you have verified.
-- **The embedded wallet signs a transaction in Privy's shape, never viem's.** Privy's
-  `signTransaction` passes the request on to its wallet API as it is, and the API takes `type`
-  only as a number; viem's `walletClient.signTransaction` sends the RPC form, `"0x2"`. From the
-  redesign until this was found, every Send from an embedded wallet failed with "an unknown rpc
-  error occurred" (Privy's 400: `expected 2`); duel writes never showed it, since the relayer
-  carries them. `lib/resilientBroadcast.ts` builds Privy's `UnsignedTransactionRequest` and
-  `useWriteWithGas` signs it with `useSignTransaction`: `type: 2`, the limit as `gasLimit` (Privy
-  sends a `gas` as the gas price too), quantities as hex (its in-browser signer reads a numeric
-  zero nonce as none). Privy 3.50 still passes the type through, so an upgrade does not fix it.
+- **The embedded wallet signs a transaction in Privy's shape, never viem's.** Privy passes the
+  request on to its wallet API as it is, and the API refuses the RPC form viem's
+  `walletClient.signTransaction` sends (`type: "0x2"`). From the redesign until this was found,
+  every Send from an embedded wallet failed with "an unknown rpc error occurred" (Privy's 400:
+  `expected 2`); duel writes never showed it, since the relayer carries them. The request is
+  built in one place, `broadcastWithFallback` (`lib/resilientBroadcast.ts`), whose comment says
+  which fields Privy needs in what form. Privy 3.50 still passes the type through, so an upgrade
+  does not fix it.
 - **Privy embedded wallets** sign with all-zero gas/nonce when SDK auto-populates — bypass by passing `gas` / `maxFeePerGas` / `maxPriorityFeePerGas` / `nonce` explicitly in every `writeContract` call. Centralized in `useWriteWithGas` (used by `useDuelActions`; uses `buildTransactionParams` + `resilientBroadcast`) — never call `writeContract` directly from action functions.
 - **`ox` peer clash:** `@privy-io/react-auth` declares an *optional* peer `permissionless@^0.2.x`, which in turn declares an optional peer `ox@^0.8.0` that conflicts with viem 2.47's `ox@0.14.5`. Resolved by pinning `ox` in `frontend/package.json` `overrides`. Don't remove it — `npm ci` will ERESOLVE, even though DuelMe itself no longer depends on `permissionless`.
 - **Dependabot never edits `overrides` on a version update**, so it would move `viem` and both `@privy-io/*` packages (each pins viem or ox exactly) while `ox` stays on the override above. `.github/dependabot.yml` ignores their minor/patch updates for that reason — bump the four by hand, in one commit.

@@ -10,7 +10,6 @@ import type { ResilientBroadcastArgs } from '@/lib/resilientBroadcast';
 import { TransactionReplacedError, TransactionRevertedError } from '@/lib/writeErrors';
 
 const HASH = `0x${'a'.repeat(64)}` as const;
-const SIGNED = '0x02f86d' as const;
 const ACCOUNT = '0x1111111111111111111111111111111111111111';
 const CHAIN_CLIENT = { chain: 'the write\'s chain' };
 
@@ -21,9 +20,7 @@ const wagmi = vi.hoisted(() => ({
   writeHash: undefined as `0x${string}` | undefined,
   walletClientType: 'metamask',
 }));
-const privySignTransaction = vi.hoisted(() =>
-  vi.fn<(input: object, options: { address: string }) => Promise<{ signature: `0x${string}` }>>()
-);
+const privySignTransaction = vi.hoisted(() => vi.fn());
 const waitForWriteReceipt = vi.hoisted(() => vi.fn<(client: object, hash: string) => Promise<TransactionReceipt>>());
 const broadcastWithFallback = vi.hoisted(() => vi.fn<(params: ResilientBroadcastArgs) => Promise<`0x${string}`>>());
 
@@ -166,34 +163,20 @@ describe('useWriteWithGas — the embedded wallet', () => {
     waitForWriteReceipt.mockReturnValue(new Promise(() => {}));
   });
 
-  it('broadcasts the write with its pre-filled gas and reports the hash', async () => {
+  it('broadcasts the write with Privy\'s signer and its pre-filled gas, and reports the hash', async () => {
     broadcastWithFallback.mockResolvedValue(HASH);
     const { result } = renderWrite();
 
     await act(() => result.current.writeWithGas(CONFIG));
 
     expect(broadcastWithFallback).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({ account: ACCOUNT, chainId: DEFAULT_CHAIN.id, ...PARAMS })
+      expect.objectContaining({ signTransaction: privySignTransaction, account: ACCOUNT, chainId: DEFAULT_CHAIN.id, ...PARAMS })
     );
     expect(result.current.hash).toBe(HASH);
   });
 
-  it('signs through Privy as the write\'s account and hands back the signed transaction', async () => {
-    broadcastWithFallback.mockResolvedValue(HASH);
-    privySignTransaction.mockResolvedValue({ signature: SIGNED });
-    const { result } = renderWrite();
-    await act(() => result.current.writeWithGas(CONFIG));
-    const { signTransaction } = broadcastWithFallback.mock.calls[0][0];
-
-    const signed = await signTransaction({ type: 2 });
-
-    expect(signed).toBe(SIGNED);
-    expect(privySignTransaction).toHaveBeenCalledExactlyOnceWith({ type: 2 }, { address: ACCOUNT });
-  });
-
   it('reports a signature Privy refuses as the write error', async () => {
-    privySignTransaction.mockRejectedValue(new Error('[Input error] `params.transaction.type`'));
-    broadcastWithFallback.mockImplementation(async ({ signTransaction }) => signTransaction({ type: 2 }));
+    broadcastWithFallback.mockRejectedValue(new Error('[Input error] `params.transaction.type`'));
     const { result } = renderWrite();
 
     await act(() => result.current.writeWithGas(CONFIG));
