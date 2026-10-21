@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { LANDING_SECTIONS, NAV_LINKS, isInSection, isPlainClick } from '@/lib/navigation';
+import { LANDING_SECTIONS, NAV_LINKS, isInSection, isPlainClick, profilePath } from '@/lib/navigation';
+
+describe('profilePath', () => {
+  it('leads to the player’s profile by their address in lower case', () => {
+    expect(profilePath('0xAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa')).toBe('/profile/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+  });
+});
 
 describe('isInSection', () => {
   it('counts the section’s own page', () => {

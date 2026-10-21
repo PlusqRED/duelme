@@ -2,7 +2,6 @@ import type { SigningModel } from '@/components/sign/signingModel';
 import { signItems } from '@/components/sign/signItems';
 import type { FlowReviewGate } from '@/hooks/useFlowFunding';
 import type { Translator } from '@/i18n/translate';
-import type { SeatSide } from '@/lib/duel';
 import type { FlowError } from '@/lib/flowError';
 import type { FlowActionState } from '@/lib/flowSession';
 import type { FlowPlace } from '@/lib/signingSteps';
@@ -31,7 +30,6 @@ interface FundingModelOptions {
   wager: string;
   /** The move in the action's own words. */
   move: string;
-  side: SeatSide;
   t: Translator['t'];
 }
 
@@ -61,7 +59,7 @@ type FundingModel = Pick<
  * self-paid, an approve while the allowance is short and then the move, each a transaction. The
  * balance gate keeps Continue closed until a fresh read covers the stake.
  */
-export function fundingModel(props: FundingFlowProps, { call, isRelayEnabled, wager, move, side, t }: FundingModelOptions): FundingModel {
+export function fundingModel(props: FundingFlowProps, { call, isRelayEnabled, wager, move, t }: FundingModelOptions): FundingModel {
   const { draft, review } = props;
   const write = fundingWrite(call, isRelayEnabled, draft.contractAddress);
   const plan = signPlan({ route: write.route, funds: true, needsApproval: props.needsApproval || props.completedApproval });
@@ -82,7 +80,7 @@ export function fundingModel(props: FundingFlowProps, { call, isRelayEnabled, wa
     chainId: draft.chainId,
     chainName: draft.chainName,
     wager,
-    stake: { funding: review.funding, needRaw: draft.rawAmount, side, isJoining: call === 'joinDuel' },
+    stake: { funding: review.funding, needRaw: draft.rawAmount, isJoining: call === 'joinDuel' },
     blockedReason: review.blockedReason ? t(review.blockedReason) : null,
     canContinue: review.canContinue,
     facts: { contract: draft.contractAddress, functionName: write.functionName, token: draft.usdtAddress, allowance: wager },

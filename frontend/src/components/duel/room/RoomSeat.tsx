@@ -9,6 +9,7 @@ import { RepChip } from '@/components/arena/RepChip';
 import { Seat } from '@/components/arena/Seat';
 import { seatSays } from '@/components/arena/seatSays';
 import { Avatar } from '@/components/identity/Avatar';
+import { PlayerLink } from '@/components/identity/PlayerLink';
 import { ReputationPill } from '@/components/identity/ReputationPill';
 import { Icon } from '@/components/ui/icon';
 import type { ArenaGain } from '@/hooks/useArenaMotion';
@@ -16,6 +17,7 @@ import { useTranslation } from '@/i18n/useTranslation';
 import type { ArenaSeat } from '@/lib/arenaView';
 import type { SeatSide } from '@/lib/duel';
 import type { ReputationSummary } from '@/lib/reputation';
+import { OWN_SEAT_CURSOR } from '@/lib/seatCursor';
 import { cn, truncateAddress } from '@/lib/utils';
 
 /** A reported win's clock: the share of the time to answer still left, and the time itself. */
@@ -30,10 +32,12 @@ export interface SeatPurse {
   isShort: boolean;
 }
 
-/** An open seat the reader could take: shown with them in it while they point at Join, and their wallet under it. */
+/** An open seat the reader could take: shown with them in it while they point at Join or at the seat, and their wallet under it. */
 export interface TakeableSeat {
   isTaking: boolean;
   purse: SeatPurse | null;
+  /** Makes the panel's move that takes the seat; null while there is none to make. */
+  onTake: (() => void) | null;
 }
 
 interface RoomSeatProps {
@@ -53,19 +57,23 @@ interface RoomSeatProps {
   faceRef: Ref<HTMLSpanElement>;
   /** Set on an open seat the reader could take. */
   takeable?: TakeableSeat;
+  /** The open seat of a duel the reader created: the pointer over it turns into a no-entry sign. */
+  isOwnOpen?: boolean;
   /** A small copy of the duel, one of several on a page: the face, what is said and the name only. */
   isCompact?: boolean;
 }
 
 /**
  * One player's seat in a real duel: their face, or an open seat until someone joins; what they say,
- * their note or their clock above it; their name, "You" on the reader's own seat with the address
- * under it; then their level while the duel runs, and once it is over their money and what it added
- * to their record. An open seat the reader could take carries their wallet's USDT, and shows them
- * sitting down while they point at Join.
+ * their note or their clock above it; their name, leading to their profile, "You" on the reader's
+ * own seat with the address under it; then their level while the duel runs, and once it is over
+ * their money and what it added to their record. An open seat the reader could take carries their
+ * wallet's USDT, shows them sitting down while they point at Join or at it, and makes Join's move at
+ * a press.
  */
-export function RoomSeat({ side, seat, address, name, isYou, level, note, clock, gain, faceRef, takeable, isCompact = false }: RoomSeatProps) {
+export function RoomSeat({ side, seat, address, name, isYou, level, note, clock, gain, faceRef, takeable, isOwnOpen = false, isCompact = false }: RoomSeatProps) {
   const purse = takeable?.purse;
+  const onTake = takeable?.onTake ?? undefined;
   const { t } = useTranslation();
   // A player who sits down while the page is open pops in.
   const [firstAddress] = useState(address);
@@ -74,7 +82,15 @@ export function RoomSeat({ side, seat, address, name, isYou, level, note, clock,
   return (
     <Seat
       face={
-        <span ref={faceRef} className="block size-full">
+        // A press on the seat is the pointer's way to the panel's button right under the arena, which
+        // stays the way in by keyboard; pointing at the seat shows the reader sitting down.
+        <span
+          ref={faceRef}
+          onClick={onTake}
+          title={isOwnOpen ? t('room.openSeat.own') : undefined}
+          style={isOwnOpen ? { '--seat-cursor': OWN_SEAT_CURSOR } : undefined}
+          className={cn('block size-full', (onTake || isOwnOpen) && 'rounded-full', onTake && 'group/duel cursor-pointer', isOwnOpen && 'cursor-(--seat-cursor)')}
+        >
           {address ? (
             <Avatar
               address={address}
@@ -120,7 +136,7 @@ export function RoomSeat({ side, seat, address, name, isYou, level, note, clock,
       timer={seat.timer}
       timerLeft={seat.timer ? (clock?.left ?? 0) : undefined}
       isWinner={seat.isWinner}
-      name={name}
+      name={address ? <PlayerLink address={address}>{name}</PlayerLink> : name}
       isOpen={!address}
       isYou={isYou && !!address}
       isCompact={isCompact}

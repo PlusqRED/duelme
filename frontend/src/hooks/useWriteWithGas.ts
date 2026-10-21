@@ -1,10 +1,10 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
+import { useSignTransaction } from '@privy-io/react-auth';
 import { skipToken, useQuery } from '@tanstack/react-query';
 import type { Abi, Hex } from 'viem';
-import { useAccount, useConfig, usePublicClient, useWalletClient, useWriteContract } from 'wagmi';
-import { getWalletClient } from 'wagmi/actions';
+import { useAccount, usePublicClient, useWalletClient, useWriteContract } from 'wagmi';
 import {
   buildTransactionParams,
   type DuelPublicClient,
@@ -36,10 +36,10 @@ type EstimateContractGasConfig = Parameters<DuelPublicClient['estimateContractGa
  * functions on top and decides when a write needs an EIP-2612 permit.
  */
 export function useWriteWithGas(chainId: number) {
-  const wagmiConfig = useConfig();
   const { address: accountAddress } = useAccount();
   const publicClient = usePublicClient({ chainId });
   const { data: walletClient } = useWalletClient({ chainId });
+  const { signTransaction } = useSignTransaction();
   const { activeWallet } = useActiveWallet();
   const isPrivyEmbedded = activeWallet?.walletClientType === EMBEDDED_WALLET_CLIENT_TYPE;
   const { isRelayEnabled, forwarderAddress } = useRelayerStatus(chainId);
@@ -182,19 +182,6 @@ export function useWriteWithGas(chainId: number) {
         return;
       }
 
-      // The embedded wallet's client is read now, not taken from the last render: a write sent
-      // right after a network switch would sign with the client from before it, and a client
-      // asked for while the wallet was elsewhere stays failed after the wallet gets there.
-      let embeddedClient: Awaited<ReturnType<typeof getWalletClient>> | undefined;
-      if (isPrivyEmbedded) {
-        try {
-          embeddedClient = await getWalletClient(wagmiConfig, { chainId });
-        } catch {
-          setManagedError(new WalletNotReadyError('Embedded wallet client not ready'));
-          return;
-        }
-      }
-
       // Clear both result surfaces so the merged selectors can't mix in stale
       // state from a previous write. Must stay BELOW the guards: a guard bail
       // must not tear down the previous write's hash / receipt watch.
@@ -232,10 +219,12 @@ export function useWriteWithGas(chainId: number) {
         return;
       }
 
-      if (embeddedClient) {
+      if (isPrivyEmbedded) {
         await runManagedSend(() =>
           broadcastWithFallback({
-            walletClient: embeddedClient,
+            // No wallet client: Privy signs for the transaction's own chain id, so a write sent
+            // right after a network switch cannot sign with the network from before it.
+            signTransaction,
             publicClient,
             account: accountAddress,
             chainId,
@@ -256,9 +245,9 @@ export function useWriteWithGas(chainId: number) {
     },
     [
       chainId,
-      wagmiConfig,
       accountAddress,
       publicClient,
+      signTransaction,
       isPrivyEmbedded,
       writeContract,
       wagmiReset,

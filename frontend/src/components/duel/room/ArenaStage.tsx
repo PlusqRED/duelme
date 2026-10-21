@@ -53,6 +53,8 @@ interface ArenaStageProps {
   faceRefs?: Record<SeatSide, RefObject<HTMLSpanElement | null>>;
   /** The open seat, for a reader who could take it: shown sitting down while they point at Join, and their wallet under it. */
   openSeat?: TakeableSeat;
+  /** The reader created this duel, so its open seat is the one they can't take, and pointing at it says so. */
+  isOwnOpenSeat?: boolean;
   /**
    * A small copy of the table, one of several on a page: smaller seats and safe, and only who sits
    * where, what they say and the money; no levels, no match, no names under the safe.
@@ -64,7 +66,7 @@ interface ArenaStageProps {
  * A real duel's table: the creator on the left, the opponent's seat on the right, the contract's
  * safe between, and the stakes flying between them as the duel moves.
  */
-export function ArenaStage({ view, players, viewerSide, chainId, matchLabel, clock, faceRefs, openSeat, isCompact = false }: ArenaStageProps) {
+export function ArenaStage({ view, players, viewerSide, chainId, matchLabel, clock, faceRefs, openSeat, isOwnOpenSeat = false, isCompact = false }: ArenaStageProps) {
   const { t, language } = useTranslation();
   const flightsRef = useRef<HTMLDivElement>(null);
   const ownCreatorFace = useRef<HTMLSpanElement>(null);
@@ -104,6 +106,7 @@ export function ArenaStage({ view, players, viewerSide, chainId, matchLabel, clo
         gain={gains[side]}
         faceRef={side === 'creator' ? creatorFace : opponentFace}
         takeable={address ? undefined : openSeat}
+        isOwnOpen={!address && isOwnOpenSeat}
         isCompact={isCompact}
       />
     );

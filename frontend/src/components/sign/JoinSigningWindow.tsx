@@ -55,7 +55,7 @@ export function JoinSigningWindow(props: JoinSigningWindowProps) {
   };
   const funding = fundingModel(
     { ...props, draft },
-    { call: 'joinDuel', isRelayEnabled, wager: params.wager, move: t(copy.move, params), side: 'opponent', t }
+    { call: 'joinDuel', isRelayEnabled, wager: params.wager, move: t(copy.move, params), t }
   );
 
   return (

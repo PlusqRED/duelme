@@ -15,7 +15,7 @@ function rows(container: HTMLElement) {
 
 describe('NeedsList', () => {
   it('testNeedsListSaysAWalletWithTheStakeHasEnough', () => {
-    const { container } = render(<NeedsList usdt={{ needRaw: 14_000_000n, balance: { kind: 'ready', raw: 46_700_000n }, side: 'opponent' }} />);
+    const { container } = render(<NeedsList usdt={{ needRaw: 14_000_000n, balance: { kind: 'ready', raw: 46_700_000n } }} />);
 
     expect(screen.getByText('14\u00a0USDT from your wallet', exactly)).toBeTruthy();
     expect(screen.getByText('It holds 46.7\u00a0USDT', exactly)).toBeTruthy();
@@ -24,14 +24,14 @@ describe('NeedsList', () => {
   });
 
   it('testNeedsListSaysHowMuchAShortWalletLacks', () => {
-    const { container } = render(<NeedsList usdt={{ needRaw: 5_000_000n, balance: { kind: 'ready', raw: 2_000_000n }, side: 'creator' }} />);
+    const { container } = render(<NeedsList usdt={{ needRaw: 5_000_000n, balance: { kind: 'ready', raw: 2_000_000n } }} />);
 
     expect(screen.getByText('3 USDT short')).toBeTruthy();
     expect(rows(container)[0].dataset.tone).toBe('short');
   });
 
   it('testNeedsListGivesNoVerdictWhileTheBalanceIsRead', () => {
-    const { container } = render(<NeedsList usdt={{ needRaw: 5_000_000n, balance: { kind: 'checking' }, side: 'creator' }} />);
+    const { container } = render(<NeedsList usdt={{ needRaw: 5_000_000n, balance: { kind: 'checking' } }} />);
 
     expect(screen.getByText('It holds …\u00a0USDT', exactly)).toBeTruthy();
     expect(screen.queryByText('Enough')).toBeNull();
@@ -75,20 +75,28 @@ describe('ChargeCells', () => {
   }
 
   it('testChargeCellsLightWhatTheWalletCovers', () => {
-    const { container } = render(<ChargeCells haveRaw={4_500_000n} needRaw={10_000_000n} side="opponent" />);
+    const { container } = render(<ChargeCells haveRaw={4_500_000n} needRaw={10_000_000n} />);
 
     expect(fills(container)).toEqual(['lit', 'lit', 'lit', 'lit', 'part', 'short', 'short', 'short', 'short', 'short']);
   });
 
+  it('testChargeCellsLightACoveredStakeGreenNotInASeatsColour', () => {
+    const { container } = render(<ChargeCells haveRaw={46_700_000n} needRaw={14_000_000n} />);
+
+    const cells = [...container.querySelectorAll('i')];
+    expect(cells.every((cell) => cell.classList.contains('bg-good'))).toBe(true);
+    expect(cells.some((cell) => /\bbg-(red|blue)\b/.test(cell.className))).toBe(false);
+  });
+
   it('testChargeCellsChargeOnlyTheCellsNewMoneyCovers', () => {
-    const { container } = render(<ChargeCells haveRaw={10_000_000n} needRaw={10_000_000n} side="creator" fromRaw={8_000_000n} />);
+    const { container } = render(<ChargeCells haveRaw={10_000_000n} needRaw={10_000_000n} fromRaw={8_000_000n} />);
 
     const charging = [...container.querySelectorAll('i')].filter((cell) => cell.classList.contains('animate-cell-charge'));
     expect(charging).toHaveLength(2);
   });
 
   it('testChargeCellsStayHiddenFromScreenReaders', () => {
-    const { container } = render(<ChargeCells haveRaw={1n} needRaw={10n} side="creator" />);
+    const { container } = render(<ChargeCells haveRaw={1n} needRaw={10n} />);
 
     expect(container.firstElementChild?.getAttribute('aria-hidden')).toBe('true');
   });

@@ -8,7 +8,7 @@ import { JoinSigningWindow } from '@/components/sign/JoinSigningWindow';
 import { TopUpWindow } from '@/components/topup/TopUpWindow';
 import type { TranslationKey } from '@/i18n/translations';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
-import { useDuelTurnActions } from '@/hooks/useDuelTurnActions';
+import type { DuelTurnActions } from '@/hooks/useDuelTurnActions';
 import { useNicknames } from '@/hooks/useNicknames';
 import { useReputationLevels } from '@/hooks/useReputationLevels';
 import type { StakePurse } from '@/hooks/useStakePurse';
@@ -16,7 +16,6 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
 import type { Duel } from '@/lib/contracts';
 import type { SeatSide } from '@/lib/duel';
-import type { DuelPhase } from '@/lib/duelPhase';
 import { buildDuelLink, buildInviteLink, isPublicDuel } from '@/lib/invite';
 import { durationWords } from '@/lib/timeWords';
 import type { TurnView } from '@/lib/turnView';
@@ -32,7 +31,6 @@ const whoseLabels: Record<TurnView['whose'], TranslationKey> = {
 interface DuelTurnProps {
   duelId: number;
   duel: Duel;
-  phase: DuelPhase;
   view: TurnView;
   /** The game being played, from the backend; null for a duel created without one. */
   gameName: string | null;
@@ -41,10 +39,11 @@ interface DuelTurnProps {
   walletAddress: `0x${string}` | undefined;
   claimTimeout: number;
   purse: StakePurse;
+  /** What the panel's moves do; the page holds them, so the open seat can make the panel's move too. */
+  actions: DuelTurnActions;
   /** The seats' faces, for the notch to point at. */
   faces: Record<SeatSide, RefObject<HTMLSpanElement | null>>;
   onPreviewJoin: (isPreviewing: boolean) => void;
-  refetch: () => Promise<unknown>;
 }
 
 /**
@@ -52,7 +51,7 @@ interface DuelTurnProps {
  * window for a report, an answer or a payout, and the top-up window for a stake the wallet can't
  * cover yet.
  */
-export function DuelTurn({ duelId, duel, phase, view, gameName, inviteSecret, walletAddress, claimTimeout, purse, faces, onPreviewJoin, refetch }: DuelTurnProps) {
+export function DuelTurn({ duelId, duel, view, gameName, inviteSecret, walletAddress, claimTimeout, purse, actions, faces, onPreviewJoin }: DuelTurnProps) {
   const { t, plural, language } = useTranslation();
   const titleId = useId();
   // The link is read off the page's address, which the server does not have.
@@ -61,7 +60,6 @@ export function DuelTurn({ duelId, duel, phase, view, gameName, inviteSecret, wa
   const players = useMemo(() => [duel.creator, duel.opponent], [duel.creator, duel.opponent]);
   const { resolveDisplay } = useNicknames(players);
   const { reputationStatsByAddress } = useReputationLevels(players, DEFAULT_CHAIN_ID);
-  const actions = useDuelTurnActions({ duelId, duel, phase, inviteSecret, walletAddress, refetch, openTopUp: purse.openTopUp });
   const { joinFlow, actionFlow } = actions;
 
   const name = (address: `0x${string}` | null) => (address ? resolveDisplay(address) : '');
@@ -110,7 +108,7 @@ export function DuelTurn({ duelId, duel, phase, view, gameName, inviteSecret, wa
           }}
           share={{ link, isPublic }}
           foe={{ address: duel.creator, name: name(duel.creator), level: reputationStatsByAddress[duel.creator.toLowerCase()] }}
-          purse={{ needRaw: duel.wagerAmount, balance: purse.shown, side: 'opponent', fromRaw: purse.fromRaw }}
+          purse={{ needRaw: duel.wagerAmount, balance: purse.shown, fromRaw: purse.fromRaw }}
           countdown={{ duel, claimTimeout }}
         />
       </TurnPanel>

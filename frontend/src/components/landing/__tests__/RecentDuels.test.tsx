@@ -70,6 +70,13 @@ function row(name: RegExp) {
   return screen.getByRole('button', { name });
 }
 
+/** A row as the reader sees it, around the button it presses as. */
+function rowOf(name: RegExp): HTMLElement {
+  const item = row(name).closest('li');
+  if (!item) throw new Error('No row');
+  return item;
+}
+
 beforeEach(() => {
   FakeIntersectionObserver.instances = [];
   vi.stubGlobal('IntersectionObserver', FakeIntersectionObserver);
@@ -88,17 +95,17 @@ afterEach(() => {
 describe('RecentDuels', () => {
   it('lists each finished duel with its game, its players, the winner and the pot', () => {
     render(<RecentDuels />);
-    const first = row(/Dota 2 #3/);
+    const first = rowOf(/Dota 2 #3/);
 
     expect(within(first).getByText('won')).toBeTruthy();
     expect(within(first).getByText('“go 1x1 on sf mid”')).toBeTruthy();
     expect(first.textContent).toContain('50USDT');
-    expect(first.getAttribute('aria-expanded')).toBe('false');
+    expect(row(/Dota 2 #3/).getAttribute('aria-expanded')).toBe('false');
   });
 
   it('marks the winner beside the player who won', () => {
     render(<RecentDuels />);
-    const player = within(row(/CS 2 #2/)).getByText('won').parentElement;
+    const player = within(rowOf(/CS 2 #2/)).getByText('won').parentElement;
 
     expect(player?.textContent).toBe('0x4BFa…76a5won');
   });

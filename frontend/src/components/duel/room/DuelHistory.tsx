@@ -2,6 +2,7 @@
 
 import { useId, useMemo, useState } from 'react';
 import { Avatar } from '@/components/identity/Avatar';
+import { PlayerLink } from '@/components/identity/PlayerLink';
 import { useNicknames } from '@/hooks/useNicknames';
 import { useClockValue } from '@/hooks/useNow';
 import { useTimeAgo } from '@/hooks/useTimeAgo';
@@ -48,7 +49,7 @@ export function DuelHistory({ duel, phase, claimTimeout, walletAddress }: DuelHi
   const pot = formatUSDT(duel.wagerAmount * 2n, language);
 
   const who = (address: `0x${string}`) => (
-    <span className="inline-flex items-center gap-[5px] align-bottom tabular-nums">
+    <PlayerLink address={address} className="inline-flex items-center gap-[5px] align-bottom tabular-nums">
       <Avatar
         address={address}
         tone={address.toLowerCase() === duel.creator.toLowerCase() ? 'red' : 'blue'}
@@ -56,7 +57,7 @@ export function DuelHistory({ duel, phase, claimTimeout, walletAddress }: DuelHi
         className="size-[18px] inset-shadow-none [&>svg]:size-[10px]"
       />
       <span>{address.toLowerCase() === walletAddress ? t('room.you') : resolveDisplay(address)}</span>
-    </span>
+    </PlayerLink>
   );
 
   const line = (event: HistoryEvent) => {

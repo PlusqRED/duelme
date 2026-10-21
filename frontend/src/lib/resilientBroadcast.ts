@@ -1,3 +1,4 @@
+import type { useSignTransaction } from '@privy-io/react-auth';
 import {
   BaseError,
   encodeFunctionData,
@@ -8,19 +9,22 @@ import {
   keccak256,
   NonceMaxValueError,
   TipAboveFeeCapError,
+  toHex,
   TransactionTypeNotSupportedError,
   type Abi,
-  type Account,
   type Chain,
   type Hex,
   type PublicClient,
   type Transport,
-  type WalletClient,
 } from 'viem';
 import { getNodeError } from 'viem/utils';
 
+/** EIP-1559's transaction type, as the number Privy's wallet API takes. */
+const EIP1559_TRANSACTION_TYPE = 2;
+
 export interface ResilientBroadcastArgs {
-  walletClient: WalletClient<Transport, Chain, Account>;
+  /** Privy's signer for the embedded wallet, from `useSignTransaction`. */
+  signTransaction: ReturnType<typeof useSignTransaction>['signTransaction'];
   publicClient: PublicClient<Transport, Chain>;
   account: `0x${string}`;
   chainId: number;
@@ -45,7 +49,7 @@ export interface ResilientBroadcastArgs {
 // sees "HTTP request failed" with no retry, even though Privy already signed
 // the transaction successfully on the API side.
 //
-// By signing separately via the wallet's eth_signTransaction (which Privy
+// By signing separately through Privy's signTransaction (which Privy
 // handles in-API and never depends on the chain RPC) and then broadcasting via
 // publicClient.sendRawTransaction (whose underlying transport is our
 // fallback(configured provider → Tenderly → drpc → arb1.arbitrum.io) with retryCount: 1
@@ -53,7 +57,7 @@ export interface ResilientBroadcastArgs {
 // of one shot at one provider.
 //
 // All gas parameters must be pre-filled by the caller — passing them explicitly
-// also defeats Privy's all-zero-gas auto-populate bug (see useDuelActions
+// also defeats Privy's all-zero-gas auto-populate bug (see useWriteWithGas
 // writeWithGas / buildTransactionParams).
 export async function broadcastWithFallback(params: ResilientBroadcastArgs): Promise<Hex> {
   const data = encodeFunctionData({
@@ -62,18 +66,25 @@ export async function broadcastWithFallback(params: ResilientBroadcastArgs): Pro
     args: params.args,
   });
 
-  const signedTx = await params.walletClient.signTransaction({
-    account: params.account,
-    to: params.to,
-    data,
-    chainId: params.chainId,
-    type: 'eip1559',
-    gas: params.gas,
-    maxFeePerGas: params.maxFeePerGas,
-    maxPriorityFeePerGas: params.maxPriorityFeePerGas,
-    nonce: params.nonce,
-    value: 0n,
-  });
+  // Privy's transaction shape, not viem's: Privy hands it to its wallet API as it is, and the API
+  // takes the type only as a number and refuses viem's RPC form, "0x2", with a 400. The limit
+  // goes in as `gasLimit` because Privy also sends a `gas` as the gas price. Quantities are hex:
+  // Privy's in-browser signer reads a numeric zero nonce as no nonce at all.
+  const { signature: signedTx } = await params.signTransaction(
+    {
+      from: params.account,
+      to: params.to,
+      data,
+      chainId: params.chainId,
+      type: EIP1559_TRANSACTION_TYPE,
+      gasLimit: toHex(params.gas),
+      maxFeePerGas: toHex(params.maxFeePerGas),
+      maxPriorityFeePerGas: toHex(params.maxPriorityFeePerGas),
+      nonce: toHex(params.nonce),
+      value: toHex(0n),
+    },
+    { address: params.account }
+  );
 
   try {
     return await params.publicClient.sendRawTransaction({

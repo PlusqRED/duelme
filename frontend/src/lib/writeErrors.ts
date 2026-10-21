@@ -25,8 +25,8 @@ export class TransactionReplacedError extends Error {
 
 /** A write that could not start because the wallet or its RPC client was not ready yet. */
 export class WalletNotReadyError extends Error {
-  constructor(message = 'Wallet or RPC client not ready') {
-    super(message);
+  constructor() {
+    super('Wallet or RPC client not ready');
     this.name = 'WalletNotReadyError';
   }
 }

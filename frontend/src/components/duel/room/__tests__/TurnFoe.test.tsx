@@ -19,6 +19,12 @@ describe('TurnFoe', () => {
     expect(screen.getByText('Ace')).toBeTruthy();
   });
 
+  it('leads from their face and name to their profile', () => {
+    render(<TurnFoe address={CREATOR} name="Ace" level={undefined} />);
+
+    expect(screen.getByRole('link', { name: 'Ace' }).getAttribute('href')).toBe(`/profile/${CREATOR.toLowerCase()}`);
+  });
+
   it('shows their level and record once the contract has answered', () => {
     render(<TurnFoe address={CREATOR} name="Ace" level={getReputationSummaryFromStats(4, 0)} />);
 

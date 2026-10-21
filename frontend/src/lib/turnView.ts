@@ -156,6 +156,22 @@ export function turnView(duel: TurnDuel, phase: DuelPhase, viewer: TurnViewer, i
   };
 }
 
+/** The moves that take the open seat: joining, topping up for the stake first, or signing in to join. */
+export type SeatMove = Extract<TurnActionId, 'join' | 'topUp' | 'signIn'>;
+
+function isSeatMove(id: TurnActionId): id is SeatMove {
+  return id === 'join' || id === 'topUp' || id === 'signIn';
+}
+
+/**
+ * What a press on the open seat does: the panel's first move while it is one that takes the seat,
+ * so the seat and the panel's button never disagree; null for a reader the seat is not open to.
+ */
+export function seatMove(view: TurnView): SeatMove | null {
+  const first = view.blocks.find((block) => block.type === 'actions')?.actions[0];
+  return first && isSeatMove(first.id) ? first.id : null;
+}
+
 /** The pill over the title: whose colour, and the other player's face while the move is theirs. */
 function pillOf(duel: TurnDuel, draft: Draft, you: SeatSide | null): TurnPill {
   const pill: TurnPill = { tone: 'quiet', avatar: null, isWatching: draft.whose === 'watch', isLive: draft.whose === 'you' };

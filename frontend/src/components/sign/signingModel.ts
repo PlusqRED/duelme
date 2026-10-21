@@ -5,7 +5,6 @@ import type { GasKind } from '@/lib/gasNeeds';
 import type { ActionCopy } from '@/lib/signingCopy';
 import type { SignStep } from '@/lib/signPlan';
 import type { FlowPlace } from '@/lib/signingSteps';
-import type { SeatSide } from '@/lib/duel';
 import type { WriteRoute } from '@/lib/writeRoute';
 
 /** The flow's steps that ask the wallet, each started by a handler of its own. */
@@ -25,7 +24,6 @@ export interface SignItem extends SignStep {
 export interface SigningFunding {
   funding: FlowFunding;
   needRaw: bigint;
-  side: SeatSide;
   /** Joining: topping up holds no seat, which the top-up window says. */
   isJoining: boolean;
 }

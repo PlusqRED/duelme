@@ -14,6 +14,8 @@ const seen = vi.hoisted(() => ({
   turn: null as ComponentProps<typeof DuelTurn> | null,
   history: null as ComponentProps<typeof DuelHistory> | null,
   purse: null as StakePurse | null,
+  run: vi.fn(),
+  isBusy: false,
 }));
 
 vi.mock('@/components/duel/room/DuelArena', () => ({
@@ -37,12 +39,15 @@ vi.mock('@/components/duel/room/DuelHistory', () => ({
 vi.mock('@/components/duel/room/RoomFacts', () => ({ RoomFacts: () => <p>facts</p> }));
 vi.mock('@/hooks/useRelayerStatus', () => ({ useRelayerStatus: () => ({ isRelayEnabled: true }) }));
 vi.mock('@/hooks/useStakePurse', () => ({ useStakePurse: () => seen.purse }));
+vi.mock('@/hooks/useDuelTurnActions', () => ({ useDuelTurnActions: () => ({ run: seen.run, isBusy: seen.isBusy }) }));
 
 const { RoomGrid } = await import('@/components/duel/room/RoomGrid');
 
 afterEach(() => {
   cleanup();
   seen.purse = null;
+  seen.run.mockClear();
+  seen.isBusy = false;
 });
 
 const CREATOR = '0xAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa' as const;
@@ -86,7 +91,46 @@ describe('RoomGrid', () => {
     grid();
 
     expect(seen.turn?.view.blocks.at(-1)).toEqual({ type: 'actions', actions: [{ id: 'signIn' }] });
-    expect(seen.arena?.openSeat).toEqual({ isTaking: false, purse: null });
+    expect(seen.arena?.openSeat).toMatchObject({ isTaking: false, purse: null });
+  });
+
+  it('signs a signed-out reader in at a press on the open seat, as the panel’s button does', () => {
+    grid();
+
+    seen.arena?.openSeat?.onTake?.();
+
+    expect(seen.run).toHaveBeenCalledWith('signIn');
+  });
+
+  it('tops up at a press on the open seat while the wallet is short of the stake', () => {
+    seen.purse = purse();
+    grid({ walletAddress: READER, isSignedIn: true });
+
+    seen.arena?.openSeat?.onTake?.();
+
+    expect(seen.run).toHaveBeenCalledWith('topUp');
+  });
+
+  it('joins at a press on the open seat once the wallet holds the stake', () => {
+    seen.purse = purse({ shortRaw: 0n, balance: { kind: 'ready', raw: 9_000_000n }, shown: { kind: 'ready', raw: 9_000_000n } });
+    grid({ walletAddress: READER, isSignedIn: true });
+
+    seen.arena?.openSeat?.onTake?.();
+
+    expect(seen.run).toHaveBeenCalledWith('join');
+  });
+
+  it('takes no press on the open seat while a move is under way', () => {
+    seen.isBusy = true;
+    grid();
+
+    expect(seen.arena?.openSeat?.onTake).toBeNull();
+  });
+
+  it('hands the panel the page’s moves', () => {
+    grid();
+
+    expect(seen.turn?.actions.run).toBe(seen.run);
   });
 
   it('holds the stake against the wallet of a reader who could join', () => {
@@ -110,6 +154,18 @@ describe('RoomGrid', () => {
 
     expect(seen.arena?.openSeat).toBeUndefined();
     expect(seen.arena?.viewerSide).toBe('creator');
+  });
+
+  it('bars the creator from their own duel’s open seat', () => {
+    grid({ walletAddress: CREATOR.toLowerCase() as `0x${string}`, isSignedIn: true });
+
+    expect(seen.arena?.isOwnOpenSeat).toBe(true);
+  });
+
+  it('bars nobody else from the open seat', () => {
+    grid({ walletAddress: READER, isSignedIn: true });
+
+    expect(seen.arena?.isOwnOpenSeat).toBe(false);
   });
 
   it('offers no seat once the duel is under way', () => {

@@ -61,7 +61,7 @@ export function joinModel(overrides: Partial<SigningModel> = {}, route: WriteRou
     chainId: DEFAULT_CHAIN.id,
     chainName: DEFAULT_CHAIN.name,
     wager: '5',
-    stake: { funding: funding(), needRaw: 5_000_000n, side: 'opponent', isJoining: true },
+    stake: { funding: funding(), needRaw: 5_000_000n, isJoining: true },
     blockedReason: null,
     canContinue: true,
     facts: { contract: DEFAULT_CHAIN.duelMe, functionName: 'joinDuelWithPermit', token: DEFAULT_CHAIN.usdt, allowance: '5' },
@@ -78,7 +78,6 @@ export function shortModel(overrides: Partial<FlowFunding> = {}) {
   const stake = {
     funding: funding({ balance: { kind: 'ready', raw: 2_000_000n }, status: { kind: 'short', shortfallRaw: 3_000_000n }, ...overrides }),
     needRaw: 5_000_000n,
-    side: 'opponent' as const,
     isJoining: true,
   };
   return { ...joinModel({ canContinue: false }), stake };

@@ -3,8 +3,9 @@ import { cn } from '@/lib/utils';
 
 interface OpenSeatProps {
   /**
-   * The word for the reader, shown in the seat while they point at or tab into the duel it is part
-   * of, a `group/duel`: the seat turns solid blue with them in it.
+   * The word for the reader, shown in the seat while they point at the duel it is part of, a
+   * `group/duel`, or tab to its way in, marked `data-take-seat`: the seat turns solid blue with them
+   * in it. Tabbing to anything else in the duel, the creator's name, leaves the seat empty.
    */
   you?: string;
   /** Show the reader in the seat now: the duel page does while they point at Join. */
@@ -24,7 +25,7 @@ export function OpenSeat({ you, isTaking = false, isYours = false, className }: 
         'before:pointer-events-none before:absolute before:-inset-[9px] before:animate-breathe before:rounded-full before:border-7 before:border-blue/12 before:opacity-0',
         isYours && 'border-red text-red before:border-red/12',
         you &&
-          'group-focus-within/duel:border-solid group-focus-within/duel:bg-blue group-focus-within/duel:text-paper group-focus-within/duel:before:hidden group-hover/duel:border-solid group-hover/duel:bg-blue group-hover/duel:text-paper group-hover/duel:before:hidden',
+          'group-has-[[data-take-seat]:focus-visible]/duel:border-solid group-has-[[data-take-seat]:focus-visible]/duel:bg-blue group-has-[[data-take-seat]:focus-visible]/duel:text-paper group-has-[[data-take-seat]:focus-visible]/duel:before:hidden group-hover/duel:border-solid group-hover/duel:bg-blue group-hover/duel:text-paper group-hover/duel:before:hidden',
         you && isTaking && 'border-solid bg-blue text-paper before:hidden',
         className
       )}
@@ -33,14 +34,14 @@ export function OpenSeat({ you, isTaking = false, isYours = false, className }: 
         name="plus"
         className={cn(
           'size-[40%] transition-[scale,opacity] duration-300 ease-spring',
-          you && 'group-focus-within/duel:scale-40 group-focus-within/duel:opacity-0 group-hover/duel:scale-40 group-hover/duel:opacity-0',
+          you && 'group-has-[[data-take-seat]:focus-visible]/duel:scale-40 group-has-[[data-take-seat]:focus-visible]/duel:opacity-0 group-hover/duel:scale-40 group-hover/duel:opacity-0',
           you && isTaking && 'scale-40 opacity-0'
         )}
       />
       {you && (
         <span
           className={cn(
-            'absolute scale-60 text-sm font-strong opacity-0 transition-[scale,opacity] duration-300 ease-spring group-focus-within/duel:scale-100 group-focus-within/duel:opacity-100 group-hover/duel:scale-100 group-hover/duel:opacity-100',
+            'absolute scale-60 text-sm font-strong opacity-0 transition-[scale,opacity] duration-300 ease-spring group-has-[[data-take-seat]:focus-visible]/duel:scale-100 group-has-[[data-take-seat]:focus-visible]/duel:opacity-100 group-hover/duel:scale-100 group-hover/duel:opacity-100',
             isTaking && 'scale-100 opacity-100'
           )}
         >

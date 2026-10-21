@@ -6,7 +6,6 @@ import { ChargeCells } from '@/components/sign/ChargeCells';
 import { Icon } from '@/components/ui/icon';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { BalanceReading, BalanceStatus } from '@/lib/balanceStatus';
-import type { SeatSide } from '@/lib/duel';
 import { formatEthBalance, formatEthNeed } from '@/lib/gasNeeds';
 import { cn, formatUSDT } from '@/lib/utils';
 
@@ -15,7 +14,6 @@ export interface UsdtNeed {
   /** In USDT's smallest unit. */
   needRaw: bigint;
   balance: BalanceStatus;
-  side: SeatSide;
   /** The balance before money landed, so the newly covered cells charge. */
   fromRaw?: bigint;
 }
@@ -44,11 +42,6 @@ const TONES: Record<Tone, string> = {
   checking: 'bg-canvas',
 };
 
-const SEAT_MARKS: Record<SeatSide, string> = {
-  creator: 'bg-red-soft text-red-deep',
-  opponent: 'bg-blue-soft text-blue-deep',
-};
-
 /**
  * What a signature needs from the wallet before it is asked anything: the stake, with what the
  * wallet holds and the cells it covers, and the network fee when the wallet pays one. Each row
@@ -72,7 +65,7 @@ function UsdtRow({ need }: { need: UsdtNeed }) {
 
   return (
     <li data-tone={tone} className={cn(ROW, TONES[tone])}>
-      <Mark className={SEAT_MARKS[need.side]}>
+      <Mark className="bg-paper text-ink-2">
         <Icon name="wallet" className="size-[19px]" />
       </Mark>
       <Figures
@@ -91,7 +84,7 @@ function UsdtRow({ need }: { need: UsdtNeed }) {
             ))}
           </span>
         ) : (
-          <ChargeCells haveRaw={raw} needRaw={need.needRaw} side={need.side} fromRaw={need.fromRaw} />
+          <ChargeCells haveRaw={raw} needRaw={need.needRaw} fromRaw={need.fromRaw} />
         )}
       </span>
     </li>

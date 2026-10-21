@@ -1,4 +1,4 @@
-import { HttpRequestError, keccak256, RpcRequestError, type Abi } from 'viem';
+import { HttpRequestError, keccak256, RpcRequestError, toHex, type Abi } from 'viem';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { broadcastWithFallback } from '@/lib/resilientBroadcast';
 
@@ -61,7 +61,7 @@ function makeArgs(overrides: TestOverrides = {}) {
   const broadcastHash =
     overrides.broadcastHash ??
     ('0xcd96707e59322b0e7966e0003a7c927226fd3c3f41199417d5e071abde846139' as const);
-  const signTransaction = vi.fn().mockResolvedValue(signedTx);
+  const signTransaction = vi.fn().mockResolvedValue({ signature: signedTx });
   const sendRawTransaction = vi.fn().mockResolvedValue(broadcastHash);
   const getTransaction = vi.fn().mockRejectedValue(new Error('Transaction not found'));
 
@@ -72,7 +72,7 @@ function makeArgs(overrides: TestOverrides = {}) {
     signedTx,
     broadcastHash,
     args: {
-      walletClient: { signTransaction } as never,
+      signTransaction,
       publicClient: { sendRawTransaction, getTransaction } as never,
       account: ACCOUNT as `0x${string}`,
       chainId: overrides.chainId ?? 42161,
@@ -92,7 +92,7 @@ function makeArgs(overrides: TestOverrides = {}) {
 }
 
 describe('broadcastWithFallback', () => {
-  it('signs via the wallet and broadcasts via the public client', async () => {
+  it('signs in the wallet and broadcasts via the public client', async () => {
     const { args, signTransaction, sendRawTransaction, broadcastHash } = makeArgs();
 
     const hash = await broadcastWithFallback(args);
@@ -102,46 +102,54 @@ describe('broadcastWithFallback', () => {
     expect(sendRawTransaction).toHaveBeenCalledTimes(1);
   });
 
-  it('forwards explicit gas params to signTransaction so Privy never auto-populates', async () => {
+  it('signs as the write\'s account with explicit gas params, so Privy never auto-populates', async () => {
     const { args, signTransaction } = makeArgs();
 
     await broadcastWithFallback(args);
 
     expect(signTransaction).toHaveBeenCalledWith(
       expect.objectContaining({
-        account: ACCOUNT,
+        from: ACCOUNT,
         to: CONTRACT,
         chainId: 42161,
-        type: 'eip1559',
-        gas: 131_134n,
-        maxFeePerGas: 30_009_001n,
-        maxPriorityFeePerGas: 1n,
-        nonce: 2,
-        value: 0n,
-      })
+        gasLimit: toHex(131_134n),
+        maxFeePerGas: toHex(30_009_001n),
+        maxPriorityFeePerGas: '0x1',
+        nonce: '0x2',
+      }),
+      { address: ACCOUNT }
     );
   });
 
-  it('forwards the explicit nonce so Privy never re-derives a zero nonce', async () => {
-    // Privy's prepareTransactionRequest path silently signs with nonce: 0 once
-    // viem caches eth_fillTransaction=false. Passing nonce explicitly is the
-    // documented workaround; this test pins that the helper actually forwards
-    // it instead of dropping it.
-    const { args, signTransaction } = makeArgs({ nonce: 42 });
+  // Privy's populate path signs with nonce 0, and its in-browser signer reads a numeric 0 as no
+  // nonce at all, so the nonce goes in, as hex, every time.
+  it.each([
+    [42, '0x2a'],
+    [0, '0x0'],
+  ])('forwards nonce %i as %s', async (nonce, hex) => {
+    const { args, signTransaction } = makeArgs({ nonce });
 
     await broadcastWithFallback(args);
 
-    expect(signTransaction).toHaveBeenCalledWith(
-      expect.objectContaining({ nonce: 42 })
-    );
+    expect(signTransaction.mock.calls[0][0].nonce).toBe(hex);
   });
 
-  it('uses EIP-1559 transaction type regardless of input', async () => {
+  it('gives Privy the EIP-1559 type as a number, since its wallet API refuses viem\'s "0x2"', async () => {
     const { args, signTransaction } = makeArgs();
 
     await broadcastWithFallback(args);
 
-    expect(signTransaction.mock.calls[0][0].type).toBe('eip1559');
+    expect(signTransaction.mock.calls[0][0].type).toBe(2);
+  });
+
+  it('gives the limit as gasLimit alone, since Privy sends a gas field as the gas price too', async () => {
+    const { args, signTransaction } = makeArgs();
+
+    await broadcastWithFallback(args);
+
+    const transaction = signTransaction.mock.calls[0][0];
+    expect(transaction).not.toHaveProperty('gas');
+    expect(transaction).not.toHaveProperty('gasPrice');
   });
 
   it('encodes approve(address,uint256) correctly', async () => {
@@ -200,9 +208,8 @@ describe('broadcastWithFallback', () => {
   });
 
   it('surfaces signing failures without attempting to broadcast', async () => {
-    const { args, sendRawTransaction } = makeArgs();
-    (args.walletClient as unknown as { signTransaction: ReturnType<typeof vi.fn> }).signTransaction =
-      vi.fn().mockRejectedValue(new Error('user rejected'));
+    const { args, signTransaction, sendRawTransaction } = makeArgs();
+    signTransaction.mockRejectedValue(new Error('user rejected'));
 
     await expect(broadcastWithFallback(args)).rejects.toThrow('user rejected');
     expect(sendRawTransaction).not.toHaveBeenCalled();
@@ -215,17 +222,15 @@ describe('broadcastWithFallback', () => {
 
     await broadcastWithFallback(args);
 
-    expect(signTransaction).toHaveBeenCalledWith(
-      expect.objectContaining({ chainId: 421614 })
-    );
+    expect(signTransaction.mock.calls[0][0].chainId).toBe(421614);
   });
 
-  it('uses value: 0n — DuelMe and ERC20 ops are never payable', async () => {
+  it('sends no value — DuelMe and ERC20 ops are never payable', async () => {
     const { args, signTransaction } = makeArgs();
 
     await broadcastWithFallback(args);
 
-    expect(signTransaction.mock.calls[0][0].value).toBe(0n);
+    expect(signTransaction.mock.calls[0][0].value).toBe('0x0');
   });
 
   it('signs before broadcasting (order is observable for retry/debug)', async () => {
@@ -233,7 +238,7 @@ describe('broadcastWithFallback', () => {
     const { args, signTransaction, sendRawTransaction } = makeArgs();
     signTransaction.mockImplementation(async () => {
       callOrder.push('sign');
-      return '0xabcd';
+      return { signature: '0xabcd' };
     });
     sendRawTransaction.mockImplementation(async () => {
       callOrder.push('broadcast');
