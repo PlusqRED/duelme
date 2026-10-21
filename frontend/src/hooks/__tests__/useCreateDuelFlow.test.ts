@@ -152,6 +152,7 @@ describe('useCreateDuelFlow', () => {
     act(() => result.current.handleFlowOpenChange(false));
 
     expect(result.current.isFlowOpen).toBe(false);
+    expect(result.current.isRunningOutOfSight).toBe(true);
     expect(result.current.flow?.actionState).toBe('confirming');
     expect(env.write.reset).not.toHaveBeenCalledAfter(env.write.createDuel);
   });
@@ -172,6 +173,34 @@ describe('useCreateDuelFlow', () => {
     expect(result.current.createdDuelPath).toBe(`/duel/12#${secret}`);
   });
 
+  it('testUseCreateDuelFlowShowsARunningCreateAgainRatherThanStartingAnother', async () => {
+    const { result, rerender } = renderCreate();
+    await sendCreate(result);
+    env.write = { ...env.write, isConfirming: true };
+    rerender();
+    act(() => result.current.handleFlowOpenChange(false));
+    const draft = result.current.flow?.draft;
+    env.write.reset.mockClear();
+
+    await act(async () => result.current.handleCreateDuelClick());
+
+    expect(result.current.isFlowOpen).toBe(true);
+    expect(result.current.flow?.draft).toBe(draft);
+    expect(env.write.reset).not.toHaveBeenCalled();
+  });
+
+  it('testUseCreateDuelFlowStopsASlowApproveRatherThanHidingIt', async () => {
+    const { result, rerender } = renderCreate();
+    await act(async () => result.current.handleCreateDuelClick());
+    act(() => result.current.handleApprove());
+    env.write = { ...env.write, isConfirming: true };
+    rerender();
+
+    act(() => result.current.handleFlowOpenChange(false));
+
+    expect(result.current.flow).toBeNull();
+  });
+
   it('testUseCreateDuelFlowBringsALeftWindowBackOnFailure', async () => {
     const { result, rerender } = renderCreate();
     await sendCreate(result);
@@ -184,6 +213,7 @@ describe('useCreateDuelFlow', () => {
 
     expect(result.current.isFlowOpen).toBe(true);
     expect(result.current.flow?.actionState).toBe('error');
+    expect(result.current.isRunningOutOfSight).toBe(false);
   });
 
   it('testUseCreateDuelFlowWaitsForTheReceiptThatNamesTheDuel', async () => {

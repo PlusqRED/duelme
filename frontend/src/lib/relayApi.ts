@@ -60,12 +60,15 @@ export async function submitRelayRequest(chainId: number, request: RelayForwardR
   const fields = isRecord(answer.body) ? answer.body : {};
 
   if (!answer.ok) {
-    // A code this bundle does not know — a tab left open across a deploy — reads as
-    // "unavailable", the one answer every caller already handles.
-    const code = isRelayErrorCode(fields.code) ? fields.code : 'RELAYER_UNAVAILABLE';
     const message =
       typeof fields.error === 'string' ? fields.error : `Relayer refused the request (HTTP ${answer.status}).`;
-    throw new RelayRequestError(code, message);
+    // A refusal without a code the relay gives is no word from the relay: a proxy's error page while
+    // the app restarted mid-request, or a code from a deploy newer than this tab. The request may
+    // have gone out, so it reads as an answer lost, never as "nothing was sent".
+    if (!isRelayErrorCode(fields.code)) {
+      throw new RelayAnswerLostError(message);
+    }
+    throw new RelayRequestError(fields.code, message);
   }
 
   // A repeat of a payload the relayer already sent answers with that transaction's hash,

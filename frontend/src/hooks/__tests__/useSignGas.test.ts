@@ -72,7 +72,7 @@ describe('useSignGas', () => {
   it('testUseSignGasNeedsTheEthForEveryUnsentTransaction', () => {
     const { result } = renderGas();
 
-    expect(result.current.eth?.needWei).toBe(ethNeeded(['approve', 'join'], SEPOLIA, QUOTE));
+    expect(result.current.eth?.needWei).toBe(ethNeeded([{ kind: 'approve' }, { kind: 'join' }], SEPOLIA, QUOTE));
   });
 
   it('testUseSignGasNeedsTheEthOfEveryDuelABatchMoveTakes', () => {
@@ -80,7 +80,7 @@ describe('useSignGas', () => {
 
     const { result } = renderGas({ unpaid: [take] });
 
-    expect(result.current.eth?.needWei).toBe(ethNeeded(['move', 'move', 'move'], SEPOLIA, QUOTE));
+    expect(result.current.eth?.needWei).toBe(ethNeeded([{ kind: 'move', times: 3 }], SEPOLIA, QUOTE));
   });
 
   it('testUseSignGasNeedsNoEthOnceEverythingIsSent', () => {

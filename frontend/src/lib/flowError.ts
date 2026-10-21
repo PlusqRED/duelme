@@ -74,6 +74,9 @@ const GAS_REFUSALS = [
 // a nonce it would not take, which is no word from the contract.
 const REVERT_WORDS = /execution reverted(?! for an unknown reason)|reverted with the following (?:reason|signature)/;
 
+/** viem's lines that repeat the call: its arguments, its calldata, and the RPC request that carried them. */
+const CALL_LINES = ['args:', 'data:', 'Request body:'];
+
 /** The longest raw message the details show; a viem dump can run to pages. */
 const MAX_DETAIL_LENGTH = 1500;
 
@@ -151,8 +154,9 @@ function isContractRevert(error: unknown, details: readonly string[]): boolean {
 /**
  * The error in the words it came with, for a player to copy and send on: the contract's reason,
  * the node's or the relay's message, an HTTP failure with its status. viem's own summary and its
- * lines of context, without the call's arguments: a join's carry the private duel's invite secret,
- * and the player is asked to send these details on. Custom errors by name.
+ * lines of context, without the call itself (its arguments, its calldata, the request that carried
+ * it): a join's or a decline's hold the private duel's invite secret, and the player is asked to send
+ * these details on. Custom errors by name.
  */
 export function rawErrorText(error: unknown): string | null {
   const text = describe(error)?.trim();
@@ -176,7 +180,7 @@ function describe(error: unknown): string | undefined {
     return lines
       .flatMap((line) => line.split('\n'))
       .map((line) => line.trim())
-      .filter((line) => line && !line.startsWith('args:'))
+      .filter((line) => line && !CALL_LINES.some((start) => line.startsWith(start)))
       .join('\n');
   }
   if (error instanceof Error) {

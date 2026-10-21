@@ -21,6 +21,12 @@ const TYPICAL_GAS = { approve: 46_724n, create: 172_195n, join: 93_702n, move: 9
 
 export type GasKind = keyof typeof TYPICAL_GAS;
 
+/** A transaction's row of the table, and how many of it the one transaction does (a Take over several duels). */
+export interface GasUse {
+  kind: GasKind;
+  times?: number;
+}
+
 /** The most the app offers per gas, as it will set it on the transaction, and what the network charges now. */
 export interface FeeQuote {
   maxFeePerGas: bigint;
@@ -44,19 +50,23 @@ export function quoteFees(chainId: number, estimate: FeeEstimate, baseFeePerGas:
   return { maxFeePerGas: offered.maxFeePerGas, gasPrice: charged < offered.maxFeePerGas ? charged : offered.maxFeePerGas };
 }
 
-/** The gas limit the app sets for it: the same buffers, and on the test network the same floors, as its writes. */
-export function gasLimitFor(kind: GasKind, chainId: number): bigint {
+/**
+ * The gas limit the app sets for it: the same buffers, and on the test network the same floors, as
+ * its writes. A transaction over several duels takes the gas of each, under one buffer and one floor.
+ */
+export function gasLimitFor(kind: GasKind, chainId: number, times = 1): bigint {
+  const gas = TYPICAL_GAS[kind] * BigInt(times);
   if (!isSepolia(chainId)) {
-    return getBufferedMainnetGasLimit(TYPICAL_GAS[kind]);
+    return getBufferedMainnetGasLimit(gas);
   }
   const floor =
     kind === 'approve' ? ARBITRUM_SEPOLIA_APPROVE_MIN_GAS : kind === 'create' ? ARBITRUM_SEPOLIA_CREATE_DUEL_MIN_GAS : ARBITRUM_SEPOLIA_DEFAULT_MIN_GAS;
-  return getBufferedTestnetGasLimit(TYPICAL_GAS[kind], floor);
+  return getBufferedTestnetGasLimit(gas, floor);
 }
 
 /** What a transaction of this kind costs at the network's price now: the fee a player should expect. */
-export function expectedFee(kind: GasKind, quote: FeeQuote): bigint {
-  return TYPICAL_GAS[kind] * quote.gasPrice;
+export function expectedFee(kind: GasKind, quote: FeeQuote, times = 1): bigint {
+  return TYPICAL_GAS[kind] * BigInt(times) * quote.gasPrice;
 }
 
 /**
@@ -64,8 +74,8 @@ export function expectedFee(kind: GasKind, quote: FeeQuote): bigint {
  * most the app offers per gas. Far above what they end up costing, but a wallet with less is refused
  * at sending, after the player has already confirmed.
  */
-export function ethNeeded(kinds: readonly GasKind[], chainId: number, quote: FeeQuote): bigint {
-  return kinds.reduce((sum, kind) => sum + gasLimitFor(kind, chainId) * quote.maxFeePerGas, 0n);
+export function ethNeeded(uses: readonly GasUse[], chainId: number, quote: FeeQuote): bigint {
+  return uses.reduce((sum, { kind, times }) => sum + gasLimitFor(kind, chainId, times) * quote.maxFeePerGas, 0n);
 }
 
 const feeFormats = perLanguage((locale) => new Intl.NumberFormat(locale, { maximumSignificantDigits: 1 }));

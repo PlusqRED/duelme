@@ -17,7 +17,7 @@ import type { BalanceStatus, FundingStatus } from '@/lib/balanceStatus';
 import type { ContractConfig } from '@/lib/contractConfig';
 import { SETUP_STEPS, stepStatus, type SetupStep as SetupStepId } from '@/lib/createSetup';
 import type { Game } from '@/lib/game';
-import { formatUSDT } from '@/lib/utils';
+import { cn, formatUSDT } from '@/lib/utils';
 
 const stepLabels: Record<SetupStepId, TranslationKey> = {
   game: 'create.step.game',
@@ -27,6 +27,8 @@ const stepLabels: Record<SetupStepId, TranslationKey> = {
 };
 
 interface SetupPanelProps {
+  /** The duel is being made out of sight: its terms stay as they were sent, and Create shows it again. */
+  isLocked?: boolean;
   setup: ReturnType<typeof useCreateSetup>;
   /** The creator's face, which the panel's notch points at: these choices are theirs. */
   pointAt: RefObject<HTMLElement | null>;
@@ -50,7 +52,7 @@ interface SetupPanelProps {
  * its answer, so the closed steps are the review. Once every step is answered the focus goes to the
  * way on.
  */
-export function SetupPanel({ setup, pointAt, catalog, limits, stops, address, balance, funding, example, children, ...actions }: SetupPanelProps) {
+export function SetupPanel({ isLocked = false, setup, pointAt, catalog, limits, stops, address, balance, funding, example, children, ...actions }: SetupPanelProps) {
   const { t, language } = useTranslation();
   const titleId = useId();
   const bodyId = useId();
@@ -131,7 +133,7 @@ export function SetupPanel({ setup, pointAt, catalog, limits, stops, address, ba
       title={t('create.title')}
       text={t('create.text')}
     >
-      <ol className="mt-0.5 grid gap-2">
+      <ol inert={isLocked} className={cn('mt-0.5 grid gap-2 transition-opacity duration-200', isLocked && 'opacity-60')}>
         {SETUP_STEPS.map((step, index) => (
           <SetupStep
             key={step}

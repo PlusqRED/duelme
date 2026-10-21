@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, renderHook } from '@testing-library/react';
+import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ActionFlowConfig, DuelActions } from '@/lib/actionFlow';
 import { DuelState } from '@/lib/contracts';
@@ -135,5 +135,19 @@ describe('useDuelTurnActions', () => {
     const { summaryContext } = actions();
 
     expect(summaryContext).toMatchObject({ duelId: 7, formattedPot: '10 USDT', opponentDisplay: 'Bo' });
+  });
+
+  it('keeps the duel as it stood when the window opened, so Done still names what was taken', () => {
+    const won = duelView({ creator: CREATOR, opponent: OPPONENT, state: DuelState.Resolved, claimedWinner: OPPONENT, opponentPayout: 10_000_000n });
+    const { result, rerender } = renderHook(
+      ({ duel }) =>
+        useDuelTurnActions({ duelId: 7, duel, phase: 'funded', inviteSecret: null, walletAddress: OPPONENT, refetch: vi.fn(async () => undefined), openTopUp }),
+      { initialProps: { duel: won } }
+    );
+    act(() => result.current.run('claimWin'));
+
+    rerender({ duel: { ...won, opponentClaimed: true } });
+
+    expect(result.current.summaryContext.claimableDisplay).toBe('10 USDT');
   });
 });

@@ -194,10 +194,12 @@ export function useCreateDuelFlow({
   });
 
   // A flow left to finish out of sight ends with the page showing the new duel, so there is no
-  // Done to close it on.
+  // Done to close it on; a failure brings the window back for good, Try again included.
   if (isHidden && flow?.stage === 'success') {
     setIsHidden(false);
     setFlow(null);
+  } else if (isHidden && flow?.actionState === 'error') {
+    setIsHidden(false);
   }
 
   function closeFlow() {
@@ -223,8 +225,9 @@ export function useCreateDuelFlow({
     // The page shows the new duel's link itself once the window closes; nothing navigates there.
     createdDuelPath,
     flow,
-    // A failure brings a left window back: the player has to hear that the duel was not made.
-    isFlowOpen: flow !== null && (!isHidden || flow.actionState === 'error'),
+    isFlowOpen: flow !== null && !isHidden,
+    /** The create runs on behind a closed window: the setup stays as it was sent until it lands. */
+    isRunningOutOfSight: flow !== null && isHidden,
     handleApprove: () => actions.handleApprove(flow),
     handleContinueFlow: () => {
       // The button is disabled too, but the gate is here: nothing past review without a fresh
@@ -235,8 +238,12 @@ export function useCreateDuelFlow({
       void actions.handleContinueFlow(flow);
     },
     handleCreateDuelClick: () => {
+      // A create still running out of sight comes back into view; a second one would drop its receipt.
+      if (flow !== null) {
+        setIsHidden(false);
+        return;
+      }
       markOpened();
-      setIsHidden(false);
       void actions.handleCreateDuelClick();
     },
     handleCreateTransaction: () => actions.handleCreateTransaction(flow),
@@ -244,8 +251,9 @@ export function useCreateDuelFlow({
       if (open) {
         return;
       }
-      // Only the slow notice's way out closes a window while the chain confirms.
-      if (flow?.actionState === 'confirming') {
+      // Only the slow notice's way out closes a window while the chain confirms. The create itself
+      // runs on out of sight, to be recorded when it lands; a slow approve simply stops the flow.
+      if (flow?.actionState === 'confirming' && flow.pendingTransaction === 'create-duel') {
         setIsHidden(true);
       } else {
         closeFlow();

@@ -47,8 +47,7 @@ export function useSignGas({ open, chainId, route, unpaid }: UseSignGasOptions) 
   const faucet = useFaucetFlask(chainId, ethRaw);
   const [isTopUpOpen, setIsTopUpOpen] = useState(false);
 
-  const kinds = unpaid.flatMap((item) => Array<GasKind>(item.gasTimes ?? 1).fill(item.gas));
-  const needWei = quote && kinds.length > 0 ? ethNeeded(kinds, chainId, quote) : null;
+  const needWei = quote && unpaid.length > 0 ? ethNeeded(unpaid.map((item) => ({ kind: item.gas, times: item.gasTimes })), chainId, quote) : null;
   const isShort = needWei !== null && ethRaw !== null && ethRaw < needWei;
   const level = FAUCET_LEVELS[faucet.phase];
   const isFaucetBusy = faucet.phase === 'asking' || faucet.phase === 'sent' || faucet.phase === 'landed';
@@ -79,7 +78,7 @@ export function useSignGas({ open, chainId, route, unpaid }: UseSignGasOptions) 
     fix,
     isFaucetBusy,
     /** What a transaction of this kind should cost now, or null until the network has said. */
-    feeOf: (kind: GasKind): bigint | null => (quote ? expectedFee(kind, quote) : null),
+    feeOf: (kind: GasKind, times?: number): bigint | null => (quote ? expectedFee(kind, quote, times) : null),
     claimFaucet: () => void faucet.claim(),
     retryEth,
     isTopUpOpen: paysGas && isTopUpOpen,

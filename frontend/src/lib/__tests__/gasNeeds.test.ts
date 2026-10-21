@@ -58,6 +58,10 @@ describe('gasLimitFor', () => {
   it('testGasLimitForAddsAFifthOnArbitrumOne', () => {
     expect(gasLimitFor('join', ONE)).toBe(112_443n);
   });
+
+  it('testGasLimitForTakesTheGasOfEachDuelUnderOneFloor', () => {
+    expect([gasLimitFor('move', SEPOLIA, 1), gasLimitFor('move', SEPOLIA, 3) < gasLimitFor('move', SEPOLIA, 1) * 3n]).toEqual([200_000n, true]);
+  });
 });
 
 describe('expectedFee', () => {
@@ -68,7 +72,7 @@ describe('expectedFee', () => {
 
 describe('ethNeeded', () => {
   it('testEthNeededReservesEachTransactionsLimitAtTheOffer', () => {
-    const need = ethNeeded(['approve', 'join'], SEPOLIA, QUOTE);
+    const need = ethNeeded([{ kind: 'approve' }, { kind: 'join' }], SEPOLIA, QUOTE);
 
     expect(need).toBe((120_000n + 200_000n) * 40_000_000n);
   });

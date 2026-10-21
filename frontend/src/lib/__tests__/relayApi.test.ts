@@ -99,21 +99,19 @@ describe('submitRelayRequest', () => {
     await expect(submitRelayRequest(42161, signedRequest)).rejects.toMatchObject({ code: 'RATE_LIMITED' });
   });
 
-  it('reads a code it does not know as RELAYER_UNAVAILABLE rather than passing it on', async () => {
+  it('takes a code it does not know for an answer lost rather than passing it on', async () => {
     vi.mocked(fetch).mockReturnValue(respond(400, { code: 'SOMETHING_NEW', error: 'x' }));
 
     await expect(submitRelayRequest(42161, signedRequest)).rejects.toMatchObject({
-      code: 'RELAYER_UNAVAILABLE',
+      name: 'RelayAnswerLostError',
       message: 'x',
     });
   });
 
-  it('falls back to RELAYER_UNAVAILABLE when the body carries no code', async () => {
+  it('takes a refusal without the relay\'s body, a proxy\'s error page, for an answer lost', async () => {
     vi.mocked(fetch).mockReturnValue(respond(502, null));
 
-    await expect(submitRelayRequest(42161, signedRequest)).rejects.toMatchObject({
-      code: 'RELAYER_UNAVAILABLE',
-    });
+    await expect(submitRelayRequest(42161, signedRequest)).rejects.toBeInstanceOf(RelayAnswerLostError);
   });
 
   it('takes a success response with no usable hash for an answer lost, since the relayer may have sent it', async () => {

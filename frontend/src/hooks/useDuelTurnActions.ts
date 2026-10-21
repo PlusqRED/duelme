@@ -107,6 +107,7 @@ export function useDuelTurnActions({ duelId, duel, phase, inviteSecret, walletAd
     isBusy: actionFlow.flow !== null || joinFlow.flow !== null,
     joinFlow,
     actionFlow,
-    summaryContext: actionFlow.flow !== null && openedContext ? openedContext : summaryContext,
+    // Kept past the flow too: the window still shows Done while it animates closed.
+    summaryContext: openedContext ?? summaryContext,
   };
 }

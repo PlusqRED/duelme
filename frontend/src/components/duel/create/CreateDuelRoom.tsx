@@ -134,6 +134,7 @@ export function CreateDuelRoom() {
             />
           ) : (
             <SetupPanel
+              isLocked={flow.isRunningOutOfSight}
               setup={setup}
               pointAt={creatorFace}
               catalog={catalog}

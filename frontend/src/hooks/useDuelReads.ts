@@ -189,8 +189,9 @@ export function useDuelRange({ chainId, enabled = true }: DuelRangeOptions) {
   }, [refetchCount, refetchPages]);
 
   // Money moved by a write on any page (a payout taken on the duel page) is read at once, so the
-  // safe and the dashboard never offer a payout already taken until the next poll.
-  useEffect(() => (isEnabled ? subscribeToBalanceRefresh(() => void refetch()) : undefined), [isEnabled, refetch]);
+  // safe and the dashboard never offer a payout already taken until the next poll. Every mounted
+  // reader hears the same event in the same tick, so they join one read rather than restart it.
+  useEffect(() => (isEnabled ? subscribeToBalanceRefresh(() => void retry()) : undefined), [isEnabled, retry]);
 
   return {
     duels,

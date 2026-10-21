@@ -211,6 +211,17 @@ describe('classifyFlowError — the wallet and the network', () => {
 });
 
 describe('rawErrorText', () => {
+  it('testRawErrorTextLeavesOutTheCalldataAndTheRequestBodyToo', () => {
+    const secret = '5'.repeat(64);
+    const error = new BaseError('Execution reverted for an unknown reason.', {
+      metaMessages: [`Estimate Gas Arguments:\n  from:  0x2222222222222222222222222222222222222222\n  data:  0xabcdef${secret}`, `Request body: {"method":"eth_estimateGas","params":[{"data":"0xabcdef${secret}"}]}`],
+    });
+
+    const text = rawErrorText(error);
+
+    expect([text?.includes('Estimate Gas Arguments:'), text?.includes(secret)]).toEqual([true, false]);
+  });
+
   it('testRawErrorTextLeavesOutTheCallsArgumentsWhichCanHoldAnInviteSecret', () => {
     const secret = `0x${'5'.repeat(64)}`;
     const error = new BaseError('The contract function "joinDuel" reverted.', {
@@ -227,7 +238,7 @@ describe('rawErrorText', () => {
 
     const text = rawErrorText(error);
 
-    expect(text).toBe('HTTP request failed.\nStatus: 503\nURL: https://rpc.example\nRequest body: {"method":"eth_sendRawTransaction"}');
+    expect(text).toBe('HTTP request failed.\nStatus: 503\nURL: https://rpc.example');
   });
 
   it('testRawErrorTextHasNothingToSayForANonError', () => {
