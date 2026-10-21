@@ -42,7 +42,6 @@ function actionFlow(isOpen: boolean): ActionFlow {
     activeConfig: isOpen ? config : null,
     canClose: true,
     needsNetworkSwitch: false,
-    duelActions: {} as ActionFlow['duelActions'],
   };
 }
 

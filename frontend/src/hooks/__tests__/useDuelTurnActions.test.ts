@@ -31,7 +31,7 @@ const hooks = vi.hoisted(() => ({
 
 vi.mock('@privy-io/react-auth', () => ({ usePrivy: () => ({ login: hooks.login }) }));
 vi.mock('@/hooks/useActionFlow', () => ({
-  useActionFlow: () => hooks.actionFlow ?? { flow: null, openFlow: hooks.openFlow, duelActions: hooks.duelActions },
+  useActionFlow: () => hooks.actionFlow ?? { flow: null, openFlow: hooks.openFlow },
 }));
 vi.mock('@/hooks/useJoinDuelFlow', () => ({
   useJoinDuelFlow: () => hooks.joinFlow ?? { flow: null, handleOpenJoinFlow: hooks.handleOpenJoinFlow },
@@ -126,7 +126,7 @@ describe('useDuelTurnActions', () => {
   });
 
   it('is busy while a signing window is open', () => {
-    hooks.actionFlow = { flow: {}, openFlow: hooks.openFlow, duelActions: hooks.duelActions };
+    hooks.actionFlow = { flow: {}, openFlow: hooks.openFlow };
 
     expect(actions().isBusy).toBe(true);
   });

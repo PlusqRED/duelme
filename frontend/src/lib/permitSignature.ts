@@ -9,6 +9,7 @@ import {
   type WalletClient,
 } from 'viem';
 import { erc20PermitAbi } from '@/lib/contracts';
+import { PermitDomainMismatchError } from '@/lib/writeErrors';
 
 /**
  * EIP-2612 pins its domain version to "1" — both OpenZeppelin's ERC20Permit and the USD₮0
@@ -37,13 +38,6 @@ const EIP712_DOMAIN_TYPE = {
     { name: 'verifyingContract', type: 'address' },
   ],
 } as const;
-
-export class PermitDomainMismatchError extends Error {
-  constructor(token: string) {
-    super(`Token ${token} does not use the expected EIP-2612 domain.`);
-    this.name = 'PermitDomainMismatchError';
-  }
-}
 
 export interface PermitSignature {
   deadline: bigint;

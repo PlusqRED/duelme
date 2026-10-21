@@ -20,24 +20,29 @@ const SIGNING_FILES = [
 ];
 
 /**
- * Who takes the signing code, by module, up to the flows behind the windows: `useActionFlow`,
- * `useCreateDuelFlow` and `useJoinDuelFlow` feed the signing window, `SendView` holds `SendReview`.
- * Type-only imports run nothing and are left out.
+ * Who takes the signing code, by module, up to the flows behind the windows and the ones that run
+ * them: `useActionFlow`, `useCreateDuelFlow` and `useJoinDuelFlow` feed the signing window,
+ * `SendView` holds `SendReview`. Type-only imports run nothing and are left out.
  */
 const SIGNING_CHAIN: Record<string, string[]> = {
+  'hooks/useActionFlow': ['hooks/useDashboardTake.ts', 'hooks/useDuelTurnActions.ts'],
+  'hooks/useCreateDuelFlow': ['components/duel/create/CreateDuelRoom.tsx'],
   'hooks/useDuelActions': ['hooks/useActionFlow.ts', 'hooks/useCreateDuelFlow.ts', 'hooks/useJoinDuelFlow.ts'],
   'hooks/useDuelPermit': ['hooks/useDuelActions.ts'],
+  'hooks/useJoinDuelFlow': ['hooks/useDuelTurnActions.ts'],
   'hooks/useSendUsdt': ['components/header/SendView.tsx'],
   'hooks/useWriteWithGas': ['hooks/useDuelActions.ts', 'hooks/useSendUsdt.ts'],
   'lib/forwardRequest': ['hooks/useWriteWithGas.ts'],
-  // `flowError` takes an error class only.
-  'lib/permitSignature': ['hooks/useDuelPermit.ts', 'lib/flowError.ts'],
+  'lib/permitSignature': ['hooks/useDuelPermit.ts'],
   'lib/resilientBroadcast': ['hooks/useWriteWithGas.ts'],
 };
 
-/** A name that makes a wallet sign or send, or that hands out a wallet, or its provider, to ask. */
+/**
+ * A name that makes a wallet sign or send, or that hands out a wallet, or its provider, to ask:
+ * viem's and wagmi's actions and hooks with their `Sync` and `Async` forms, Privy's hooks.
+ */
 const ASKING_NAMES =
-  /^(?:(?:sign(?:TypedData|Transaction|Message|Authorization)|send(?:Transaction|Calls)|(?:write|deploy)Contract)(?:Async)?|use(?:WriteContract|DeployContract|SendTransaction|SendCalls|SignTypedData|SignMessage|SignTransaction|SignAuthorization|Sign7702Authorization|WalletClient|ConnectorClient)|get(?:WalletClient|ConnectorClient|EthereumProvider))$/;
+  /^(?:(?:sign(?:TypedData|Transaction|Message|Authorization)|send(?:Transaction|Calls)|(?:write|deploy)Contract)(?:Sync)?(?:Async)?|use(?:WriteContract|DeployContract|SendTransaction|SendCalls|SignTypedData|SignMessage|SignTransaction|SignAuthorization|Sign7702Authorization|WalletClient|ConnectorClient)(?:Sync)?|get(?:WalletClient|ConnectorClient|EthereumProvider))$/;
 
 /** The provider methods that ask the wallet, for a request made to the provider itself. */
 const ASKING_METHODS = new Set([
@@ -55,12 +60,21 @@ function parse(path: string, text: string): ts.SourceFile {
   return ts.createSourceFile(path, text, ts.ScriptTarget.Latest, false, path.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
 }
 
-/** The asking names and methods in a file's code; comments are not code, so they never count. */
+/** A call of a wallet's own `sign`, as Privy's wallets have (`personal_sign`); `Math.sign` is no wallet. */
+function callsWalletSign(node: ts.Node): boolean {
+  if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) return false;
+  const { name, expression } = node.expression;
+  return name.text === 'sign' && !(ts.isIdentifier(expression) && expression.text === 'Math');
+}
+
+/** The asking names, methods and calls in a file's code; comments are not code, so they never count. */
 function asks(source: ts.SourceFile): string[] {
   const found: string[] = [];
   const visit = (node: ts.Node) => {
     if ((ts.isIdentifier(node) && ASKING_NAMES.test(node.text)) || (ts.isStringLiteralLike(node) && ASKING_METHODS.has(node.text))) {
       found.push(node.text);
+    } else if (callsWalletSign(node)) {
+      found.push('sign');
     }
     ts.forEachChild(node, visit);
   };
@@ -96,6 +110,10 @@ describe('signing guard', () => {
     'useSendTransaction()',
     'const { signMessage } = useSignMessage();',
     'useWalletClient<Config>()',
+    'const { mutate } = useWriteContractSync();',
+    'await walletClient.sendTransactionSync(request)',
+    'await activeWallet.sign(message)',
+    'await activeWallet?.sign?.(message)',
     'const provider = await wallet.getEthereumProvider();',
     "provider.request({ method: 'eth_signTypedData_v4', params })",
   ])('sees a wallet asked to sign in %s', (text) => {
@@ -108,6 +126,8 @@ describe('signing guard', () => {
     "const tab = '#writeContract';",
     'publicClient.sendRawTransaction({ serializedTransaction })',
     "const label = 'signMessage';",
+    'const direction = Math.sign(delta);',
+    "const words = { sign: 'sign.sign.title' };",
   ])('sees no wallet asked to sign in %s', (text) => {
     expect(asks(parse('probe.ts', text))).toEqual([]);
   });

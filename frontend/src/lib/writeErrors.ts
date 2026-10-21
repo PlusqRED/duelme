@@ -31,6 +31,14 @@ export class WalletNotReadyError extends Error {
   }
 }
 
+/** The token's EIP-712 domain is not the EIP-2612 one the permit is built for, so no permit is signed. */
+export class PermitDomainMismatchError extends Error {
+  constructor(token: string) {
+    super(`Token ${token} does not use the expected EIP-2612 domain.`);
+    this.name = 'PermitDomainMismatchError';
+  }
+}
+
 /** Whether a write's receipt read ended for good, rather than failed to answer. */
 export function isFinalReceiptError(error: unknown): error is TransactionRevertedError | TransactionReplacedError {
   return error instanceof TransactionRevertedError || error instanceof TransactionReplacedError;

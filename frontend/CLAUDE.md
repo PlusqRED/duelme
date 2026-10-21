@@ -232,7 +232,7 @@ test can check.
 | `frontend/src/hooks/useDuelActions.ts` | Write actions (join, cancel, claim, refundAndClaimPayouts, etc.) |
 | `frontend/src/hooks/useWriteWithGas.ts` | Duel write dispatcher: relayed / resilient / plain routing + merged hash/isPending/error surface |
 | `frontend/src/lib/writeReceipt.ts` | Waits for a write's receipt and decides by it: the receipt, `TransactionRevertedError` with the replayed reason, or `TransactionReplacedError` |
-| `frontend/src/lib/writeErrors.ts` | The ways a write ends without running (reverted, replaced, wallet not ready), which `lib/flowError.ts` words for the signing window |
+| `frontend/src/lib/writeErrors.ts` | The ways a write ends without running (reverted, replaced, wallet not ready, a token whose permit domain is not EIP-2612's), which `lib/flowError.ts` words for the signing window |
 | `frontend/src/app/dashboard/page.tsx` | My duels: the title and Create a duel, then `components/dashboard/Dashboard` |
 | `frontend/src/components/dashboard/` | The dashboard's parts: `Dashboard` (the guest's invitation, loading, a wallet with no duels, the desk), `TakeSafe` (the navy safe and its one Take; `TakenLine` once emptied), `DuelBoard`s of `MiniDuelCard`s (a small `ArenaStage`), `History` (`FormLine`, the lists' search, filters and pager, `HistoryRow`), `StandingCard` (`StandingReputation` on the landing's `ReputationGauge`, `StandingTotals` on `identity/PlayerTotals`); `TakeFlowDialog` is the one place Take's signing window is rendered |
 | `frontend/src/hooks/useDashboard.ts` | The reader's duels filed for the dashboard: on (their move or waiting), finished, the money waiting, totals, each duel's game and the other players' names |

@@ -2,10 +2,9 @@ import { BaseError, ContractFunctionRevertedError, ExecutionRevertedError } from
 import { SUPPORTED_CHAINS } from '@/lib/constants';
 import { nameCustomErrors, quotesCustomError } from '@/lib/customErrors';
 import { collectErrorDetails, isWalletRefusal } from '@/lib/errorDetails';
-import { PermitDomainMismatchError } from '@/lib/permitSignature';
 import { RelayAnswerLostError, RelayRequestError } from '@/lib/relayApi';
 import type { RelayErrorCode } from '@/lib/relayRequest';
-import { TransactionReplacedError, TransactionRevertedError, WalletNotReadyError } from '@/lib/writeErrors';
+import { PermitDomainMismatchError, TransactionReplacedError, TransactionRevertedError, WalletNotReadyError } from '@/lib/writeErrors';
 
 /**
  * Why a step of a signing window stopped, as the window words it:

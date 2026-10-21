@@ -134,6 +134,5 @@ export function useActionFlow({ duelId, refetchDuel }: UseActionFlowArgs) {
     handleSwitchNetwork,
     handleExecute,
     handleFlowOpenChange: (open: boolean) => { if (!open) closeFlow(); },
-    duelActions: actions,
   };
 }

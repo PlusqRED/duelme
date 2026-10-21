@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 const SETTLE_MS = 150;
 /** The first wait is longer: the glide starts a frame or two after the click. */
 const START_MS = 400;
-/** How far from where the glide stopped the page has to move before it counts as the reader's scroll. */
+/** How far the followed section has to move after the glide stopped for the move to be the reader's. */
 const DRIFT_PX = 2;
 
 export interface HeadedSection {
@@ -53,21 +53,36 @@ export function useHeadedSection(): HeadedSection {
 
   useEffect(() => {
     if (hold === null) return;
-    /** Where the glide stopped; null while the page is still on its way. */
-    let arrivedAt: number | null = null;
-    const arrive = () => {
-      arrivedAt = window.scrollY;
+    const target = document.getElementById(hold.id);
+    // The links hold only a section of the page they are on.
+    if (target === null) return;
+    // The glide leaves the section's top just under the bar, the page's scroll padding down.
+    const rest = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+    const gap = () => Math.abs(target.getBoundingClientRect().top - rest);
+    /** The section's gap from that place when the glide stopped; null while the page is on its way. */
+    let arrivedGap: number | null = null;
+    let settle: ReturnType<typeof setTimeout> | undefined;
+    const waitForStill = (ms: number) => {
+      clearTimeout(settle);
+      settle = setTimeout(() => {
+        arrivedGap = gap();
+      }, ms);
     };
-    let settle = setTimeout(arrive, START_MS);
+    waitForStill(START_MS);
+    // Measured on the section, not the page: content loading above it moves the page but not the
+    // section, and a glide that stalled past the wait goes on closer to it, not away.
     const onScroll = () => {
-      if (arrivedAt === null) {
-        clearTimeout(settle);
-        settle = setTimeout(arrive, SETTLE_MS);
+      if (arrivedGap === null) {
+        waitForStill(SETTLE_MS);
         return;
       }
-      // Measured from where the page stopped, not any scroll event: one can come with the page
-      // still there, such as the glide's last frame landing just after the wait.
-      if (Math.abs(window.scrollY - arrivedAt) > DRIFT_PX) setHold(null);
+      const now = gap();
+      if (now < arrivedGap - DRIFT_PX) {
+        arrivedGap = null;
+        waitForStill(SETTLE_MS);
+      } else if (now > arrivedGap + DRIFT_PX) {
+        setHold(null);
+      }
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
