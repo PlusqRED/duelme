@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { CreateDuelWizard } from '@/components/duel/wizard/CreateDuelWizard';
+import { CreateDuelRoom } from '@/components/duel/create/CreateDuelRoom';
 import { JsonLd } from '@/components/seo/JsonLd';
 
 export const metadata: Metadata = {
@@ -28,13 +28,7 @@ export default function CreateDuelPage() {
           { name: 'Create Duel', url: '/duel/create' },
         ]}
       />
-      <div className="relative min-h-[calc(100vh-3.5rem)] bg-slate-50 bg-dots">
-        <div className="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-indigo-50/80 to-transparent" />
-
-        <div className="relative mx-auto max-w-6xl px-4 py-8 pb-28 sm:px-6 sm:py-16 sm:pb-16">
-          <CreateDuelWizard />
-        </div>
-      </div>
+      <CreateDuelRoom />
     </>
   );
 }

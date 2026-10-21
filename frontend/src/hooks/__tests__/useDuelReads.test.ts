@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { emitBalanceRefresh } from '@/lib/balanceRefresh';
 import { DEFAULT_CHAIN } from '@/lib/constants';
 
 const chain = vi.hoisted(() => ({
@@ -43,6 +44,15 @@ describe('useDuelRange', () => {
 
     expect(chain.refetchCount.mock.calls).toEqual([[{ cancelRefetch: false }]]);
     expect(chain.refetchPages.mock.calls).toEqual([[{ cancelRefetch: false }]]);
+  });
+
+  it('reads afresh once when a write moves money, the other readers of the range joining that read', () => {
+    renderHook(() => useDuelRange({ chainId: DEFAULT_CHAIN.id }));
+    renderHook(() => useDuelRange({ chainId: DEFAULT_CHAIN.id }));
+
+    act(() => emitBalanceRefresh());
+
+    expect(chain.refetchCount.mock.calls).toEqual([[], [{ cancelRefetch: false }]]);
   });
 
   it('says the list is short when the count never loaded', () => {

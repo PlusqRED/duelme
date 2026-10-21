@@ -8,6 +8,9 @@
  * "Design" in frontend/CLAUDE.md.
  */
 @theme {
+  /* Tailwind's own palette is off: a colour outside these roles has no class to reach it by. */
+  --color-*: initial;
+
   --color-canvas: #f1f4fb;
   --color-canvas-deep: #e5eaf6;
   --color-paper: #ffffff;
@@ -31,15 +34,27 @@
   --color-good: #19b37b;
   --color-good-ink: #0b7a52;
   --color-good-soft: #dcf5ea;
+  /* A good keycap's edge: the landing's "+1 honored". */
+  --color-good-edge: #065a3b;
   --color-orange: #f0642e;
   --color-orange-ink: #b0400c;
   --color-orange-soft: #ffe7dc;
   --color-orange-wash: #fff4ee;
   --color-orange-line: #ffd2bf;
+  /* The edge of a paper mark for a duel a player walked away from. */
+  --color-orange-edge: #eab498;
+  /* A card raised on a navy field: the contract's card in the landing's safety band. */
+  --color-ink-raised: #1c2553;
+  /* The developer's sticky note on the landing, warm against the cool page. */
+  --color-sticky: #fff0b8;
+  /* A stake only planned, outlined on the navy safe before the duel is signed: the seats' colours, lit. */
+  --color-red-lit: #ff8d80;
+  --color-blue-lit: #8aaaff;
 
   /* Reputation levels: Reliable is good, Risky orange, Mixed the sun and New grey. The sun is too
      pale for a bar on paper, so Mixed's bars take a deeper one. */
   --color-sun-bar: #e0a100;
+  --color-level-new: #b8c0d8;
   --color-level-new-ink: #4c5577;
   --color-level-new-soft: #eceff7;
 
@@ -65,6 +80,8 @@
   --font-weight-label: 650;
   --font-weight-strong: 750;
 
+  /* The smallest type: a unit beside a figure, a tag on a phone's bar. */
+  --text-micro: 0.6875rem;
   --text-note: 0.8125rem;
   --text-note--line-height: 1.45;
   --text-body-sm: 0.9375rem;
@@ -73,6 +90,10 @@
   --text-body--line-height: 1.55;
   --text-lead: 1.375rem;
   --text-lead--line-height: 1.2;
+  /* An amount that is the point of its box: the balance in the top-up window. */
+  --text-figure: 1.75rem;
+  --text-figure--line-height: 1.2;
+  --text-figure--letter-spacing: -0.02em;
   --text-h2: clamp(1.9rem, 1.3rem + 1.8vw, 2.75rem);
   --text-h2--line-height: 1.04;
   --text-h2--letter-spacing: -0.03em;
@@ -83,13 +104,43 @@
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-press: cubic-bezier(0.3, 0.7, 0.4, 1);
   --ease-sheet: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-flight: cubic-bezier(0.45, 0, 0.25, 1);
 
   --shadow-window: 0 40px 80px -30px rgb(4 8 31 / 0.55);
   --shadow-menu: 0 28px 56px -28px rgb(18 26 62 / 0.42);
+  --shadow-sheet: 0 -18px 40px -24px rgb(18 26 62 / 0.4);
+  /* The contract's navy safe standing on its edge, like a keycap. */
+  --shadow-safe: 0 5px 0 var(--color-ink-edge);
+  /* The landing's demo duel, a card laid on the page. */
+  --shadow-stage: 0 32px 64px -40px rgb(18 26 62 / 0.5);
+  /* The landing's quest phone, held up a little off the page. */
+  --shadow-phone: 0 30px 50px -30px rgb(18 26 62 / 0.6);
+  /* The sample player standing on the reputation scale, like a pin on a map. */
+  --shadow-pin: 0 6px 12px -6px rgb(18 26 62 / 0.5);
+  /* The sticky note lifting off the page at its lower edge, and the tape that holds it. */
+  --shadow-sticky: 0 1px 0 rgb(110 74 0 / 0.1), 0 22px 30px -22px rgb(110 74 0 / 0.6);
+  --shadow-tape: 0 1px 2px rgb(18 26 62 / 0.14);
   /* An avatar's lower rim, so a round face reads as a token on the table. */
   --inset-shadow-avatar: inset 0 -4px 0 rgb(0 0 0 / 0.16);
+  /* A stake's lower rim, so the money a duel holds sits on the table like the avatars do. */
+  --inset-shadow-stake: inset 0 -3px 0 rgb(0 0 0 / 0.2);
 
-  /* Wider than a phone: a window stops being a sheet. Wide enough for a window's two columns. */
+  /* A page's content column, and the room either side of it that shrinks on a phone. */
+  --container-page: 77.5rem;
+  --spacing-gutter: clamp(1rem, 4vw, 2.5rem);
+  /* The room above each of the landing's sections, and under its last. */
+  --spacing-section: clamp(4rem, 8vw, 7rem);
+  /* A tile inside a menu or a window: a network's balance, the faucet, a transfer's route. */
+  --radius-tile: 18px;
+
+  /* Room for the wallet button's chevron. Wider than a phone: a window stops being a sheet. Wide
+     enough for a window's two columns. Wide enough for the navigation in the top bar. Wide enough
+     for the landing's words and its demo duel side by side. Wide enough for the landing's lists to
+     set their cards side by side and the games beside the duels they filter. */
+  --breakpoint-2xs: 25rem;
   --breakpoint-xs: 35rem;
   --breakpoint-split: 53.75rem;
+  --breakpoint-nav: 61.25rem;
+  --breakpoint-hero: 67.5rem;
+  --breakpoint-wide: 62.5rem;
 }

@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
-import { GamesClient } from './GamesClient';
+import { GameCatalog } from '@/components/game/GameCatalog';
 
 export const metadata: Metadata = {
   alternates: { canonical: '/games' },
 };
 
 export default function GamesPage() {
-  return <GamesClient />;
+  return <GameCatalog />;
 }

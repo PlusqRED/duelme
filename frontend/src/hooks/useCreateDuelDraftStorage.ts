@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   type CreateDuelDraft,
   clearCreateDuelDraft,
@@ -8,40 +8,43 @@ import {
   saveCreateDuelDraft,
 } from '@/lib/createDuelDraft';
 
+/** The stored draft, or that there is none: read either way. */
+function readDraft(chainId: number): { draft: CreateDuelDraft | null } {
+  return { draft: loadCreateDuelDraft(window.sessionStorage, chainId) };
+}
+
 /**
- * Keeps the create-duel form across a trip to top up. `keepDraft` runs when the player opens the
- * top-up panel; on the next mount in this tab the draft comes back as `restoredDraft`. While the
- * create call is in flight the stored copy is cleared and not written; a refused call resumes it. sessionStorage, so it never outlives the tab and never reaches
- * a server.
+ * Keeps the create-duel form in this tab, so a reload, a trip to sign in or one to top up brings it
+ * back as `restoredDraft` on the next mount. Every edit is kept once the stored copy has been read;
+ * while `isClosed` (the create call is in flight, or the duel exists) the copy is cleared and not
+ * written, so a reload then cannot offer the same terms for a second duel, and a refused call
+ * resumes it. sessionStorage, so it never
+ * outlives the tab and never reaches a server. The caller puts `restoredDraft` into its form in the
+ * render it arrives in, before the form is written back.
  */
-export function useCreateDuelDraftStorage(form: CreateDuelDraft, isCreateInFlight: boolean) {
+export function useCreateDuelDraftStorage(form: CreateDuelDraft, isClosed: boolean) {
   const { chainId } = form;
-  const [restoredDraft, setRestoredDraft] = useState<CreateDuelDraft | null>(null);
-  const [isKeptByTopUp, setIsKeptByTopUp] = useState(false);
-  // From Top up on — or from a draft brought back from one — the stored copy is kept.
-  const isKept = isKeptByTopUp || restoredDraft !== null;
+  const [restored, setRestored] = useState<{ draft: CreateDuelDraft | null } | null>(null);
+  const hasRead = restored !== null;
 
   useEffect(() => {
     // sessionStorage only exists in the browser, so the read waits for the first client render.
-    setRestoredDraft(loadCreateDuelDraft(window.sessionStorage, chainId));
+    setRestored(readDraft(chainId));
   }, [chainId]);
 
   useEffect(() => {
-    // The stored copy follows every edit after Top up, so a reload brings back the form as last
-    // typed rather than as it was when the panel opened. A refused write (quota, storage disabled)
-    // only loses the restore after a reload; the form itself is still in memory.
-    if (isKept && !isCreateInFlight) {
+    // Not before the read: the empty form of the first render would overwrite the draft to restore.
+    // A refused write (quota, storage disabled) only loses the restore after a reload.
+    if (hasRead && !isClosed) {
       saveCreateDuelDraft(window.sessionStorage, form);
     }
-  }, [isKept, isCreateInFlight, form]);
+  }, [hasRead, isClosed, form]);
 
   useEffect(() => {
-    if (isCreateInFlight) {
+    if (isClosed) {
       clearCreateDuelDraft(window.sessionStorage);
     }
-  }, [isCreateInFlight]);
+  }, [isClosed]);
 
-  const keepDraft = useCallback(() => setIsKeptByTopUp(true), []);
-
-  return { restoredDraft, keepDraft };
+  return { restoredDraft: restored?.draft ?? null };
 }

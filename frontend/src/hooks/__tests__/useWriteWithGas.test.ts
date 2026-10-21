@@ -11,13 +11,21 @@ import { TransactionReplacedError, TransactionRevertedError } from '@/lib/writeE
 const HASH = `0x${'a'.repeat(64)}` as const;
 const CHAIN_CLIENT = { chain: 'the write\'s chain' };
 
+const WAGMI_CONFIG = { config: 'wagmi' };
+const EMBEDDED_CLIENT = { client: 'the embedded wallet on the write\'s chain' };
+const PARAMS = { gas: 1n, maxFeePerGas: 2n, maxPriorityFeePerGas: 3n, nonce: 4 };
+
 const wagmi = vi.hoisted(() => ({
   publicClient: {} as object | undefined,
   writeHash: undefined as `0x${string}` | undefined,
+  walletClientType: 'metamask',
+  getWalletClient: vi.fn<(config: object, parameters: { chainId: number }) => Promise<object>>(),
 }));
 const waitForWriteReceipt = vi.hoisted(() => vi.fn<(client: object, hash: string) => Promise<TransactionReceipt>>());
+const broadcastWithFallback = vi.hoisted(() => vi.fn<(params: object) => Promise<`0x${string}`>>());
 
 vi.mock('wagmi', () => ({
+  useConfig: () => WAGMI_CONFIG,
   useAccount: () => ({ address: '0x1111111111111111111111111111111111111111' }),
   usePublicClient: ({ chainId }: { chainId: number }) => (chainId === DEFAULT_CHAIN.id ? wagmi.publicClient : undefined),
   useWalletClient: () => ({ data: undefined }),
@@ -30,13 +38,19 @@ vi.mock('wagmi', () => ({
   }),
 }));
 
+vi.mock('wagmi/actions', () => ({ getWalletClient: wagmi.getWalletClient }));
+
+vi.mock('@/lib/buildTransactionParams', () => ({ buildTransactionParams: async () => PARAMS }));
+
+vi.mock('@/lib/resilientBroadcast', () => ({ broadcastWithFallback }));
+
 vi.mock('@/lib/writeReceipt', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/writeReceipt')>()),
   waitForWriteReceipt,
 }));
 
 vi.mock('@/hooks/useActiveWallet', () => ({
-  useActiveWallet: () => ({ activeWallet: { walletClientType: 'metamask' } }),
+  useActiveWallet: () => ({ activeWallet: { walletClientType: wagmi.walletClientType } }),
 }));
 
 const { useWriteWithGas } = await import('@/hooks/useWriteWithGas');
@@ -60,6 +74,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   wagmi.publicClient = CHAIN_CLIENT;
   wagmi.writeHash = undefined;
+  wagmi.walletClientType = 'metamask';
 });
 
 afterEach(cleanup);
@@ -138,5 +153,34 @@ describe('useWriteWithGas — an injected wallet whose clients are not ready', (
     await act(() => result.current.writeWithGas(CONFIG));
 
     expect(result.current.error?.message).toBe('Wallet or RPC client not ready');
+  });
+});
+
+describe('useWriteWithGas — the embedded wallet', () => {
+  beforeEach(() => {
+    wagmi.walletClientType = 'privy';
+    waitForWriteReceipt.mockReturnValue(new Promise(() => {}));
+  });
+
+  it('signs with the wallet\'s client for the write\'s network, read when the write is sent', async () => {
+    wagmi.getWalletClient.mockResolvedValue(EMBEDDED_CLIENT);
+    broadcastWithFallback.mockResolvedValue(HASH);
+    const { result } = renderWrite();
+
+    await act(() => result.current.writeWithGas(CONFIG));
+
+    expect(wagmi.getWalletClient).toHaveBeenCalledExactlyOnceWith(WAGMI_CONFIG, { chainId: DEFAULT_CHAIN.id });
+    expect(broadcastWithFallback).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ walletClient: EMBEDDED_CLIENT, ...PARAMS }));
+    expect(result.current.hash).toBe(HASH);
+  });
+
+  it('sends nothing and reports the wallet as not ready while it cannot sign on the write\'s network', async () => {
+    wagmi.getWalletClient.mockRejectedValue(new Error('Chain mismatch'));
+    const { result } = renderWrite();
+
+    await act(() => result.current.writeWithGas(CONFIG));
+
+    expect(broadcastWithFallback).not.toHaveBeenCalled();
+    expect(result.current.error?.message).toBe('Embedded wallet client not ready');
   });
 });

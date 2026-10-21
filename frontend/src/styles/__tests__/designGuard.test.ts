@@ -1,8 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
-import { shrinkingList, sourceFile, sourceFiles } from '@/lib/__tests__/helpers/sourceFiles';
-import { STILL_ON_PALETTE, STILL_RAW_COLOURS } from './notYetPorted';
+import { sourceFile, sourceFiles, themeTokens } from '@/lib/__tests__/helpers/sourceFiles';
 
 const files = sourceFiles(['.ts', '.tsx', '.css']);
 
@@ -42,12 +41,6 @@ function pathsMatching(pattern: RegExp): string[] {
   return files.filter((file) => pattern.test(file.text)).map((file) => file.path);
 }
 
-const palette = shrinkingList(pathsMatching(PALETTE_CLASS), STILL_ON_PALETTE);
-const rawColours = shrinkingList(
-  pathsMatching(RAW_COLOUR).filter((path) => !COLOUR_SOURCES.has(path)),
-  STILL_RAW_COLOURS
-);
-
 const COLOUR_EXAMPLES = [
   'bg-slate-50',
   'hover:text-white',
@@ -69,20 +62,12 @@ describe('design guard', () => {
     expect(PALETTE_CLASS.test(text) || RAW_COLOUR.test(text)).toBe(false);
   });
 
-  it('colours with the theme outside the files still waiting for their screen', () => {
-    expect(palette.unlisted).toEqual([]);
-  });
-
-  it('lists only files that still use the palette, so the list only shrinks', () => {
-    expect(palette.stale).toEqual([]);
+  it('colours with the theme only', () => {
+    expect(pathsMatching(PALETTE_CLASS)).toEqual([]);
   });
 
   it('writes colour values only in the theme', () => {
-    expect(rawColours.unlisted).toEqual([]);
-  });
-
-  it('lists only files that still hold colour values, so the list only shrinks', () => {
-    expect(rawColours.stale).toEqual([]);
+    expect(pathsMatching(RAW_COLOUR).filter((path) => !COLOUR_SOURCES.has(path))).toEqual([]);
   });
 
   it('knows every palette Tailwind ships', () => {
@@ -90,6 +75,12 @@ describe('design guard', () => {
     const shipped = [...readFileSync(tailwindTheme, 'utf8').matchAll(/--color-([a-z]+)-50:/g)];
 
     expect(shipped.map((match) => match[1]).sort()).toEqual([...PALETTES].sort());
+  });
+
+  it('names no colour like a type size, since `text-<name>` would then paint the text in it', () => {
+    const sizes = new Set(themeTokens('text').keys());
+
+    expect([...themeTokens('color').keys()].filter((colour) => sizes.has(colour))).toEqual([]);
   });
 
   it('has no dark variant, since there is no dark theme', () => {
@@ -100,12 +91,9 @@ describe('design guard', () => {
     expect(pathsMatching(/(?<![\w-])font-mono(?![\w-])/)).toEqual([]);
   });
 
-  it('keeps only legacy classes that a screen still uses', () => {
-    const legacyClasses = [...sourceFile('styles/legacy.css').matchAll(/^\.([a-z0-9-]+)/gm)].map((match) => match[1]);
-    const usedWords = new Set(
-      files.filter((file) => !file.path.endsWith('.css')).flatMap((file) => file.text.match(/[\w-]+/g) ?? [])
-    );
+  it('puts every move in its final place at once with motion reduced, a delayed one too', () => {
+    const reduced = sourceFile('styles/motion.css').match(/@media \(prefers-reduced-motion: reduce\) \{[^@]*/)?.[0] ?? '';
 
-    expect([...new Set(legacyClasses)].filter((name) => !usedWords.has(name))).toEqual([]);
+    expect(['animation-delay', 'transition-delay'].filter((delay) => !reduced.includes(`${delay}: 0s !important`))).toEqual([]);
   });
 });

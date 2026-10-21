@@ -32,17 +32,3 @@ export function themeTokens(namespace: string): Map<string, string> {
       .map(([, name, value]) => [name, value.trim()])
   );
 }
-
-/**
- * Compares what a guard finds with its list of what is still allowed, a list that may only shrink:
- * `unlisted` is found but not on the list, `stale` is on the list but no longer found.
- */
-export function shrinkingList(found: readonly string[], listed: readonly string[]) {
-  const foundSet = new Set(found);
-  const listedSet = new Set(listed);
-
-  return {
-    unlisted: found.filter((item) => !listedSet.has(item)),
-    stale: listed.filter((item) => !foundSet.has(item)),
-  };
-}

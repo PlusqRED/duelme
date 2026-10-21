@@ -1,0 +1,214 @@
+/* The landing's own moves, as `animate-*` utilities: its developer's note, its demo duel, its
+   lists (whose rows and receipts the duel feeds of other pages share), its first-duel quest and
+   its reputation scale. The rules every move keeps, and the moves the app shares, are in
+   `motion.css`. */
+@theme {
+  --animate-stick: stick 0.7s var(--ease-spring) 0.35s backwards;
+  --animate-lay: lay 2.4s var(--ease-spring) infinite;
+  --animate-march: march 1.1s linear infinite;
+  --animate-swap: swap 0.4s ease both;
+  --animate-fill: fill var(--dwell) linear forwards;
+  --animate-nudge: nudge 1.6s ease-in-out 0.4s 2;
+  --animate-slide-in: slide-in 0.38s var(--ease-sheet) backwards;
+  --animate-draw: draw 0.38s var(--ease-sheet) backwards;
+  --animate-draw-down: draw-down 0.38s var(--ease-sheet) backwards;
+  --animate-pay: pay 1.1s var(--ease-sheet) backwards;
+  --animate-pay-flash: pay-flash 1.1s var(--ease-sheet) both;
+  --animate-leave: leave var(--leave) ease-in forwards;
+  --animate-screen-in: screen-in 0.38s var(--ease-sheet) 0.14s backwards;
+  --animate-ripple: ripple 0.7s ease-out both;
+  --animate-spark: spark 0.8s ease-out both;
+  --animate-medal: medal 0.7s ease-out backwards;
+  --animate-level-up: level-up 0.7s var(--ease-spring);
+  --animate-shake: shake 0.5s ease;
+
+  /* The developer's note sticks onto the page, a little askew. */
+  @keyframes stick {
+    from {
+      opacity: 0;
+      rotate: -6deg;
+      translate: 0 -14px;
+      scale: 1.04;
+    }
+  }
+
+  /* At the frontier of the build a block lifts, turns a quarter and settles into place, then waits. */
+  @keyframes lay {
+    0%,
+    45%,
+    100% {
+      translate: 0 0;
+      rotate: 0deg;
+    }
+    15% {
+      translate: 0 -7px;
+      rotate: 45deg;
+    }
+    30% {
+      translate: 0 0;
+      rotate: 90deg;
+    }
+  }
+
+  /* Where the rest is being built, the dashes march on, a dash and its gap a beat. */
+  @keyframes march {
+    to {
+      translate: 12px 0;
+    }
+  }
+
+  /* A new line of text slides up into place. */
+  @keyframes swap {
+    from {
+      opacity: 0;
+      translate: 0 6px;
+    }
+  }
+
+  /* A step's bar fills while the demo waits on it, for the demo's `--dwell`. */
+  @keyframes fill {
+    to {
+      scale: 1;
+    }
+  }
+
+  /* A duel's receipt plays as it opens, left to right: the two stakes slide in, an arrow draws to
+     the pot, which pops, and another to the winner, whose payout arrives in the sun and cools to
+     its soft tone, an overlay fading over it. On a phone the receipt runs down, and so do its
+     arrows. */
+  @keyframes slide-in {
+    from {
+      opacity: 0;
+      translate: -10px 0;
+    }
+  }
+
+  @keyframes draw {
+    from {
+      scale: 0 1;
+    }
+  }
+
+  @keyframes draw-down {
+    from {
+      scale: 1 0;
+    }
+  }
+
+  @keyframes pay {
+    from {
+      opacity: 0;
+      translate: -12px 0;
+    }
+    40% {
+      opacity: 1;
+      translate: 0 0;
+    }
+  }
+
+  @keyframes pay-flash {
+    0%,
+    40% {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+
+  /* A row a filter takes away steps out before the list closes up, for its list's `--leave`. */
+  @keyframes leave {
+    to {
+      opacity: 0;
+      scale: 0.98;
+    }
+  }
+
+  /* A choice not yet seen nudges up, to say it can be picked. */
+  @keyframes nudge {
+    0%,
+    40%,
+    100% {
+      translate: 0 0;
+    }
+    20% {
+      translate: 0 -3px;
+    }
+  }
+
+  /* The quest's phone moves to the next screen from the side it goes to, `--dir` 1 or -1. */
+  @keyframes screen-in {
+    from {
+      opacity: 0;
+      translate: calc(var(--dir, 1) * 32px) 0;
+    }
+  }
+
+  /* A finger lands on the phone's button: a ring spreads from it and fades. */
+  @keyframes ripple {
+    0% {
+      opacity: 0;
+    }
+    1% {
+      opacity: 1;
+      scale: 1;
+    }
+    to {
+      opacity: 0;
+      scale: 28;
+    }
+  }
+
+  /* Something new was made: sun sparks burst from it, each along its own `--dx`, `--dy`. */
+  @keyframes spark {
+    0% {
+      opacity: 0;
+      translate: -50% -50%;
+      scale: 0.2;
+    }
+    30% {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+      translate: calc(-50% + var(--dx)) calc(-50% + var(--dy));
+      scale: 1;
+      rotate: 90deg;
+    }
+  }
+
+  /* The quest's medal swings into place. */
+  @keyframes medal {
+    from {
+      opacity: 0;
+      scale: 0.3;
+      rotate: -20deg;
+    }
+    60% {
+      opacity: 1;
+      scale: 1.12;
+      rotate: 4deg;
+    }
+  }
+
+  /* A level gained jumps; a level lost shakes its head. */
+  @keyframes level-up {
+    from {
+      scale: 0.6;
+    }
+    55% {
+      scale: 1.12;
+    }
+  }
+
+  @keyframes shake {
+    20%,
+    60% {
+      translate: -6px 0;
+    }
+    40%,
+    80% {
+      translate: 6px 0;
+    }
+  }
+}

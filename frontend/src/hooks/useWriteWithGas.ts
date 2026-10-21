@@ -3,7 +3,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { skipToken, useQuery } from '@tanstack/react-query';
 import type { Abi, Hex } from 'viem';
-import { useAccount, usePublicClient, useWalletClient, useWriteContract } from 'wagmi';
+import { useAccount, useConfig, usePublicClient, useWalletClient, useWriteContract } from 'wagmi';
+import { getWalletClient } from 'wagmi/actions';
 import {
   buildTransactionParams,
   type DuelPublicClient,
@@ -14,14 +15,10 @@ import { buildSignedForwardRequest } from '@/lib/forwardRequest';
 import { submitRelayRequest } from '@/lib/relayApi';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useRelayerStatus } from '@/hooks/useRelayerStatus';
+import { ARBITRUM_SEPOLIA_DEFAULT_MIN_GAS } from '@/lib/testnetGas';
 import { EMBEDDED_WALLET_CLIENT_TYPE } from '@/lib/walletSelection';
 import { isFinalReceiptError, WalletNotReadyError } from '@/lib/writeErrors';
 import { waitForWriteReceipt } from '@/lib/writeReceipt';
-
-// Default min-gas floor used for non-create/approve actions on Sepolia.
-// Sepolia's eth_estimateGas occasionally under-reports; this is generous but
-// still fits inside a single L2 block. Mainnet ignores the floor.
-const DEFAULT_TESTNET_MIN_GAS = 200_000n;
 
 function toError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value));
@@ -39,6 +36,7 @@ type EstimateContractGasConfig = Parameters<DuelPublicClient['estimateContractGa
  * functions on top and decides when a write needs an EIP-2612 permit.
  */
 export function useWriteWithGas(chainId: number) {
+  const wagmiConfig = useConfig();
   const { address: accountAddress } = useAccount();
   const publicClient = usePublicClient({ chainId });
   const { data: walletClient } = useWalletClient({ chainId });
@@ -176,7 +174,7 @@ export function useWriteWithGas(chainId: number) {
   //   - Injected wallets accept the pre-filled values as-is and skip their own
   //     estimation round-trip.
   const writeWithGas = useCallback(
-    async (config: WriteConfig, minimumTestnetGas: bigint = DEFAULT_TESTNET_MIN_GAS) => {
+    async (config: WriteConfig, minimumTestnetGas: bigint = ARBITRUM_SEPOLIA_DEFAULT_MIN_GAS) => {
       // A guard that bails reports through the managed error for every wallet type: nothing has
       // reached wagmi, so its own state would never tell the caller the write is over.
       if (!publicClient || !accountAddress) {
@@ -184,9 +182,17 @@ export function useWriteWithGas(chainId: number) {
         return;
       }
 
-      if (isPrivyEmbedded && !walletClient) {
-        setManagedError(new WalletNotReadyError('Embedded wallet client not ready'));
-        return;
+      // The embedded wallet's client is read now, not taken from the last render: a write sent
+      // right after a network switch would sign with the client from before it, and a client
+      // asked for while the wallet was elsewhere stays failed after the wallet gets there.
+      let embeddedClient: Awaited<ReturnType<typeof getWalletClient>> | undefined;
+      if (isPrivyEmbedded) {
+        try {
+          embeddedClient = await getWalletClient(wagmiConfig, { chainId });
+        } catch {
+          setManagedError(new WalletNotReadyError('Embedded wallet client not ready'));
+          return;
+        }
       }
 
       // Clear both result surfaces so the merged selectors can't mix in stale
@@ -226,10 +232,10 @@ export function useWriteWithGas(chainId: number) {
         return;
       }
 
-      if (isPrivyEmbedded && walletClient) {
+      if (embeddedClient) {
         await runManagedSend(() =>
           broadcastWithFallback({
-            walletClient,
+            walletClient: embeddedClient,
             publicClient,
             account: accountAddress,
             chainId,
@@ -250,9 +256,9 @@ export function useWriteWithGas(chainId: number) {
     },
     [
       chainId,
+      wagmiConfig,
       accountAddress,
       publicClient,
-      walletClient,
       isPrivyEmbedded,
       writeContract,
       wagmiReset,

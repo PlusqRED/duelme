@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { isLanguage, LANGUAGE_COOKIE, parseLanguage, readLanguageCookie } from '@/i18n/language';
+import { isLanguage, LANGUAGE_COOKIE, LANGUAGES, parseLanguage, readLanguageCookie } from '@/i18n/language';
+import { translations } from '@/i18n/translations';
 
 describe('parseLanguage', () => {
   it.each(['en', 'ru'] as const)('keeps %s', (language) => {
@@ -35,5 +36,11 @@ describe('readLanguageCookie', () => {
 
   it('is not fooled by a cookie whose name only ends like it', () => {
     expect(readLanguageCookie(`x${LANGUAGE_COOKIE}=ru`)).toBeUndefined();
+  });
+});
+
+describe('LANGUAGES', () => {
+  it('offers every language the app is translated into', () => {
+    expect([...LANGUAGES].sort()).toEqual(Object.keys(translations).sort());
   });
 });

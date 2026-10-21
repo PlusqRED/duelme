@@ -20,4 +20,14 @@ describe('Footer', () => {
 
     expect(screen.getByText(translations.ru['footer.tagline'])).toBeTruthy();
   });
+
+  it('links both channels by name, opening them in a new tab', async () => {
+    render(await Footer());
+
+    for (const name of ['Telegram', 'Instagram']) {
+      const link = screen.getByRole('link', { name });
+      expect(link.getAttribute('target')).toBe('_blank');
+      expect(link.getAttribute('rel')).toBe('noopener noreferrer');
+    }
+  });
 });

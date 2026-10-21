@@ -1,22 +1,22 @@
 import { parseUnits } from 'viem';
 import type { Dispatch, SetStateAction } from 'react';
 import type { useAppToast } from '@/hooks/useAppToast';
-import type { TranslationKey } from '@/i18n/translations';
-import type { useTranslation } from '@/i18n/useTranslation';
 import {
+  createStageAfterChecks,
   type CreateDuelFlowSession,
-  getCreateDuelFlowStageAfterNetwork,
-  getNextCreateDuelFlowStageFromReview,
+  type CreateDuelFlowStage,
 } from '@/lib/createDuelFlow';
 import { USDT_DECIMALS } from '@/lib/constants';
+import type { GameCategory } from '@/lib/game';
 import { getContractConfig } from '@/lib/contractConfig';
-import { getGuidedFlowErrorMessage } from '@/lib/guidedFlowRuntime';
-import { resolveNeedsApproval } from '@/lib/guidedFlowSteps';
+import { classifyFlowError } from '@/lib/flowError';
+import { reduceFlow, startFlow, type FlowEvent } from '@/lib/flowSession';
 import {
   generateInviteSecret,
   hashInviteSecret,
   OPEN_DUEL_INVITE_HASH,
 } from '@/lib/invite';
+import { resolveNeedsApproval } from '@/lib/writeRoute';
 
 interface CreateDuelFlowActionsOptions {
   activeWalletAddress?: string;
@@ -37,6 +37,7 @@ interface CreateDuelFlowActionsOptions {
   fundsViaPermit: boolean;
 
   gameName: string;
+  gameCategory: GameCategory | null;
   isPublic: boolean;
   isValidAmount: boolean;
   isValidMessage: boolean;
@@ -46,9 +47,7 @@ interface CreateDuelFlowActionsOptions {
   reset: () => void;
   readLatestAllowance: () => Promise<bigint | undefined>;
   setFlow: Dispatch<SetStateAction<CreateDuelFlowSession | null>>;
-  setRedirectTarget: Dispatch<SetStateAction<string | null>>;
   switchChainAsync: (args: { chainId: number }) => Promise<unknown>;
-  t: ReturnType<typeof useTranslation>['t'];
   tokenAddress: `0x${string}`;
   approveToken: (token: `0x${string}`, amount: bigint) => Promise<void> | void;
 }
@@ -65,6 +64,7 @@ export function createDuelFlowActions({
   createDuel,
   fundsViaPermit,
   gameName,
+  gameCategory,
   isPublic,
   isValidAmount,
   isValidMessage,
@@ -74,17 +74,27 @@ export function createDuelFlowActions({
   reset,
   readLatestAllowance,
   setFlow,
-  setRedirectTarget,
   switchChainAsync,
-  t,
   tokenAddress,
   approveToken,
 }: CreateDuelFlowActionsOptions) {
+  function dispatch(event: FlowEvent<CreateDuelFlowStage>) {
+    setFlow((current) => current && reduceFlow(current, event));
+  }
+
+  function failWith(error: unknown, options: { step?: CreateDuelFlowStage; isNetworkSwitch?: boolean } = {}) {
+    dispatch({
+      type: 'failed',
+      error: classifyFlowError(error, { chainId, isNetworkSwitch: options.isNetworkSwitch }),
+      step: options.step,
+    });
+  }
+
   function closeFlow() {
     setFlow(null);
-    setRedirectTarget(null);
     reset();
   }
+
   async function handleCreateDuelClick() {
     if (!ready) {
       return;
@@ -108,8 +118,8 @@ export function createDuelFlowActions({
     const rawAmount = parseUnits(amount, USDT_DECIMALS);
     const inviteSecret = isPublic ? null : generateInviteSecret();
     reset();
-    setRedirectTarget(null);
     setFlow({
+      ...startFlow<CreateDuelFlowStage>('review'),
       draft: {
         rawAmount,
         chainId,
@@ -120,17 +130,15 @@ export function createDuelFlowActions({
         inviteSecret,
         isPublic,
         gameName: gameName.trim(),
+        gameCategory,
         message,
       },
-      completedSteps: {
-        switchNetwork: false,
-        approve: false,
-      },
-      stage: 'review',
-      actionState: 'idle',
-      errorMessage: null,
-      pendingTransaction: null,
+      createdDuelId: null,
     });
+  }
+
+  function needsApprovalFor(flow: CreateDuelFlowSession) {
+    return resolveNeedsApproval({ fundsViaPermit, readLatestAllowance, rawAmount: flow.draft.rawAmount });
   }
 
   async function handleContinueFlow(flow: CreateDuelFlowSession | null) {
@@ -138,26 +146,14 @@ export function createDuelFlowActions({
       return;
     }
     if (connectedChainId !== flow.draft.chainId) {
-      moveToIdleStep('switch-network');
+      dispatch({ type: 'moved', stage: 'switch-network' });
       return;
     }
     try {
-      const needsApproval = await resolveNeedsApproval({ fundsViaPermit, readLatestAllowance, rawAmount: flow.draft.rawAmount });
-      setFlow((current) =>
-        !current
-          ? current
-          : {
-              ...current,
-              stage: getNextCreateDuelFlowStageFromReview({
-                needsNetworkSwitch: false,
-                needsApproval,
-              }),
-              actionState: 'idle',
-              errorMessage: null,
-            }
-      );
+      const needsApproval = await needsApprovalFor(flow);
+      dispatch({ type: 'moved', stage: createStageAfterChecks({ needsNetworkSwitch: false, needsApproval }) });
     } catch (allowanceError) {
-      setFlowError(allowanceError);
+      failWith(allowanceError);
     }
   }
 
@@ -165,35 +161,18 @@ export function createDuelFlowActions({
     if (!flow) {
       return;
     }
-    setFlow((current) =>
-      current
-        ? {
-            ...current,
-            stage: 'switch-network',
-            actionState: 'awaiting-wallet',
-            errorMessage: null,
-          }
-        : current
-    );
+    dispatch({ type: 'switching', stage: 'switch-network' });
     try {
       await switchChainAsync({ chainId: flow.draft.chainId });
-      const needsApproval = await resolveNeedsApproval({ fundsViaPermit, readLatestAllowance, rawAmount: flow.draft.rawAmount });
-      setFlow((current) =>
-        !current
-          ? current
-          : {
-              ...current,
-              completedSteps: {
-                ...current.completedSteps,
-                switchNetwork: true,
-              },
-              stage: getCreateDuelFlowStageAfterNetwork({ needsApproval }),
-              actionState: 'idle',
-              errorMessage: null,
-            }
-      );
     } catch (switchError) {
-      setFlowError(switchError, 'create.flow.error.switch');
+      failWith(switchError, { isNetworkSwitch: true });
+      return;
+    }
+    try {
+      const needsApproval = await needsApprovalFor(flow);
+      dispatch({ type: 'switched', next: needsApproval ? 'approve' : 'create-duel' });
+    } catch (allowanceError) {
+      failWith(allowanceError);
     }
   }
 
@@ -202,7 +181,7 @@ export function createDuelFlowActions({
       return;
     }
     if (connectedChainId !== flow.draft.chainId) {
-      moveToIdleStep('switch-network');
+      dispatch({ type: 'moved', stage: 'switch-network' });
       return;
     }
     startContractStep('approve', () => approveToken(flow.draft.usdtAddress, flow.draft.rawAmount));
@@ -213,18 +192,20 @@ export function createDuelFlowActions({
       return;
     }
     if (connectedChainId !== flow.draft.chainId) {
-      moveToIdleStep('switch-network');
+      dispatch({ type: 'moved', stage: 'switch-network' });
       return;
     }
+    // The read takes a moment while the button is gone, so a second press cannot send twice.
+    dispatch({ type: 'preparing' });
     let needsApproval: boolean;
     try {
-      needsApproval = await resolveNeedsApproval({ fundsViaPermit, readLatestAllowance, rawAmount: flow.draft.rawAmount });
+      needsApproval = await needsApprovalFor(flow);
     } catch (allowanceError) {
-      setFlowError(allowanceError);
+      failWith(allowanceError);
       return;
     }
     if (needsApproval) {
-      moveToIdleStep('approve');
+      dispatch({ type: 'moved', stage: 'approve' });
       return;
     }
     startContractStep('create-duel', () =>
@@ -232,65 +213,21 @@ export function createDuelFlowActions({
     );
   }
 
-  function moveToIdleStep(step: 'switch-network' | 'approve') {
-    setFlow((current) =>
-      current
-        ? {
-            ...current,
-            stage: step,
-            actionState: 'idle',
-            errorMessage: null,
-          }
-        : current
-    );
-  }
-
-  function startContractStep(
-    step: 'approve' | 'create-duel',
-    run: () => Promise<void> | void
-  ) {
+  function startContractStep(step: 'approve' | 'create-duel', run: () => Promise<void> | void) {
     reset();
-    setFlow((current) =>
-      current
-        ? {
-            ...current,
-            stage: step,
-            actionState: 'awaiting-wallet',
-            errorMessage: null,
-            pendingTransaction: step,
-          }
-        : current
-    );
+    dispatch({ type: 'writing', step });
+    // A permit refused in the wallet rejects here, before the write hook ever hears of it.
+    const failed = (error: unknown) => {
+      reset();
+      failWith(error, { step });
+    };
     try {
-      const result = run();
-      void Promise.resolve(result).catch(handleStartContractStepError);
-    } catch (flowError) {
-      handleStartContractStepError(flowError);
+      void Promise.resolve(run()).catch(failed);
+    } catch (error) {
+      failed(error);
     }
   }
 
-  function handleStartContractStepError(error: unknown) {
-    reset();
-    setFlowError(error);
-  }
-
-  function setFlowError(error: unknown, fallbackKey?: TranslationKey) {
-    setFlow((current) =>
-      !current
-        ? current
-        : {
-            ...current,
-            actionState: 'error',
-            errorMessage: getGuidedFlowErrorMessage(
-              error,
-              t,
-              current.draft.chainName,
-              fallbackKey
-            ),
-            pendingTransaction: null,
-          }
-    );
-  }
   return {
     closeFlow,
     handleApprove,

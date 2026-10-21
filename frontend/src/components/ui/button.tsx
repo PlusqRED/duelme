@@ -19,6 +19,8 @@ const buttonVariants = cva(
         paper:
           'keycap bg-paper text-ink [--keycap-edge:var(--color-line-strong)] [--keycap-ring:var(--color-line-strong)]',
         sun: 'keycap bg-sun text-ink [--keycap-edge:var(--color-sun-edge)]',
+        // Paper on the contract's navy safe, where a light edge would glow: it stands on the safe's own dark edge.
+        paperOnNavy: 'keycap bg-paper text-ink [--keycap-edge:var(--color-ink-edge)]',
         ghost: 'mb-1 text-ink-2 transition-colors hover:bg-ink/5 hover:text-ink',
       },
       // The line height rides on the type size: cn() drops a `leading-*` that comes before one.

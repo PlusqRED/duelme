@@ -22,23 +22,6 @@ export async function fetchGames(
   return res.json();
 }
 
-export async function createGame(
-  token: string,
-  name: string,
-  category: GameCategory,
-): Promise<Game> {
-  const res = await fetch(`${API_BASE}/games`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ name, category }),
-  });
-  if (!res.ok) throw new Error('Failed to create game');
-  return res.json();
-}
-
 export async function fetchGameBySlug(slug: string): Promise<Game | null> {
   const res = await fetch(`${API_BASE}/games/${encodeURIComponent(slug)}`);
   if (res.status === 404) return null;
@@ -107,4 +90,20 @@ export async function fetchDuelMetaBatch(
   );
   if (!res.ok) throw new Error('Failed to fetch duel metadata batch');
   return res.json();
+}
+
+/** The most duel ids `/duels/meta/batch` takes in one request; past it the backend refuses the request. */
+export const DUEL_META_BATCH_SIZE = 200;
+
+/**
+ * Duel ids for `fetchDuelMetaBatch`: each once, in order, in batches the backend accepts. Fixed
+ * boundaries, so a list that grows by a duel changes its last batch only.
+ */
+export function duelMetaBatches(duelIds: readonly number[]): number[][] {
+  const ids = [...new Set(duelIds)].sort((a, b) => a - b);
+  const batches: number[][] = [];
+  for (let offset = 0; offset < ids.length; offset += DUEL_META_BATCH_SIZE) {
+    batches.push(ids.slice(offset, offset + DUEL_META_BATCH_SIZE));
+  }
+  return batches;
 }

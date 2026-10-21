@@ -1,3 +1,8 @@
+import type { Translator } from '@/i18n/translate';
+import type { Language } from '@/i18n/translations';
+import { isRecord, parseUintString } from '@/lib/parsing';
+import { formatEth, formatUSDT } from '@/lib/utils';
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '/api/v1';
 
 export interface FaucetClaimResponse {
@@ -52,4 +57,74 @@ export async function claimFaucet(token: string): Promise<FaucetClaimResponse> {
   }
 
   return res.json() as Promise<FaucetClaimResponse>;
+}
+
+/** What the faucet gives here and whether this wallet has it. Off where the faucet does not run. */
+export type FaucetStatus =
+  | { enabled: false }
+  | { enabled: true; claimed: boolean; chainId: number; usdtAmountRaw: bigint; ethAmountWei: bigint };
+
+/** The backend's answer as a status, or null when it has another shape. */
+export function parseFaucetStatus(body: unknown): FaucetStatus | null {
+  if (!isRecord(body) || typeof body.enabled !== 'boolean') {
+    return null;
+  }
+  if (!body.enabled) {
+    return { enabled: false };
+  }
+  const { claimed, chainId } = body;
+  const usdtAmountRaw = parseUintString(body.usdtAmountRaw);
+  const ethAmountWei = parseUintString(body.ethAmountWei);
+  if (
+    typeof claimed !== 'boolean' ||
+    typeof chainId !== 'number' ||
+    !Number.isSafeInteger(chainId) ||
+    usdtAmountRaw === null ||
+    ethAmountWei === null
+  ) {
+    return null;
+  }
+  return { enabled: true, claimed, chainId, usdtAmountRaw, ethAmountWei };
+}
+
+export async function getFaucetStatus(token: string): Promise<FaucetStatus> {
+  const res = await fetch(`${API_BASE}/faucet/status`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    throw new Error(`Faucet status request failed (${res.status})`);
+  }
+  const status = parseFaucetStatus(await res.json());
+  if (!status) {
+    throw new Error('Faucet status came back in a shape this app does not know');
+  }
+  return status;
+}
+
+/** What the faucet offers on one network: nothing, a claim to make, or a claim already made. */
+export type FaucetOffer =
+  | { kind: 'none' }
+  | { kind: 'ready' | 'claimed'; usdtAmountRaw: bigint; ethAmountWei: bigint };
+
+/** The faucet gives on the one network its backend signs on, and only while it runs. */
+export function faucetOffer(status: FaucetStatus | undefined, chainId: number): FaucetOffer {
+  if (!status?.enabled || status.chainId !== chainId) {
+    return { kind: 'none' };
+  }
+  return {
+    kind: status.claimed ? 'claimed' : 'ready',
+    usdtAmountRaw: status.usdtAmountRaw,
+    ethAmountWei: status.ethAmountWei,
+  };
+}
+
+/**
+ * What a faucet that gives sends, in words for the copy's `{gift}`: the USDT, and the ETH unless an
+ * earlier claim already sent it — resuming that claim mints only the USDT.
+ */
+export function faucetGift(offer: Exclude<FaucetOffer, { kind: 'none' }>, language: Language, t: Translator['t']): string {
+  const usdt = formatUSDT(offer.usdtAmountRaw, language);
+  return offer.ethAmountWei > 0n
+    ? t('wallet.faucet.gift', { usdt, eth: formatEth(offer.ethAmountWei, language) })
+    : t('wallet.faucet.giftUsdt', { usdt });
 }

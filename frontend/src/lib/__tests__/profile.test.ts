@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   getProfileAvatarUrls,
-  getProfileAvatarUrl,
   isUsableAvatarImageSize,
   isUsableSteamAvatarUrl,
   isValidInstagramHandle,
@@ -68,10 +67,10 @@ describe('isValidInstagramHandle', () => {
   });
 });
 
-describe('getProfileAvatarUrl', () => {
+describe('getProfileAvatarUrls', () => {
   it('prefers a custom Steam avatar over Telegram photo', () => {
     expect(
-      getProfileAvatarUrl({
+      getProfileAvatarUrls({
         socialLinks: {
           steam: {
             steamId: '76561197960287930',
@@ -88,13 +87,13 @@ describe('getProfileAvatarUrl', () => {
           },
           instagram: null,
         },
-      }),
+      })[0],
     ).toBe('https://avatars.steamstatic.com/custom_full.jpg');
   });
 
   it('falls back to Telegram when Steam has the default empty avatar', () => {
     expect(
-      getProfileAvatarUrl({
+      getProfileAvatarUrls({
         socialLinks: {
           steam: {
             steamId: '76561197960287930',
@@ -111,12 +110,12 @@ describe('getProfileAvatarUrl', () => {
           },
           instagram: null,
         },
-      }),
+      })[0],
     ).toBe('https://t.me/i/userpic/320/alice.jpg');
   });
 
-  it('returns null when no social avatar is usable', () => {
-    expect(getProfileAvatarUrl({ socialLinks: null })).toBeNull();
+  it('returns no URL when no social avatar is usable', () => {
+    expect(getProfileAvatarUrls({ socialLinks: null })).toEqual([]);
   });
 
   it('returns candidate URLs in fallback order', () => {
@@ -147,7 +146,7 @@ describe('getProfileAvatarUrl', () => {
 
   it('ignores non-http avatar URLs', () => {
     expect(
-      getProfileAvatarUrl({
+      getProfileAvatarUrls({
         socialLinks: {
           steam: {
             steamId: '76561197960287930',
@@ -165,12 +164,12 @@ describe('getProfileAvatarUrl', () => {
           instagram: null,
         },
       }),
-    ).toBeNull();
+    ).toEqual([]);
   });
 
   it('ignores http avatar URLs to avoid mixed-content profile images', () => {
     expect(
-      getProfileAvatarUrl({
+      getProfileAvatarUrls({
         socialLinks: {
           steam: {
             steamId: '76561197960287930',
@@ -188,12 +187,12 @@ describe('getProfileAvatarUrl', () => {
           instagram: null,
         },
       }),
-    ).toBeNull();
+    ).toEqual([]);
   });
 
   it('does not synthesize a Telegram avatar URL from username when photoUrl is missing', () => {
     expect(
-      getProfileAvatarUrl({
+      getProfileAvatarUrls({
         socialLinks: {
           steam: null,
           telegram: {
@@ -206,12 +205,12 @@ describe('getProfileAvatarUrl', () => {
           instagram: null,
         },
       }),
-    ).toBeNull();
+    ).toEqual([]);
   });
 
   it('ignores invalid Telegram username when photoUrl is missing', () => {
     expect(
-      getProfileAvatarUrl({
+      getProfileAvatarUrls({
         socialLinks: {
           steam: null,
           telegram: {
@@ -224,7 +223,7 @@ describe('getProfileAvatarUrl', () => {
           instagram: null,
         },
       }),
-    ).toBeNull();
+    ).toEqual([]);
   });
 
   it('uses Telegram photoUrl without adding a t.me username fallback', () => {

@@ -1,5 +1,8 @@
 export const ARBITRUM_SEPOLIA_APPROVE_MIN_GAS = 120_000n;
 export const ARBITRUM_SEPOLIA_CREATE_DUEL_MIN_GAS = 400_000n;
+// Floor for every other action on Sepolia, whose eth_estimateGas occasionally under-reports;
+// generous, but still inside a single L2 block. Mainnet has no floor.
+export const ARBITRUM_SEPOLIA_DEFAULT_MIN_GAS = 200_000n;
 const ARBITRUM_SEPOLIA_FALLBACK_MAX_FEE_PER_GAS = 100_000_000n;
 const ARBITRUM_SEPOLIA_FALLBACK_PRIORITY_FEE_PER_GAS = 2_000n;
 const TESTNET_GAS_BUFFER_NUMERATOR = 3n;
@@ -104,13 +107,11 @@ export function getMainnetTransactionParams({
   feeEstimate: TestnetFeeEstimate;
   baseFeePerGas: bigint | null | undefined;
 }): TestnetTransactionParams {
-  const gas =
-    (estimatedGas * MAINNET_GAS_BUFFER_NUMERATOR +
-      MAINNET_GAS_BUFFER_DENOMINATOR -
-      1n) /
-    MAINNET_GAS_BUFFER_DENOMINATOR;
+  return { gas: getBufferedMainnetGasLimit(estimatedGas), ...getMainnetFeeParams(feeEstimate, baseFeePerGas) };
+}
 
-  return { gas, ...getMainnetFeeParams(feeEstimate, baseFeePerGas) };
+export function getBufferedMainnetGasLimit(estimatedGas: bigint): bigint {
+  return (estimatedGas * MAINNET_GAS_BUFFER_NUMERATOR + MAINNET_GAS_BUFFER_DENOMINATOR - 1n) / MAINNET_GAS_BUFFER_DENOMINATOR;
 }
 
 // Fee half of the mainnet policy, split out because the gas relayer picks its own gas limit

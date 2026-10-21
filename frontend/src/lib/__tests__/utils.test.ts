@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cn, formatDate, formatUSDT } from '@/lib/utils';
+import { addressGroups, cn, formatCount, formatDate, formatEth, formatPercent, formatUSDT, formatVolume } from '@/lib/utils';
 import { themeTokens } from '@/lib/__tests__/helpers/sourceFiles';
 
 describe('cn', () => {
@@ -25,6 +25,18 @@ describe('cn', () => {
 
   it.each([...themeTokens('ease').keys()])('lets a later easing replace ease-%s', (ease) => {
     expect(cn(`ease-${ease}`, 'ease-in')).toBe('ease-in');
+  });
+
+  it.each([...themeTokens('spacing').keys()])('lets a later padding replace px-%s', (spacing) => {
+    expect(cn(`px-${spacing}`, 'px-4')).toBe('px-4');
+  });
+
+  it.each([...themeTokens('container').keys()])('lets a later width replace max-w-%s', (container) => {
+    expect(cn(`max-w-${container}`, 'max-w-sm')).toBe('max-w-sm');
+  });
+
+  it.each([...themeTokens('radius').keys()])('lets a later radius replace rounded-%s', (radius) => {
+    expect(cn(`rounded-${radius}`, 'rounded-full')).toBe('rounded-full');
   });
 
   it('lets a later type size replace an earlier one', () => {
@@ -54,6 +66,74 @@ describe('formatUSDT', () => {
 
   it('keeps every digit of an amount past what a float holds', () => {
     expect(formatUSDT(123_456_789_012_345_678n, 'en')).toBe('123,456,789,012.345678');
+  });
+});
+
+describe('formatVolume', () => {
+  it.each([
+    [61_800_000n, '61.80'],
+    [1_234_567_890n, '1,234.57'],
+    [100_000_000n, '100'],
+    [0n, '0'],
+  ])('writes %s base units as %s in English', (amount, text) => {
+    expect(formatVolume(amount, 'en')).toBe(text);
+  });
+
+  it('writes Russian with its own separators', () => {
+    expect(formatVolume(61_800_000n, 'ru')).toBe('61,80');
+  });
+});
+
+describe('addressGroups', () => {
+  it('splits the address after its 0x into groups of four, keeping its case', () => {
+    expect(addressGroups('0x4BFa1486661d6FAa5300923bd684F261AE4776a5').join(' ')).toBe(
+      '4BFa 1486 661d 6FAa 5300 923b d684 F261 AE47 76a5'
+    );
+  });
+
+  it('leaves a short last group as it is', () => {
+    expect(addressGroups('0x123456')).toEqual(['1234', '56']);
+  });
+});
+
+describe('formatPercent', () => {
+  it('writes a share to one decimal the way each language does', () => {
+    expect([formatPercent(94.9, 'en'), formatPercent(94.9, 'ru')]).toEqual(['94.9%', '94,9\u00a0%']);
+  });
+
+  it('keeps the decimal of a whole share', () => {
+    expect(formatPercent(90, 'en')).toBe('90.0%');
+  });
+});
+
+describe('formatCount', () => {
+  it('groups digits the way the language does', () => {
+    expect(formatCount(1234, 'en')).toBe('1,234');
+    expect(formatCount(1234, 'ru')).toBe('1\u00a0234');
+  });
+});
+
+describe('formatEth', () => {
+  it.each([
+    [7_736_000_000_000_000n, '0.0077'],
+    [1_000_000_000_000_000_000n, '1'],
+    [364_715_000_000_000_000n, '0.3647'],
+    [0n, '0'],
+  ])('writes %s wei as %s in English', (wei, text) => {
+    expect(formatEth(wei, 'en')).toBe(text);
+  });
+
+  it('writes Russian with its own decimal comma', () => {
+    expect(formatEth(7_736_000_000_000_000n, 'ru')).toBe('0,0077');
+  });
+
+  it('never writes dust as an empty wallet', () => {
+    expect(formatEth(1n, 'en')).toBe('<0.0001');
+    expect(formatEth(99_999_999_999_999n, 'ru')).toBe('<0,0001');
+  });
+
+  it('writes the smallest amount it shows as itself', () => {
+    expect(formatEth(100_000_000_000_000n, 'en')).toBe('0.0001');
   });
 });
 

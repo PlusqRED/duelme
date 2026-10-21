@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Geologica } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/providers/Providers';
-import { Header } from '@/components/layout/Header';
+import { Header } from '@/components/header/Header';
 import { Footer } from '@/components/layout/Footer';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { getLanguage } from '@/i18n/serverTranslation';

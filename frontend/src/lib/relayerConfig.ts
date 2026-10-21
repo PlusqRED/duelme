@@ -2,7 +2,8 @@ import { createPublicClient, createWalletClient, http, parseEther, type Account,
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrum, arbitrumSepolia } from 'viem/chains';
 import { DEFAULT_CHAIN, DEFAULT_CHAIN_ID, DUELME_ADDRESSES, FORWARDER_ADDRESSES } from '@/lib/constants';
-import { parseUintString, type RelayerStatus } from '@/lib/relayRequest';
+import { parseUintString } from '@/lib/parsing';
+import type { RelayerStatus } from '@/lib/relayRequest';
 
 /**
  * Server-side relayer wiring. Reads secrets from non-`NEXT_PUBLIC_` env, so nothing here

@@ -5,7 +5,7 @@ import { useReadContract } from 'wagmi';
 import { balanceOfAbi, getUsdtAddress } from '@/lib/contracts';
 import { subscribeToBalanceRefresh } from '@/lib/balanceRefresh';
 import { LIVE_DATA_POLL_INTERVAL } from '@/lib/constants';
-import type { BalanceRead } from '@/lib/deposit';
+import type { BalanceRead } from '@/lib/balanceStatus';
 
 /**
  * One wallet's USDT balance on one chain, polled while `enabled` and refreshed by the

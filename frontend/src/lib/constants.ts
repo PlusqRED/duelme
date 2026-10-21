@@ -7,7 +7,6 @@ export const SUPPORTED_CHAINS = {
   arbitrumSepolia: {
     id: 421614,
     name: 'Arbitrum Sepolia',
-    shortName: 'Arb Sepolia',
     testnet: true,
     usdt: '0x44d213D601C19ec98Bf61A1bCa3935D6da07F05D' as `0x${string}`,
     duelMe: '0x588A54Fa8c00c8aC003e41BD8ee26FBC8994105f' as `0x${string}`,
@@ -20,7 +19,6 @@ export const SUPPORTED_CHAINS = {
   arbitrum: {
     id: 42161,
     name: 'Arbitrum One',
-    shortName: 'Arbitrum One',
     testnet: false,
     usdt: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9' as `0x${string}`,
     duelMe: '0x32b3c9aF55c7C784bdf9128a1f681A66A37Bd261' as `0x${string}`,
@@ -61,7 +59,6 @@ export const AVAILABLE_CHAIN_KEYS: readonly ChainKey[] =
 // per-chain-id lookup.
 export const AVAILABLE_CHAINS = AVAILABLE_CHAIN_KEYS.map((key) => SUPPORTED_CHAINS[key]);
 
-export const AVAILABLE_CHAIN_IDS: readonly number[] = AVAILABLE_CHAINS.map((chain) => chain.id);
 
 // Fallback default for the on-chain minWager() (owner-adjustable). The live
 // value is fetched by useContractConfig; this constant only covers the moment
@@ -72,11 +69,6 @@ export const MAX_WAGER_SLIDER = 500; // upper bound of the create-duel wager sli
 // How often live on-chain data is re-read (frontend/CLAUDE.md, "Data Fetching"), with staleTime 0.
 export const LIVE_DATA_POLL_INTERVAL = 10_000;
 
-// Chain ids where the backend-signed testnet faucet can operate.
-// Used to gate the faucet button in the UI.
-export const TESTNET_CHAIN_IDS: ReadonlySet<number> = new Set(
-  ALL_CHAINS.filter((chain) => chain.testnet).map((chain) => chain.id)
-);
 // Fallback defaults for the owner-adjustable on-chain claimTimeout(),
 // maxMessageCodepoints() and maxMessageBytes() — same rule as MIN_WAGER above.
 export const CLAIM_TIMEOUT = 3600; // 1 hour in seconds
@@ -98,10 +90,6 @@ export const FORWARDER_ADDRESSES: Record<number, `0x${string}`> = Object.fromEnt
 
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as `0x${string}`;
 
-export const CHAIN_NAMES: Record<number, string> = Object.fromEntries(
-  ALL_CHAINS.map((chain) => [chain.id, chain.shortName])
-);
-
 export const SITE_URL = 'https://duelme.pro';
 export const SITE_NAME = 'DuelMe';
 
@@ -109,3 +97,6 @@ export const SITE_NAME = 'DuelMe';
 export const DEVELOPER_EMAIL = 'rickes.oleg@gmail.com';
 export const TELEGRAM_URL = 'https://t.me/grapexel';
 export const INSTAGRAM_URL = 'https://www.instagram.com/rickes.oleg';
+/** The project's open devlog, and how its address is written out. */
+export const DEVLOG_HANDLE = 't.me/duelme_info';
+export const DEVLOG_URL = `https://${DEVLOG_HANDLE}`;

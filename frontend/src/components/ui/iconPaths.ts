@@ -70,7 +70,9 @@ export const iconPaths = {
     { d: 'M8.5 11V8a3.5 3.5 0 0 1 7 0v3' },
   ],
   login: [{ d: 'M13.5 4.5h4a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-4M10 8l4 4-4 4M14 12H4.5' }],
+  logout: [{ d: 'M10.5 4.5h-4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h4M14 8l4 4-4 4M18 12H9' }],
   mail: [{ x: 3.5, y: 5.5, width: 17, height: 13, rx: 2.5 }, { d: 'M4.5 7.5l7.5 5.5 7.5-5.5' }],
+  menu: [{ d: 'M4.5 7h15M4.5 12h15M4.5 17h15' }],
   pause: [{ d: 'M8.5 6v12M15.5 6v12' }],
   pen: [{ d: 'M15.5 5.5l3 3L9 18H6v-3z' }, { d: 'M13.5 7.5l3 3M4.5 20.5h15' }],
   play: [
@@ -78,6 +80,12 @@ export const iconPaths = {
   ],
   plus: [{ d: 'M12 5.5v13M5.5 12h13' }],
   replay: [{ d: 'M4.8 12a7.2 7.2 0 1 0 2.1-5.1' }, { d: 'M4.5 4.5v3.8h3.8' }],
+  // The safe's lock: the shackle is its first path, so a safe opening can lift it alone.
+  safe: [
+    { x: 5.5, y: 11, width: 13, height: 9.5, rx: 2.5 },
+    { d: 'M8.5 11V8a3.5 3.5 0 0 1 7 0v3' },
+    { d: 'M12 14.6v2.4' },
+  ],
   search: [{ cx: 11, cy: 11, r: 6.5 }, { d: 'M16 16l4.5 4.5' }],
   send: [{ d: 'M20.5 4.5L3.5 11l6 2.5 2.5 6z' }, { d: 'M9.5 13.5l4-3.5' }],
   'shield-alert': [

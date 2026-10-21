@@ -15,7 +15,6 @@ import { LanguageProvider } from '@/i18n/LanguageContext';
 import type { Language } from '@/i18n/translations';
 import { BrandMark } from '@/components/identity/BrandMark';
 import { Toaster } from '@/components/ui/toaster';
-import { TooltipProvider } from '@/components/ui/tooltip';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -91,9 +90,7 @@ export function Providers({ children, language, relayerStatus }: ProvidersProps)
           <ContractConfigLoader />
           <RelayerStatusContext.Provider value={relayerStatus}>
             <LanguageProvider language={language}>
-              <TooltipProvider>
-                {children}
-              </TooltipProvider>
+              {children}
               <Toaster position="top-center" />
             </LanguageProvider>
           </RelayerStatusContext.Provider>

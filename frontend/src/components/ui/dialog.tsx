@@ -29,7 +29,7 @@ function DialogContent({ className, children, showCloseButton = true, ...props }
       <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-ink/50 transition-opacity duration-300 data-ending-style:opacity-0 data-ending-style:duration-200 data-starting-style:opacity-0" />
       <DialogPrimitive.Popup
         className={cn(
-          'fixed inset-x-0 bottom-0 z-50 grid max-h-[94dvh] w-full gap-[18px] overflow-auto overscroll-contain rounded-t-[26px] bg-paper px-[clamp(16px,4vw,26px)] pt-[26px] pb-[22px] text-ink shadow-window outline-none transition-[translate] duration-400 ease-sheet [--dialog-width:580px] before:absolute before:inset-x-0 before:top-2.5 before:mx-auto before:h-1 before:w-10 before:rounded-full before:bg-line-strong data-ending-style:translate-y-full data-ending-style:duration-200 data-ending-style:ease-in data-starting-style:translate-y-full',
+          'fixed inset-x-0 bottom-0 z-50 grid max-h-[94dvh] w-full gap-[18px] overflow-auto overscroll-contain rounded-t-[26px] bg-paper px-[clamp(16px,4vw,26px)] pt-[26px] pb-(--dialog-pb) text-ink shadow-window outline-none transition-[translate] duration-400 ease-sheet [--dialog-pb:22px] [--dialog-width:580px] before:absolute before:inset-x-0 before:top-2.5 before:mx-auto before:h-1 before:w-10 before:rounded-full before:bg-line-strong data-ending-style:translate-y-full data-ending-style:duration-200 data-ending-style:ease-in data-starting-style:translate-y-full',
           'xs:top-[max(24px,7vh)] xs:bottom-auto xs:mx-auto xs:max-h-[calc(100dvh-2*max(24px,7vh))] xs:w-[min(var(--dialog-width),calc(100vw-32px))] xs:rounded-[28px] xs:pt-[18px] xs:transition-[opacity,translate,scale] xs:duration-300 xs:ease-spring xs:before:hidden xs:data-ending-style:translate-y-2.5 xs:data-ending-style:scale-98 xs:data-ending-style:opacity-0 xs:data-starting-style:translate-y-[18px] xs:data-starting-style:scale-97 xs:data-starting-style:opacity-0',
           className
         )}
@@ -53,12 +53,21 @@ function DialogHeader({ className, ...props }: DialogHeaderProps) {
   return <div className={cn('flex flex-col gap-0.5 pr-12', className)} {...props} />;
 }
 
-type DialogFooterProps = ComponentProps<'div'>;
+interface DialogFooterProps extends ComponentProps<'div'> {
+  /** On a phone the way on stays in reach at the bottom of the sheet, however long the window is. */
+  isPinned?: boolean;
+}
 
-function DialogFooter({ className, ...props }: DialogFooterProps) {
+function DialogFooter({ isPinned = false, className, ...props }: DialogFooterProps) {
   return (
     <div
-      className={cn('flex flex-col-reverse gap-3 xs:flex-row xs:justify-end', className)}
+      className={cn(
+        'flex flex-col-reverse gap-3 xs:flex-row xs:justify-end',
+        // A sticky box stops short of its scroller's padding, so it reaches past the sheet's own.
+        isPinned &&
+          'max-xs:sticky max-xs:-bottom-(--dialog-pb) max-xs:z-5 max-xs:-mx-1 max-xs:-mb-(--dialog-pb) max-xs:bg-linear-to-b max-xs:from-paper/0 max-xs:to-paper max-xs:to-[22%] max-xs:px-1 max-xs:pt-3.5 max-xs:pb-[calc(18px+env(safe-area-inset-bottom))]',
+        className
+      )}
       {...props}
     />
   );

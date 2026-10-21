@@ -1,18 +1,22 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
-import { isActiveDuel, toPlayerDuel, type PlayerDuel } from '@/lib/duel';
+import type { DuelRecord } from '@/lib/duel';
+import type { DuelMeta } from '@/lib/game';
 import { useDuelsByGame } from './useDuelsByGame';
 import { useDuelsByIds } from './useDuelReads';
 
 interface GameDuelsData {
-  activeDuels: PlayerDuel[];
-  historyDuels: PlayerDuel[];
+  /** The game's duels as the contract holds them, by id. */
+  duels: DuelRecord[];
+  /** Each of the game's duels' metadata, by duel id. */
+  metaByDuelId: Record<number, DuelMeta>;
+  /** Both stakes of every duel someone joined, in USDT's base units. */
   totalVolume: bigint;
   duelsPlayed: number;
-  activeDuelCount: number;
 }
 
+/** One game's duels: their records, their metadata, and the money and duels the game has seen. */
 export function useGameDuels(gameSlug: string | undefined, chainId: number) {
   // Already narrowed to this chain and this deployment by the query, so every id here belongs
   // to the contract we are about to read. Filtering after the fetch is what made a game page
@@ -20,9 +24,6 @@ export function useGameDuels(gameSlug: string | undefined, chainId: number) {
   const { duels: metas, isLoading: isMetaLoading, isError: isMetaError, refetch: refetchMetas } = useDuelsByGame(gameSlug, chainId);
 
   const duelIds = useMemo(() => metas.map((meta) => meta.duelId), [metas]);
-  // Membership, not lookup: the loop only needs to know whether a record is one of these.
-  const gameDuelIds = useMemo(() => new Set(duelIds), [duelIds]);
-
   const { duels: duelRecords, isLoading: isDuelsLoading, isError, retry: retryDuels } = useDuelsByIds(duelIds, { chainId });
 
   const retry = useCallback(async () => {
@@ -30,39 +31,18 @@ export function useGameDuels(gameSlug: string | undefined, chainId: number) {
   }, [refetchMetas, retryDuels]);
 
   const result = useMemo<GameDuelsData>(() => {
-    const activeDuels: PlayerDuel[] = [];
-    const historyDuels: PlayerDuel[] = [];
-    let totalVolume = 0n;
-    let duelsPlayed = 0;
-
-    if (!gameDuelIds.size) {
-      return { activeDuels, historyDuels, totalVolume, duelsPlayed, activeDuelCount: 0 };
-    }
-
-    for (const d of duelRecords) {
-      // Match by duel id rather than by position: the records in hand can be one poll behind the
-      // metadata, and a positional match would then attach the wrong game to the wrong duel.
-      if (!gameDuelIds.has(d.id)) continue;
-
-      if (d.fundedAt > 0n) {
-        totalVolume += d.wagerAmount * 2n;
-        duelsPlayed++;
-      }
-
-      const duel = toPlayerDuel(d, chainId);
-
-      if (isActiveDuel(d)) {
-        activeDuels.push(duel);
-      } else {
-        historyDuels.push(duel);
-      }
-    }
-
-    activeDuels.reverse();
-    historyDuels.reverse();
-
-    return { activeDuels, historyDuels, totalVolume, duelsPlayed, activeDuelCount: activeDuels.length };
-  }, [duelRecords, gameDuelIds, chainId]);
+    const metaByDuelId: Record<number, DuelMeta> = Object.fromEntries(metas.map((meta) => [meta.duelId, meta]));
+    // Matched by id rather than by position: the records in hand can be one poll behind the
+    // metadata, and a positional match would then attach the wrong game to the wrong duel.
+    const duels = duelRecords.filter((duel) => duel.id in metaByDuelId);
+    const played = duels.filter((duel) => duel.fundedAt > 0n);
+    return {
+      duels,
+      metaByDuelId,
+      totalVolume: played.reduce((sum, duel) => sum + duel.wagerAmount * 2n, 0n),
+      duelsPlayed: played.length,
+    };
+  }, [duelRecords, metas]);
 
   return {
     ...result,
