@@ -8,15 +8,15 @@ function image(cursor: string): string {
 }
 
 describe('OWN_SEAT_CURSOR', () => {
-  it('testOwnSeatCursorIsANoEntrySignInTheCreatorsRed', () => {
+  it('is a no-entry sign in the creator’s red', () => {
     expect(image(OWN_SEAT_CURSOR)).toContain(`fill='${brandColors.red}'`);
   });
 
-  it('testOwnSeatCursorPointsFromTheSignsCentre', () => {
+  it('points from the sign’s centre', () => {
     expect(OWN_SEAT_CURSOR).toMatch(/"\) 14 14, /);
   });
 
-  it('testOwnSeatCursorFallsBackToNotAllowed', () => {
+  it('falls back to not-allowed', () => {
     expect(OWN_SEAT_CURSOR.endsWith(', not-allowed')).toBe(true);
   });
 });

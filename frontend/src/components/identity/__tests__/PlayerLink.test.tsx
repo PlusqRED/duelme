@@ -6,13 +6,13 @@ import { PlayerLink } from '@/components/identity/PlayerLink';
 afterEach(cleanup);
 
 describe('PlayerLink', () => {
-  it('testPlayerLinkLeadsToThePlayersProfile', () => {
+  it('leads to the player’s profile', () => {
     render(<PlayerLink address="0xAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa">Ace</PlayerLink>);
 
     expect(screen.getByRole('link', { name: 'Ace' }).getAttribute('href')).toBe('/profile/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
   });
 
-  it('testPlayerLinkKeepsTheCallersLook', () => {
+  it('keeps the look of the name it wraps', () => {
     render(
       <PlayerLink address="0x111111111111111111111111111111111111abcd" className="font-bold">
         Bo

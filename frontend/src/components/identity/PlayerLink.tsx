@@ -12,11 +12,16 @@ interface PlayerLinkProps {
 
 /**
  * A player's name as the way to their profile. It keeps the look of the name it wraps, colour and
- * all, and is underlined only while pointed at, so a row of names does not read as a row of links.
+ * all, under a faint underline that a phone, which cannot point, still shows. A page of rows holds
+ * dozens of names, so none is fetched ahead of a press.
  */
 export function PlayerLink({ address, children, className }: PlayerLinkProps) {
   return (
-    <Link href={profilePath(address)} className={cn('decoration-2 underline-offset-4 hover:underline', className)}>
+    <Link
+      href={profilePath(address)}
+      prefetch={false}
+      className={cn('underline decoration-line-strong decoration-[1.5px] underline-offset-4 hover:decoration-current', className)}
+    >
       {children}
     </Link>
   );

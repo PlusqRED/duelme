@@ -127,7 +127,7 @@ export function HistoryRow({ entry, game, nameOf, owed, isStamped }: HistoryRowP
       <time
         dateTime={new Date(Number(at) * 1000).toISOString()}
         title={formatDateTime(at, language)}
-        className={'text-right text-note/[1.55] whitespace-nowrap text-ink-3 @max-[600px]/desk:col-[2/-1] @max-[600px]/desk:justify-self-start @max-[600px]/desk:text-left'}
+        className={'relative z-2 text-right text-note/[1.55] whitespace-nowrap text-ink-3 @max-[600px]/desk:col-[2/-1] @max-[600px]/desk:justify-self-start @max-[600px]/desk:text-left'}
       >
         {timeAgo(at)}
       </time>

@@ -20,6 +20,7 @@ import { useMyProfile } from '@/hooks/useMyProfile';
 import { useReputation } from '@/hooks/useReputation';
 import { useTranslation } from '@/i18n/useTranslation';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
+import { profilePath } from '@/lib/navigation';
 import { truncateAddress } from '@/lib/utils';
 
 /**
@@ -50,7 +51,7 @@ export function MyProfile() {
       </Suspense>
       <BackLink href="/dashboard">{t('room.back.mine')}</BackLink>
       <ProfileHead address={shown} profile={profile} level={reputation.isLoading || reputation.isError ? null : reputation.level}>
-        <Link href={`/profile/${walletAddress}`} className={buttonVariants({ variant: 'paper', size: 'sm' })}>
+        <Link href={profilePath(walletAddress)} className={buttonVariants({ variant: 'paper', size: 'sm' })}>
           {t('profile.publicLink')}
         </Link>
       </ProfileHead>

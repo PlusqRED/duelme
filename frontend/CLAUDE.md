@@ -132,7 +132,9 @@ test can check.
   is a player. Reputation levels: Reliable green, Mixed sun (its bars a deeper `sun-bar`), Risky
   orange, New grey (`level-new-soft`, `level-new-ink`). A check of whether the wallet has enough
   answers in green or orange, never in the seat's colour: the stake's cells (`sign/ChargeCells`)
-  were the creator's red, and a full red bar read as a warning beside "Enough".
+  were the creator's red, and a full red bar read as a warning beside "Enough". The one red sign is
+  about the creator, not an error: the no-entry pointer over the open seat of their own duel
+  (`lib/seatCursor.ts`, drawn from `lib/brandColors.ts`, since a cursor image cannot read a variable).
 - **Tokens only.** Every colour, easing and shadow, and every type size, weight or breakpoint
   Tailwind's own scale lacks, is a token in `src/styles/theme.css`, used by its role: `bg-canvas`,
   `text-ink-3`, `bg-red-soft`, `text-body-sm`, `ease-press`, `xs:` (560px, where a window stops
@@ -156,7 +158,7 @@ test can check.
   from the bottom of a phone), `Popover` (a menu: a panel under its button, a sheet on a phone),
   `Input`, `Note` (a line of small print after an icon), `Spinner`, `Toaster`. Who and what in `components/identity/`: `Avatar` (a player's identicon on
   their seat's colour; the pattern is `lib/identicon.ts`, the same for an address everywhere),
-  `GameTile` (initials on the category's colour), `PlayerLink` (a player's name, with their face where one is shown, leading to their profile: every name of another player on a card, a row, the duel page), `ReputationPill` (a level), `LevelBadge` (a level as the badge a player earns, or still locked) and
+  `GameTile` (initials on the category's colour), `PlayerLink` (a player's name, with their face where one is shown, under a faint underline, leading to their profile: every player's name on a card, a row or the duel page, the reader's own "You" there too), `ReputationPill` (a level), `LevelBadge` (a level as the badge a player earns, or still locked) and
   `QuestLine` (the honored duels to the next level, from `levelQuest`), `Tally` (one side of a
   record: honored or abandoned), `BrandMark`, `BrandLink`.
 - **Motion** either explains something once or answers a click, and moves only transform and
@@ -406,13 +408,13 @@ test can check.
   `useSendUsdt` switches and writes in one go. The relayer's signature (`relayWrite`) and the
   permit (`useDuelPermit`) still take the hook's client: the signing flows make the switch a step
   of its own for them.
-- **A link cannot sit inside a button or another link, and a row that presses as one used to be
-  one.** The feed's `DuelRow` (a button that opens the receipt) and the dashboard's `HistoryRow` (a
-  link to the duel) now put their button or link around the game's name only and spread it over the
-  row with an `after:absolute after:inset-0 after:z-1`, the row `relative`; the players'
-  `PlayerLink`s sit on top as `relative z-2`. A press anywhere else still opens the row, and the
-  focus ring is drawn on the spread part. A row whose button or link wraps everything again loses
-  its players' links or nests them, which React reports as invalid markup.
+- **A link cannot sit inside a button or another link, so a row that presses as one is not one.**
+  The feed's `DuelRow` (a button that opens the receipt) and the dashboard's `HistoryRow` (a link to
+  the duel) put their button or link around the game's name only and spread it over the row with an
+  `after:absolute after:inset-0 after:z-1`, the row `relative`; the players' `PlayerLink`s and the
+  time, whose title gives the exact moment, sit on top as `relative z-2`. A press anywhere else
+  opens the row, and the focus ring is drawn on the spread part. A button or link that wraps the
+  whole row again nests the players' links in it, which React reports as invalid markup.
 - **A window that closes because what it shows turned null empties before it is gone.** The window
   plays its closing animation after the value it was opened with (a network, a platform) is already
   null, so its title and body change or vanish on the way out. Show `useLastNonNull(value)` from

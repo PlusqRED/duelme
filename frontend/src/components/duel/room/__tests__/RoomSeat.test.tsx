@@ -150,7 +150,8 @@ describe('RoomSeat', () => {
     render(seat({ address: null, name: en['sim.openSeat'], isOwnOpen: true }));
 
     const face = screen.getByTitle(en['room.openSeat.own']);
-    expect(face.style.cursor).toContain('not-allowed');
+    expect(face.style.getPropertyValue('--seat-cursor')).toContain('not-allowed');
+    expect(face.className).toContain('cursor-(--seat-cursor)');
     expect(face.className).not.toContain('cursor-pointer');
   });
 

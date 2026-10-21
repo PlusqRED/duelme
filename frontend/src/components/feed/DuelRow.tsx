@@ -92,7 +92,7 @@ export function DuelRow({ duel, isOpen, onToggle, isLeaving = false, index, clas
             {formatUSDT(duel.wagerAmount * 2n, language)}
             <small className="ml-[3px] text-xs font-label tracking-normal text-ink-3">USDT</small>
           </span>
-          <span title={formatDateTime(duel.lastEventAt, language)} className="text-note whitespace-nowrap text-ink-3">
+          <span title={formatDateTime(duel.lastEventAt, language)} className="relative z-2 text-note whitespace-nowrap text-ink-3">
             {timeAgo(duel.lastEventAt)}
           </span>
         </span>

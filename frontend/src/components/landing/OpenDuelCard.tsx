@@ -31,8 +31,9 @@ interface OpenDuelCardProps {
 
 /**
  * An open duel as a table waiting for its second player: the game, the creator in red with their
- * note and their record (their face and name lead to their profile), the empty blue seat, what joining costs and what the pot becomes, and the
- * way in. Pointing at it puts the reader in the open seat.
+ * note and their record (their face and name lead to their profile), the empty blue seat, what
+ * joining costs and what the pot becomes, and the way in. Pointing at it, or tabbing to the way in,
+ * puts the reader in the open seat.
  */
 export function OpenDuelCard({ duel, isCompact, isOwn, className }: OpenDuelCardProps) {
   const { t, language } = useTranslation();
@@ -121,7 +122,7 @@ export function OpenDuelCard({ duel, isCompact, isOwn, className }: OpenDuelCard
         <Amount label={t('publicDuels.potentialPot')} amount={formatUSDT(duel.wagerAmount * 2n, language)} />
       </dl>
 
-      <Link href={`/duel/${duel.id}`} className={buttonVariants({ size: 'lg', className: 'w-full' })}>
+      <Link href={`/duel/${duel.id}`} data-take-seat className={buttonVariants({ size: 'lg', className: 'w-full' })}>
         {isOwn ? t('action.viewDuel') : t('publicDuels.joinFor', { amount: stake })}
       </Link>
     </article>

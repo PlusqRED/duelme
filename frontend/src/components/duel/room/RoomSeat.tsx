@@ -66,9 +66,10 @@ interface RoomSeatProps {
 /**
  * One player's seat in a real duel: their face, or an open seat until someone joins; what they say,
  * their note or their clock above it; their name, leading to their profile, "You" on the reader's
- * own seat with the address under it; then their level while the duel runs, and once it is over their money and what it added
- * to their record. An open seat the reader could take carries their wallet's USDT, shows them
- * sitting down while they point at Join or at it, and makes Join's move at a press.
+ * own seat with the address under it; then their level while the duel runs, and once it is over
+ * their money and what it added to their record. An open seat the reader could take carries their
+ * wallet's USDT, shows them sitting down while they point at Join or at it, and makes Join's move at
+ * a press.
  */
 export function RoomSeat({ side, seat, address, name, isYou, level, note, clock, gain, faceRef, takeable, isOwnOpen = false, isCompact = false }: RoomSeatProps) {
   const purse = takeable?.purse;
@@ -87,8 +88,8 @@ export function RoomSeat({ side, seat, address, name, isYou, level, note, clock,
           ref={faceRef}
           onClick={onTake}
           title={isOwnOpen ? t('room.openSeat.own') : undefined}
-          style={isOwnOpen ? { cursor: OWN_SEAT_CURSOR } : undefined}
-          className={cn('block size-full', (onTake || isOwnOpen) && 'rounded-full', onTake && 'group/duel cursor-pointer')}
+          style={isOwnOpen ? { '--seat-cursor': OWN_SEAT_CURSOR } : undefined}
+          className={cn('block size-full', (onTake || isOwnOpen) && 'rounded-full', onTake && 'group/duel cursor-pointer', isOwnOpen && 'cursor-(--seat-cursor)')}
         >
           {address ? (
             <Avatar

@@ -72,6 +72,16 @@ describe('OpenDuels', () => {
     expect(creator.getAttribute('href')).toBe(`/profile/${CREATOR}`);
   });
 
+  it('seats the reader in the open seat for its way in only, never for the creator’s name', () => {
+    page.duels = [duel(7)];
+    page.total = 1;
+    render(<OpenDuels />);
+    const table = card('Wow Midnight');
+
+    expect(within(table).getByRole('link', { name: /^Join for/ }).hasAttribute('data-take-seat')).toBe(true);
+    expect(within(table).getByRole('link', { name: '0x32a3…AA23' }).hasAttribute('data-take-seat')).toBe(false);
+  });
+
   it('names no level for a creator whose record could not be read', () => {
     page.duels = [duel(7, { reputationStats: undefined })];
     page.total = 1;
