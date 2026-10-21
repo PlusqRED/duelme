@@ -16,8 +16,9 @@ rules live in this file.
   wallet signs as soon as it is asked, so whatever asks it shows what is signed first, and the press
   in that window is the confirmation — the signing window for duel writes, `SendReview` for sending
   USDT out. A new way to make the embedded wallet sign needs such a window too, and
-  `lib/__tests__/signingGuard.test.ts`, which lists the only files that ask a wallet to sign or send,
-  fails until it is added there. External wallets still prompt in their own window.
+  `lib/__tests__/signingGuard.test.ts` fails until it is added there: it lists the only files that
+  ask a wallet to sign or send, or take a wallet client, read from the code itself, and who imports
+  them, up to the flows behind those windows. External wallets still prompt in their own window.
 
 ### Transaction Pattern
 Write ops, relayed: check chain → sign EIP-2612 permit (funding calls only) → sign

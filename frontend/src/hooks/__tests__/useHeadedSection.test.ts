@@ -15,13 +15,6 @@ function scroll(by = 40) {
   });
 }
 
-/** The reader's own scrolling: a wheel turned, or a key pressed. */
-function readerInput(event: Event) {
-  act(() => {
-    window.dispatchEvent(event);
-  });
-}
-
 function wait(ms: number) {
   act(() => {
     vi.advanceTimersByTime(ms);
@@ -68,46 +61,35 @@ describe('useHeadedSection', () => {
     expect(result.current.headed).toBe('safety');
   });
 
-  it('testHeadedSectionLetsGoAtTheReadersWheelAfterArriving', () => {
+  it('testHeadedSectionLetsGoAtTheReadersScrollAfterArriving', () => {
     const { result } = renderHook(() => useHeadedSection());
     act(() => result.current.headTo('demo'));
     scroll();
     wait(200);
 
-    readerInput(new Event('wheel'));
+    scroll();
 
     expect(result.current.headed).toBeNull();
   });
 
-  it('testHeadedSectionLetsGoAtAScrollingKeyAfterArriving', () => {
+  it('testHeadedSectionLetsGoAtAScrollBackUpAfterArriving', () => {
     const { result } = renderHook(() => useHeadedSection());
     act(() => result.current.headTo('demo'));
     scroll();
     wait(200);
 
-    readerInput(new KeyboardEvent('keydown', { key: 'PageDown' }));
+    scroll(-40);
 
     expect(result.current.headed).toBeNull();
   });
 
-  it('testHeadedSectionHoldsThroughAKeyThatScrollsNothing', () => {
-    const { result } = renderHook(() => useHeadedSection());
-    act(() => result.current.headTo('demo'));
-    scroll();
-    wait(200);
-
-    readerInput(new KeyboardEvent('keydown', { key: 'a' }));
-
-    expect(result.current.headed).toBe('demo');
-  });
-
-  it('testHeadedSectionHoldsThroughAMoveNobodyScrolled', () => {
+  it('testHeadedSectionHoldsThroughAScrollEventThatLeavesThePageWhereItStopped', () => {
     const { result } = renderHook(() => useHeadedSection());
     act(() => result.current.headTo('safety'));
     scroll();
     wait(200);
 
-    scroll(-408);
+    scroll(0);
 
     expect(result.current.headed).toBe('safety');
   });
@@ -153,7 +135,7 @@ describe('useHeadedSection', () => {
     act(() => result.current.headTo('demo'));
     wait(500);
 
-    readerInput(new Event('wheel'));
+    scroll();
 
     expect(result.current.headed).toBeNull();
   });

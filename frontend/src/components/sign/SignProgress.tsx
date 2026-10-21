@@ -7,6 +7,7 @@ import type { SigningModel } from '@/components/sign/signingModel';
 import { SignTicks, TxLink } from '@/components/sign/SignTicks';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { Note } from '@/components/ui/note';
 import { Spinner } from '@/components/ui/spinner';
 import type { TranslationKey } from '@/i18n/translations';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -15,20 +16,29 @@ import type { SigningSpot } from '@/lib/signingSteps';
 
 type WalletStep = 'sign' | 'approve' | 'send';
 
+interface StepWords {
+  /** The head before the press. */
+  ready: TranslationKey;
+  /** The head once the wallet is at it. */
+  title: TranslationKey;
+  wait: TranslationKey;
+}
+
 /**
- * A wallet step's head and wait: what the player is asked to do in their wallet, or, with the
- * wallet in the app, which signs without a prompt of its own, what is happening.
+ * A wallet step's heads and wait: what the player is asked to do in their wallet, or, with the
+ * wallet in the app, which signs without a prompt of its own, what the press will do and then what
+ * is happening.
  */
-const STEP_WORDS: Record<'asked' | 'inApp', Record<WalletStep, { title: TranslationKey; wait: TranslationKey }>> = {
+const STEP_WORDS: Record<'asked' | 'inApp', Record<WalletStep, StepWords>> = {
   asked: {
-    sign: { title: 'sign.sign.title', wait: 'sign.sign.wait' },
-    approve: { title: 'sign.approve.title', wait: 'sign.tx.wait' },
-    send: { title: 'sign.send.title', wait: 'sign.tx.wait' },
+    sign: { ready: 'sign.sign.title', title: 'sign.sign.title', wait: 'sign.sign.wait' },
+    approve: { ready: 'sign.approve.title', title: 'sign.approve.title', wait: 'sign.tx.wait' },
+    send: { ready: 'sign.send.title', title: 'sign.send.title', wait: 'sign.tx.wait' },
   },
   inApp: {
-    sign: { title: 'sign.sign.title.inApp', wait: 'sign.sign.wait.inApp' },
-    approve: { title: 'sign.approve.title.inApp', wait: 'sign.tx.wait.inApp' },
-    send: { title: 'sign.send.title.inApp', wait: 'sign.tx.wait.inApp' },
+    sign: { ready: 'sign.sign.ready.inApp', title: 'sign.sign.title.inApp', wait: 'sign.sign.wait.inApp' },
+    approve: { ready: 'sign.approve.ready.inApp', title: 'sign.approve.title.inApp', wait: 'sign.tx.wait.inApp' },
+    send: { ready: 'sign.send.ready.inApp', title: 'sign.send.title.inApp', wait: 'sign.tx.wait.inApp' },
   },
 };
 
@@ -99,24 +109,21 @@ export function SignProgress({ model, spot, fees, hash, isSlow, isInAppWallet, o
     );
   }
 
-  // A step not started yet asks for the press, whichever wallet signs; only a running one says it is running.
-  const words = STEP_WORDS[isInAppWallet && spot.phase !== 'idle' ? 'inApp' : 'asked'][spot.step === 'sign' ? 'sign' : isApprove ? 'approve' : 'send'];
+  const words = STEP_WORDS[isInAppWallet ? 'inApp' : 'asked'][spot.step === 'sign' ? 'sign' : isApprove ? 'approve' : 'send'];
+  const isIdle = spot.phase === 'idle';
   const total = spot.step === 'sign' ? signatures.length : transactions.length;
   const position = spot.step === 'sign' ? signatures.indexOf(model.items[index]) : transactions.indexOf(model.items[index]);
   return (
     <>
-      <Lead>{t(words.title)}</Lead>
+      <Lead>{t(isIdle ? words.ready : words.title)}</Lead>
       {total > 1 && (
         <p className="-mt-2 text-sm font-strong text-ink-3">
           {t(spot.step === 'sign' ? 'sign.sign.count' : 'sign.tx.count', { n: position + 1, total })}
         </p>
       )}
       <SignList items={model.items} current={index} fees={fees} />
-      {spot.phase === 'idle' ? (
-        <StartStep label={model.button} onStart={onStartStep} />
-      ) : (
-        <Waiting>{t(words.wait)}</Waiting>
-      )}
+      {isIdle && isInAppWallet && <Note icon="pen">{t('sign.inApp.note')}</Note>}
+      {isIdle ? <StartStep label={model.button} onStart={onStartStep} /> : <Waiting>{t(words.wait)}</Waiting>}
     </>
   );
 }

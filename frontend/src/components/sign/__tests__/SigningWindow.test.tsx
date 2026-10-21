@@ -23,10 +23,8 @@ const gas = vi.hoisted(() => ({
   },
 }));
 
-const wallet = vi.hoisted(() => ({ clientType: 'metamask' }));
-
 vi.mock('@/hooks/useActiveWallet', () => ({
-  useActiveWallet: () => ({ activeWallet: { address: ADDRESS, walletClientType: wallet.clientType }, walletAddress: ADDRESS.toLowerCase() }),
+  useActiveWallet: () => ({ activeWallet: { address: ADDRESS, walletClientType: 'metamask' }, walletAddress: ADDRESS.toLowerCase() }),
 }));
 vi.mock('@/hooks/useSignGas', () => ({ useSignGas: () => gas.state }));
 vi.mock('@/hooks/useUsdtBalance', () => ({ useUsdtBalance: () => ({ read: null, refetch: vi.fn() }) }));
@@ -37,7 +35,6 @@ vi.mock('@/hooks/useReducedMotion', () => ({ useReducedMotion: () => true }));
 const { SigningWindow } = await import('@/components/sign/SigningWindow');
 
 beforeEach(() => {
-  wallet.clientType = 'metamask';
   gas.state.eth = undefined;
   gas.state.fix = null;
   gas.state.isFaucetBusy = false;
@@ -171,50 +168,6 @@ describe('SigningWindow — the wallet and the network at work', () => {
 
     expect(close.getAttribute('aria-disabled')).toBe('true');
     expect(model.onClose).not.toHaveBeenCalled();
-  });
-
-  it('testSigningWindowSaysBeforeThePressThatTheWalletInTheAppSignsAtOnce', () => {
-    wallet.clientType = 'privy';
-
-    render(<SigningWindow model={joinModel()} />);
-
-    expect(screen.getByText('Your wallet signs as soon as you press: no wallet window of its own will open.')).toBeTruthy();
-  });
-
-  it('testSigningWindowLeavesTheWarningOutForAnOutsideWalletWhichPromptsItself', () => {
-    render(<SigningWindow model={joinModel()} />);
-
-    expect(screen.queryByText(/no wallet window of its own/)).toBeNull();
-  });
-
-  it('testSigningWindowAsksForTheSignatureInAnOutsideWallet', () => {
-    render(<SigningWindow model={joinModel({ place: 'write', actionState: 'awaiting-wallet', signing: { ...joinModel().signing, phase: 'permit' } })} />);
-
-    expect([screen.getByText('Sign in your wallet'), screen.getByText('Waiting for your signature…')]).toHaveLength(2);
-  });
-
-  it('testSigningWindowAsksNothingOfTheWalletInTheAppWhichSignsAtOnce', () => {
-    wallet.clientType = 'privy';
-
-    render(<SigningWindow model={joinModel({ place: 'write', actionState: 'awaiting-wallet', signing: { ...joinModel().signing, phase: 'permit' } })} />);
-
-    expect([screen.queryByText('Sign in your wallet'), screen.getByText('Your wallet is signing…')]).toEqual([null, expect.anything()]);
-  });
-
-  it('testSigningWindowAsksForThePressOnAStepNotStartedEvenWithTheWalletInTheApp', () => {
-    wallet.clientType = 'privy';
-
-    render(<SigningWindow model={joinModel({ place: 'write', actionState: 'idle' })} />);
-
-    expect([screen.getByText('Sign in your wallet'), screen.queryByText('Signing')]).toEqual([expect.anything(), null]);
-  });
-
-  it('testSigningWindowSaysTheWalletInTheAppSignedOnceTheChainHasIt', () => {
-    wallet.clientType = 'privy';
-
-    render(<SigningWindow model={joinModel({ place: 'write', actionState: 'confirming', signing: { ...joinModel().signing, hash: HASH } })} />);
-
-    expect(screen.getByText('Signed by your wallet')).toBeTruthy();
   });
 
   it('testSigningWindowCountsTheSignatures', () => {

@@ -7,8 +7,8 @@ import { usePathname } from 'next/navigation';
 const SETTLE_MS = 150;
 /** The first wait is longer: the glide starts a frame or two after the click. */
 const START_MS = 400;
-/** The keys that scroll the page. */
-const SCROLL_KEYS = new Set(['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' ']);
+/** How far from where the glide stopped the page has to move before it counts as the reader's scroll. */
+const DRIFT_PX = 2;
 
 export interface HeadedSection {
   /** The section a followed link is taking the page to, or has taken it to; null when none. */
@@ -53,35 +53,26 @@ export function useHeadedSection(): HeadedSection {
 
   useEffect(() => {
     if (hold === null) return;
-    let hasArrived = false;
+    /** Where the glide stopped; null while the page is still on its way. */
+    let arrivedAt: number | null = null;
     const arrive = () => {
-      hasArrived = true;
+      arrivedAt = window.scrollY;
     };
     let settle = setTimeout(arrive, START_MS);
-    // Once there, only the reader's own scrolling lets go: a wheel, a swipe or a scrolling key. A
-    // scroll alone does not: the phone menu locking the page as it opens moves it by hundreds of
-    // pixels, with nobody scrolling.
-    const onReaderScroll = () => {
-      if (hasArrived) setHold(null);
-    };
-    const onKey = (event: KeyboardEvent) => {
-      if (SCROLL_KEYS.has(event.key)) onReaderScroll();
-    };
     const onScroll = () => {
-      if (hasArrived) return;
-      clearTimeout(settle);
-      settle = setTimeout(arrive, SETTLE_MS);
+      if (arrivedAt === null) {
+        clearTimeout(settle);
+        settle = setTimeout(arrive, SETTLE_MS);
+        return;
+      }
+      // Measured from where the page stopped, not any scroll event: one can come with the page
+      // still there, such as the glide's last frame landing just after the wait.
+      if (Math.abs(window.scrollY - arrivedAt) > DRIFT_PX) setHold(null);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('wheel', onReaderScroll, { passive: true });
-    window.addEventListener('touchmove', onReaderScroll, { passive: true });
-    window.addEventListener('keydown', onKey);
     return () => {
       clearTimeout(settle);
       window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('wheel', onReaderScroll);
-      window.removeEventListener('touchmove', onReaderScroll);
-      window.removeEventListener('keydown', onKey);
     };
   }, [hold]);
 
