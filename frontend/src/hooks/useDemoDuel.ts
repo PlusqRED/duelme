@@ -1,21 +1,27 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import { useDemoAutoplay } from '@/hooks/useDemoAutoplay';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import type { Fly } from '@/hooks/useStakeFlights';
 import {
   actorsFirst,
+  clockLeft,
   DEMO_DEFAULT_OUTCOME,
   DEMO_LAST_STEP,
   demoStage,
   hasActed,
+  pauseClock,
+  resumeClock,
+  startClock,
   type DemoOutcome,
   type DemoStill,
+  type StepClock,
 } from '@/lib/demoDuel';
 import { SEAT_SIDES } from '@/lib/duel';
 
-/** How long a played step stays on screen before the next one. */
-export const DEMO_DWELL_MS = 3400;
+/** How long a played step stays on screen, its moves included, before the next one: its bar fills over it. */
+export const DEMO_STEP_MS = 4800;
 
 interface UseDemoDuelArgs {
   /** The demo plays itself once the first time this is mostly on screen. */
@@ -56,6 +62,8 @@ export function useDemoDuel({ root, fly, cancelFlights }: UseDemoDuelArgs) {
   const playing = useRef(false);
   const touched = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  /** The played step's time on screen; null when no play is on. */
+  const clock = useRef<StepClock | null>(null);
   const isReduced = useRef(reducedMotion);
 
   useEffect(() => {
@@ -139,24 +147,54 @@ export function useDemoDuel({ root, fly, cancelFlights }: UseDemoDuelArgs) {
 
   const stop = useCallback(() => {
     playing.current = false;
+    clock.current = null;
     setIsPlaying(false);
     clearTimeout(timer.current);
     setTiming(null);
   }, []);
 
+  /** Holds the play on its step: the step's bar stops where it is, and the rest of its time waits. */
+  const pause = useCallback(() => {
+    playing.current = false;
+    setIsPlaying(false);
+    clearTimeout(timer.current);
+    if (clock.current) clock.current = pauseClock(clock.current, Date.now());
+  }, []);
+
   const advance = useCallback(
     async function advanceStep() {
       if (!playing.current) return;
-      const next = atNow.current.step + 1;
-      const isFinished = await go(next);
-      if (!isFinished || !playing.current) return;
-      if (next === DEMO_LAST_STEP) {
-        stop();
-        setIsInviting(true);
+      const waitOut = () => {
+        const held = clock.current;
+        if (!held) return;
+        timer.current = setTimeout(
+          () => {
+            if (held.step < DEMO_LAST_STEP) {
+              void advanceStep();
+              return;
+            }
+            stop();
+            setIsInviting(true);
+          },
+          clockLeft(held, Date.now(), DEMO_STEP_MS)
+        );
+      };
+      const held = clock.current;
+      if (held && held.since === null && held.step === atNow.current.step) {
+        clock.current = resumeClock(held, Date.now());
+        // A step paused amid its moves waits them out first, as it would have anyway.
+        if (held.isMoved) waitOut();
         return;
       }
+      const next = atNow.current.step + 1;
+      const moving = go(next);
+      // The bar fills from the moment the step shows, its moves included, so it rises once and
+      // evenly, rather than filling with the step and starting over once the moves end.
+      clock.current = startClock(next, Date.now());
       setTiming(next);
-      timer.current = setTimeout(() => void advanceStep(), DEMO_DWELL_MS);
+      if (!(await moving) || clock.current?.step !== next) return;
+      clock.current = { ...clock.current, isMoved: true };
+      if (playing.current) waitOut();
     },
     [go, stop]
   );
@@ -165,7 +203,7 @@ export function useDemoDuel({ root, fly, cancelFlights }: UseDemoDuelArgs) {
     playing.current = true;
     setIsPlaying(true);
     setIsInviting(false);
-    if (atNow.current.step === DEMO_LAST_STEP) {
+    if (atNow.current.step === DEMO_LAST_STEP && clock.current === null) {
       gen.current += 1;
       cancelFlights();
       moveTo({ step: 0, outcome: null });
@@ -177,14 +215,14 @@ export function useDemoDuel({ root, fly, cancelFlights }: UseDemoDuelArgs) {
   const takeOver = useCallback(() => {
     touched.current = true;
     setIsInviting(false);
-    if (playing.current) stop();
+    stop();
   }, [stop]);
 
   const toggle = useCallback(() => {
     touched.current = true;
-    if (playing.current) stop();
+    if (playing.current) pause();
     else play();
-  }, [play, stop]);
+  }, [play, pause]);
 
   const pickStep = useCallback(
     (next: number) => {
@@ -202,78 +240,9 @@ export function useDemoDuel({ root, fly, cancelFlights }: UseDemoDuelArgs) {
     [go, takeOver]
   );
 
-  useAutoplay(root, reducedMotion, { play, stop, playing, touched });
+  useDemoAutoplay(root, reducedMotion, { play, pause, playing, touched });
 
   useEffect(() => () => clearTimeout(timer.current), []);
 
   return { ...at, stage: view.stage, jump: view.jump, isPlaying, timing, isInviting, toggle, pickStep, pickOutcome };
-}
-
-interface AutoplayControls {
-  play: () => void;
-  stop: () => void;
-  playing: RefObject<boolean>;
-  touched: RefObject<boolean>;
-}
-
-/**
- * Plays the demo once on its own the first time it is mostly on screen, unless motion is reduced.
- * That play holds while the demo is scrolled away and goes on when it is back, so it is never spent
- * unseen; once the visitor takes over, it is theirs. It reads the latest `play` and `stop`, so a
- * new language, which makes new ones, neither restarts the watch nor replays the demo.
- */
-function useAutoplay(root: RefObject<HTMLElement | null>, reducedMotion: boolean, controls: AutoplayControls) {
-  const latest = useRef(controls);
-
-  useEffect(() => {
-    latest.current = controls;
-  });
-
-  useEffect(() => {
-    const node = root.current;
-    if (reducedMotion || !node || typeof IntersectionObserver === 'undefined') return;
-    const { playing, touched } = latest.current;
-    let hasStarted = false;
-    let isHeld = false;
-    let isSeen = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const start = () => {
-      hasStarted = true;
-      isHeld = false;
-      latest.current.play();
-    };
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        isSeen = entry.isIntersecting;
-        // Taken over, or played through: from here the demo is the visitor's.
-        if (touched.current || (hasStarted && !playing.current && !isHeld)) {
-          observer.disconnect();
-          return;
-        }
-        if (!isSeen) {
-          if (playing.current) {
-            isHeld = true;
-            latest.current.stop();
-          }
-          return;
-        }
-        if (isHeld) {
-          start();
-          return;
-        }
-        if (timer !== undefined) return;
-        timer = setTimeout(() => {
-          if (touched.current) return;
-          if (isSeen) start();
-          else isHeld = true;
-        }, 700);
-      },
-      { threshold: 0.55 }
-    );
-    observer.observe(node);
-    return () => {
-      clearTimeout(timer);
-      observer.disconnect();
-    };
-  }, [root, reducedMotion]);
 }

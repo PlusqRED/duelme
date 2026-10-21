@@ -65,7 +65,8 @@ export function StandingReputation({ address, honored, abandoned }: StandingRepu
         <Tally icon="check" ink="text-good-ink" label={t('rep.try.honored')} count={honored} />
         <Tally icon="x" ink="text-orange-ink" label={t('rep.try.abandoned')} count={abandoned} />
       </p>
-      <QuestLine quest={quest} isStacked isWaiting={isWaiting} isEntering={!reducedMotion && isLevelIn} />
+      {/* At the top, the words below say all there is: there is no way left to draw. */}
+      {quest.next && <QuestLine quest={quest} isStacked isWaiting={isWaiting} isEntering={!reducedMotion && isLevelIn} />}
       <p className="rounded-[14px] bg-canvas px-3 py-2.5 text-body-sm/[1.45] text-ink">{nextLevelText(quest, abandoned, { t, plural })}</p>
     </div>
   );
@@ -74,7 +75,7 @@ export function StandingReputation({ address, honored, abandoned }: StandingRepu
 /** How far the next level is, in words: the duels the quest still misses. */
 function nextLevelText(quest: LevelQuest, abandoned: number, { t, plural }: Translator): string {
   if (quest.level === 'new') return t('dash.rep.next.new');
-  if (!quest.next) return t('dash.rep.next.top');
+  if (!quest.next) return t('quest.summit');
   const n = quest.need - quest.have;
   return t(abandoned === 0 ? 'dash.rep.next.clean' : 'dash.rep.next.up', {
     n,

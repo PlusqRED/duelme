@@ -18,6 +18,7 @@ import { useTakingLong } from '@/hooks/useTakingLong';
 import { useTranslation } from '@/i18n/useTranslation';
 import { isBusy, railStatuses, railSteps, signingSpot } from '@/lib/signingSteps';
 import { cn, formatUSDT } from '@/lib/utils';
+import { EMBEDDED_WALLET_CLIENT_TYPE } from '@/lib/walletSelection';
 
 /**
  * The one window every duel action is signed in: what it does and needs, the wallet asked step by
@@ -183,7 +184,15 @@ export function SigningWindow({ model }: { model: SigningModel }) {
           ) : spot.step === 'done' ? (
             <SignDone model={model} hash={lastHash} />
           ) : (
-            <SignProgress model={model} spot={spot} fees={fees} hash={signing.hash} isSlow={isSlow} onStartStep={startStep} />
+            <SignProgress
+              model={model}
+              spot={spot}
+              fees={fees}
+              hash={signing.hash}
+              isSlow={isSlow}
+              isInAppWallet={activeWallet?.walletClientType === EMBEDDED_WALLET_CLIENT_TYPE}
+              onStartStep={startStep}
+            />
           )}
         </div>
         {activeWallet && walletAddress && stake && stakeBalance && stakeBalance.kind !== 'no-wallet' && (

@@ -12,6 +12,11 @@ rules live in this file.
 - `createConfig` must be imported from `@privy-io/wagmi`, NOT `wagmi`
 - `setActiveWalletForWagmi` prop on `<WagmiProvider>` ensures Privy embedded wallet beats MetaMask
 - Chain switching via wagmi's `useSwitchChain` (not Privy's `switchChain`)
+- Privy's own prompts are off (`embeddedWallets.showWalletUIs: false` in `Providers.tsx`): the embedded
+  wallet signs as soon as it is asked, so whatever asks it shows what is signed first, and the press
+  in that window is the confirmation — the signing window for duel writes, `SendReview` for sending
+  USDT out. A new way to make the embedded wallet sign needs such a window too. External wallets
+  still prompt in their own window.
 
 ### Transaction Pattern
 Write ops, relayed: check chain → sign EIP-2612 permit (funding calls only) → sign
@@ -190,8 +195,8 @@ test can check.
 | `frontend/src/components/ui/iconPaths.ts` | The design's icons as shapes, drawn by `ui/icon.tsx` |
 | `frontend/src/components/ui/dialog.tsx` | The one window: a card from a fixed top on a wide screen, a sheet below 560px; `--dialog-width` widens it; `DialogFooter isPinned` keeps a long sheet's last action on screen on a phone |
 | `frontend/src/components/ui/popover.tsx` | The menus: a panel under its button on a wide screen, a modal sheet below 560px, with a title the sheet shows and a panel only reads out |
-| `frontend/src/components/header/Header.tsx` | The top bar on every page: the brand, the sections (`lib/navigation.ts`; on the landing its own, the one being read marked through `useSectionInView`) from 980px, the language, the wallet menu or Sign in, and the navigation menu below 980px |
-| `frontend/src/components/header/WalletMenu.tsx` | The wallet button (the duel network's USDT, never a sum across networks, and a pip while money waits in the contract) and its menu: player card, the small safe (`SafeMini`), a balance tile per network, Top up, Send, the faucet flask, key export and sign out |
+| `frontend/src/components/header/Header.tsx` | The top bar on every page: the brand, the sections (`lib/navigation.ts`; on the landing its own, the one being read marked through `useSectionInView`, and a followed link's section held by `useHeadedSection` while the page glides there) from 980px, the language, the wallet menu or Sign in, and the navigation menu below 980px |
+| `frontend/src/components/header/WalletMenu.tsx` | The wallet button (the duel network's USDT, never a sum across networks, and a pip while money waits in the contract) and its menu: player card, the small safe (`SafeMini`), a balance tile per network, Top up, Send (the form, a last look in `SendReview`, then the transfer), the faucet flask, key export and sign out |
 | `frontend/src/hooks/useWalletBalances.ts` | The wallet's USDT and ETH on each network the build lists, read apart (USDT on `useUsdtBalance`'s query): the button's balance polled always, the rest while the menu is open, all again on the balance bus |
 | `frontend/src/hooks/useSendUsdt.ts` | Sends USDT on the network picked: moves the wallet there, then `writeWithGas` |
 | `frontend/src/lib/sendUsdt.ts` | The send form's rules: the typed amount, the transfer it asks for, what stops it, and where a sent one is |
@@ -235,7 +240,7 @@ test can check.
 | `frontend/src/hooks/useDuelMetas.ts` | Duel metadata (the game) by id, read in the backend's batches of 200 and keyed with the contract address |
 | `frontend/src/lib/owed.ts` | What the contract keeps for a player — wins, stakes coming back, timed-out claims — and the safe's bars; `useOwed` reads it from the shared `useDuelRange` history and looks again when a claim runs out of time |
 | `frontend/src/components/landing/Hero.tsx` | The landing's first screen: the motto, the two ways in, the developer's note (`DevNote`; its last update is the build's time, which `next.config.ts` writes in as `DUELME_BUILT_AT`), the platform's figures and the demo duel |
-| `frontend/src/components/landing/DemoDuel.tsx` | The demo duel: stills of a 10 USDT duel from `lib/demoDuel.ts`, moved between by `useDemoDuel` (steps, three endings, one play by itself once in view), stakes flown by `useStakeFlights` |
+| `frontend/src/components/landing/DemoDuel.tsx` | The demo duel: stills of a 10 USDT duel from `lib/demoDuel.ts`, moved between by `useDemoDuel` (steps, three endings, a pause that holds the step and its bar) and played by itself once in view by `useDemoAutoplay`, stakes flown by `useStakeFlights` |
 | `frontend/src/components/landing/OpenDuels.tsx` | The landing's open public duels (`useOpenDuels`): one as a wide card, two or more as a lobby that is a strip to swipe below the `wide:` breakpoint, none as the invitation to make one; the count is every open duel |
 | `frontend/src/components/landing/GettingStarted.tsx` | The landing's first-duel quest (`useQuest`): the steps written down (`QuestLog`) beside a phone that acts each out (`QuestPhone`, its screens `QuestScreens` built from `QuestScreenParts`), and what a made wallet leaves in the player's hands (`ControlFacts`); step 3 and the gas line follow `useRelayerStatus` |
 | `frontend/src/components/landing/Safety.tsx` | The landing's navy band: the escrow contract to check (`EscrowCard`: its address settling out of noise via `useScrambleReveal`, copy, three explorer tabs) and the four guarantees as badges that unlock (`Guarantees`; the test count and coverage are `lib/contractFacts.ts`) |
@@ -344,6 +349,11 @@ test can check.
 
 ## Common Pitfalls
 
+- **A theme animation whose length is a variable set on the element goes in `@theme inline`.**
+  `--animate-fill: fill var(--dwell) …` in a plain `@theme` is a variable on `:root`, where
+  `--dwell` does not exist, so the animation resolved to nothing and was silently dropped: the
+  landing demo's step bars and its feed rows' exit never played. `landingMotion.css` keeps those
+  two (`--dwell`, `--leave`) in its `@theme inline`.
 - `createConfig` from `wagmi` instead of `@privy-io/wagmi` silently breaks wallet routing.
 - `useSetActiveWallet` in `useEffect` is too late — use `setActiveWalletForWagmi` sync callback.
 - Invite-only duels rely on the full private link (URL fragment) — never fall back to plain `/duel/{id}`.

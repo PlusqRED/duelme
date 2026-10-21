@@ -23,8 +23,10 @@ const gas = vi.hoisted(() => ({
   },
 }));
 
+const wallet = vi.hoisted(() => ({ clientType: 'metamask' }));
+
 vi.mock('@/hooks/useActiveWallet', () => ({
-  useActiveWallet: () => ({ activeWallet: { address: ADDRESS }, walletAddress: ADDRESS.toLowerCase() }),
+  useActiveWallet: () => ({ activeWallet: { address: ADDRESS, walletClientType: wallet.clientType }, walletAddress: ADDRESS.toLowerCase() }),
 }));
 vi.mock('@/hooks/useSignGas', () => ({ useSignGas: () => gas.state }));
 vi.mock('@/hooks/useUsdtBalance', () => ({ useUsdtBalance: () => ({ read: null, refetch: vi.fn() }) }));
@@ -35,6 +37,7 @@ vi.mock('@/hooks/useReducedMotion', () => ({ useReducedMotion: () => true }));
 const { SigningWindow } = await import('@/components/sign/SigningWindow');
 
 beforeEach(() => {
+  wallet.clientType = 'metamask';
   gas.state.eth = undefined;
   gas.state.fix = null;
   gas.state.isFaucetBusy = false;
@@ -168,6 +171,20 @@ describe('SigningWindow — the wallet and the network at work', () => {
 
     expect(close.getAttribute('aria-disabled')).toBe('true');
     expect(model.onClose).not.toHaveBeenCalled();
+  });
+
+  it('testSigningWindowAsksForTheSignatureInAnOutsideWallet', () => {
+    render(<SigningWindow model={joinModel({ place: 'write', actionState: 'awaiting-wallet', signing: { ...joinModel().signing, phase: 'permit' } })} />);
+
+    expect([screen.getByText('Sign in your wallet'), screen.getByText('Waiting for your signature…')]).toHaveLength(2);
+  });
+
+  it('testSigningWindowAsksNothingOfTheWalletInTheAppWhichSignsAtOnce', () => {
+    wallet.clientType = 'privy';
+
+    render(<SigningWindow model={joinModel({ place: 'write', actionState: 'awaiting-wallet', signing: { ...joinModel().signing, phase: 'permit' } })} />);
+
+    expect([screen.queryByText('Sign in your wallet'), screen.getByText('Your wallet is signing…')]).toEqual([null, expect.anything()]);
   });
 
   it('testSigningWindowCountsTheSignatures', () => {

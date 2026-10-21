@@ -38,6 +38,16 @@ describe('QuestLine', () => {
     expect([...litCells()].every((cell) => cell.classList.contains('animate-cell-in'))).toBe(true);
   });
 
+  it('says the top level is reached in a line, without cells or the level named again', () => {
+    render(<QuestLine quest={levelQuest(5, 0)} />);
+
+    expect([screen.queryByRole('img'), screen.queryByText('Reliable'), screen.getByText('The highest level. An abandoned duel can lower it.')]).toEqual([
+      null,
+      null,
+      expect.anything(),
+    ]);
+  });
+
   it('puts the score under the cells and the badge beside both when stacked', () => {
     render(<QuestLine quest={QUEST} isStacked />);
 

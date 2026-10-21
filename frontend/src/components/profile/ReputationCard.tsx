@@ -1,7 +1,6 @@
 'use client';
 
 import { useId, useRef, type ReactNode } from 'react';
-import { LevelBadge } from '@/components/identity/LevelBadge';
 import { QuestLine } from '@/components/identity/QuestLine';
 import { Tally } from '@/components/identity/Tally';
 import { verdictTints } from '@/components/landing/ReputationLab';
@@ -68,10 +67,8 @@ export function ReputationCard({ reputation, face }: ReputationCardProps) {
 
       {isKnown && (
         <>
-          <div className={cn('flex flex-wrap items-center gap-x-4 gap-y-2.5 rounded-tile px-4 py-3.5', verdictTints[level])}>
-            <LevelBadge level={level} className="h-[38px] gap-2 pr-4 pl-3 text-body" />
-            <p className="flex-[1_1_240px]">{t(getReputationDescriptionKey(level))}</p>
-          </div>
+          {/* The scale above names the level, in its colour; this says what it tells an opponent. */}
+          <p className={cn('rounded-tile px-4 py-3.5', verdictTints[level])}>{t(getReputationDescriptionKey(level))}</p>
           <QuestLine
             quest={levelQuest(honored, abandoned)}
             isEntering={isSeen}

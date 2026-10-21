@@ -8,7 +8,7 @@ import { demoStage } from '@/lib/demoDuel';
 const motion = vi.hoisted(() => ({ reduced: false }));
 vi.mock('@/hooks/useReducedMotion', () => ({ useReducedMotion: () => motion.reduced }));
 
-const { DEMO_DWELL_MS, useDemoDuel } = await import('@/hooks/useDemoDuel');
+const { DEMO_STEP_MS, useDemoDuel } = await import('@/hooks/useDemoDuel');
 
 /** A flight that lands when the test says so. */
 function heldFlights() {
@@ -168,10 +168,47 @@ describe('useDemoDuel', () => {
     await wait(1000);
     expect(result.current).toMatchObject({ step: 1, isPlaying: true, timing: 1 });
 
-    await wait(4 * (DEMO_DWELL_MS + 2000));
+    await wait(5 * DEMO_STEP_MS);
 
     expect(result.current).toMatchObject({ step: 5, outcome: 'confirm', isPlaying: false, isInviting: true });
     expect(result.current.stage).toEqual(demoStage(5, 'confirm'));
+  });
+
+  it('times a played step from when it shows, its bar filling while its money is still in the air', async () => {
+    const { fly } = heldFlights();
+    const { result } = renderDemo(fly);
+
+    act(() => result.current.toggle());
+    await wait(0);
+
+    expect(result.current).toMatchObject({ step: 1, timing: 1 });
+  });
+
+  it('moves on once a step has shown for its time, however long its moves took', async () => {
+    const { fly, landAll } = heldFlights();
+    const { result } = renderDemo(fly);
+    act(() => result.current.toggle());
+    await wait(1500);
+    await landAll();
+
+    await wait(DEMO_STEP_MS - 1700);
+    const before = result.current.step;
+    await wait(400);
+
+    expect([before, result.current.step]).toEqual([1, 2]);
+  });
+
+  it('waits out a step whose moves outlast its time before moving on', async () => {
+    const { fly, landAll } = heldFlights();
+    const { result } = renderDemo(fly);
+    act(() => result.current.toggle());
+
+    await wait(DEMO_STEP_MS + 1000);
+    const held = result.current.step;
+    await landAll();
+    await wait(0);
+
+    expect([held, result.current.step]).toEqual([1, 2]);
   });
 
   it('pauses on a second press and stays on its step', async () => {
@@ -180,9 +217,36 @@ describe('useDemoDuel', () => {
     await wait(1000);
 
     act(() => result.current.toggle());
-    await wait(3 * DEMO_DWELL_MS);
+    await wait(3 * DEMO_STEP_MS);
 
-    expect(result.current).toMatchObject({ step: 1, isPlaying: false, timing: null });
+    expect(result.current).toMatchObject({ step: 1, isPlaying: false, timing: 1 });
+  });
+
+  it('goes on with the paused step for the rest of its time, rather than skipping to the next', async () => {
+    const { result } = renderDemo();
+    act(() => result.current.toggle());
+    await wait(1000);
+    act(() => result.current.toggle());
+    await wait(10_000);
+
+    act(() => result.current.toggle());
+    await wait(DEMO_STEP_MS - 1200);
+    const before = result.current.step;
+    await wait(400);
+
+    expect([before, result.current.step]).toEqual([1, 2]);
+  });
+
+  it('goes on with an ending paused before its time ran out rather than starting over', async () => {
+    const { result } = renderDemo();
+    act(() => result.current.toggle());
+    await wait(4 * DEMO_STEP_MS + 1000);
+    act(() => result.current.toggle());
+
+    act(() => result.current.toggle());
+    await wait(DEMO_STEP_MS);
+
+    expect(result.current).toMatchObject({ step: 5, isPlaying: false, isInviting: true, timing: null });
   });
 
   it('gives the visitor the demo once they pick an ending', async () => {

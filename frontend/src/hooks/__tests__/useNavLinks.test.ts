@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, renderHook } from '@testing-library/react';
+import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const session = vi.hoisted(() => ({ pathname: '/games', authenticated: false, inView: null as string | null }));
@@ -68,5 +68,17 @@ describe('useNavLinks', () => {
     expect(result.current.filter((link) => link.current).map((link) => [link.href, link.current])).toEqual([
       ['#demo', 'location'],
     ]);
+  });
+
+  it('marks the section a link was followed to over the one the glide passes on the way', () => {
+    session.pathname = '/';
+    session.inView = 'recent-duels';
+    const { result, rerender } = renderHook(() => useNavLinks());
+
+    act(() => result.current.find((link) => link.href === '#safety')?.onFollow?.());
+    session.inView = 'demo';
+    rerender();
+
+    expect(result.current.filter((link) => link.current).map((link) => link.href)).toEqual(['#safety']);
   });
 });

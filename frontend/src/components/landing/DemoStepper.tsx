@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import type { TranslationKey } from '@/i18n/translations';
 import { useTranslation } from '@/i18n/useTranslation';
 import { DEMO_STEPS } from '@/lib/demoDuel';
@@ -15,18 +16,27 @@ const STEP_LABELS: Record<(typeof DEMO_STEPS)[number], TranslationKey> = {
 
 interface DemoStepperProps {
   step: number;
-  /** The step whose bar fills while the play waits on it, over the demo's `--dwell`. */
+  /** The step whose bar fills while the play shows it, over the demo's `--dwell`. */
   timing: number | null;
+  /** The play is paused: the timed bar holds where it is. */
+  isPaused: boolean;
   onPick: (step: number) => void;
 }
 
 /**
  * The demo's five steps, each one a button that shows it: a number and a name, a bar under each
- * step done. They follow the width of the demo: names alone in a narrow column, numbers alone on a
+ * step done. A jump fills or empties the bars between one after another, onwards from the step it
+ * left. They follow the width of the demo: names alone in a narrow column, numbers alone on a
  * phone, with the name still read out.
  */
-export function DemoStepper({ step, timing, onPick }: DemoStepperProps) {
+export function DemoStepper({ step, timing, isPaused, onPick }: DemoStepperProps) {
   const { t } = useTranslation();
+  const [shown, setShown] = useState({ step, from: step });
+  if (shown.step !== step) {
+    setShown({ step, from: shown.step });
+  }
+  // Bars filling count on from the step left, bars emptying count back to it; the rest stay put.
+  const turnOf = (n: number) => (n <= step ? n - shown.from - 1 : shown.from - n);
 
   return (
     <ol aria-label={t('sim.stepsLabel')} className="mt-3.5 grid grid-cols-5 gap-1">
@@ -45,9 +55,11 @@ export function DemoStepper({ step, timing, onPick }: DemoStepperProps) {
             <span className="truncate @max-[440px]/sim:sr-only">{t(STEP_LABELS[n])}</span>
             <i aria-hidden="true" className="absolute inset-x-1.5 bottom-[5px] h-[3px] overflow-hidden rounded-[3px] bg-line">
               <i
+                style={{ '--turn': Math.max(0, turnOf(n)) }}
                 className={cn(
-                  'absolute inset-0 origin-left scale-x-0 bg-ink transition-transform duration-350 group-data-reached:scale-x-100',
-                  n === timing && 'animate-fill transition-none group-data-reached:scale-x-0'
+                  'absolute inset-0 origin-left scale-x-0 bg-ink transition-transform duration-350 [transition-delay:calc(var(--turn)*70ms)] group-data-reached:scale-x-100',
+                  n === timing && 'animate-fill transition-none group-data-reached:scale-x-0',
+                  n === timing && isPaused && '[animation-play-state:paused]'
                 )}
               />
             </i>

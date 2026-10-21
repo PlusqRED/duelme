@@ -47,7 +47,10 @@ function MenuLinks({ onFollow }: { onFollow: () => void }) {
           key={link.href}
           href={link.href}
           aria-current={link.current}
-          onClick={onFollow}
+          onClick={() => {
+            link.onFollow?.();
+            onFollow();
+          }}
           className="flex min-h-12 items-center rounded-[14px] px-3 text-body font-label text-ink-2 transition-colors hover:bg-canvas hover:text-ink [&[aria-current]]:bg-canvas [&[aria-current]]:text-ink [&[aria-current]]:shadow-[inset_3px_0_0_var(--color-ink)]"
         >
           {link.label}

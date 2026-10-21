@@ -62,6 +62,10 @@ const privyConfig: PrivyClientConfig = {
     ethereum: {
       createOnLogin: 'all-users',
     },
+    // The signing window is the confirmation: it says what each signature does, what it costs and
+    // what the wallet needs before the player presses, and Privy's own prompt only covered it.
+    // Sending USDT out has its own last look at the transfer for the same reason.
+    showWalletUIs: false,
   },
 };
 

@@ -2,19 +2,24 @@
    lists (whose rows and receipts the duel feeds of other pages share), its first-duel quest and
    its reputation scale. The rules every move keeps, and the moves the app shares, are in
    `motion.css`. */
+/* Inline, because their lengths are set on the element that plays them: as plain theme variables
+   they would resolve on :root, where neither length exists, and the animation would be dropped. */
+@theme inline {
+  --animate-fill: fill var(--dwell) linear forwards;
+  --animate-leave: leave var(--leave) ease-in forwards;
+}
+
 @theme {
   --animate-stick: stick 0.7s var(--ease-spring) 0.35s backwards;
   --animate-lay: lay 2.4s var(--ease-spring) infinite;
   --animate-march: march 1.1s linear infinite;
   --animate-swap: swap 0.4s ease both;
-  --animate-fill: fill var(--dwell) linear forwards;
   --animate-nudge: nudge 1.6s ease-in-out 0.4s 2;
   --animate-slide-in: slide-in 0.38s var(--ease-sheet) backwards;
   --animate-draw: draw 0.38s var(--ease-sheet) backwards;
   --animate-draw-down: draw-down 0.38s var(--ease-sheet) backwards;
   --animate-pay: pay 1.1s var(--ease-sheet) backwards;
   --animate-pay-flash: pay-flash 1.1s var(--ease-sheet) both;
-  --animate-leave: leave var(--leave) ease-in forwards;
   --animate-screen-in: screen-in 0.38s var(--ease-sheet) 0.14s backwards;
   --animate-ripple: ripple 0.7s ease-out both;
   --animate-spark: spark 0.8s ease-out both;

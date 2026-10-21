@@ -19,6 +19,7 @@ export function NavLinks() {
           key={link.href}
           href={link.href}
           aria-current={link.current}
+          onClick={link.onFollow}
           className="relative inline-flex min-h-11 items-center rounded-xl px-3 text-body-sm font-medium text-ink-2 transition-colors after:absolute after:inset-x-3 after:bottom-[3px] after:h-[3px] after:scale-x-0 after:rounded-full after:bg-ink after:transition-transform after:duration-450 after:ease-sheet hover:bg-paper hover:text-ink [&[aria-current]]:text-ink [&[aria-current]]:after:scale-x-100"
         >
           {link.label}

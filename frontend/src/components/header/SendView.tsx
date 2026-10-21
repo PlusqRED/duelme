@@ -4,12 +4,15 @@ import { useState } from 'react';
 import { QuietButton } from '@/components/header/QuietButton';
 import { SendForm } from '@/components/header/SendForm';
 import { SendProgress } from '@/components/header/SendProgress';
+import { SendReview } from '@/components/header/SendReview';
+import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useSendUsdt } from '@/hooks/useSendUsdt';
 import type { NetworkBalances } from '@/hooks/useWalletBalances';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { FaucetOffer } from '@/lib/faucetApi';
 import { sendStage, type SendDraft, type Transfer } from '@/lib/sendUsdt';
 import { formatUSDT } from '@/lib/utils';
+import { EMBEDDED_WALLET_CLIENT_TYPE } from '@/lib/walletSelection';
 import { readingFigure } from '@/lib/walletBalances';
 
 interface SendViewProps {
@@ -22,20 +25,26 @@ interface SendViewProps {
   onBack: () => void;
 }
 
-/** Sending USDT out: the form, then the transfer on its way from your wallet to the address. */
+/**
+ * Sending USDT out: the form, a last look at the transfer, then the transfer on its way from your
+ * wallet to the address.
+ */
 export function SendView({ address, network, faucetOffer, onBack }: SendViewProps) {
   const { t, language } = useTranslation();
+  const { activeWallet } = useActiveWallet();
   const [draft, setDraft] = useState<SendDraft>({ to: '', amount: '' });
   const [transfer, setTransfer] = useState<Transfer | null>(null);
+  const [isSent, setIsSent] = useState(false);
   const sending = useSendUsdt(network.chain.id);
 
-  function submit(next: Transfer) {
-    setTransfer(next);
+  function send(next: Transfer) {
+    setIsSent(true);
     void sending.send(next.to, next.raw);
   }
 
   function retry() {
     sending.reset();
+    setIsSent(false);
     setTransfer(null);
   }
 
@@ -57,8 +66,10 @@ export function SendView({ address, network, faucetOffer, onBack }: SendViewProp
           faucetOffer={faucetOffer}
           draft={draft}
           onDraft={setDraft}
-          onSubmit={submit}
+          onSubmit={setTransfer}
         />
+      ) : !isSent ? (
+        <SendReview from={address} transfer={transfer} network={network.chain} onSend={() => send(transfer)} onEdit={() => setTransfer(null)} />
       ) : (
         <SendProgress
           stage={sendStage(sending)}
@@ -67,6 +78,7 @@ export function SendView({ address, network, faucetOffer, onBack }: SendViewProp
           network={network.chain}
           hash={sending.hash}
           error={sending.error}
+          isInAppWallet={activeWallet?.walletClientType === EMBEDDED_WALLET_CLIENT_TYPE}
           onDone={onBack}
           onRetry={retry}
         />
