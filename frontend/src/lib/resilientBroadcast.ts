@@ -57,7 +57,7 @@ export interface ResilientBroadcastArgs {
 // of one shot at one provider.
 //
 // All gas parameters must be pre-filled by the caller — passing them explicitly
-// also defeats Privy's all-zero-gas auto-populate bug (see useDuelActions
+// also defeats Privy's all-zero-gas auto-populate bug (see useWriteWithGas
 // writeWithGas / buildTransactionParams).
 export async function broadcastWithFallback(params: ResilientBroadcastArgs): Promise<Hex> {
   const data = encodeFunctionData({

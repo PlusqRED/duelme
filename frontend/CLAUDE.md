@@ -414,9 +414,9 @@ test can check.
   does not change when the wallet moves, so the failure outlasts the switch; and a write called in
   the same callback as `switchChainAsync` holds the client of the render before it. So
   `writeWithGas` takes no client for the embedded wallet: Privy's `signTransaction` signs for the
-  transaction's own chain id. `useSendUsdt` switches and writes in one go. The relayer's signature (`relayWrite`) and the
-  permit (`useDuelPermit`) still take the hook's client: the signing flows make the switch a step
-  of its own for them.
+  transaction's own chain id. `useSendUsdt` switches and writes in one go. The relayer's signature
+  (`relayWrite`) and the permit (`useDuelPermit`) still take the hook's client: the signing flows
+  make the switch a step of its own for them.
 - **A link cannot sit inside a button or another link, so a row that presses as one is not one.**
   The feed's `DuelRow` (a button that opens the receipt) and the dashboard's `HistoryRow` (a link to
   the duel) put their button or link around the game's name only and spread it over the row with an

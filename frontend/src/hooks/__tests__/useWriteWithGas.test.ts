@@ -192,7 +192,8 @@ describe('useWriteWithGas — the embedded wallet', () => {
   });
 
   it('reports a signature Privy refuses as the write error', async () => {
-    broadcastWithFallback.mockRejectedValue(new Error('[Input error] `params.transaction.type`'));
+    privySignTransaction.mockRejectedValue(new Error('[Input error] `params.transaction.type`'));
+    broadcastWithFallback.mockImplementation(async ({ signTransaction }) => signTransaction({ type: 2 }));
     const { result } = renderWrite();
 
     await act(() => result.current.writeWithGas(CONFIG));
