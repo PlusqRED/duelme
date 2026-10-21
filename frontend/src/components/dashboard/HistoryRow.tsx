@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Avatar } from '@/components/identity/Avatar';
 import { GameTile } from '@/components/identity/GameTile';
+import { PlayerLink } from '@/components/identity/PlayerLink';
 import { Icon } from '@/components/ui/icon';
 import type { IconName } from '@/components/ui/iconPaths';
 import type { DuelGame } from '@/hooks/useDashboard';
@@ -36,7 +37,8 @@ interface HistoryRowProps {
  * winner in the sun ring with the cup and the loser dimmed; the game, number, opponent and note; the
  * result, the loudest part, with what it won or cost; what is still to take, and when. Where the
  * column is narrow the row reads down: the game, then the result and the amount, then the opponent
- * and the rest.
+ * and the rest. The game's link to the duel is spread over the whole row, with the opponent's name
+ * on top leading to their profile: a link cannot sit inside a link.
  */
 export function HistoryRow({ entry, game, nameOf, owed, isStamped }: HistoryRowProps) {
   const { t, language } = useTranslation();
@@ -50,10 +52,9 @@ export function HistoryRow({ entry, game, nameOf, owed, isStamped }: HistoryRowP
   const at = lastMoveAt(entry);
 
   return (
-    <Link
-      href={`/duel/${duel.id}`}
+    <div
       className={cn(
-        'group/row grid grid-cols-[62px_minmax(0,1fr)_auto_84px_18px] items-center gap-4 rounded-[20px] px-3.5 py-3 text-ink no-underline transition-colors duration-200 hover:bg-canvas',
+        'group/row relative grid grid-cols-[62px_minmax(0,1fr)_auto_84px_18px] items-center gap-4 rounded-[20px] px-3.5 py-3 text-ink transition-colors duration-200 hover:bg-canvas',
         '@max-[600px]/desk:grid-cols-[52px_minmax(0,1fr)_auto] @max-[600px]/desk:gap-x-3 @max-[600px]/desk:gap-y-1 @max-[600px]/desk:p-3'
       )}
     >
@@ -61,14 +62,21 @@ export function HistoryRow({ entry, game, nameOf, owed, isStamped }: HistoryRowP
       <span className={'grid min-w-0 gap-1 @max-[600px]/desk:contents'}>
         <span className={'flex min-w-0 items-center gap-2 @max-[600px]/desk:col-[2/-1] @max-[600px]/desk:row-start-1'}>
           <GameTile name={game?.name ?? null} category={game?.category} className="size-6 rounded-[7px] text-[0.5625rem]" />
-          <b className="truncate font-strong">{game?.name ?? t('duel.title', { id: duel.id })}</b>
-          {game && <span className="text-sm/[1.55] font-label text-ink-3 tabular-nums">#{duel.id}</span>}
+          <Link
+            href={`/duel/${duel.id}`}
+            className="flex min-w-0 items-center gap-2 after:absolute after:inset-0 after:z-1 after:rounded-[20px] focus-visible:outline-hidden focus-visible:after:outline-3 focus-visible:after:outline-offset-3 focus-visible:after:outline-blue"
+          >
+            <b className="truncate font-strong">{game?.name ?? t('duel.title', { id: duel.id })}</b>
+            {game && <span className="text-sm/[1.55] font-label text-ink-3 tabular-nums">#{duel.id}</span>}
+          </Link>
         </span>
         <span className={'flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm/[1.55] text-ink-3 @max-[600px]/desk:col-[2/-1] @max-[600px]/desk:row-start-3 @max-[600px]/desk:min-w-0'}>
           {other ? (
             <>
               <span>{t('dash.row.vs')}</span>
-              <span className="font-label text-ink tabular-nums">{nameOf(other)}</span>
+              <PlayerLink address={other} className="relative z-2 font-label text-ink tabular-nums">
+                {nameOf(other)}
+              </PlayerLink>
             </>
           ) : (
             <span>{reason}</span>
@@ -127,7 +135,7 @@ export function HistoryRow({ entry, game, nameOf, owed, isStamped }: HistoryRowP
         name="chevron-right"
         className={'size-[18px] text-ink-3 transition-[translate,color] duration-200 ease-press group-hover/row:translate-x-0.5 group-hover/row:text-ink @max-[600px]/desk:hidden'}
       />
-    </Link>
+    </div>
   );
 }
 

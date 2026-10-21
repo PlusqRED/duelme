@@ -156,7 +156,7 @@ test can check.
   from the bottom of a phone), `Popover` (a menu: a panel under its button, a sheet on a phone),
   `Input`, `Note` (a line of small print after an icon), `Spinner`, `Toaster`. Who and what in `components/identity/`: `Avatar` (a player's identicon on
   their seat's colour; the pattern is `lib/identicon.ts`, the same for an address everywhere),
-  `GameTile` (initials on the category's colour), `ReputationPill` (a level), `LevelBadge` (a level as the badge a player earns, or still locked) and
+  `GameTile` (initials on the category's colour), `PlayerLink` (a player's name, with their face where one is shown, leading to their profile: every name of another player on a card, a row, the duel page), `ReputationPill` (a level), `LevelBadge` (a level as the badge a player earns, or still locked) and
   `QuestLine` (the honored duels to the next level, from `levelQuest`), `Tally` (one side of a
   record: honored or abandoned), `BrandMark`, `BrandLink`.
 - **Motion** either explains something once or answers a click, and moves only transform and
@@ -406,6 +406,13 @@ test can check.
   `useSendUsdt` switches and writes in one go. The relayer's signature (`relayWrite`) and the
   permit (`useDuelPermit`) still take the hook's client: the signing flows make the switch a step
   of its own for them.
+- **A link cannot sit inside a button or another link, and a row that presses as one used to be
+  one.** The feed's `DuelRow` (a button that opens the receipt) and the dashboard's `HistoryRow` (a
+  link to the duel) now put their button or link around the game's name only and spread it over the
+  row with an `after:absolute after:inset-0 after:z-1`, the row `relative`; the players'
+  `PlayerLink`s sit on top as `relative z-2`. A press anywhere else still opens the row, and the
+  focus ring is drawn on the spread part. A row whose button or link wraps everything again loses
+  its players' links or nests them, which React reports as invalid markup.
 - **A window that closes because what it shows turned null empties before it is gone.** The window
   plays its closing animation after the value it was opened with (a network, a platform) is already
   null, so its title and body change or vanish on the way out. Show `useLastNonNull(value)` from

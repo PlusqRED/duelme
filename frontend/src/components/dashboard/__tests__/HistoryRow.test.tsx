@@ -11,8 +11,12 @@ import { DASH_NOW, myDuel, READER, RIVAL } from '@/lib/__tests__/helpers/myDuel'
 const CHESS = { name: 'Chess', category: 'STRATEGY' as const };
 
 function renderRow(entry: MyDuel, { game = CHESS as typeof CHESS | null, owed = undefined as OwedItem | undefined } = {}) {
-  render(<HistoryRow entry={entry} game={game} nameOf={(address) => (address === RIVAL ? 'rival' : address)} owed={owed} isStamped={false} />);
-  return screen.getByRole('link');
+  const { container } = render(
+    <HistoryRow entry={entry} game={game} nameOf={(address) => (address === RIVAL ? 'rival' : address)} owed={owed} isStamped={false} />
+  );
+  const row = container.firstElementChild;
+  if (!(row instanceof HTMLElement)) throw new Error('No row');
+  return row;
 }
 
 beforeEach(() => {
@@ -27,9 +31,15 @@ afterEach(() => {
 
 describe('HistoryRow', () => {
   it('leads to the duel', () => {
-    const row = renderRow(myDuel(12, { state: DuelState.Resolved, claimedWinner: READER }));
+    renderRow(myDuel(12, { state: DuelState.Resolved, claimedWinner: READER }));
 
-    expect(row.getAttribute('href')).toBe('/duel/12');
+    expect(screen.getByRole('link', { name: /^Chess/ }).getAttribute('href')).toBe('/duel/12');
+  });
+
+  it('leads from the opponent’s name to their profile', () => {
+    renderRow(myDuel(12, { state: DuelState.Resolved, claimedWinner: READER }));
+
+    expect(screen.getByRole('link', { name: 'rival' }).getAttribute('href')).toBe(`/profile/${RIVAL.toLowerCase()}`);
   });
 
   it('names the game, the number and the opponent', () => {

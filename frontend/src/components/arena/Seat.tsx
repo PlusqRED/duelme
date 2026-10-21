@@ -13,7 +13,8 @@ interface SeatProps {
   /** The share of a real duel's time to answer still left, from 0 to 1, for the ring to measure. */
   timerLeft?: number;
   isWinner: boolean;
-  name: string;
+  /** The name, or a link to the player's profile carrying it. */
+  name: ReactNode;
   /** Nobody sits here yet: the name is the invitation, in the opponent's blue. */
   isOpen: boolean;
   /** The reader sits here: the name, "You", is set in navy. */

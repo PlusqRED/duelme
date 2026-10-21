@@ -15,6 +15,11 @@ export const NAV_LINKS: readonly NavLink[] = [
   { href: '/dashboard', labelKey: 'nav.dashboard', signedInOnly: true },
 ];
 
+/** A player's public profile, at their address in lower case as the route reads it: one player, one page address. */
+export function profilePath(address: string): string {
+  return `/profile/${address.toLowerCase()}`;
+}
+
 /** A section of the landing, which its top bar lists in place of the app's pages. */
 export interface SectionLink {
   /** The section's id on the page. */

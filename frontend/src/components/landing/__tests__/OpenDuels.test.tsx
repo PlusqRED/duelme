@@ -63,6 +63,15 @@ describe('OpenDuels', () => {
     expect(within(table).getByRole('link', { name: 'Join for 14.5 USDT' }).getAttribute('href')).toBe('/duel/7');
   });
 
+  it('leads from the creator’s face and name to their profile', () => {
+    page.duels = [duel(7)];
+    page.total = 1;
+    render(<OpenDuels />);
+
+    const creator = within(card('Wow Midnight')).getByRole('link', { name: '0x32a3…AA23' });
+    expect(creator.getAttribute('href')).toBe(`/profile/${CREATOR}`);
+  });
+
   it('names no level for a creator whose record could not be read', () => {
     page.duels = [duel(7, { reputationStats: undefined })];
     page.total = 1;

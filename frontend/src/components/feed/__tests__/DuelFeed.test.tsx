@@ -44,6 +44,13 @@ function Feed({ duels }: { duels: FeedDuel[] }) {
 
 const rows = () => screen.queryAllByRole('button', { name: /Chess #\d/ });
 
+/** A row as the reader sees it, around the button it presses as. */
+function rowOf(button: HTMLElement): HTMLElement {
+  const row = button.closest('li');
+  if (!row) throw new Error('No row');
+  return row;
+}
+
 afterEach(cleanup);
 
 describe('DuelFeed', () => {
@@ -99,9 +106,26 @@ describe('DuelFeed', () => {
     const played = duel(2, DuelState.Funded);
     render(<Feed duels={[played]} />);
 
-    const row = rows()[0];
+    const row = rowOf(rows()[0]);
     expect(within(row).getByText(translations.en[phaseLabel(played, 'funded').key])).toBeTruthy();
     expect(within(row).queryByText('won')).toBeNull();
+  });
+
+  it('leads from each player’s name to their profile', () => {
+    render(<Feed duels={[duel(3, DuelState.Resolved)]} />);
+    const row = rowOf(rows()[0]);
+
+    expect(within(row).getByRole('link', { name: 'alice' }).getAttribute('href')).toBe(`/profile/${CREATOR.toLowerCase()}`);
+    expect(within(row).getByRole('link', { name: 'bob' }).getAttribute('href')).toBe(`/profile/${OPPONENT.toLowerCase()}`);
+  });
+
+  it('opens a row from its button, named by the game and the duel’s number', () => {
+    render(<Feed duels={[duel(3, DuelState.Resolved)]} />);
+    const button = screen.getByRole('button', { name: 'Chess #3' });
+
+    fireEvent.click(button);
+
+    expect(button.getAttribute('aria-expanded')).toBe('true');
   });
 });
 

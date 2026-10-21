@@ -9,6 +9,7 @@ import { RepChip } from '@/components/arena/RepChip';
 import { Seat } from '@/components/arena/Seat';
 import { seatSays } from '@/components/arena/seatSays';
 import { Avatar } from '@/components/identity/Avatar';
+import { PlayerLink } from '@/components/identity/PlayerLink';
 import { ReputationPill } from '@/components/identity/ReputationPill';
 import { Icon } from '@/components/ui/icon';
 import type { ArenaGain } from '@/hooks/useArenaMotion';
@@ -64,8 +65,8 @@ interface RoomSeatProps {
 
 /**
  * One player's seat in a real duel: their face, or an open seat until someone joins; what they say,
- * their note or their clock above it; their name, "You" on the reader's own seat with the address
- * under it; then their level while the duel runs, and once it is over their money and what it added
+ * their note or their clock above it; their name, leading to their profile, "You" on the reader's
+ * own seat with the address under it; then their level while the duel runs, and once it is over their money and what it added
  * to their record. An open seat the reader could take carries their wallet's USDT, shows them
  * sitting down while they point at Join or at it, and makes Join's move at a press.
  */
@@ -134,7 +135,7 @@ export function RoomSeat({ side, seat, address, name, isYou, level, note, clock,
       timer={seat.timer}
       timerLeft={seat.timer ? (clock?.left ?? 0) : undefined}
       isWinner={seat.isWinner}
-      name={name}
+      name={address ? <PlayerLink address={address}>{name}</PlayerLink> : name}
       isOpen={!address}
       isYou={isYou && !!address}
       isCompact={isCompact}

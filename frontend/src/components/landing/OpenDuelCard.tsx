@@ -5,6 +5,7 @@ import { speechClassName } from '@/components/arena/Bubble';
 import { OpenSeat } from '@/components/arena/OpenSeat';
 import { Avatar } from '@/components/identity/Avatar';
 import { GameTile } from '@/components/identity/GameTile';
+import { PlayerLink } from '@/components/identity/PlayerLink';
 import { ReputationPill } from '@/components/identity/ReputationPill';
 import { buttonVariants } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
@@ -30,7 +31,7 @@ interface OpenDuelCardProps {
 
 /**
  * An open duel as a table waiting for its second player: the game, the creator in red with their
- * note and their record, the empty blue seat, what joining costs and what the pot becomes, and the
+ * note and their record (their face and name lead to their profile), the empty blue seat, what joining costs and what the pot becomes, and the
  * way in. Pointing at it puts the reader in the open seat.
  */
 export function OpenDuelCard({ duel, isCompact, isOwn, className }: OpenDuelCardProps) {
@@ -86,10 +87,12 @@ export function OpenDuelCard({ duel, isCompact, isOwn, className }: OpenDuelCard
           </p>
         )}
         <div className="flex min-w-0 flex-col items-center gap-1.5 text-center [grid-area:a]">
-          <Avatar address={duel.creator} tone="red" className="size-16" />
-          <p className={cn('font-bold tabular-nums [overflow-wrap:anywhere]', isCompact && 'max-w-full truncate text-body-sm')}>
-            {duel.creatorName}
-          </p>
+          <PlayerLink address={duel.creator} className="flex max-w-full min-w-0 flex-col items-center gap-1.5">
+            <Avatar address={duel.creator} tone="red" className="size-16" />
+            <span className={cn('max-w-full font-bold tabular-nums [overflow-wrap:anywhere]', isCompact && 'truncate text-body-sm')}>
+              {duel.creatorName}
+            </span>
+          </PlayerLink>
           {stats && (
             <p className="flex flex-wrap justify-center gap-x-2 gap-y-1 text-note text-ink-3">
               <ReputationPill level={stats.level} />

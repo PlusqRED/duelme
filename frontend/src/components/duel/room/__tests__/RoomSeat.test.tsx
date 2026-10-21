@@ -49,8 +49,20 @@ describe('RoomSeat', () => {
   it('calls the reader’s seat You, with their address under it', () => {
     render(seat({ isYou: true, name: en['room.you'] }));
 
-    expect(screen.getByText(en['room.you']).className).toContain('bg-ink');
+    expect(screen.getByText(en['room.you']).closest('p')?.className).toContain('bg-ink');
     expect(screen.getByText('0x32a3...aa23')).toBeTruthy();
+  });
+
+  it('leads from the player’s name to their profile', () => {
+    render(seat());
+
+    expect(screen.getByRole('link', { name: '0x32a3...aa23' }).getAttribute('href')).toBe(`/profile/${PLAYER}`);
+  });
+
+  it('leaves an open seat’s name unlinked', () => {
+    render(seat({ address: null, name: en['sim.openSeat'] }));
+
+    expect(screen.queryByRole('link')).toBeNull();
   });
 
   it('shows the player’s level while the duel runs, with their record on hover', () => {
