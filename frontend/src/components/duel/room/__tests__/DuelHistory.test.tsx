@@ -42,6 +42,13 @@ describe('DuelHistory', () => {
     expect(lines()).toEqual([en['room.ev.created'].replace('{who}', 'Ace'), en['room.ev.joined'].replace('{who}', 'Bo')]);
   });
 
+  it('leads from each player’s name to their profile', () => {
+    render(<DuelHistory duel={joined} phase="funded" claimTimeout={3600} walletAddress={undefined} />);
+
+    expect(screen.getByRole('link', { name: 'Ace' }).getAttribute('href')).toBe(`/profile/${CREATOR.toLowerCase()}`);
+    expect(screen.getByRole('link', { name: 'Bo' }).getAttribute('href')).toBe(`/profile/${OPPONENT.toLowerCase()}`);
+  });
+
   it('calls the reader You in their own lines', () => {
     render(<DuelHistory duel={joined} phase="funded" claimTimeout={3600} walletAddress={OPPONENT} />);
 

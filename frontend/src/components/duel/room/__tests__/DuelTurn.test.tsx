@@ -2,8 +2,10 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { createRef, type ComponentProps } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useDuelTurnActions } from '@/hooks/useDuelTurnActions';
 import { translations } from '@/i18n/translations';
 import { DuelState } from '@/lib/contracts';
+import type { DuelPhase } from '@/lib/duelPhase';
 import { turnView, type TurnViewer } from '@/lib/turnView';
 import { duelView } from '@/lib/__tests__/helpers/duelView';
 
@@ -70,11 +72,27 @@ const purse: ComponentProps<typeof DuelTurn>['purse'] = {
   retry: vi.fn(),
 };
 
-function turn(overrides: Partial<ComponentProps<typeof DuelTurn>> = {}, viewer = GUEST) {
+type TurnProps = ComponentProps<typeof DuelTurn>;
+
+/** The panel with the page's moves, which the page holds (the mocked hook's). */
+function TurnWithMoves(props: Omit<TurnProps, 'actions'> & { phase: DuelPhase }) {
+  const { phase, ...rest } = props;
+  const actions = useDuelTurnActions({
+    duelId: rest.duelId,
+    duel: rest.duel,
+    phase,
+    inviteSecret: rest.inviteSecret,
+    walletAddress: rest.walletAddress,
+    refetch: async () => undefined,
+    openTopUp: purse.openTopUp,
+  });
+  return <DuelTurn {...rest} actions={actions} />;
+}
+
+function turn(overrides: Partial<Omit<TurnProps, 'actions'>> = {}, viewer = GUEST, phase: DuelPhase = 'created') {
   const duel = overrides.duel ?? duelView({ creator: CREATOR });
-  const phase = overrides.phase ?? 'created';
   return (
-    <DuelTurn
+    <TurnWithMoves
       duelId={3}
       duel={duel}
       phase={phase}
@@ -86,7 +104,6 @@ function turn(overrides: Partial<ComponentProps<typeof DuelTurn>> = {}, viewer =
       purse={purse}
       faces={{ creator: createRef(), opponent: createRef() }}
       onPreviewJoin={vi.fn()}
-      refetch={vi.fn(async () => undefined)}
       {...overrides}
     />
   );
@@ -135,7 +152,7 @@ describe('DuelTurn', () => {
 
   it('keeps the join and action windows closed until a move opens them', () => {
     const duel = duelView({ creator: CREATOR, opponent: OPPONENT, fundedAt: 2n, state: DuelState.Funded });
-    render(turn({ duel, phase: 'funded' }, { ...GUEST, side: 'opponent', isSignedIn: true }));
+    render(turn({ duel }, { ...GUEST, side: 'opponent', isSignedIn: true }, 'funded'));
 
     expect(screen.getByTestId('join-flow').dataset.open).toBe('false');
     expect(screen.getByTestId('action-flow').dataset.open).toBe('false');

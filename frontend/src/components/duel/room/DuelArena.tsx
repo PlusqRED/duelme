@@ -14,7 +14,7 @@ import type { GameCategory } from '@/lib/game';
 import { isPublicDuel } from '@/lib/invite';
 import { countdownClock } from '@/lib/timeWords';
 
-interface DuelArenaProps extends Pick<ComponentProps<typeof ArenaStage>, 'faceRefs' | 'openSeat'> {
+interface DuelArenaProps extends Pick<ComponentProps<typeof ArenaStage>, 'faceRefs' | 'openSeat' | 'isOwnOpenSeat'> {
   duelId: number;
   duel: Duel;
   phase: DuelPhase;
@@ -29,7 +29,7 @@ interface DuelArenaProps extends Pick<ComponentProps<typeof ArenaStage>, 'faceRe
  * seats and the contract's safe, and the five steps under them. While a reported win waits for an
  * answer, its clock ticks here every second, and only here.
  */
-export function DuelArena({ duelId, duel, phase, viewerSide, chainId, claimTimeout, game, faceRefs, openSeat }: DuelArenaProps) {
+export function DuelArena({ duelId, duel, phase, viewerSide, chainId, claimTimeout, game, faceRefs, openSeat, isOwnOpenSeat }: DuelArenaProps) {
   const { t } = useTranslation();
   const titleId = useId();
   const secondsLeft = useClockValue((now) => (phase === 'claimed' ? secondsToAnswer(duel, now, claimTimeout) : 0));
@@ -58,6 +58,7 @@ export function DuelArena({ duelId, duel, phase, viewerSide, chainId, claimTimeo
         clock={clock}
         faceRefs={faceRefs}
         openSeat={openSeat}
+        isOwnOpenSeat={isOwnOpenSeat}
       />
       <DuelSteps steps={duelSteps(duel, phase)} timeUsed={clock ? 1 - clock.left : 0} />
     </section>

@@ -5,6 +5,7 @@ import { DuelArena } from '@/components/duel/room/DuelArena';
 import { DuelHistory } from '@/components/duel/room/DuelHistory';
 import { DuelTurn } from '@/components/duel/room/DuelTurn';
 import { RoomFacts } from '@/components/duel/room/RoomFacts';
+import { useDuelTurnActions } from '@/hooks/useDuelTurnActions';
 import { useRelayerStatus } from '@/hooks/useRelayerStatus';
 import { useStakePurse } from '@/hooks/useStakePurse';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -14,7 +15,7 @@ import { canJoinWaitingDuel, seatOf } from '@/lib/duel';
 import type { DuelPhase } from '@/lib/duelPhase';
 import type { GameCategory } from '@/lib/game';
 import { canPresentInvite } from '@/lib/invite';
-import { turnView } from '@/lib/turnView';
+import { seatMove, turnView } from '@/lib/turnView';
 import { formatUSDT } from '@/lib/utils';
 
 const contractAddress = DUELME_ADDRESSES[DEFAULT_CHAIN_ID];
@@ -70,6 +71,10 @@ export function RoomGrid({ duelId, duel, phase, game, inviteSecret, walletAddres
     showsPurse && purse.shown.kind === 'ready'
       ? { text: `${formatUSDT(purse.shown.raw, language)} USDT`, isShort: purse.shortRaw > 0n }
       : null;
+  const actions = useDuelTurnActions({ duelId, duel, phase, inviteSecret, walletAddress, refetch, openTopUp: purse.openTopUp });
+  // A press on the open seat makes the panel's move, the one under it; nothing while a move is under way.
+  const move = seatMove(view);
+  const takeSeat = move && !actions.isBusy ? () => actions.run(move) : null;
 
   return (
     <div className="grid grid-cols-1 gap-5 hero:grid-cols-[minmax(0,1fr)_340px] hero:items-start hero:gap-7">
@@ -83,21 +88,21 @@ export function RoomGrid({ duelId, duel, phase, game, inviteSecret, walletAddres
           claimTimeout={claimTimeout}
           game={game}
           faceRefs={faces}
-          openSeat={canTakeSeat ? { isTaking: isPreviewingJoin, purse: seatPurse } : undefined}
+          openSeat={canTakeSeat ? { isTaking: isPreviewingJoin, purse: seatPurse, onTake: takeSeat } : undefined}
+          isOwnOpenSeat={phase === 'created' && isSignedIn && viewerSide === 'creator'}
         />
         <DuelTurn
           duelId={duelId}
           duel={duel}
-          phase={phase}
           view={view}
           gameName={game?.name ?? null}
           inviteSecret={inviteSecret}
           walletAddress={walletAddress}
           claimTimeout={claimTimeout}
           purse={purse}
+          actions={actions}
           faces={faces}
           onPreviewJoin={setIsPreviewingJoin}
-          refetch={refetch}
         />
       </div>
       <aside className="grid min-w-0 content-start gap-5 min-[720px]:max-[1079px]:grid-cols-2 min-[720px]:max-[1079px]:items-start hero:sticky hero:top-[92px]">

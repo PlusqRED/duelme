@@ -24,7 +24,7 @@ export function SignedOutProfile({ onSignIn }: { onSignIn: () => void }) {
           <h1 className="text-h1 max-xs:text-h2">{t('profile.signedOutTitle')}</h1>
           <p className="max-w-[44ch] text-lg text-ink-2">{t('profile.signInToEdit')}</p>
         </div>
-        <Button className="col-span-full justify-self-start" onClick={onSignIn}>
+        <Button data-take-seat className="col-span-full justify-self-start" onClick={onSignIn}>
           {t('nav.connectWallet')}
         </Button>
       </div>

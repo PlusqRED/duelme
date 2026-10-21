@@ -1,7 +1,7 @@
 /**
  * Theme colours for the places a stylesheet cannot reach — the browser's theme colour, Privy's
- * login window, and the favicon, logo and share images that `ImageResponse` draws from inline
- * styles. Each one is a copy
+ * login window, the favicon, logo and share images that `ImageResponse` draws from inline
+ * styles, and the no-entry pointer drawn as an image (`seatCursor.ts`). Each one is a copy
  * of its token in `styles/theme.css`, and `brandColors.test.ts` keeps them equal.
  */
 export const brandColors = {

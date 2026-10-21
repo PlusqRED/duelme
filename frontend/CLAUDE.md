@@ -130,7 +130,11 @@ test can check.
   winner and the payout, green (`good`) what is good (honored, unlocked, copied, under your
   control), orange what needs attention (an error, a shortfall, a late answer) — never red, which
   is a player. Reputation levels: Reliable green, Mixed sun (its bars a deeper `sun-bar`), Risky
-  orange, New grey (`level-new-soft`, `level-new-ink`).
+  orange, New grey (`level-new-soft`, `level-new-ink`). A check of whether the wallet has enough
+  answers in green or orange, never in the seat's colour: the stake's cells (`sign/ChargeCells`)
+  were the creator's red, and a full red bar read as a warning beside "Enough". The one red sign is
+  about the creator, not an error: the no-entry pointer over the open seat of their own duel
+  (`lib/seatCursor.ts`, drawn from `lib/brandColors.ts`, since a cursor image cannot read a variable).
 - **Tokens only.** Every colour, easing and shadow, and every type size, weight or breakpoint
   Tailwind's own scale lacks, is a token in `src/styles/theme.css`, used by its role: `bg-canvas`,
   `text-ink-3`, `bg-red-soft`, `text-body-sm`, `ease-press`, `xs:` (560px, where a window stops
@@ -154,7 +158,7 @@ test can check.
   from the bottom of a phone), `Popover` (a menu: a panel under its button, a sheet on a phone),
   `Input`, `Note` (a line of small print after an icon), `Spinner`, `Toaster`. Who and what in `components/identity/`: `Avatar` (a player's identicon on
   their seat's colour; the pattern is `lib/identicon.ts`, the same for an address everywhere),
-  `GameTile` (initials on the category's colour), `ReputationPill` (a level), `LevelBadge` (a level as the badge a player earns, or still locked) and
+  `GameTile` (initials on the category's colour), `PlayerLink` (a player's name, with their face where one is shown, under a faint underline, leading to their profile: every player's name on a card, a row or the duel page, the reader's own "You" there too), `ReputationPill` (a level), `LevelBadge` (a level as the badge a player earns, or still locked) and
   `QuestLine` (the honored duels to the next level, from `levelQuest`), `Tally` (one side of a
   record: honored or abandoned), `BrandMark`, `BrandLink`.
 - **Motion** either explains something once or answers a click, and moves only transform and
@@ -206,7 +210,7 @@ test can check.
 | `frontend/src/lib/faucetFlask.ts` | The wallet menu's faucet flask: its phase from the offer, the claim, and the balance a sent claim waits to land in |
 | `frontend/src/lib/parsing.ts` | `isRecord`, `parseUintString`: the checks a value read from outside (a response, storage, a request) passes before it is trusted |
 | `frontend/src/components/ui/toaster.tsx` | Toasts as paper cards with the design's icons, and what sonner's `unstyled` drops put back |
-| `frontend/src/lib/brandColors.ts` | Theme colours as hex for what CSS cannot reach (theme colour, Privy's window, the images `ImageResponse` draws) |
+| `frontend/src/lib/brandColors.ts` | Theme colours as hex for what CSS cannot reach (theme colour, Privy's window, the images `ImageResponse` draws, the no-entry pointer in `lib/seatCursor.ts`) |
 | `frontend/src/lib/brandImage.tsx` | The brand mark for `ImageResponse`: the favicon, the home-screen icon and `/logo.png` |
 | `frontend/src/lib/ogImage.tsx` | The share image; carries Geologica as WOFF (`src/assets/fonts/`, OFL), since `ImageResponse` cannot read WOFF2 |
 | `frontend/src/components/identity/Avatar.tsx` | A player's face: the address's identicon (`lib/identicon.ts`) on their seat's colour |
@@ -251,12 +255,12 @@ test can check.
 | `frontend/src/components/landing/RecentDuels.tsx` | The landing's finished duels (`useWonDuels`, won duels only) beside the popular games that filter them (`useGameFilter`: rows step out, then `useListReflow` slides the rest; a picked game's duels come from that game's own, `useDuelsByGame`); a row is the feed's `DuelRow`, opening into its `DuelReceipt`. The sizes and the pure rules are `lib/landingDuels.ts` |
 | `frontend/src/components/arena/` | The table a duel is drawn on, the landing demo's and a real duel's: `Seat`, `Safe`, `Stake`, `Track`, `Match`, `Bubble`, `CountdownRing` (measures a real clock when given `left`), `OpenSeat`, `RepChip`, `MoneyChip`, `GainTag`, `CountedUsdt`; `SafeLock`, the padlock the safe and the wallet menu's `SafeMini` share |
 | `frontend/src/app/duel/[id]/page.tsx` | The duel page: takes whole-digit ids only, then `DuelRoom` |
-| `frontend/src/components/duel/room/` | The duel page's parts: `DuelRoom` (the duel, its phase, the layout), `DuelArena` (`DuelHead`, `ArenaStage` with its `RoomSeat`s, `DuelSteps`); `RoomGrid` (the arena, the turn panel under it pointing at the reader's seat, the facts and history beside); `DuelTurn` (the "your move" panel and the windows its moves open: the join window, the signing window, top-up) on `TurnPanel` (notch, whose pill, swap and 700 ms arming; shared with the create page, as are `DuelFacts` and `InviteLinkBox`) and `TurnBlocks`; `RoomFacts` ("This duel" on `DuelFacts`); `DuelHistory` |
+| `frontend/src/components/duel/room/` | The duel page's parts: `DuelRoom` (the duel, its phase, the layout), `DuelArena` (`DuelHead`, `ArenaStage` with its `RoomSeat`s, `DuelSteps`); `RoomGrid` (the arena, the turn panel under it pointing at the reader's seat, the facts and history beside, and the panel's moves, which a press on the open seat makes too: the panel's first move, `seatMove` in `lib/turnView.ts`; the creator's own open seat shows a no-entry pointer instead); `DuelTurn` (the "your move" panel and the windows its moves open: the join window, the signing window, top-up) on `TurnPanel` (notch, whose pill, swap and 700 ms arming; shared with the create page, as are `DuelFacts` and `InviteLinkBox`) and `TurnBlocks`; `RoomFacts` ("This duel" on `DuelFacts`); `DuelHistory` |
 | `frontend/src/lib/duelPhase.ts` | A duel's phase at a moment (`timeout` once the time to answer a reported win ran out), its head label and its five steps |
 | `frontend/src/lib/arenaView.ts` | What the duel page's arena shows for a duel in a phase, and the beats a change plays in (players first, then the money) |
 | `frontend/src/lib/turnView.ts` | The duel page's "your move" panel as plain data for every phase and reader (whose move, tone, notch, copy keys, blocks); the phases' cases are `lib/turnPhases.ts` |
 | `frontend/src/lib/duelHistory.ts` | A duel's history as events, oldest first: who acted, when, and the creator's message |
-| `frontend/src/hooks/useDuelTurnActions.ts` | Every move of the turn panel wired: the join window, the signing window for every other answer (`refundAndClaimPayouts` once the time to answer ran out, `claimPayout` after), Privy sign-in |
+| `frontend/src/hooks/useDuelTurnActions.ts` | Every move of the turn panel wired: the join window, the signing window for every other answer (`refundAndClaimPayouts` once the time to answer ran out, `claimPayout` after), Privy sign-in; held by `RoomGrid`, which hands them to the panel and the open seat |
 | `frontend/src/hooks/useStakePurse.ts` | The stake against the wallet of a reader who could join: USDT short, the top-up window, the balance held still while it is open so the cells charge after |
 | `frontend/src/hooks/useArenaMotion.ts` | Plays a change of the arena in the landing demo's order, flying the stakes; at once with motion reduced |
 | `frontend/src/hooks/useNow.ts` | One clock ticking each second for the whole screen; `useClockValue` re-renders only when a value read off it changes |
@@ -404,6 +408,13 @@ test can check.
   `useSendUsdt` switches and writes in one go. The relayer's signature (`relayWrite`) and the
   permit (`useDuelPermit`) still take the hook's client: the signing flows make the switch a step
   of its own for them.
+- **A link cannot sit inside a button or another link, so a row that presses as one is not one.**
+  The feed's `DuelRow` (a button that opens the receipt) and the dashboard's `HistoryRow` (a link to
+  the duel) put their button or link around the game's name only and spread it over the row with an
+  `after:absolute after:inset-0 after:z-1`, the row `relative`; the players' `PlayerLink`s and the
+  time, whose title gives the exact moment, sit on top as `relative z-2`. A press anywhere else
+  opens the row, and the focus ring is drawn on the spread part. A button or link that wraps the
+  whole row again nests the players' links in it, which React reports as invalid markup.
 - **A window that closes because what it shows turned null empties before it is gone.** The window
   plays its closing animation after the value it was opened with (a network, a platform) is already
   null, so its title and body change or vanish on the way out. Show `useLastNonNull(value)` from

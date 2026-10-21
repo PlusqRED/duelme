@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { profilePath } from '@/lib/navigation';
 
 export async function generateMetadata({
   params,
@@ -11,7 +12,7 @@ export async function generateMetadata({
     description:
       'On-chain reputation, linked social accounts, and 1v1 USDT duel history of a DuelMe player.',
     robots: { index: false, follow: true },
-    alternates: { canonical: `/profile/${walletAddress.toLowerCase()}` },
+    alternates: { canonical: profilePath(walletAddress) },
   };
 }
 
