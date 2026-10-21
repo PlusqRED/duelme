@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { countOf, signPlan } from '@/lib/signPlan';
+import { signPlan } from '@/lib/signPlan';
 
 describe('signPlan', () => {
   it('testSignPlanAsksTwoSignaturesToFundADuelThroughTheRelay', () => {
@@ -42,19 +42,5 @@ describe('signPlan', () => {
     const plan = signPlan({ route: 'self', funds: false, needsApproval: true });
 
     expect(plan).toEqual([{ part: 'move', kind: 'transaction' }]);
-  });
-});
-
-describe('countOf', () => {
-  it('testCountOfCountsTheSignaturesOfARelayedJoin', () => {
-    const plan = signPlan({ route: 'relay', funds: true, needsApproval: false });
-
-    expect(countOf(plan, 'signature')).toBe(2);
-  });
-
-  it('testCountOfFindsNoTransactionsOnTheRelay', () => {
-    const plan = signPlan({ route: 'relay', funds: true, needsApproval: false });
-
-    expect(countOf(plan, 'transaction')).toBe(0);
   });
 });

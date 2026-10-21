@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { cleanup, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { ActionFlowConfig } from '@/lib/actionFlow';
+import type { ActionFlowConfig, DuelActions } from '@/lib/actionFlow';
 import { DuelState } from '@/lib/contracts';
 import type { DuelPhase } from '@/lib/duelPhase';
 import { duelView } from '@/lib/__tests__/helpers/duelView';
@@ -61,7 +61,7 @@ function actions(phase: DuelPhase = 'funded') {
 /** The signing window `openFlow` was last asked for, and what it does when signed. */
 function openedFlow() {
   const config = hooks.openFlow.mock.lastCall?.[0] as ActionFlowConfig;
-  config.execute();
+  config.execute(hooks.duelActions as unknown as DuelActions);
   return config.type;
 }
 

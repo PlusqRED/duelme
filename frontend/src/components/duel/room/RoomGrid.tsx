@@ -72,7 +72,7 @@ export function RoomGrid({ duelId, duel, phase, game, inviteSecret, walletAddres
       : null;
 
   return (
-    <div className="grid grid-cols-1 gap-5 min-[1080px]:grid-cols-[minmax(0,1fr)_340px] min-[1080px]:items-start min-[1080px]:gap-7">
+    <div className="grid grid-cols-1 gap-5 hero:grid-cols-[minmax(0,1fr)_340px] hero:items-start hero:gap-7">
       <div className="grid min-w-0 content-start gap-4">
         <DuelArena
           duelId={duelId}
@@ -100,7 +100,7 @@ export function RoomGrid({ duelId, duel, phase, game, inviteSecret, walletAddres
           refetch={refetch}
         />
       </div>
-      <aside className="grid min-w-0 content-start gap-5 min-[720px]:max-[1079px]:grid-cols-2 min-[720px]:max-[1079px]:items-start min-[1080px]:sticky min-[1080px]:top-[92px]">
+      <aside className="grid min-w-0 content-start gap-5 min-[720px]:max-[1079px]:grid-cols-2 min-[720px]:max-[1079px]:items-start hero:sticky hero:top-[92px]">
         <RoomFacts duel={duel} />
         <DuelHistory duel={duel} phase={phase} claimTimeout={claimTimeout} walletAddress={isSignedIn ? walletAddress : undefined} />
       </aside>

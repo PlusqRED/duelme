@@ -4,6 +4,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { BackLink } from '@/components/duel/room/BackLink';
 import { DuelNotFound } from '@/components/duel/room/DuelNotFound';
 import { RoomGrid } from '@/components/duel/room/RoomGrid';
+import { Spinner } from '@/components/ui/spinner';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useContractConfig } from '@/hooks/useContractConfig';
 import { useDuel } from '@/hooks/useDuel';
@@ -34,9 +35,10 @@ export function DuelRoom({ duelId }: { duelId: number }) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <span className="size-6 animate-spin rounded-full border-2 border-ink border-t-transparent" />
-      </div>
+      <p role="status" className="flex items-center justify-center gap-3 py-24 text-body-sm text-ink-3">
+        <Spinner />
+        {t('room.loading')}
+      </p>
     );
   }
   if (isError || !duel || !phase) {
@@ -46,7 +48,7 @@ export function DuelRoom({ duelId }: { duelId: number }) {
   const isMine = authenticated && seatOf(duel, walletAddress) !== null;
 
   return (
-    <div className="mx-auto w-full max-w-[1200px] px-4 pt-1 pb-18 sm:px-6">
+    <div className="mx-auto w-full max-w-page px-gutter pt-1 pb-18">
       <BackLink href={isMine ? '/dashboard' : '/duels/public'}>{t(isMine ? 'room.back.mine' : 'room.back.public')}</BackLink>
       <RoomGrid
         duelId={duelId}

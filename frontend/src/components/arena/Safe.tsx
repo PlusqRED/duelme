@@ -90,7 +90,7 @@ export function Safe({ filled, slotRefs, stakeLabel, total, isLocked, isPayout =
             isCompact && 'text-[1.0625rem]/none'
           )}
         >
-          {total} <small className="text-micro font-semibold tracking-normal opacity-70">USDT</small>
+          {total}&nbsp;<small className="text-micro font-semibold tracking-normal opacity-70">USDT</small>
         </p>
       </div>
       {name && <p className="mt-1.5 text-center text-sm/[1.2] font-bold whitespace-nowrap max-xs:text-note/[1.2]">{name}</p>}

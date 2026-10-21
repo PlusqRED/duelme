@@ -95,7 +95,7 @@ export function useActionFlow({ duelId, refetchDuel }: UseActionFlowArgs) {
       dispatch({ type: 'failed', step: 'execute', error: classifyFlowError(executeError, { chainId: state.chainId }) });
     };
     try {
-      void Promise.resolve(activeConfig.execute()).catch(failed);
+      void Promise.resolve(activeConfig.execute(actions)).catch(failed);
     } catch (executeError) {
       failed(executeError);
     }

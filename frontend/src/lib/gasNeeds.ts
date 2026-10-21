@@ -1,7 +1,6 @@
 import { formatUnits } from 'viem';
 import type { Language } from '@/i18n/translations';
 import { SUPPORTED_CHAINS } from '@/lib/constants';
-import type { SignStep } from '@/lib/signPlan';
 import {
   ARBITRUM_SEPOLIA_APPROVE_MIN_GAS,
   ARBITRUM_SEPOLIA_CREATE_DUEL_MIN_GAS,
@@ -11,8 +10,7 @@ import {
   getBufferedTestnetGasLimit,
   getMainnetFeeParams,
 } from '@/lib/testnetGas';
-import type { FundingCall } from '@/lib/writeRoute';
-import { perLanguage } from '@/lib/utils';
+import { isDecimal, perLanguage } from '@/lib/utils';
 
 /**
  * The gas each kind of duel transaction took on dev (the latest create, join and claimVictory, and
@@ -44,17 +42,6 @@ export function quoteFees(chainId: number, estimate: FeeEstimate, baseFeePerGas:
     : getMainnetFeeParams(estimate, baseFeePerGas);
   const charged = baseFeePerGas === null || baseFeePerGas === undefined ? offered.maxFeePerGas : baseFeePerGas + offered.maxPriorityFeePerGas;
   return { maxFeePerGas: offered.maxFeePerGas, gasPrice: charged < offered.maxFeePerGas ? charged : offered.maxFeePerGas };
-}
-
-/** Which row of the table a step of the plan is: the approve, the stake's own call, or any other move. */
-export function gasKindOf(step: SignStep, funding: FundingCall | null): GasKind {
-  if (step.part === 'approve') {
-    return 'approve';
-  }
-  if (funding === 'createDuel') {
-    return 'create';
-  }
-  return funding === 'joinDuel' ? 'join' : 'move';
 }
 
 /** The gas limit the app sets for it: the same buffers, and on the test network the same floors, as its writes. */
@@ -98,10 +85,6 @@ export function formatEthNeed(wei: bigint, language: Language): string {
 /** An ETH balance beside a fee, to six decimals rounded down, so it never reads as more than the wallet holds. */
 export function formatEthBalance(wei: bigint, language: Language): string {
   return balanceFormats[language].format(ethDecimal(wei));
-}
-
-function isDecimal(text: string): text is `${number}` {
-  return /^-?\d+(?:\.\d+)?$/.test(text);
 }
 
 // A decimal string, not a float, so Intl formats the exact amount.

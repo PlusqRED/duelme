@@ -55,7 +55,7 @@ function session(config: ActionFlowConfig, overrides: Partial<ActionFlowSession>
   };
 }
 
-function renderAction(config: ActionFlowConfig, overrides: Partial<ActionFlowSession> = {}) {
+function renderAction(config: ActionFlowConfig, overrides: Partial<ActionFlowSession> = {}, context = CONTEXT) {
   const handlers = { onOpenChange: vi.fn(), onContinue: vi.fn(), onSwitchNetwork: vi.fn(), onExecute: vi.fn(), onDone: vi.fn() };
   render(
     <ActionSigningWindow
@@ -64,7 +64,7 @@ function renderAction(config: ActionFlowConfig, overrides: Partial<ActionFlowSes
       flow={session(config, overrides)}
       config={config}
       needsNetworkSwitch={false}
-      summaryContext={CONTEXT}
+      summaryContext={context}
       {...handlers}
     />
   );
@@ -73,14 +73,20 @@ function renderAction(config: ActionFlowConfig, overrides: Partial<ActionFlowSes
 
 describe('ActionSigningWindow', () => {
   it('testActionSigningWindowWordsTakingTheWinnings', () => {
-    renderAction(claimPayoutConfig(vi.fn()));
+    renderAction(claimPayoutConfig(vi.fn(), true));
 
     expect(screen.getByRole('dialog', { name: 'Take your winnings' })).toBeTruthy();
     expect(screen.getByText('Send the 198 USDT you won in duel #6 to your wallet', exactly)).toBeTruthy();
   });
 
+  it('testActionSigningWindowWordsAStakeComingBackAsNoWinnings', () => {
+    renderAction(claimPayoutConfig(vi.fn(), false), {}, { ...CONTEXT, formattedPot: '99 USDT', claimableDisplay: '99 USDT' });
+
+    expect(screen.queryByRole('dialog', { name: 'Take your winnings' })).toBeNull();
+  });
+
   it('testActionSigningWindowStartsTheFlow', () => {
-    const handlers = renderAction(claimPayoutConfig(vi.fn()));
+    const handlers = renderAction(claimPayoutConfig(vi.fn(), true));
 
     fireEvent.click(screen.getByRole('button', { name: 'Sign and take 198 USDT' }));
 

@@ -11,13 +11,15 @@ interface SignItemsOptions {
   move: string;
   /** Which row of the gas table the move is. */
   moveGas: GasKind;
+  /** How many of those the move does at once: a Take over several duels pays for each. */
+  moveGasTimes?: number;
   /** The stake a permit or an approve allows, bare. */
   wager?: string;
   t: Translator['t'];
 }
 
 /** The plan in the window's words: the permit or approve for the stake, then the move, each saying what the wallet will call it. */
-export function signItems({ plan, route, move, moveGas, wager = '', t }: SignItemsOptions): SignItem[] {
+export function signItems({ plan, route, move, moveGas, moveGasTimes = 1, wager = '', t }: SignItemsOptions): SignItem[] {
   return plan.map((step): SignItem => {
     if (step.part === 'permit') {
       return { ...step, text: t('sign.permit', { wager }), sub: t('sign.permit.sub', { wager }), gas: moveGas };
@@ -25,6 +27,6 @@ export function signItems({ plan, route, move, moveGas, wager = '', t }: SignIte
     if (step.part === 'approve') {
       return { ...step, text: t('sign.approve', { wager }), sub: t('sign.approve.sub', { wager }), gas: 'approve' };
     }
-    return { ...step, text: move, sub: t(route === 'relay' ? 'sign.move.sub' : 'sign.move.sub.self'), gas: moveGas };
+    return { ...step, text: move, sub: t(route === 'relay' ? 'sign.move.sub' : 'sign.move.sub.self'), gas: moveGas, gasTimes: moveGasTimes };
   });
 }

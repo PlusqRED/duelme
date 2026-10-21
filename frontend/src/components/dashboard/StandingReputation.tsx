@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Avatar } from '@/components/identity/Avatar';
 import { LevelBadge } from '@/components/identity/LevelBadge';
 import { QuestLine } from '@/components/identity/QuestLine';
+import { Tally } from '@/components/identity/Tally';
 import { ReputationGauge } from '@/components/landing/ReputationGauge';
-import { Icon } from '@/components/ui/icon';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useSeenOnce } from '@/hooks/useSeenOnce';
 import type { Translator } from '@/i18n/translate';
@@ -81,21 +81,4 @@ function nextLevelText(quest: LevelQuest, abandoned: number, { t, plural }: Tran
     duels: plural('dash.duels', n),
     level: t(getReputationLabelKey(quest.next)),
   });
-}
-
-interface TallyProps {
-  icon: 'check' | 'x';
-  ink: string;
-  label: string;
-  count: number;
-}
-
-/** One side of the record: honored duels with a check, abandoned ones with a cross. */
-function Tally({ icon, ink, label, count }: TallyProps) {
-  return (
-    <span className="inline-flex items-center gap-[5px]">
-      <Icon name={icon} className={cn('size-[15px] stroke-[2.8]', ink)} />
-      {label} <b className="font-extrabold text-ink tabular-nums">{count}</b>
-    </span>
-  );
 }

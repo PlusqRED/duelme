@@ -131,6 +131,61 @@ describe('useCreateDuelFlow', () => {
     expect(result.current.createdDuelPath).toBe('/duel/12');
   });
 
+  it('testUseCreateDuelFlowKeepsTheNewDuelsPathOnceTheWindowCloses', async () => {
+    const { result, rerender } = renderCreate(true);
+    await sendCreate(result);
+    env.write = { ...env.write, isSuccess: true, receipt: RECEIPT };
+    rerender();
+
+    act(() => result.current.closeFlow());
+
+    expect(result.current.flow).toBeNull();
+    expect(result.current.createdDuelPath).toBe('/duel/12');
+  });
+
+  it('testUseCreateDuelFlowRunsOnOutOfSightWhenLeftWhileConfirming', async () => {
+    const { result, rerender } = renderCreate();
+    await sendCreate(result);
+    env.write = { ...env.write, isConfirming: true };
+    rerender();
+
+    act(() => result.current.handleFlowOpenChange(false));
+
+    expect(result.current.isFlowOpen).toBe(false);
+    expect(result.current.flow?.actionState).toBe('confirming');
+    expect(env.write.reset).not.toHaveBeenCalledAfter(env.write.createDuel);
+  });
+
+  it('testUseCreateDuelFlowRecordsADuelLeftWhileConfirming', async () => {
+    const { result, rerender } = renderCreate();
+    await sendCreate(result);
+    env.write = { ...env.write, isConfirming: true };
+    rerender();
+    act(() => result.current.handleFlowOpenChange(false));
+    const secret = result.current.flow?.draft.inviteSecret;
+
+    env.write = { ...env.write, isConfirming: false, isSuccess: true, receipt: RECEIPT };
+    rerender();
+
+    expect(env.recordCreatedDuel).toHaveBeenCalledOnce();
+    expect(result.current.flow).toBeNull();
+    expect(result.current.createdDuelPath).toBe(`/duel/12#${secret}`);
+  });
+
+  it('testUseCreateDuelFlowBringsALeftWindowBackOnFailure', async () => {
+    const { result, rerender } = renderCreate();
+    await sendCreate(result);
+    env.write = { ...env.write, isConfirming: true };
+    rerender();
+    act(() => result.current.handleFlowOpenChange(false));
+
+    env.write = { ...env.write, isConfirming: false, error: new Error('execution reverted') };
+    rerender();
+
+    expect(result.current.isFlowOpen).toBe(true);
+    expect(result.current.flow?.actionState).toBe('error');
+  });
+
   it('testUseCreateDuelFlowWaitsForTheReceiptThatNamesTheDuel', async () => {
     const { result, rerender } = renderCreate();
     await sendCreate(result);

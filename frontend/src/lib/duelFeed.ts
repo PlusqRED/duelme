@@ -34,10 +34,11 @@ export interface FeedDuel extends RecentDuel {
 
 /**
  * A duel as a feed lists it, or null for one nobody joined: `_duelView` reports no opponent until
- * someone does, so this drops duels still waiting and those cancelled or declined before anyone did.
+ * someone does, so this drops duels still waiting and those cancelled before anyone did. A declined
+ * duel names the decliner as its opponent, who never staked, so it goes too.
  */
 export function toRecentDuel(record: DuelRecord): RecentDuel | null {
-  if (record.opponent === ZERO_ADDRESS) {
+  if (record.opponent === ZERO_ADDRESS || record.state === DuelState.Declined) {
     return null;
   }
   return {

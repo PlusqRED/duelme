@@ -92,6 +92,22 @@ describe('joinDuelFlowActions', () => {
     expect(switched.flow?.errorMessage).toEqual(flowError('ownDuel'));
   });
 
+  it('holds the join step busy while it reads the allowance, so a second press cannot send twice', async () => {
+    let seenWhileReading: JoinDuelFlowSession['actionState'] | undefined;
+    const harness = setup({
+      readLatestAllowance: vi.fn(async () => {
+        seenWhileReading = harness.flow?.actionState;
+        return 1000n;
+      }),
+    });
+    harness.actions.handleOpenJoinFlow();
+
+    await harness.actions.handleJoinTransaction(harness.flow);
+
+    expect(seenWhileReading).toBe('awaiting-wallet');
+    expect(harness.options.joinDuel).toHaveBeenCalledOnce();
+  });
+
   it('opens the join flow for a non-creator with a valid invite secret', () => {
     const harness = setup();
 

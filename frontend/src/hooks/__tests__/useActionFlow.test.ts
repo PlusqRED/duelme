@@ -96,6 +96,18 @@ describe('useActionFlow', () => {
     expect(result.current.canClose).toBe(false);
   });
 
+  it('testUseActionFlowSendsWithTheActionsOfTheRenderThatSigns', () => {
+    const execute = vi.fn();
+    const { result, rerender } = renderFlow();
+    act(() => result.current.openFlow(config(execute)));
+    wallet.write = { ...wallet.write };
+    rerender();
+
+    act(() => result.current.handleExecute());
+
+    expect(execute).toHaveBeenCalledWith(wallet.write);
+  });
+
   it('testUseActionFlowWordsAnActionTheWalletTurnedDown', async () => {
     const { result } = renderFlow();
     act(() => result.current.openFlow(config(vi.fn(async () => Promise.reject(rejected())))));

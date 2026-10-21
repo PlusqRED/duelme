@@ -1,5 +1,5 @@
 import type { Duel } from '@/lib/contracts';
-import { SEAT_SIDES, ZERO_ADDRESS, seatOf, type CountdownTimer, type SafeTone, type SeatSay, type SeatSide } from '@/lib/duel';
+import { SEAT_SIDES, ZERO_ADDRESS, hasClaimed, owedOf, payoutOf, seatOf, type CountdownTimer, type SafeTone, type SeatSay, type SeatSide } from '@/lib/duel';
 import { hasVisibleDuelMessage } from '@/lib/duelMessage';
 import { RETURNING_PHASES, type DuelPhase } from '@/lib/duelPhase';
 import type { ReputationMark } from '@/lib/reputation';
@@ -55,19 +55,6 @@ export type ArenaDuel = Pick<
 >;
 
 const otherSide = (side: SeatSide): SeatSide => (side === 'creator' ? 'opponent' : 'creator');
-
-function payoutOf(duel: ArenaDuel, side: SeatSide): bigint {
-  return side === 'creator' ? duel.creatorPayout : duel.opponentPayout;
-}
-
-function claimedOf(duel: ArenaDuel, side: SeatSide): boolean {
-  return side === 'creator' ? duel.creatorClaimed : duel.opponentClaimed;
-}
-
-/** What the contract still keeps for `side`. Payouts are pull-based: a win or a stake waits there until taken. */
-function owedOf(duel: ArenaDuel, side: SeatSide): bigint {
-  return claimedOf(duel, side) ? 0n : payoutOf(duel, side);
-}
 
 function emptySeat(): ArenaSeat {
   return { say: null, timer: null, money: null, marks: [], isWinner: false };
@@ -148,7 +135,7 @@ export function arenaView(duel: ArenaDuel, phase: DuelPhase): ArenaView {
     for (const side of SEAT_SIDES) {
       const raw = payoutOf(duel, side);
       if (raw === 0n) continue;
-      const kind: MoneyKind = claimedOf(duel, side) ? (isPrize ? 'done' : 'returned') : isPrize ? 'ready' : 'back';
+      const kind: MoneyKind = hasClaimed(duel, side) ? (isPrize ? 'done' : 'returned') : isPrize ? 'ready' : 'back';
       seats[side].money = { kind, raw };
     }
   }

@@ -17,6 +17,8 @@ export interface SignItem extends SignStep {
   sub: string;
   /** Which row of the gas table a transaction the wallet pays for is. */
   gas: GasKind;
+  /** How many of that row it does at once (a Take over several duels); one when left out. */
+  gasTimes?: number;
 }
 
 /** The stake a create or join puts in, with the top-up window it opens when the wallet is short. */

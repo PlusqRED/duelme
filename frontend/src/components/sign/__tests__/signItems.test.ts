@@ -33,4 +33,17 @@ describe('signItems', () => {
     expect(items.map((item) => item.gas)).toEqual(['approve', 'create']);
     expect(items[1].sub).toBe(t('sign.move.sub.self'));
   });
+
+  it('testSignItemsCountTheGasOfAMoveOverSeveralDuels', () => {
+    const items = signItems({
+      plan: signPlan({ route: 'self', funds: false, needsApproval: false }),
+      route: 'self',
+      move: 'Send your payouts from 3 duels to your wallet',
+      moveGas: 'move',
+      moveGasTimes: 3,
+      t,
+    });
+
+    expect(items.map((item) => item.gasTimes)).toEqual([3]);
+  });
 });

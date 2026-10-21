@@ -31,9 +31,9 @@ describe('NetworkTiles', () => {
 
     const [sepolia, one] = screen.getAllByRole('radio');
     expect(sepolia.textContent).toContain('46.7');
-    expect(sepolia.textContent).toContain('0.0077 ETH');
+    expect(sepolia.textContent).toContain('0.0077\u00a0ETH');
     expect(one.textContent).toContain('—');
-    expect(one.textContent).toContain('… ETH');
+    expect(one.textContent).toContain('…\u00a0ETH');
   });
 
   it('marks the test network and the network duels run on', () => {

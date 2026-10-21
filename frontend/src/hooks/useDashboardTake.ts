@@ -39,7 +39,7 @@ export function useDashboardTake(owed: Owed | null, refetch: () => void) {
     setAsked({ duelIds, raw: left.totalRaw });
     actionFlow.openFlow(
       refundAndClaimAllConfig(
-        () => actionFlow.duelActions.refundAndClaimPayouts(duelIds.map(BigInt)),
+        (actions) => actions.refundAndClaimPayouts(duelIds.map(BigInt)),
         `${formatUSDT(left.totalRaw, language)} USDT`,
         duelIds.length,
         left.items.some((item) => item.kind === 'late')

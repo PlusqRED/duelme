@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { RelayRequestError, submitRelayRequest } from '@/lib/relayApi';
+import { RelayAnswerLostError, submitRelayRequest } from '@/lib/relayApi';
 import type { RelayForwardRequest } from '@/lib/relayRequest';
 import { DUELME_ADDRESSES, SUPPORTED_CHAINS } from '@/lib/constants';
 
@@ -116,18 +116,17 @@ describe('submitRelayRequest', () => {
     });
   });
 
-  it('rejects a success response with no usable hash', async () => {
+  it('takes a success response with no usable hash for an answer lost, since the relayer may have sent it', async () => {
     vi.mocked(fetch).mockReturnValue(respond(200, { hash: 'not-a-hash' }));
 
-    await expect(submitRelayRequest(42161, signedRequest)).rejects.toBeInstanceOf(RelayRequestError);
+    await expect(submitRelayRequest(42161, signedRequest)).rejects.toBeInstanceOf(RelayAnswerLostError);
   });
 
   it('gives up rather than hanging when the relayer never answers', async () => {
     vi.mocked(fetch).mockImplementation(noAnswer);
 
     const submitted = expect(submitRelayRequest(42161, signedRequest)).rejects.toMatchObject({
-      name: 'RelayRequestError',
-      code: 'RELAYER_UNAVAILABLE',
+      name: 'RelayAnswerLostError',
       message: 'The relayer did not answer in time.',
     });
     runOutTheDeadline();
@@ -179,7 +178,7 @@ describe('submitRelayRequest', () => {
     vi.mocked(fetch).mockImplementation(noConnection);
 
     const submitted = expect(submitRelayRequest(42161, signedRequest)).rejects.toMatchObject({
-      code: 'RELAYER_UNAVAILABLE',
+      name: 'RelayAnswerLostError',
       message: 'No answer came back from the relayer.',
     });
     await vi.runAllTimersAsync();

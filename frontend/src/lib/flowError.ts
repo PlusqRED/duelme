@@ -3,7 +3,7 @@ import { SUPPORTED_CHAINS } from '@/lib/constants';
 import { nameCustomErrors, quotesCustomError } from '@/lib/customErrors';
 import { collectErrorDetails, isWalletRefusal } from '@/lib/errorDetails';
 import { PermitDomainMismatchError } from '@/lib/permitSignature';
-import { RelayRequestError } from '@/lib/relayApi';
+import { RelayAnswerLostError, RelayRequestError } from '@/lib/relayApi';
 import type { RelayErrorCode } from '@/lib/relayRequest';
 import { TransactionReplacedError, TransactionRevertedError, WalletNotReadyError } from '@/lib/writeErrors';
 
@@ -12,6 +12,7 @@ import { TransactionReplacedError, TransactionRevertedError, WalletNotReadyError
  * - `rejected`: turned down in the wallet;
  * - `network`: the wallet stayed on another network;
  * - `budget`, `unavailable`, `pending`, `limited`: the relay's refusals, by the code it answers with;
+ * - `lost`: the relay's answer never came back, so the write may have gone through;
  * - `permit`: the token refused the wallet's permit (an EIP-7702 wallet, checked through ERC-1271);
  * - `gas`: the test network turned the fee down between the estimate and the send;
  * - `reverted`: the contract refused the call;
@@ -27,6 +28,7 @@ export type FlowErrorKind =
   | 'unavailable'
   | 'pending'
   | 'limited'
+  | 'lost'
   | 'permit'
   | 'gas'
   | 'reverted'
@@ -39,11 +41,14 @@ export interface FlowError {
   kind: FlowErrorKind;
   /** The error as the wallet, the relay or the chain put it, for the details under the message. */
   detail: string | null;
-  /** Whether another go can help: the day's limit, the contract's no and a wallet without permits give the same answer again. */
+  /**
+   * Whether another go can help: the day's limit, the contract's no and a wallet without permits
+   * give the same answer again, and a write that may have gone through must not be signed again.
+   */
   canRetry: boolean;
 }
 
-const FINAL_KINDS: ReadonlySet<FlowErrorKind> = new Set(['budget', 'reverted', 'permit', 'ownDuel']);
+const FINAL_KINDS: ReadonlySet<FlowErrorKind> = new Set(['budget', 'reverted', 'permit', 'ownDuel', 'lost']);
 
 const RELAY_KINDS: Record<Exclude<RelayErrorCode, 'EXECUTION_REVERTED'>, FlowErrorKind> = {
   BUDGET_EXCEEDED: 'budget',
@@ -91,6 +96,9 @@ export function classifyFlowError(error: unknown, { chainId, isNetworkSwitch = f
   }
   if (error instanceof PermitDomainMismatchError) {
     return flowError('permit', detail);
+  }
+  if (error instanceof RelayAnswerLostError) {
+    return flowError('lost', detail);
   }
   if (error instanceof RelayRequestError) {
     if (error.code !== 'EXECUTION_REVERTED') {
@@ -143,7 +151,8 @@ function isContractRevert(error: unknown, details: readonly string[]): boolean {
 /**
  * The error in the words it came with, for a player to copy and send on: the contract's reason,
  * the node's or the relay's message, an HTTP failure with its status. viem's own summary and its
- * lines of context, without the call's arguments repeated on top; custom errors by name.
+ * lines of context, without the call's arguments: a join's carry the private duel's invite secret,
+ * and the player is asked to send these details on. Custom errors by name.
  */
 export function rawErrorText(error: unknown): string | null {
   const text = describe(error)?.trim();
@@ -164,7 +173,11 @@ function describe(error: unknown): string | undefined {
     if (error.details && !lines.some((line) => line.includes(error.details))) {
       lines.push(error.details);
     }
-    return lines.map((line) => line.trim()).filter(Boolean).join('\n');
+    return lines
+      .flatMap((line) => line.split('\n'))
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith('args:'))
+      .join('\n');
   }
   if (error instanceof Error) {
     return error.message;

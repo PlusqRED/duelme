@@ -64,6 +64,14 @@ describe('translations', () => {
     expect(isFormal(text)).toBe(false);
   });
 
+  it('keeps every amount on the line of its unit, with a no-break space between them', () => {
+    const split = (['en', 'ru'] as const).flatMap((language) =>
+      keys.filter((key) => /\} (?:USDT|ETH)\b/.test(translations[language][key])).map((key) => `${language}:${key}`)
+    );
+
+    expect(split).toEqual([]);
+  });
+
   it('says «ты» in Russian', () => {
     expect(keys.filter((key) => isFormal(translations.ru[key]))).toEqual([]);
   });

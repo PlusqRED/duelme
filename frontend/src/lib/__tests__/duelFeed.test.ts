@@ -31,6 +31,10 @@ describe('toRecentDuel', () => {
     expect(toRecentDuel({ ...duelView(), id: 1 })).toBeNull();
   });
 
+  it('leaves out a declined duel, whose opponent is the decliner who never staked', () => {
+    expect(toRecentDuel(joined(1, { state: DuelState.Declined }))).toBeNull();
+  });
+
   it('dates a joined duel by its latest event', () => {
     expect(toRecentDuel(joined(1, { claimTimestamp: 20n }))?.lastEventAt).toBe(20n);
   });

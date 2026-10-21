@@ -25,14 +25,14 @@ describe('FaucetFlask', () => {
     const { onClaim } = renderFlask('ready');
 
     const button = screen.getByRole('button');
-    expect(button.textContent).toContain('Once per wallet: 100 USDT and 0.001 ETH.');
+    expect(button.textContent).toContain('Once per wallet: 100 USDT and 0.001\u00a0ETH.');
     fireEvent.click(button);
     expect(onClaim).toHaveBeenCalled();
   });
 
   it.each([
     ['asking', 'Asking the faucet…'],
-    ['sent', 'On the way: 100 USDT and 0.001 ETH'],
+    ['sent', 'On the way: 100 USDT and 0.001\u00a0ETH'],
   ] as const)('keeps the button while %s, but it no longer claims', (phase, text) => {
     const { onClaim } = renderFlask(phase);
 

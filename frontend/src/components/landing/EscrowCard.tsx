@@ -123,7 +123,7 @@ function AddressReveal() {
       <span ref={groupsRef} aria-hidden="true" className="contents">
         {reveal.groups.map((group, index) => (
           // A group's place is its identity: the same four characters can stand at two places.
-          <span key={index} style={{ minWidth: reveal.widths[index] }} className="inline-block">
+          <span key={index} style={{ '--w': `${reveal.widths[index] ?? 0}px` }} className="inline-block min-w-(--w)">
             {group}
           </span>
         ))}

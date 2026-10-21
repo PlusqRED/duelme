@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import type { Game } from '../game';
 import {
+  createGameSearcher,
   buildHighlightSet,
   findGameByName,
   gamesOnOffer,
   highlightRuns,
   normalizeGameName,
-  searchGames,
 } from '../gameSearch';
 
 const VALORANT: Game = {
@@ -41,33 +41,33 @@ const DOTA2: Game = {
 
 const CATALOG: Game[] = [VALORANT, CS2, DOTA2];
 
-describe('searchGames', () => {
+describe('createGameSearcher', () => {
   it('returns empty list for blank query', () => {
-    expect(searchGames(CATALOG, '')).toEqual([]);
-    expect(searchGames(CATALOG, '   ')).toEqual([]);
+    expect(createGameSearcher(CATALOG).search('')).toEqual([]);
+    expect(createGameSearcher(CATALOG).search('   ')).toEqual([]);
   });
 
   it('finds an exact substring match', () => {
-    const results = searchGames(CATALOG, 'Valorant');
+    const results = createGameSearcher(CATALOG).search('Valorant');
     expect(results[0]?.game.slug).toBe('valorant');
   });
 
   it('tolerates a single-character typo (Valoront -> Valorant)', () => {
-    const results = searchGames(CATALOG, 'Valoront');
+    const results = createGameSearcher(CATALOG).search('Valoront');
     expect(results[0]?.game.slug).toBe('valorant');
   });
 
   it('matches across spaces (dot 2 -> Dota 2)', () => {
-    const results = searchGames(CATALOG, 'dot 2');
+    const results = createGameSearcher(CATALOG).search('dot 2');
     expect(results.map((r) => r.game.slug)).toContain('dota-2');
   });
 
   it('returns no results for nonsense queries', () => {
-    expect(searchGames(CATALOG, 'qwerty zzz xyz')).toEqual([]);
+    expect(createGameSearcher(CATALOG).search('qwerty zzz xyz')).toEqual([]);
   });
 
   it('respects the limit', () => {
-    const results = searchGames(CATALOG, 'o', 1);
+    const results = createGameSearcher(CATALOG).search('o', 1);
     expect(results.length).toBeLessThanOrEqual(1);
   });
 });

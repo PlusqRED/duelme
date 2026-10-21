@@ -7,4 +7,6 @@ export const easings = {
   sheet: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
   /** Overshoots a hair and settles: a cell that pops, a mark that bumps. */
   spring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+  /** Eases in and out: a stake flying from a wallet into the safe. */
+  flight: 'cubic-bezier(0.45, 0, 0.25, 1)',
 } as const;

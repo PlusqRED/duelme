@@ -37,7 +37,7 @@ export function StandingCard({ address, walletAddress, totals }: StandingCardPro
           <h2 id="standing-title" className="text-[1.1875rem] tracking-[-0.01em] tabular-nums">
             {truncateAddress(address)}
           </h2>
-          <Link href="/profile" className="link inline-flex min-h-8 items-center text-body-sm">
+          <Link href="/profile" className="link inline-flex min-h-11 items-center text-body-sm">
             {t('nav.myProfile')}
           </Link>
         </div>

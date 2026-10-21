@@ -74,7 +74,7 @@ export function ActionSigningWindow({
   const contract = DUELME_ADDRESSES[shownFlow.chainId];
   const functionName = ACTION_FUNCTIONS[shownConfig.type];
   const route = resolveWriteRoute({ isRelayEnabled, target: contract, contractAddress: contract, functionName });
-  const copy = ACTION_COPY[signActionOf(shownConfig, summaryContext)];
+  const copy = ACTION_COPY[signActionOf(shownConfig)];
   const count = shownConfig.batch?.count ?? 1;
   const params = {
     ...actionCopyParams(summaryContext, shownConfig),
@@ -99,7 +99,14 @@ export function ActionSigningWindow({
     backLabel: t(copy.back),
     slowText: t('sign.slow.text'),
     route,
-    items: signItems({ plan: signPlan({ route, funds: false, needsApproval: false }), route, move, moveGas: 'move', t }),
+    items: signItems({
+      plan: signPlan({ route, funds: false, needsApproval: false }),
+      route,
+      move,
+      moveGas: 'move',
+      moveGasTimes: shownConfig.batch?.count ?? 1,
+      t,
+    }),
     place: PLACES[shownFlow.stage],
     actionState: shownFlow.actionState,
     error: shownFlow.errorMessage,

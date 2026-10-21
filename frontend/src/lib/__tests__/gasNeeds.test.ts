@@ -6,7 +6,6 @@ import {
   formatEthBalance,
   formatEthFee,
   formatEthNeed,
-  gasKindOf,
   gasLimitFor,
   quoteFees,
   type FeeQuote,
@@ -40,21 +39,6 @@ describe('quoteFees', () => {
     const quote = quoteFees(SEPOLIA, { maxFeePerGas: 1n }, undefined);
 
     expect(quote.gasPrice).toBe(quote.maxFeePerGas);
-  });
-});
-
-describe('gasKindOf', () => {
-  it('testGasKindOfTellsTheApprove', () => {
-    expect(gasKindOf({ part: 'approve', kind: 'transaction' }, 'joinDuel')).toBe('approve');
-  });
-
-  it('testGasKindOfTellsCreatingFromJoining', () => {
-    expect(gasKindOf({ part: 'move', kind: 'transaction' }, 'createDuel')).toBe('create');
-    expect(gasKindOf({ part: 'move', kind: 'transaction' }, 'joinDuel')).toBe('join');
-  });
-
-  it('testGasKindOfCallsAnythingElseAMove', () => {
-    expect(gasKindOf({ part: 'move', kind: 'transaction' }, null)).toBe('move');
   });
 });
 

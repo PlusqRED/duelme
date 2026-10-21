@@ -39,23 +39,17 @@ describe('signActionOf', () => {
     ['refundAndClaim', 'takeBack'],
     ['refundAndClaimAll', 'collect'],
   ] as const)('testSignActionOfNames %s', (type, action) => {
-    expect(signActionOf(config(type), CONTEXT)).toBe(action);
+    expect(signActionOf(config(type))).toBe(action);
   });
 
-  it('testSignActionOfCallsTheWholePotTheWinnings', () => {
-    const action = signActionOf(config('claimPayout'), { ...CONTEXT, claimableDisplay: '10 USDT' });
+  it('testSignActionOfCallsTheWinningsWhatTheMoveSaysWasWon', () => {
+    const action = signActionOf({ ...config('claimPayout'), isWinnings: true });
 
     expect(action).toBe('claimWin');
   });
 
-  it('testSignActionOfCallsAnythingLessAStakeComingBack', () => {
-    const action = signActionOf(config('claimPayout'), { ...CONTEXT, claimableDisplay: '5 USDT' });
-
-    expect(action).toBe('takeBack');
-  });
-
-  it('testSignActionOfCallsAPayoutWithNoPotKnownAStakeComingBack', () => {
-    const action = signActionOf(config('claimPayout'), { ...CONTEXT, formattedPot: '', claimableDisplay: '' });
+  it('testSignActionOfCallsAnyOtherPayoutAStakeComingBack', () => {
+    const action = signActionOf({ ...config('claimPayout'), isWinnings: false });
 
     expect(action).toBe('takeBack');
   });
@@ -138,6 +132,12 @@ describe('errorWords', () => {
 
   it('testErrorWordsPromiseNothingAboutAReplacement', () => {
     const words = errorWords('replaced', ACTION_COPY.won, true);
+
+    expect(words.isSafe).toBe(false);
+  });
+
+  it('testErrorWordsPromiseNothingAfterALostAnswer', () => {
+    const words = errorWords('lost', ACTION_COPY.create, false);
 
     expect(words.isSafe).toBe(false);
   });

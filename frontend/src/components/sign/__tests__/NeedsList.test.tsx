@@ -41,7 +41,7 @@ describe('NeedsList', () => {
   it('testNeedsListShowsTheEthAWalletMustHoldForItsFees', () => {
     render(<NeedsList eth={{ needWei: 13_400_000_000_000n, balance: { kind: 'ready', raw: 7_736_000_000_000_000n } }} />);
 
-    expect(screen.getByText('Network fee: up to\u00a00.00002 ETH', exactly)).toBeTruthy();
+    expect(screen.getByText('Network fee: up to\u00a00.00002\u00a0ETH', exactly)).toBeTruthy();
     expect(screen.getByText('It holds 0.007736 ETH')).toBeTruthy();
     expect(screen.getByText('Enough')).toBeTruthy();
   });

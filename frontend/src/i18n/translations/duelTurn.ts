@@ -34,6 +34,7 @@ export const duelTurnTranslations = defineSection({
     'room.action.signIn': 'Sign in to join',
     'room.purse.later': 'Join opens as soon as your wallet holds {wager} USDT.',
     'room.gasless': 'No ETH needed: DuelMe pays the network fee.',
+    'room.loading': 'Reading the duel from the contract…',
     'room.gasSelf': 'Your wallet pays the network fee in ETH.',
 
     'room.ledger.title': 'This duel',
@@ -94,6 +95,7 @@ export const duelTurnTranslations = defineSection({
     'room.action.signIn': 'Войти и принять',
     'room.purse.later': 'Принять можно, как только в кошельке будет {wager} USDT.',
     'room.gasless': 'ETH не нужен: сетевую комиссию платит DuelMe.',
+    'room.loading': 'Читаем дуэль из контракта…',
     'room.gasSelf': 'Сетевую комиссию в ETH платит твой кошелёк.',
 
     'room.ledger.title': 'Об этой дуэли',

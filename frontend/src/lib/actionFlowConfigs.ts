@@ -48,8 +48,9 @@ export function cancelDuelConfig(execute: Execute): ActionFlowConfig {
   return action('cancelDuel', execute);
 }
 
-export function claimPayoutConfig(execute: Execute): ActionFlowConfig {
-  return action('claimPayout', execute, true);
+/** `isWinnings`: the duel was won, so the payout is the pot; otherwise it is a stake coming back. */
+export function claimPayoutConfig(execute: Execute, isWinnings: boolean): ActionFlowConfig {
+  return { ...action('claimPayout', execute, true), isWinnings };
 }
 
 export function refundAndClaimConfig(execute: Execute): ActionFlowConfig {

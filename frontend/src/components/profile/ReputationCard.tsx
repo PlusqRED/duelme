@@ -3,9 +3,9 @@
 import { useId, useRef, type ReactNode } from 'react';
 import { LevelBadge } from '@/components/identity/LevelBadge';
 import { QuestLine } from '@/components/identity/QuestLine';
+import { Tally } from '@/components/identity/Tally';
 import { verdictTints } from '@/components/landing/ReputationLab';
 import { ReputationGauge } from '@/components/landing/ReputationGauge';
-import { Icon } from '@/components/ui/icon';
 import type { ReputationData } from '@/hooks/useReputation';
 import { useSeenOnce } from '@/hooks/useSeenOnce';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -80,21 +80,5 @@ export function ReputationCard({ reputation, face }: ReputationCardProps) {
         </>
       )}
     </section>
-  );
-}
-
-interface TallyProps {
-  icon: 'check' | 'x';
-  ink: string;
-  label: string;
-  count: number;
-}
-
-function Tally({ icon, ink, label, count }: TallyProps) {
-  return (
-    <span className="inline-flex items-center gap-[5px]">
-      <Icon name={icon} className={cn('size-[15px] stroke-[2.8]', ink)} />
-      {label} <b className="font-extrabold text-ink tabular-nums">{count}</b>
-    </span>
   );
 }

@@ -75,6 +75,14 @@ describe('useSignGas', () => {
     expect(result.current.eth?.needWei).toBe(ethNeeded(['approve', 'join'], SEPOLIA, QUOTE));
   });
 
+  it('testUseSignGasNeedsTheEthOfEveryDuelABatchMoveTakes', () => {
+    const take = { kind: 'transaction', part: 'move', gas: 'move', gasTimes: 3 } as SignItem;
+
+    const { result } = renderGas({ unpaid: [take] });
+
+    expect(result.current.eth?.needWei).toBe(ethNeeded(['move', 'move', 'move'], SEPOLIA, QUOTE));
+  });
+
   it('testUseSignGasNeedsNoEthOnceEverythingIsSent', () => {
     const { result } = renderGas({ unpaid: [] });
 

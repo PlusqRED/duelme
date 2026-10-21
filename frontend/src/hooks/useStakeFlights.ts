@@ -3,6 +3,7 @@
 import { useCallback, type RefObject } from 'react';
 import { stakeClassName } from '@/components/arena/Stake';
 import type { SeatSide } from '@/lib/duel';
+import { easings } from '@/lib/easings';
 import { cn } from '@/lib/utils';
 
 const FLIGHT_MS = 900;
@@ -72,7 +73,7 @@ export function useStakeFlights({ stage, homes, slots }: FlightAnchors) {
           { transform: at(dx * 0.5, dy * 0.5 + lift, 1.08), offset: 0.56 },
           { transform: at(dx, dy, isLanding ? 0.45 : 1), opacity: isLanding ? 0 : 1 },
         ],
-        { duration: FLIGHT_MS, delay, easing: 'cubic-bezier(.45,0,.25,1)', fill: 'both' }
+        { duration: FLIGHT_MS, delay, easing: easings.flight, fill: 'both' }
       );
       return animation.finished.then(
         () => {

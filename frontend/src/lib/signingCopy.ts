@@ -183,10 +183,11 @@ export function bareAmount(display: string): string {
 }
 
 /**
- * Which move a duel action is in the window's words. A payout is the winnings when it is the whole
- * pot, and a stake coming back otherwise; refunding and paying out at once closes a timed-out duel.
+ * Which move a duel action is in the window's words. A payout is the winnings when the move that
+ * opened it says so (a duel won), and a stake coming back otherwise; refunding and paying out at once
+ * closes a timed-out duel.
  */
-export function signActionOf(config: ActionFlowConfig, context: ActionFlowSummaryContext): SignAction {
+export function signActionOf(config: ActionFlowConfig): SignAction {
   switch (config.type) {
     case 'claimVictory':
       return 'won';
@@ -209,7 +210,7 @@ export function signActionOf(config: ActionFlowConfig, context: ActionFlowSummar
     case 'cancelDuel':
       return 'cancel';
     case 'claimPayout':
-      return context.claimableDisplay !== '' && context.claimableDisplay === context.formattedPot ? 'claimWin' : 'takeBack';
+      return config.isWinnings ? 'claimWin' : 'takeBack';
     case 'refundAndClaim':
       return 'takeBack';
     case 'refundAndClaimAll':
@@ -248,6 +249,7 @@ const ERROR_WORDS: Record<FlowErrorKind, ErrorWords> = {
   unavailable: { title: 'sign.err.unavailable.title', text: 'sign.err.unavailable.text' },
   pending: { title: 'sign.err.pending.title', text: 'sign.err.pending.text' },
   limited: { title: 'sign.err.limited.title', text: 'sign.err.limited.text' },
+  lost: { title: 'sign.err.lost.title', text: 'sign.err.lost.text' },
   permit: { title: 'sign.err.permit.title', text: 'sign.err.permit.text' },
   gas: { title: 'sign.err.gas.title', text: 'sign.err.gas.text' },
   reverted: { title: 'sign.err.reverted.title', text: 'sign.err.reverted.text' },
@@ -260,13 +262,14 @@ const ERROR_WORDS: Record<FlowErrorKind, ErrorWords> = {
 /**
  * How the window words a stopped step: a move may word the contract's refusal its own way, and a
  * transaction the wallet would have sent itself was not sent rather than not signed. Every stop
- * leaves the money where it was, except a replaced transaction: what replaced it is the wallet's.
+ * leaves the money where it was, except a replaced transaction (what replaced it is the wallet's)
+ * and a lost answer (the write may have gone through).
  */
 export function errorWords(kind: FlowErrorKind, action: ActionCopy, sentByWallet: boolean): ErrorWords & { isSafe: boolean } {
   const words = ERROR_WORDS[kind];
   return {
     title: kind === 'rejected' && sentByWallet ? 'sign.err.rejected.self.title' : words.title,
     text: kind === 'reverted' && action.reverted ? action.reverted : words.text,
-    isSafe: kind !== 'replaced',
+    isSafe: kind !== 'replaced' && kind !== 'lost',
   };
 }

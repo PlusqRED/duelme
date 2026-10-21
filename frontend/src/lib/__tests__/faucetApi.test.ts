@@ -92,7 +92,7 @@ describe('faucetGift', () => {
   const offer = { kind: 'ready', usdtAmountRaw: 100_000_000n, ethAmountWei: 1_000_000_000_000_000n } as const;
 
   it('names both tokens in the reader’s language', () => {
-    expect(faucetGift({ ...offer, usdtAmountRaw: 1_500_000_000n }, 'ru', translator('ru').t)).toBe('1\u00a0500\u00a0USDT и 0,001 ETH');
+    expect(faucetGift({ ...offer, usdtAmountRaw: 1_500_000_000n }, 'ru', translator('ru').t)).toBe('1\u00a0500\u00a0USDT и 0,001\u00a0ETH');
   });
 
   it('leaves out the ETH an earlier claim already sent', () => {

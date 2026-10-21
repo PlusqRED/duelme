@@ -161,9 +161,9 @@ function Loading() {
  */
 function DeskLayout({ main, side }: { main: ReactNode; side?: ReactNode }) {
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)] gap-7 min-[1080px]:grid-cols-[minmax(0,1fr)_340px] min-[1080px]:items-start">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-7 hero:grid-cols-[minmax(0,1fr)_340px] hero:items-start">
       <div className="@container/desk grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-9">{main}</div>
-      {side && <aside className="min-w-0 min-[1080px]:sticky min-[1080px]:top-[92px]">{side}</aside>}
+      {side && <aside className="min-w-0 hero:sticky hero:top-[92px]">{side}</aside>}
     </div>
   );
 }

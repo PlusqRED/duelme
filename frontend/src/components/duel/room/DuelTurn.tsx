@@ -20,12 +20,7 @@ import type { DuelPhase } from '@/lib/duelPhase';
 import { buildDuelLink, buildInviteLink, isPublicDuel } from '@/lib/invite';
 import { durationWords } from '@/lib/timeWords';
 import type { TurnView } from '@/lib/turnView';
-import { formatUSDT } from '@/lib/utils';
-
-/** The link is read off the page's address, which the server does not have. */
-function subscribeToNothing() {
-  return () => {};
-}
+import { formatUSDT, subscribeToNothing } from '@/lib/utils';
 
 const whoseLabels: Record<TurnView['whose'], TranslationKey> = {
   you: 'room.whose.you',
@@ -53,13 +48,14 @@ interface DuelTurnProps {
 }
 
 /**
- * The duel page's "your move" panel and the windows its moves open: the join flow, the guided
+ * The duel page's "your move" panel and the windows its moves open: the join window, the signing
  * window for a report, an answer or a payout, and the top-up window for a stake the wallet can't
  * cover yet.
  */
 export function DuelTurn({ duelId, duel, phase, view, gameName, inviteSecret, walletAddress, claimTimeout, purse, faces, onPreviewJoin, refetch }: DuelTurnProps) {
   const { t, plural, language } = useTranslation();
   const titleId = useId();
+  // The link is read off the page's address, which the server does not have.
   const hasWindow = useSyncExternalStore(subscribeToNothing, () => true, () => false);
   const { activeWallet } = useActiveWallet();
   const players = useMemo(() => [duel.creator, duel.opponent], [duel.creator, duel.opponent]);
@@ -141,6 +137,7 @@ export function DuelTurn({ duelId, duel, phase, view, gameName, inviteSecret, wa
         completedApproval={joinFlow.flow?.completedSteps.approve ?? false}
         errorMessage={joinFlow.flow?.errorMessage}
         review={joinFlow.review}
+        creatorName={resolveDisplay(duel.creator)}
         onOpenChange={joinFlow.handleFlowOpenChange}
         onContinue={joinFlow.handleContinueFlow}
         onSwitchNetwork={joinFlow.handleSwitchNetwork}

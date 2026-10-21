@@ -52,7 +52,8 @@ export function useDashboard(walletAddress: `0x${string}`) {
   return {
     ...split,
     // Worked out on every render, like the top bar's: a claim running out changes it with no new data.
-    owed: owedTo(mine, walletAddress),
+    // Nothing while a page of history is missing, as there: a smaller sum would read as the whole.
+    owed: isLoading || isError ? null : owedTo(mine, walletAddress),
     totals,
     entryById,
     claimTimeout,

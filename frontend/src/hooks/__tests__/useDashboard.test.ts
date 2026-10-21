@@ -111,4 +111,13 @@ describe('useDashboard', () => {
 
     expect(result.current.isError).toBe(true);
   });
+
+  it('offers no sum to take while part of the history did not load, as a smaller one would read as the whole', () => {
+    reads.duels = [duel(5, { state: DuelState.WinnerClaimed, claimedBy: THEM, claimedWinner: THEM, claimTimestamp: BigInt(NOW - TIMEOUT - 1) })];
+    reads.isError = true;
+
+    const { result } = renderHook(() => useDashboard(ME));
+
+    expect(result.current.owed).toBeNull();
+  });
 });

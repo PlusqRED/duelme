@@ -1,5 +1,5 @@
 import type { TranslationKey } from '@/i18n/translations';
-import { ZERO_ADDRESS, getClaimableAmountForAddress, seatOf, type SeatSide } from '@/lib/duel';
+import { ZERO_ADDRESS, owedOf, payoutOf, seatOf, type SeatSide } from '@/lib/duel';
 import type { DuelPhase } from '@/lib/duelPhase';
 import { isPublicDuel } from '@/lib/invite';
 import type { TurnAction, TurnBlock, TurnDuel, TurnTone, TurnViewer, TurnWhose } from '@/lib/turnView';
@@ -14,15 +14,6 @@ export const otherSide = (side: SeatSide): SeatSide => (side === 'creator' ? 'op
 export function addressOf(duel: TurnDuel, side: SeatSide): `0x${string}` | null {
   const address = side === 'creator' ? duel.creator : duel.opponent;
   return address.toLowerCase() === ZERO_ADDRESS ? null : address;
-}
-
-function payoutOf(duel: TurnDuel, side: SeatSide): bigint {
-  return side === 'creator' ? duel.creatorPayout : duel.opponentPayout;
-}
-
-/** What the contract still keeps for `side`: payouts wait there until taken. */
-function owedOf(duel: TurnDuel, side: SeatSide): bigint {
-  return getClaimableAmountForAddress(duel, addressOf(duel, side));
 }
 
 const endings: Partial<Record<DuelPhase, { title: TranslationKey; text: TranslationKey }>> = {

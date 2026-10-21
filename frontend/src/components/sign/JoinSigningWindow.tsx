@@ -25,6 +25,8 @@ interface JoinSigningWindowProps {
   completedApproval: boolean;
   errorMessage?: FlowError | null;
   review: FlowReviewGate;
+  /** The creator as the page names them, by nickname where they have one; their address otherwise. */
+  creatorName?: string;
   onOpenChange: (open: boolean) => void;
   onContinue: () => void;
   onSwitchNetwork: () => void;
@@ -48,7 +50,7 @@ export function JoinSigningWindow(props: JoinSigningWindowProps) {
     id: String(draft.duelId),
     wager: formatUSDT(draft.rawAmount, language),
     pot: formatUSDT(draft.rawAmount * 2n, language),
-    other: truncateAddress(draft.creatorAddress),
+    other: props.creatorName || truncateAddress(draft.creatorAddress),
     network: draft.chainName,
   };
   const funding = fundingModel(

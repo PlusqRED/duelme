@@ -3,7 +3,7 @@ import { defineSection } from './defineSection';
 /** What each duel action says in the signing window: its title, what it does, its button and how it ended. */
 export const signingActionsTranslations = defineSection({
   en: {
-    'sign.create.slow.text': 'The network hasn’t decided yet. You can close this window: the new duel shows up in your duels once it does, but the link to a private duel is shown only here.',
+    'sign.create.slow.text': 'The network hasn’t decided yet. You can close this window: this page shows the new duel and its link once it does. Stay on the page until then, since the link to a private duel comes only here.',
     'sign.join.title': 'Join duel #{id}',
     'sign.join.caption': 'Your {wager}\u00a0USDT goes into the safe next to theirs, and the safe locks {pot}\u00a0USDT until the result.',
     'sign.join.move': 'Join duel #{id} against {other}',
@@ -119,7 +119,7 @@ export const signingActionsTranslations = defineSection({
     'sign.create.err.reverted.text': 'The contract refused this duel, so nothing was created. The reason is under the details.',
   },
   ru: {
-    'sign.create.slow.text': 'Сеть пока не решила. Окно можно закрыть: новая дуэль появится в твоих дуэлях, когда решение придёт, но ссылку на закрытую дуэль показывают только здесь.',
+    'sign.create.slow.text': 'Сеть пока не решила. Окно можно закрыть: эта страница покажет новую дуэль и ссылку на неё, когда решение придёт. До тех пор не уходи со страницы: ссылку на закрытую дуэль показывают только здесь.',
     'sign.join.title': 'Принять дуэль #{id}',
     'sign.join.caption': 'Твои {wager}\u00a0USDT лягут в сейф рядом со ставкой соперника, и сейф закроет {pot}\u00a0USDT до результата.',
     'sign.join.move': 'Принять дуэль #{id} против {other}',
@@ -138,7 +138,7 @@ export const signingActionsTranslations = defineSection({
     'sign.cancel.move': 'Закрыть дуэль #{id}, пока её никто не принял',
     'sign.cancel.button': 'Подписать и отменить',
     'sign.cancel.done.title': 'Дуэль отменена',
-    'sign.cancel.done.text': 'Забери свои {wager}\u00a0USDT когда удобно: это ещё одна подпись.',
+    'sign.cancel.done.text': 'Забери свои {wager}\u00a0USDT, когда удобно: это ещё одна подпись.',
     'sign.won.title': 'Заявить победу',
     'sign.won.caption': 'Пока ничего не двигается. У {other} будет {timeout}, чтобы подтвердить или оспорить.',
     'sign.won.move': 'Сообщить контракту о твоей победе в дуэли #{id}',
@@ -168,7 +168,7 @@ export const signingActionsTranslations = defineSection({
     'sign.agree.move': 'Согласиться остановить дуэль #{id} с {other}',
     'sign.agree.button': 'Подписать и согласиться',
     'sign.agree.done.title': 'Дуэль остановлена',
-    'sign.agree.done.text': 'Забери свои {wager}\u00a0USDT когда удобно. Репутация не меняется.',
+    'sign.agree.done.text': 'Забери свои {wager}\u00a0USDT, когда удобно. Репутация не меняется.',
     'sign.keepPlaying.title': 'Играть дальше',
     'sign.keepPlaying.caption': 'Ничего не двигается. Дуэль продолжается.',
     'sign.keepPlaying.move': 'Отказаться останавливать дуэль #{id}',
@@ -186,7 +186,7 @@ export const signingActionsTranslations = defineSection({
     'sign.dispute.move': 'Оспорить заявку {other} на победу в дуэли #{id}',
     'sign.dispute.button': 'Подписать и оспорить',
     'sign.dispute.done.title': 'Результат оспорен',
-    'sign.dispute.done.text': 'Забери свои {wager}\u00a0USDT когда удобно. Репутация не меняется.',
+    'sign.dispute.done.text': 'Забери свои {wager}\u00a0USDT, когда удобно. Репутация не меняется.',
     'sign.takeBack.title': 'Забрать {amount}\u00a0USDT',
     'sign.takeBack.caption': 'Твои {amount}\u00a0USDT уходят из сейфа в твой кошелёк.',
     'sign.takeBack.move': 'Отправить твои {amount}\u00a0USDT из дуэли #{id} в кошелёк',

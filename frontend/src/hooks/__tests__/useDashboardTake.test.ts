@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ActionFlowConfig } from '@/lib/actionFlow';
+import type { ActionFlowConfig, DuelActions } from '@/lib/actionFlow';
 import { summarizeOwed, type Owed, type OwedItem } from '@/lib/owed';
 
 const fake = vi.hoisted(() => ({
@@ -47,7 +47,7 @@ describe('useDashboardTake', () => {
     const { result } = renderHook(() => useDashboardTake(owedOf([WIN, BACK, LATE]), vi.fn()));
 
     act(() => result.current.take());
-    openedConfig().execute();
+    openedConfig().execute({ refundAndClaimPayouts: fake.refundAndClaimPayouts } as unknown as DuelActions);
 
     expect(fake.refundAndClaimPayouts).toHaveBeenCalledWith([7n, 3n, 2n]);
   });

@@ -107,9 +107,9 @@ export function CreateDuelRoom() {
     );
 
   return (
-    <div className="mx-auto w-full max-w-[1200px] px-4 pt-1 pb-18 sm:px-6">
+    <div className="mx-auto w-full max-w-page px-gutter pt-1 pb-18">
       <BackLink href={isSignedIn ? '/dashboard' : '/duels/public'}>{t(isSignedIn ? 'room.back.mine' : 'room.back.public')}</BackLink>
-      <div className="grid grid-cols-1 gap-5 min-[1080px]:grid-cols-[minmax(0,1fr)_340px] min-[1080px]:items-start min-[1080px]:gap-7">
+      <div className="grid grid-cols-1 gap-5 hero:grid-cols-[minmax(0,1fr)_340px] hero:items-start hero:gap-7">
         <div className="grid min-w-0 content-start gap-4">
           <DraftArena
             game={form.game}
@@ -151,7 +151,7 @@ export function CreateDuelRoom() {
             </SetupPanel>
           )}
         </div>
-        <aside className="grid min-w-0 content-start gap-5 min-[1080px]:sticky min-[1080px]:top-[92px]">
+        <aside className="grid min-w-0 content-start gap-5 hero:sticky hero:top-[92px]">
           <CreateFacts chainId={chainId} game={form.game} stakeRaw={stakeRaw} isPublic={form.isPublic}>
             {wayOnBar('side')}
           </CreateFacts>

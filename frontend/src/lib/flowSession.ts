@@ -49,6 +49,8 @@ export type FlowEvent<TStage extends string> =
   /** The wallet is asked to switch networks, which is a step of its own. */
   | { type: 'switching'; stage: TStage }
   | { type: 'switched'; next: TStage }
+  /** The step reads what it needs (the allowance) before it asks the wallet; nothing may start it twice meanwhile. */
+  | { type: 'preparing' }
   | { type: 'writing'; step: TStage }
   | { type: 'progressed'; actionState: 'awaiting-wallet' | 'confirming' }
   /** `step` ties the failure to the write it ended; without one it ends whatever the step was doing. */
@@ -86,6 +88,8 @@ export function reduceFlow<TFlow extends FlowCore<string>>(flow: TFlow, event: F
         errorMessage: null,
         completedSteps: { ...flow.completedSteps, switchNetwork: true },
       };
+    case 'preparing':
+      return { ...flow, actionState: 'awaiting-wallet', errorMessage: null, failedWhile: null };
     case 'writing':
       return {
         ...flow,

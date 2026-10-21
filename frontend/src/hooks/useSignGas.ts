@@ -47,7 +47,8 @@ export function useSignGas({ open, chainId, route, unpaid }: UseSignGasOptions) 
   const faucet = useFaucetFlask(chainId, ethRaw);
   const [isTopUpOpen, setIsTopUpOpen] = useState(false);
 
-  const needWei = quote && unpaid.length > 0 ? ethNeeded(unpaid.map((item) => item.gas), chainId, quote) : null;
+  const kinds = unpaid.flatMap((item) => Array<GasKind>(item.gasTimes ?? 1).fill(item.gas));
+  const needWei = quote && kinds.length > 0 ? ethNeeded(kinds, chainId, quote) : null;
   const isShort = needWei !== null && ethRaw !== null && ethRaw < needWei;
   const level = FAUCET_LEVELS[faucet.phase];
   const isFaucetBusy = faucet.phase === 'asking' || faucet.phase === 'sent' || faucet.phase === 'landed';

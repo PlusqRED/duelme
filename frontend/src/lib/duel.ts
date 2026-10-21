@@ -52,22 +52,29 @@ type ClaimableDuel = Pick<
   | 'finalizedAt'
 >;
 
+type SidePayouts = Pick<Duel, 'creatorPayout' | 'opponentPayout' | 'creatorClaimed' | 'opponentClaimed'>;
+
+/** What the contract pays `side` out of the duel, taken or not. */
+export function payoutOf(duel: SidePayouts, side: SeatSide): bigint {
+  return side === 'creator' ? duel.creatorPayout : duel.opponentPayout;
+}
+
+/** Whether `side` has taken its payout. */
+export function hasClaimed(duel: SidePayouts, side: SeatSide): boolean {
+  return side === 'creator' ? duel.creatorClaimed : duel.opponentClaimed;
+}
+
+/** What the contract still keeps for `side`. Payouts are pull-based: a win or a stake waits there until taken. */
+export function owedOf(duel: SidePayouts, side: SeatSide): bigint {
+  return hasClaimed(duel, side) ? 0n : payoutOf(duel, side);
+}
+
 export function getClaimableAmountForAddress(
-  duel: Pick<ClaimableDuel, 'creator' | 'opponent' | 'creatorPayout' | 'opponentPayout' | 'creatorClaimed' | 'opponentClaimed'>,
+  duel: Pick<Duel, 'creator' | 'opponent'> & SidePayouts,
   address?: string | null
 ): bigint {
-  const normalized = address?.toLowerCase();
-  if (!normalized) return 0n;
-
-  if (normalized === duel.creator.toLowerCase()) {
-    return duel.creatorClaimed ? 0n : duel.creatorPayout;
-  }
-
-  if (normalized === duel.opponent.toLowerCase()) {
-    return duel.opponentClaimed ? 0n : duel.opponentPayout;
-  }
-
-  return 0n;
+  const side = seatOf(duel, address);
+  return side ? owedOf(duel, side) : 0n;
 }
 
 export function getRelevantDuelTimestamp(duel: ClaimableDuel): bigint {

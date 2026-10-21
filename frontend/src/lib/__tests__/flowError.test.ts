@@ -1,9 +1,9 @@
-import { ContractFunctionRevertedError, HttpRequestError, UserRejectedRequestError } from 'viem';
+import { BaseError, ContractFunctionRevertedError, HttpRequestError, UserRejectedRequestError } from 'viem';
 import { describe, expect, it } from 'vitest';
 import { SUPPORTED_CHAINS } from '@/lib/constants';
 import { classifyFlowError, flowError, rawErrorText } from '@/lib/flowError';
 import { PermitDomainMismatchError } from '@/lib/permitSignature';
-import { RelayRequestError } from '@/lib/relayApi';
+import { RelayAnswerLostError, RelayRequestError } from '@/lib/relayApi';
 import { TransactionReplacedError, TransactionRevertedError, WalletNotReadyError } from '@/lib/writeErrors';
 
 const SEPOLIA = { chainId: SUPPORTED_CHAINS.arbitrumSepolia.id };
@@ -25,6 +25,22 @@ describe('classifyFlowError — the relay', () => {
     const classified = classifyFlowError(error, ONE);
 
     expect(classified.kind).toBe(kind);
+  });
+
+  it('testClassifyFlowErrorCallsALostAnswerLost', () => {
+    const error = new RelayAnswerLostError('The relayer did not answer in time.');
+
+    const classified = classifyFlowError(error, ONE);
+
+    expect(classified.kind).toBe('lost');
+  });
+
+  it('testClassifyFlowErrorOffersNoRetryAfterALostAnswer', () => {
+    const error = new RelayAnswerLostError('No answer came back from the relayer.');
+
+    const classified = classifyFlowError(error, ONE);
+
+    expect(classified.canRetry).toBe(false);
   });
 
   it('testClassifyFlowErrorKeepsTheRelaysWordsForTheDetails', () => {
@@ -195,6 +211,17 @@ describe('classifyFlowError — the wallet and the network', () => {
 });
 
 describe('rawErrorText', () => {
+  it('testRawErrorTextLeavesOutTheCallsArgumentsWhichCanHoldAnInviteSecret', () => {
+    const secret = `0x${'5'.repeat(64)}`;
+    const error = new BaseError('The contract function "joinDuel" reverted.', {
+      metaMessages: ['Contract Call:', `  address:   0x1111111111111111111111111111111111111111\n  function:  joinDuel(uint256, bytes32)\n  args:              (7, ${secret})`],
+    });
+
+    const text = rawErrorText(error);
+
+    expect([text?.includes('joinDuel(uint256, bytes32)'), text?.includes(secret)]).toEqual([true, false]);
+  });
+
   it('testRawErrorTextKeepsAnHttpFailuresStatusAndAddress', () => {
     const error = new HttpRequestError({ url: 'https://rpc.example', status: 503, body: { method: 'eth_sendRawTransaction' } });
 

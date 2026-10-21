@@ -1,12 +1,12 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useActionFlow } from '@/hooks/useActionFlow';
 import { useJoinDuelFlow } from '@/hooks/useJoinDuelFlow';
 import { useNicknames } from '@/hooks/useNicknames';
 import { useTranslation } from '@/i18n/useTranslation';
-import type { ActionFlowSummaryContext } from '@/lib/actionFlow';
+import type { ActionFlowConfig, ActionFlowSummaryContext } from '@/lib/actionFlow';
 import {
   acceptMutualCancellationConfig,
   admitDefeatConfig,
@@ -56,27 +56,35 @@ export function useDuelTurnActions({ duelId, duel, phase, inviteSecret, walletAd
   const { resolveDisplay } = useNicknames(nicknameAddresses);
   const joinFlow = useJoinDuelFlow({ duelId, duel, inviteSecret, refetchDuel: refetch });
   const actionFlow = useActionFlow({ duelId, refetchDuel: refetch });
+  // The window words the move as the duel stood when it opened: the refetch after the write empties
+  // what was claimable, and Done must still say what was taken.
+  const [openedContext, setOpenedContext] = useState<ActionFlowSummaryContext | null>(null);
 
   const id = BigInt(duelId);
-  const da = actionFlow.duelActions;
-  const claimPayout = () => actionFlow.openFlow(claimPayoutConfig(() => da.claimPayout(id)));
+  const open = (config: ActionFlowConfig) => {
+    setOpenedContext(summaryContext);
+    actionFlow.openFlow(config);
+  };
   const moves: Record<TurnMove, () => void> = {
     join: joinFlow.handleOpenJoinFlow,
     topUp: openTopUp,
     // A duel open to anyone is declined with the open secret; the contract checks it like any other.
-    decline: () => actionFlow.openFlow(declineDuelConfig(() => da.declineDuel(id, inviteSecret ?? OPEN_DUEL_INVITE_SECRET))),
+    decline: () => open(declineDuelConfig((actions) => actions.declineDuel(id, inviteSecret ?? OPEN_DUEL_INVITE_SECRET))),
     signIn: () => login(),
-    cancel: () => actionFlow.openFlow(cancelDuelConfig(() => da.cancelDuel(id))),
-    callOff: () => actionFlow.openFlow(requestMutualCancellationConfig(() => da.requestMutualCancellation(id))),
-    withdraw: () => actionFlow.openFlow(withdrawMutualCancellationConfig(() => da.withdrawMutualCancellationRequest(id))),
-    agree: () => actionFlow.openFlow(acceptMutualCancellationConfig(() => da.acceptMutualCancellation(id))),
-    keepPlaying: () => actionFlow.openFlow(declineMutualCancellationConfig(() => da.declineMutualCancellation(id))),
-    won: () => actionFlow.openFlow(claimVictoryConfig(() => da.claimVictory(id))),
-    lost: () => actionFlow.openFlow(admitDefeatConfig(() => da.admitDefeat(id))),
-    confirm: () => actionFlow.openFlow(confirmResultConfig(() => da.confirmResult(id))),
-    dispute: () => actionFlow.openFlow(disputeResultConfig(() => da.disputeResult(id))),
-    takeBack: phase === 'timeout' ? () => actionFlow.openFlow(refundAndClaimConfig(() => da.refundAndClaimPayouts([id]))) : claimPayout,
-    claimWin: claimPayout,
+    cancel: () => open(cancelDuelConfig((actions) => actions.cancelDuel(id))),
+    callOff: () => open(requestMutualCancellationConfig((actions) => actions.requestMutualCancellation(id))),
+    withdraw: () => open(withdrawMutualCancellationConfig((actions) => actions.withdrawMutualCancellationRequest(id))),
+    agree: () => open(acceptMutualCancellationConfig((actions) => actions.acceptMutualCancellation(id))),
+    keepPlaying: () => open(declineMutualCancellationConfig((actions) => actions.declineMutualCancellation(id))),
+    won: () => open(claimVictoryConfig((actions) => actions.claimVictory(id))),
+    lost: () => open(admitDefeatConfig((actions) => actions.admitDefeat(id))),
+    confirm: () => open(confirmResultConfig((actions) => actions.confirmResult(id))),
+    dispute: () => open(disputeResultConfig((actions) => actions.disputeResult(id))),
+    takeBack:
+      phase === 'timeout'
+        ? () => open(refundAndClaimConfig((actions) => actions.refundAndClaimPayouts([id])))
+        : () => open(claimPayoutConfig((actions) => actions.claimPayout(id), false)),
+    claimWin: () => open(claimPayoutConfig((actions) => actions.claimPayout(id), true)),
   };
 
   const isCreator = walletAddress === duel.creator.toLowerCase();
@@ -99,6 +107,6 @@ export function useDuelTurnActions({ duelId, duel, phase, inviteSecret, walletAd
     isBusy: actionFlow.flow !== null || joinFlow.flow !== null,
     joinFlow,
     actionFlow,
-    summaryContext,
+    summaryContext: actionFlow.flow !== null && openedContext ? openedContext : summaryContext,
   };
 }

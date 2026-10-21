@@ -51,7 +51,7 @@ export function SigningWindow({ model }: { model: SigningModel }) {
       return { wei: signing.feePaidWei, paid: true };
     }
     const wei = gas.feeOf(item.gas);
-    return wei === null ? null : { wei, paid: false };
+    return wei === null ? null : { wei: wei * BigInt(item.gasTimes ?? 1), paid: false };
   });
 
   // Money that lands while the top-up window is open charges the stake's cells once it closes.

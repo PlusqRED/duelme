@@ -55,10 +55,10 @@ export function WayOnBar({ way, params, place, isSticky = false, onGo }: WayOnBa
       className={cn(
         'flex flex-wrap items-center gap-x-[18px] gap-y-2.5',
         place === 'panel' && [
-          '-mx-[clamp(18px,3vw,28px)] mt-0.5 -mb-[clamp(18px,3vw,28px)] rounded-b-[22px] border-t-[1.5px] border-dashed border-line-strong bg-paper/95 px-[clamp(18px,3vw,28px)] pt-3.5 pb-[calc(14px+env(safe-area-inset-bottom))] backdrop-blur-[8px] min-[1080px]:hidden',
+          '-mx-[clamp(18px,3vw,28px)] mt-0.5 -mb-[clamp(18px,3vw,28px)] rounded-b-[22px] border-t-[1.5px] border-dashed border-line-strong bg-paper/95 px-[clamp(18px,3vw,28px)] pt-3.5 pb-[calc(14px+env(safe-area-inset-bottom))] backdrop-blur-[8px] hero:hidden',
           isSticky && 'sticky bottom-0 z-5',
         ],
-        place === 'side' && 'mt-1.5 hidden border-t-[1.5px] border-dashed border-line-strong pt-4 min-[1080px]:flex'
+        place === 'side' && 'mt-1.5 hidden border-t-[1.5px] border-dashed border-line-strong pt-4 hero:flex'
       )}
     >
       <p aria-live="polite" className={cn('min-w-0 text-body-sm text-ink-2', place === 'side' ? 'flex-[1_1_100%]' : 'flex-[1_1_240px]')}>

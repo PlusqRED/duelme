@@ -36,10 +36,12 @@ export function DuelFacts({ rows, children }: DuelFactsProps) {
       <dl>
         {rows.map((row) => (
           <div key={row.label} className="flex items-baseline justify-between gap-3 border-t border-line py-[9px] first:border-t-0">
-            <dt className="flex-none text-body-sm whitespace-nowrap text-ink-3">{row.label}</dt>
+            {/* On a narrow phone a long label wraps, never the value: «Комиссия платформы» and its
+                value outgrow a 320px card on one line. */}
+            <dt className="min-w-0 text-body-sm text-ink-3">{row.label}</dt>
             <dd
               className={cn(
-                'flex min-w-0 flex-[1_1_0] items-center justify-end gap-1.5 text-right font-strong tabular-nums [&_svg]:size-4',
+                'flex min-w-min flex-[1_1_0] items-center justify-end gap-1.5 text-right font-strong tabular-nums [&_svg]:size-4',
                 row.tone && valueTones[row.tone]
               )}
             >

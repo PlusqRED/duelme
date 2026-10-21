@@ -45,6 +45,11 @@ export function useCreateDuelFlow({
   const appToast = useAppToast();
   const [flow, setFlow] = useState<CreateDuelFlowSession | null>(null);
   const [allowanceRefreshCount, setAllowanceRefreshCount] = useState(0);
+  // Outlives the window: the page shows the new duel's link once the window is closed.
+  const [createdDuelPath, setCreatedDuelPath] = useState<string | null>(null);
+  // Left while the chain confirms: the window is out of the way, but the flow runs on, so the new
+  // duel is still recorded (its invite secret, its game) and its link shown when the receipt lands.
+  const [isHidden, setIsHidden] = useState(false);
 
   const { ready, authenticated, login } = usePrivy();
   const { identityToken } = useIdentityToken();
@@ -171,6 +176,9 @@ export function useCreateDuelFlow({
         onGameAttachFailed: () => appToast.error('toast.gameAttachFailed'),
       });
       setFlow((current) => current && { ...current, createdDuelId });
+      if (createdDuelId !== null) {
+        setCreatedDuelPath(buildDuelPath(String(createdDuelId), draft.inviteSecret));
+      }
       return 'success';
     },
     [draft, identityToken, appToast, refetchAllowanceIfRelevant]
@@ -184,6 +192,18 @@ export function useCreateDuelFlow({
     paysOwnFees: !fundsViaPermit,
     onWritten,
   });
+
+  // A flow left to finish out of sight ends with the page showing the new duel, so there is no
+  // Done to close it on.
+  if (isHidden && flow?.stage === 'success') {
+    setIsHidden(false);
+    setFlow(null);
+  }
+
+  function closeFlow() {
+    setIsHidden(false);
+    actions.closeFlow();
+  }
 
   const shouldRefreshReviewAllowance = flow?.stage === 'review';
 
@@ -199,11 +219,12 @@ export function useCreateDuelFlow({
   return {
     authenticated,
     canCloseFlow,
-    closeFlow: actions.closeFlow,
+    closeFlow,
     // The page shows the new duel's link itself once the window closes; nothing navigates there.
-    createdDuelPath:
-      flow?.createdDuelId != null ? buildDuelPath(String(flow.createdDuelId), flow.draft.inviteSecret) : null,
+    createdDuelPath,
     flow,
+    // A failure brings a left window back: the player has to hear that the duel was not made.
+    isFlowOpen: flow !== null && (!isHidden || flow.actionState === 'error'),
     handleApprove: () => actions.handleApprove(flow),
     handleContinueFlow: () => {
       // The button is disabled too, but the gate is here: nothing past review without a fresh
@@ -215,18 +236,24 @@ export function useCreateDuelFlow({
     },
     handleCreateDuelClick: () => {
       markOpened();
+      setIsHidden(false);
       void actions.handleCreateDuelClick();
     },
     handleCreateTransaction: () => actions.handleCreateTransaction(flow),
     handleFlowOpenChange: (open: boolean) => {
-      if (!open) {
-        actions.closeFlow();
+      if (open) {
+        return;
+      }
+      // Only the slow notice's way out closes a window while the chain confirms.
+      if (flow?.actionState === 'confirming') {
+        setIsHidden(true);
+      } else {
+        closeFlow();
       }
     },
     handleSwitchNetwork: () => actions.handleSwitchNetwork(flow),
     needsApproval,
     needsNetworkSwitch,
     review,
-    submitDisabled: flow !== null || (authenticated && (!isValidAmount || !isValidMessage)),
   };
 }

@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useReadContract, useReadContracts } from 'wagmi';
 import { duelMeAbi, DuelState, type Duel } from '@/lib/contracts';
 import { DUELME_ADDRESSES, ZERO_ADDRESS } from '@/lib/constants';
+import { subscribeToBalanceRefresh } from '@/lib/balanceRefresh';
 import type { DuelRecord } from '@/lib/duel';
 
 /**
@@ -186,6 +187,10 @@ export function useDuelRange({ chainId, enabled = true }: DuelRangeOptions) {
   const retry = useCallback(async () => {
     await Promise.all([refetchCount({ cancelRefetch: false }), refetchPages({ cancelRefetch: false })]);
   }, [refetchCount, refetchPages]);
+
+  // Money moved by a write on any page (a payout taken on the duel page) is read at once, so the
+  // safe and the dashboard never offer a payout already taken until the next poll.
+  useEffect(() => (isEnabled ? subscribeToBalanceRefresh(() => void refetch()) : undefined), [isEnabled, refetch]);
 
   return {
     duels,

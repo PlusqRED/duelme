@@ -30,7 +30,3 @@ export function signPlan(write: { route: WriteRoute; funds: boolean; needsApprov
   return [...approve, { part: 'move', kind: 'transaction' }];
 }
 
-/** How many of the plan's steps are of a kind: what the window's count chip says. */
-export function countOf(plan: readonly SignStep[], kind: SignKind): number {
-  return plan.filter((step) => step.kind === kind).length;
-}

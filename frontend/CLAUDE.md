@@ -113,9 +113,8 @@ address, no relayer key — is the case the self-paid path still covers.
 
 ## Design
 
-The app is being moved, screen by screen, onto one design. These are its rules. A screen the port
-has not reached yet keeps its old layout and colours, though it already has the new type, corners
-and controls; the guard tests below list it.
+Every screen is on one design, and these are its rules; the guard tests below hold the ones a
+test can check.
 
 - **Calm, never a casino.** Light surfaces, no neon, no chips or coin piles, nothing that nudges
   toward a bigger stake, plain words.
@@ -139,8 +138,9 @@ and controls; the guard tests below list it.
   classes read it; a state with several looks is a data attribute with variants
   (`data-[tone=short]:bg-orange-wash`). Shared CSS lives only in `src/styles/`: the theme, element
   defaults with the `keycap`, `link` and `swipe-strip` utilities, and motion.
-- **Type:** Geologica only; 800 for headings and amounts, `font-label` (650) and `font-strong`
-  (750) for labels, 400 for text. Figures are `tabular-nums`; there is no monospace face.
+- **Type:** Geologica only, in the demo's weights: 800 for headings and amounts, `font-strong`
+  (750) and `font-label` (650) for labels, 700 and 600 where the demo sets them on a name or a
+  field, 400 for text. Figures are `tabular-nums`; there is no monospace face.
 - **Primitives** in `components/ui/`: keycap buttons (navy for every action, paper beside it, sun
   only to take a payout, ghost for what should not compete), `Chip`, `Icon` (the design's icons),
   `Dialog` (a card on a wide screen, a sheet
@@ -148,7 +148,8 @@ and controls; the guard tests below list it.
   `Input`, `Note` (a line of small print after an icon), `Spinner`, `Toaster`. Who and what in `components/identity/`: `Avatar` (a player's identicon on
   their seat's colour; the pattern is `lib/identicon.ts`, the same for an address everywhere),
   `GameTile` (initials on the category's colour), `ReputationPill` (a level), `LevelBadge` (a level as the badge a player earns, or still locked) and
-  `QuestLine` (the honored duels to the next level, from `levelQuest`), `BrandMark`, `BrandLink`.
+  `QuestLine` (the honored duels to the next level, from `levelQuest`), `Tally` (one side of a
+  record: honored or abandoned), `BrandMark`, `BrandLink`.
 - **Motion** either explains something once or answers a click, and moves only transform and
   opacity. The exceptions are the keycap's edge, a shadow that shortens as the button goes down,
   and two SVG rings whose dash offset moves: a player's clock (`arena/CountdownRing`), which
@@ -194,7 +195,7 @@ and controls; the guard tests below list it.
 | `frontend/src/hooks/useWalletBalances.ts` | The wallet's USDT and ETH on each network the build lists, read apart (USDT on `useUsdtBalance`'s query): the button's balance polled always, the rest while the menu is open, all again on the balance bus |
 | `frontend/src/hooks/useSendUsdt.ts` | Sends USDT on the network picked: moves the wallet there, then `writeWithGas` |
 | `frontend/src/lib/sendUsdt.ts` | The send form's rules: the typed amount, the transfer it asks for, what stops it, and where a sent one is |
-| `frontend/src/lib/faucetApi.ts` | Faucet claim and status (`/faucet/status`), what it offers on a network, and its amounts for the copy (`faucetAmounts`) |
+| `frontend/src/lib/faucetApi.ts` | Faucet claim and status (`/faucet/status`), what it offers on a network, and what one claim gives, in the copy's words (`faucetGift`) |
 | `frontend/src/lib/faucetFlask.ts` | The wallet menu's faucet flask: its phase from the offer, the claim, and the balance a sent claim waits to land in |
 | `frontend/src/lib/parsing.ts` | `isRecord`, `parseUintString`: the checks a value read from outside (a response, storage, a request) passes before it is trusted |
 | `frontend/src/components/ui/toaster.tsx` | Toasts as paper cards with the design's icons, and what sonner's `unstyled` drops put back |
@@ -212,7 +213,7 @@ and controls; the guard tests below list it.
 | `frontend/src/components/header/LanguageSwitch.tsx` | The language switch: slides its pill, posts the choice, then reloads the page at the same address |
 | `frontend/src/styles/__tests__/designGuard.test.ts` | Fails on palette classes and variables, colour values outside the theme, `dark:` and `font-mono` |
 | `frontend/src/i18n/__tests__/translationsGuard.test.ts` | Fails on a translation key nothing uses and on Russian «вы» |
-| `frontend/src/lib/__tests__/helpers/sourceFiles.ts` | What the guards read: the shipped source files, the theme's tokens, and `shrinkingList` for lists that may only shrink |
+| `frontend/src/lib/__tests__/helpers/sourceFiles.ts` | What the guards read: the shipped source files and the theme's tokens |
 | `frontend/src/lib/constants.ts` | Chain configs, contract addresses, ZERO_ADDRESS |
 | `frontend/src/components/providers/Providers.tsx` | Privy + wagmi + QueryClient providers, the relayer status and the language the root layout read |
 | `frontend/src/hooks/useDuel.ts` | Read single duel, polled until it is over and paid out; a failed poll keeps the last duel |
@@ -243,7 +244,7 @@ and controls; the guard tests below list it.
 | `frontend/src/components/landing/RecentDuels.tsx` | The landing's finished duels (`useWonDuels`, won duels only) beside the popular games that filter them (`useGameFilter`: rows step out, then `useListReflow` slides the rest; a picked game's duels come from that game's own, `useDuelsByGame`); a row is the feed's `DuelRow`, opening into its `DuelReceipt`. The sizes and the pure rules are `lib/landingDuels.ts` |
 | `frontend/src/components/arena/` | The table a duel is drawn on, the landing demo's and a real duel's: `Seat`, `Safe`, `Stake`, `Track`, `Match`, `Bubble`, `CountdownRing` (measures a real clock when given `left`), `OpenSeat`, `RepChip`, `MoneyChip`, `GainTag`, `CountedUsdt`; `SafeLock`, the padlock the safe and the wallet menu's `SafeMini` share |
 | `frontend/src/app/duel/[id]/page.tsx` | The duel page: takes whole-digit ids only, then `DuelRoom` |
-| `frontend/src/components/duel/room/` | The duel page's parts: `DuelRoom` (the duel, its phase, the layout), `DuelArena` (`DuelHead`, `ArenaStage` with its `RoomSeat`s, `DuelSteps`); `RoomGrid` (the arena, the turn panel under it pointing at the reader's seat, the facts and history beside); `DuelTurn` (the "your move" panel and the windows its moves open: join flow, guided window, top-up) on `TurnPanel` (notch, whose pill, swap and 700 ms arming; shared with the create page, as are `DuelFacts` and `InviteLinkBox`) and `TurnBlocks`; `RoomFacts` ("This duel" on `DuelFacts`); `DuelHistory` |
+| `frontend/src/components/duel/room/` | The duel page's parts: `DuelRoom` (the duel, its phase, the layout), `DuelArena` (`DuelHead`, `ArenaStage` with its `RoomSeat`s, `DuelSteps`); `RoomGrid` (the arena, the turn panel under it pointing at the reader's seat, the facts and history beside); `DuelTurn` (the "your move" panel and the windows its moves open: the join window, the signing window, top-up) on `TurnPanel` (notch, whose pill, swap and 700 ms arming; shared with the create page, as are `DuelFacts` and `InviteLinkBox`) and `TurnBlocks`; `RoomFacts` ("This duel" on `DuelFacts`); `DuelHistory` |
 | `frontend/src/lib/duelPhase.ts` | A duel's phase at a moment (`timeout` once the time to answer a reported win ran out), its head label and its five steps |
 | `frontend/src/lib/arenaView.ts` | What the duel page's arena shows for a duel in a phase, and the beats a change plays in (players first, then the money) |
 | `frontend/src/lib/turnView.ts` | The duel page's "your move" panel as plain data for every phase and reader (whose move, tone, notch, copy keys, blocks); the phases' cases are `lib/turnPhases.ts` |

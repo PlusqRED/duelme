@@ -15,7 +15,7 @@ const twMerge = extendTailwindMerge({
       'font-weight': ['label', 'strong'],
       shadow: ['window', 'menu', 'sheet', 'safe', 'stage', 'phone', 'pin', 'sticky', 'tape'],
       'inset-shadow': ['avatar', 'stake'],
-      ease: ['spring', 'press', 'sheet'],
+      ease: ['spring', 'press', 'sheet', 'flight'],
       spacing: ['gutter', 'section'],
       container: ['page'],
       radius: ['tile'],
@@ -37,7 +37,8 @@ export function truncateAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-function isDecimal(text: string): text is `${number}` {
+/** A plain decimal string (`-12.5`), the shape `Intl.NumberFormat` formats exactly. */
+export function isDecimal(text: string): text is `${number}` {
   return /^-?\d+(?:\.\d+)?$/.test(text);
 }
 
@@ -132,4 +133,12 @@ export function formatDate(date: string | Date, language: Language): string {
   if (Number.isNaN(day.getTime())) return '—';
 
   return dateFormats[language].format(day);
+}
+
+/**
+ * For `useSyncExternalStore` over a value that does not change while the page is open (the window,
+ * a secret stored before): there is nothing to listen to, and the server's snapshot differs.
+ */
+export function subscribeToNothing() {
+  return () => {};
 }

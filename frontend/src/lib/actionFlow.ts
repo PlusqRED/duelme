@@ -1,3 +1,4 @@
+import type { useDuelActions } from '@/hooks/useDuelActions';
 import type { useTranslation } from '@/i18n/useTranslation';
 import type { FlowCore, SigningProgress } from '@/lib/flowSession';
 
@@ -61,10 +62,20 @@ export interface ActionFlowSummaryContext {
   t: ReturnType<typeof useTranslation>['t'];
 }
 
+/** The duel writes, as `useDuelActions` binds them for the wallet of one render. */
+export type DuelActions = ReturnType<typeof useDuelActions>;
+
 export interface ActionFlowConfig {
   type: ActionFlowType;
-  execute: () => Promise<void> | void;
+  /**
+   * The write, run with the actions of the render that signs rather than the one that opened the
+   * window: the wallet may have switched networks in between, and the old binding still holds the
+   * wallet client of the network it left.
+   */
+  execute: (actions: DuelActions) => Promise<void> | void;
   onSuccess?: () => void;
+  /** A payout of a duel won, which the window words as winnings, rather than a stake coming back. */
+  isWinnings?: boolean;
   /** An action over several duels at once: how many, what they pay out together, and whether a timed-out one is among them. */
   batch?: { count: number; totalDisplay: string; closesTimedOut: boolean };
 }

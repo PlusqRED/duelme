@@ -7,12 +7,7 @@ import { useCopyFeedback } from '@/hooks/useCopyFeedback';
 import { useTranslation } from '@/i18n/useTranslation';
 import { DEFAULT_CHAIN_ID, DUELME_ADDRESSES, ZERO_ADDRESS } from '@/lib/constants';
 import { buildInviteLink, readStoredInviteSecret } from '@/lib/invite';
-import { cn } from '@/lib/utils';
-
-/** The stored secret does not change while the page is open, so nothing is listened to. */
-function subscribeToNothing() {
-  return () => {};
-}
+import { cn, subscribeToNothing } from '@/lib/utils';
 
 /**
  * Copy the link to a private duel waiting for its opponent: the full invite, from the secret this

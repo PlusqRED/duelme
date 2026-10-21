@@ -45,6 +45,12 @@ describe('reduceFlow', () => {
     expect(flow).toMatchObject({ stage: 'join-duel', actionState: 'idle', completedSteps: { switchNetwork: true, approve: false } });
   });
 
+  it('testReduceFlowHoldsTheStepBusyWhileItPrepares', () => {
+    const flow = reduceFlow(at({ stage: 'join-duel', actionState: 'error', errorMessage: REJECTED }), { type: 'preparing' });
+
+    expect(flow).toMatchObject({ stage: 'join-duel', actionState: 'awaiting-wallet', errorMessage: null, pendingTransaction: null });
+  });
+
   it('testReduceFlowStartsAWriteInTheWallet', () => {
     const flow = reduceFlow(at(), { type: 'writing', step: 'join-duel' });
 

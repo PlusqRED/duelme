@@ -33,10 +33,6 @@ export function createGameSearcher(games: ReadonlyArray<Game>): GameSearcher {
   };
 }
 
-export function searchGames(games: ReadonlyArray<Game>, query: string, limit = 8): GameSearchResult[] {
-  return createGameSearcher(games).search(query, limit);
-}
-
 export function buildHighlightSet(matches: ReadonlyArray<readonly [number, number]>): Set<number> {
   const set = new Set<number>();
   for (const [start, end] of matches) {

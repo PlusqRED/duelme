@@ -20,19 +20,19 @@ describe('flaskPhase', () => {
   });
 
   it('keeps the money on its way after the faucet said yes, though the claim already counts as made', () => {
-    expect(flaskPhase(claimed, false, { chainId: CHAIN, usdtBefore: 5n }, CHAIN, 5n)).toBe('sent');
+    expect(flaskPhase(claimed, false, { chainId: CHAIN, before: 5n }, CHAIN, 5n)).toBe('sent');
   });
 
   it('lands the money once the balance grows past what it was when the claim went out', () => {
-    expect(flaskPhase(claimed, false, { chainId: CHAIN, usdtBefore: 5n }, CHAIN, 100_000_005n)).toBe('landed');
+    expect(flaskPhase(claimed, false, { chainId: CHAIN, before: 5n }, CHAIN, 100_000_005n)).toBe('landed');
   });
 
   it('waits on a balance that is not known yet', () => {
-    expect(flaskPhase(claimed, false, { chainId: CHAIN, usdtBefore: 5n }, CHAIN, null)).toBe('sent');
+    expect(flaskPhase(claimed, false, { chainId: CHAIN, before: 5n }, CHAIN, null)).toBe('sent');
   });
 
   it('does not follow a claim made on another network', () => {
-    expect(flaskPhase(claimed, false, { chainId: 42161, usdtBefore: 0n }, CHAIN, 9n)).toBe('claimed');
+    expect(flaskPhase(claimed, false, { chainId: 42161, before: 0n }, CHAIN, 9n)).toBe('claimed');
   });
 
   it('says the claim is made once it is no longer followed', () => {

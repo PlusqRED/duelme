@@ -163,6 +163,8 @@ export function joinDuelFlowActions({
       dispatch({ type: 'moved', stage: 'switch-network' });
       return;
     }
+    // The read takes a moment while the button is gone, so a second press cannot send twice.
+    dispatch({ type: 'preparing' });
     let needsApproval: boolean;
     try {
       needsApproval = await needsApprovalFor(flow);

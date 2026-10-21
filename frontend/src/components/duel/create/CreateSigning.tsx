@@ -10,7 +10,7 @@ import type { useCreateDuelFlow } from '@/hooks/useCreateDuelFlow';
 export function CreateSigning({ flow }: { flow: ReturnType<typeof useCreateDuelFlow> }) {
   return (
     <CreateSigningWindow
-      open={flow.flow !== null}
+      open={flow.isFlowOpen}
       canClose={flow.canCloseFlow}
       draft={flow.flow?.draft ?? null}
       stage={flow.flow?.stage ?? 'review'}
