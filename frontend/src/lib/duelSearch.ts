@@ -1,47 +1,13 @@
-import type { PlayerDuel } from '@/lib/duel';
 import type { Language, TranslationKey, TranslationParams } from '@/i18n/translations';
 import { formatUnits } from 'viem';
-import { USDT_DECIMALS, ZERO_ADDRESS } from '@/lib/constants';
-import { DuelState } from '@/lib/contracts';
+import { USDT_DECIMALS } from '@/lib/constants';
 import { getCategoryLabelKey } from '@/lib/game';
 import type { FeedDuel } from '@/lib/duelFeed';
 import type { EnrichedDuel } from '@/lib/publicDuelsFilters';
-import { formatDateTime, formatUSDT } from '@/lib/utils';
-import {
-  getClaimableAmountForAddress,
-  getCounterpartyAddress,
-  getDuelOutcomeSummary,
-  getDuelStateLabelKey,
-  getRelevantDuelTimestamp,
-  hasClaimedPayoutForAddress,
-  isDuelClaimTimedOut,
-} from '@/lib/duel';
-import { getReputationLabelKey, type ReputationLevel } from '@/lib/reputation';
+import { formatUSDT } from '@/lib/utils';
+import { getReputationLabelKey } from '@/lib/reputation';
 
 type Translate = (key: TranslationKey, params?: TranslationParams) => string;
-
-const CANONICAL_STATE_TERMS: Record<DuelState, string[]> = {
-  // The paged readers drop `Nonexistent` records and a direct link to an id nobody issued takes
-  // the not-found branch, so no screen renders one. The entry is here because the record is
-  // exhaustive over the enum.
-  [DuelState.Nonexistent]: [],
-  [DuelState.Created]: ['waiting for opponent', 'created'],
-  [DuelState.Funded]: ['in progress', 'funded', 'live'],
-  [DuelState.WinnerClaimed]: ['waiting for confirmation', 'result submitted'],
-  [DuelState.Resolved]: ['resolved', 'duel resolved'],
-  [DuelState.Refunded]: ['refunded', 'refund unlocked'],
-  [DuelState.Cancelled]: ['cancelled', 'canceled'],
-  [DuelState.Declined]: ['declined', 'invite declined'],
-  [DuelState.Disputed]: ['disputed', 'result disputed'],
-  [DuelState.MutualCancelRequested]: ['cancellation requested', 'mutual cancel requested'],
-  [DuelState.MutuallyCancelled]: ['cancelled by agreement', 'mutually cancelled', 'mutually canceled'],
-};
-
-const CANONICAL_OUTCOME_TERMS: Record<string, string[]> = {
-  'dashboard.outcomeWon': ['won', 'victory', 'winner'],
-  'dashboard.outcomeLost': ['lost', 'defeat', 'loser'],
-  'dashboard.outcomeNoWinner': ['no winner', 'refund', 'draw'],
-};
 
 /** A comma in a number as the language writes it: Russian's decimal point, English's thousands separator. */
 function foldedComma(language: Language): string {
@@ -75,70 +41,6 @@ function normalizeSearchParts(parts: Array<string | number | undefined | null | 
     .filter((part): part is string | number => part !== undefined && part !== null && part !== false && part !== '')
     .map((part) => foldSearchText(String(part), language))
     .join(' ');
-}
-
-function getReputationLabel(
-  reputationByAddress: Record<string, ReputationLevel>,
-  address: string,
-  t: Translate
-) {
-  const level = reputationByAddress[address.toLowerCase()];
-  return level ? t(getReputationLabelKey(level)) : '';
-}
-
-export function buildDashboardDuelSearchText(
-  duel: PlayerDuel,
-  viewerAddress: string | undefined,
-  t: Translate,
-  language: Language,
-  reputationByAddress: Record<string, ReputationLevel>,
-  nicknameByAddress?: Record<string, string | null>
-) {
-  const isTimedOut = duel.state === DuelState.WinnerClaimed && isDuelClaimTimedOut(duel.claimTimestamp);
-  const outcome = getDuelOutcomeSummary(duel, viewerAddress, isTimedOut);
-  const stateLabel = t(getDuelStateLabelKey(duel.state, isTimedOut));
-  const outcomeLabel = t(outcome.key);
-  const detailLabel = t(outcome.detailKey);
-  const counterparty = getCounterpartyAddress(duel, viewerAddress) ?? duel.opponent;
-  const claimableAmount = getClaimableAmountForAddress(duel, viewerAddress);
-  const claimed = hasClaimedPayoutForAddress(duel, viewerAddress);
-
-  return normalizeSearchParts([
-    duel.id,
-    duel.wager,
-    `${duel.wager} usdt`,
-    formatUSDT(duel.wagerAmount, language),
-    duel.message,
-    outcomeLabel,
-    detailLabel,
-    stateLabel,
-    ...CANONICAL_STATE_TERMS[duel.state],
-    isTimedOut ? 'timed out' : '',
-    isTimedOut ? 'response timed out' : '',
-    // Only for a duel still waiting: a label every duel carried would match every duel.
-    duel.opponent === ZERO_ADDRESS ? t('dashboard.waitingOpponent') : '',
-    counterparty,
-    duel.creator,
-    duel.opponent,
-    duel.claimedWinner,
-    duel.claimedBy,
-    getReputationLabel(reputationByAddress, duel.creator, t),
-    getReputationLabel(reputationByAddress, duel.opponent, t),
-    nicknameByAddress?.[duel.creator.toLowerCase()] ?? '',
-    nicknameByAddress?.[duel.opponent.toLowerCase()] ?? '',
-    duel.chainName,
-    formatDateTime(getRelevantDuelTimestamp(duel), language),
-    ...(CANONICAL_OUTCOME_TERMS[outcome.key] ?? []),
-    claimed ? t('dashboard.claimed') : '',
-    claimed ? 'claimed' : '',
-    claimableAmount > 0n ? t('dashboard.claimReady') : '',
-    claimableAmount > 0n ? 'ready to claim' : '',
-    claimableAmount > 0n ? 'claimable' : '',
-    // As the screen writes it, and as typed: `1234.5` finds what reads `1,234.5` or `1 234,5`.
-    claimableAmount > 0n ? formatUSDT(claimableAmount, language) : '',
-    claimableAmount > 0n ? formatUnits(claimableAmount, USDT_DECIMALS) : '',
-    claimableAmount > 0n ? t('dashboard.claimButton') : '',
-  ], language);
 }
 
 /**

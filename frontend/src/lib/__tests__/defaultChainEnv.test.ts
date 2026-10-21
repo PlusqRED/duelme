@@ -52,15 +52,13 @@ describe('AVAILABLE_CHAIN_KEYS restricts wallet UI per build', () => {
 
   it('restricts to mainnet only on a prod (arbitrum) build', async () => {
     vi.stubEnv('NEXT_PUBLIC_DEFAULT_CHAIN_KEY', 'arbitrum');
-    const { AVAILABLE_CHAIN_KEYS, AVAILABLE_CHAIN_IDS } = await import('../constants');
+    const { AVAILABLE_CHAIN_KEYS } = await import('../constants');
     expect(AVAILABLE_CHAIN_KEYS).toEqual(['arbitrum']);
-    expect(AVAILABLE_CHAIN_IDS).toEqual([42161]);
   });
 
   it('exposes both chains on a dev (arbitrumSepolia) build', async () => {
     vi.stubEnv('NEXT_PUBLIC_DEFAULT_CHAIN_KEY', 'arbitrumSepolia');
-    const { AVAILABLE_CHAIN_KEYS, AVAILABLE_CHAIN_IDS } = await import('../constants');
+    const { AVAILABLE_CHAIN_KEYS } = await import('../constants');
     expect(AVAILABLE_CHAIN_KEYS).toEqual(['arbitrumSepolia', 'arbitrum']);
-    expect(AVAILABLE_CHAIN_IDS).toEqual([421614, 42161]);
   });
 });

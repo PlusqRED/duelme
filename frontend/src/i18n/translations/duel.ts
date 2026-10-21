@@ -28,7 +28,7 @@ export const duelTranslations = defineSection({
     'duel.public': 'Public',
     'duel.private': 'Private',
     'duel.privateInviteMissing':
-      'This invite link is missing or invalid. Ask the creator to resend the full private link.',
+      'This invite link has no key, or a wrong one. Ask the creator for the full private link.',
     'duel.notFound': 'Duel not found or contract not deployed yet.',
     'duel.partiallyLoaded': 'Not every duel loaded, so this list may be incomplete or out of date.',
     'duel.title': 'Duel #{id}',
@@ -65,7 +65,7 @@ export const duelTranslations = defineSection({
     'duel.public': 'Публичная',
     'duel.private': 'Приватная',
     'duel.privateInviteMissing':
-      'В ссылке нет приватного токена или он неверный. Попросите создателя отправить полную приватную ссылку.',
+      'В ссылке нет ключа приглашения или он неверный. Попроси у создателя полную приватную ссылку.',
     'duel.notFound': 'Дуэль не найдена или контракт ещё не задеплоен.',
     'duel.partiallyLoaded': 'Загрузились не все дуэли, так что список может быть неполным или устаревшим.',
     'duel.title': 'Дуэль #{id}',

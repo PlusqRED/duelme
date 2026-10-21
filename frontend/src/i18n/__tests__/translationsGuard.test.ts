@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { translations, type TranslationKey } from '@/i18n/translations';
-import { shrinkingList, sourceFiles } from '@/lib/__tests__/helpers/sourceFiles';
-import { STILL_FORMAL_KEYS } from './stillFormalKeys';
+import { sourceFiles } from '@/lib/__tests__/helpers/sourceFiles';
 
 const keys = Object.keys(translations.en) as TranslationKey[];
 
@@ -45,11 +44,6 @@ function isFormal(text: string): boolean {
   );
 }
 
-const formal = shrinkingList(
-  keys.filter((key) => isFormal(translations.ru[key])),
-  STILL_FORMAL_KEYS
-);
-
 const FORMAL_EXAMPLES = ['Попробуйте ещё раз', 'Проверьте сеть', 'Вы можете отменить', 'На кнопку нажмите'];
 const INFORMAL_EXAMPLES = ['Дуэль в тестнете', 'Ссылка на сайте', 'Ответ в отчёте', 'Всё в личном кабинете'];
 
@@ -70,11 +64,7 @@ describe('translations', () => {
     expect(isFormal(text)).toBe(false);
   });
 
-  it('says «ты» in Russian outside the strings still waiting for their screen', () => {
-    expect(formal.unlisted).toEqual([]);
-  });
-
-  it('lists only strings that still say «вы», so the list only shrinks', () => {
-    expect(formal.stale).toEqual([]);
+  it('says «ты» in Russian', () => {
+    expect(keys.filter((key) => isFormal(translations.ru[key]))).toEqual([]);
   });
 });

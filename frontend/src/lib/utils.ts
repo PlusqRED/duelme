@@ -119,16 +119,6 @@ export function parseUSDT(amount: number): bigint {
   return BigInt(rounded);
 }
 
-export function formatTimeRemaining(seconds: number): string {
-  if (seconds <= 0) return '0s';
-  const minutes = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  if (minutes > 0) {
-    return `${minutes}m ${secs}s`;
-  }
-  return `${secs}s`;
-}
-
 export function formatDateTime(timestamp: bigint | number, language: Language): string {
   const seconds = typeof timestamp === 'bigint' ? Number(timestamp) : timestamp;
   if (!seconds) return '—';

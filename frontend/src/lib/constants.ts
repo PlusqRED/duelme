@@ -7,7 +7,6 @@ export const SUPPORTED_CHAINS = {
   arbitrumSepolia: {
     id: 421614,
     name: 'Arbitrum Sepolia',
-    shortName: 'Arb Sepolia',
     testnet: true,
     usdt: '0x44d213D601C19ec98Bf61A1bCa3935D6da07F05D' as `0x${string}`,
     duelMe: '0x588A54Fa8c00c8aC003e41BD8ee26FBC8994105f' as `0x${string}`,
@@ -20,7 +19,6 @@ export const SUPPORTED_CHAINS = {
   arbitrum: {
     id: 42161,
     name: 'Arbitrum One',
-    shortName: 'Arbitrum One',
     testnet: false,
     usdt: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9' as `0x${string}`,
     duelMe: '0x32b3c9aF55c7C784bdf9128a1f681A66A37Bd261' as `0x${string}`,
@@ -61,7 +59,6 @@ export const AVAILABLE_CHAIN_KEYS: readonly ChainKey[] =
 // per-chain-id lookup.
 export const AVAILABLE_CHAINS = AVAILABLE_CHAIN_KEYS.map((key) => SUPPORTED_CHAINS[key]);
 
-export const AVAILABLE_CHAIN_IDS: readonly number[] = AVAILABLE_CHAINS.map((chain) => chain.id);
 
 // Fallback default for the on-chain minWager() (owner-adjustable). The live
 // value is fetched by useContractConfig; this constant only covers the moment
@@ -92,10 +89,6 @@ export const FORWARDER_ADDRESSES: Record<number, `0x${string}`> = Object.fromEnt
 );
 
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as `0x${string}`;
-
-export const CHAIN_NAMES: Record<number, string> = Object.fromEntries(
-  ALL_CHAINS.map((chain) => [chain.id, chain.shortName])
-);
 
 export const SITE_URL = 'https://duelme.pro';
 export const SITE_NAME = 'DuelMe';

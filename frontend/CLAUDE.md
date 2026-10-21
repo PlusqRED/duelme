@@ -129,28 +129,25 @@ and controls; the guard tests below list it.
   Tailwind's own scale lacks, is a token in `src/styles/theme.css`, used by its role: `bg-canvas`,
   `text-ink-3`, `bg-red-soft`, `text-body-sm`, `ease-press`, `xs:` (560px, where a window stops
   being a sheet), `max-w-page px-gutter` (a page's column and the room beside it). Tailwind's
-  own palette (`bg-slate-50`, `text-white`), a colour value in a component, and `dark:` (there is
-  no dark theme) fail `styles/__tests__/designGuard.test.ts`. The files the port has not reached are
-  listed in `styles/__tests__/notYetPorted.ts`; a screen's port takes its files off, and the list
-  only shrinks. A place CSS cannot reach (the browser's theme colour, Privy's window) takes its hex
+  own palette is off (`--color-*: initial` in the theme), and a palette class (`bg-slate-50`,
+  `text-white`), a colour value in a component, and `dark:` (there is no dark theme) fail
+  `styles/__tests__/designGuard.test.ts`. A place CSS cannot reach (the browser's theme colour, Privy's window) takes its hex
   from `lib/brandColors.ts`, and a move made in script its curve from `lib/easings.ts`; a test
   keeps each equal to the theme.
 - **Tailwind only, with one exception.** A value that changes while the page runs (a timer's
   progress, a notch's position, a bar's fill) goes in as a CSS variable through `style` and the
   classes read it; a state with several looks is a data attribute with variants
   (`data-[tone=short]:bg-orange-wash`). Shared CSS lives only in `src/styles/`: the theme, element
-  defaults with the `keycap`, `link` and `swipe-strip` utilities, motion, and `legacy.css` — classes of screens not ported yet,
-  each of which the guard test drops once nothing uses it.
+  defaults with the `keycap`, `link` and `swipe-strip` utilities, and motion.
 - **Type:** Geologica only; 800 for headings and amounts, `font-label` (650) and `font-strong`
   (750) for labels, 400 for text. Figures are `tabular-nums`; there is no monospace face.
 - **Primitives** in `components/ui/`: keycap buttons (navy for every action, paper beside it, sun
-  only to take a payout, ghost for what should not compete), `Chip`, `Icon` (the design's icons;
-  `lucide-react` stays only on screens not ported yet), `Dialog` (a card on a wide screen, a sheet
+  only to take a payout, ghost for what should not compete), `Chip`, `Icon` (the design's icons),
+  `Dialog` (a card on a wide screen, a sheet
   from the bottom of a phone), `Popover` (a menu: a panel under its button, a sheet on a phone),
   `Input`, `Note` (a line of small print after an icon), `Spinner`, `Toaster`. Who and what in `components/identity/`: `Avatar` (a player's identicon on
   their seat's colour; the pattern is `lib/identicon.ts`, the same for an address everywhere),
-  `GameTile` (initials on the category's colour), `ReputationPill` (a level) and `ReputationBadge`
-  (a player's level, read), `LevelBadge` (a level as the badge a player earns, or still locked) and
+  `GameTile` (initials on the category's colour), `ReputationPill` (a level), `LevelBadge` (a level as the badge a player earns, or still locked) and
   `QuestLine` (the honored duels to the next level, from `levelQuest`), `BrandMark`, `BrandLink`.
 - **Motion** either explains something once or answers a click, and moves only transform and
   opacity. The exceptions are the keycap's edge, a shadow that shortens as the button goes down,
@@ -167,8 +164,8 @@ and controls; the guard tests below list it.
   adjective, and no slashes («победил(а)»). What you do is a noun or the present tense («Победа за
   мной», «Ты заявляешь победу»); what happened is the thing, not who did it («Победа заявлена»);
   another player by name («Ответа от {other} не было»). Role nouns (игрок, соперник, создатель)
-  keep their grammatical gender. `i18n/__tests__/translationsGuard.test.ts` fails on «вы» outside
-  `stillFormalKeys.ts`, a list that only shrinks, and on a key nothing uses.
+  keep their grammatical gender. `i18n/__tests__/translationsGuard.test.ts` fails on «вы» and on a key
+  nothing uses.
 - **Amounts** show up to USDT's 6 decimals in the reader's number format (`formatUSDT(amount,
   language)`), and an amount never parts from its unit at a line break (`{amount} USDT`).
 - **Anything a contract setting decides is read from it**: the time to answer a reported win is
@@ -205,7 +202,7 @@ and controls; the guard tests below list it.
 | `frontend/src/lib/brandImage.tsx` | The brand mark for `ImageResponse`: the favicon, the home-screen icon and `/logo.png` |
 | `frontend/src/lib/ogImage.tsx` | The share image; carries Geologica as WOFF (`src/assets/fonts/`, OFL), since `ImageResponse` cannot read WOFF2 |
 | `frontend/src/components/identity/Avatar.tsx` | A player's face: the address's identicon (`lib/identicon.ts`) on their seat's colour |
-| `frontend/src/components/identity/ReputationPill.tsx` | A reputation level as a pill with its three-bar meter; `ReputationBadge` reads a player's level and draws it |
+| `frontend/src/components/identity/ReputationPill.tsx` | A reputation level as a pill with its three-bar meter |
 | `frontend/src/i18n/intlLocales.ts` | The locale `Intl` formats each language's numbers and dates in |
 | `frontend/src/i18n/serverTranslation.ts` | The reader's language on the server, from the cookie, read once per request, and `getTranslation()` for server components |
 | `frontend/src/i18n/language.ts` | The language cookie: its name and settings, how it is read back and parsed (anything unknown is English), the site's languages and the switch's route |
@@ -213,14 +210,14 @@ and controls; the guard tests below list it.
 | `frontend/src/i18n/LanguageContext.tsx` | The language in the browser: the layout's, and a refresh when another tab chose another |
 | `frontend/src/app/api/language/route.ts` | Sets the language cookie from the switch's JSON post |
 | `frontend/src/components/header/LanguageSwitch.tsx` | The language switch: slides its pill, posts the choice, then reloads the page at the same address |
-| `frontend/src/styles/__tests__/designGuard.test.ts` | Fails on palette classes and variables, colour values, `dark:`, `font-mono` and unused legacy classes outside what `notYetPorted.ts` lists |
-| `frontend/src/i18n/__tests__/translationsGuard.test.ts` | Fails on a translation key nothing uses and on Russian «вы» outside `stillFormalKeys.ts` |
+| `frontend/src/styles/__tests__/designGuard.test.ts` | Fails on palette classes and variables, colour values outside the theme, `dark:` and `font-mono` |
+| `frontend/src/i18n/__tests__/translationsGuard.test.ts` | Fails on a translation key nothing uses and on Russian «вы» |
 | `frontend/src/lib/__tests__/helpers/sourceFiles.ts` | What the guards read: the shipped source files, the theme's tokens, and `shrinkingList` for lists that may only shrink |
-| `frontend/src/lib/constants.ts` | Chain configs, contract addresses, ZERO_ADDRESS, CHAIN_NAMES |
+| `frontend/src/lib/constants.ts` | Chain configs, contract addresses, ZERO_ADDRESS |
 | `frontend/src/components/providers/Providers.tsx` | Privy + wagmi + QueryClient providers, the relayer status and the language the root layout read |
 | `frontend/src/hooks/useDuel.ts` | Read single duel, polled until it is over and paid out; a failed poll keeps the last duel |
 | `frontend/src/hooks/useDuelReads.ts` | Paged `getDuels` / `getDuelsByIds` readers shared by every listing screen |
-| `frontend/src/lib/duel.ts` | `DuelRecord` / `PlayerDuel` shapes, `toPlayerDuel`, claimable-amount and outcome helpers |
+| `frontend/src/lib/duel.ts` | `DuelRecord`, seats (`seatOf`), the arena's shared types, claimable-amount and timeout helpers, `canJoinWaitingDuel` |
 | `frontend/src/components/duel/PartialDataNotice.tsx` | The one banner saying a duel list may be short or out of date because a page, or the last read of it, failed to load, with Try again |
 | `frontend/src/hooks/useContractConfig.ts` | Reads owner-adjustable on-chain params (minWager, claimTimeout, maxMessageCodepoints, maxMessageBytes), syncs contractConfig store |
 | `frontend/src/lib/contractConfig.ts` | Module-level cache of on-chain params for non-hook helpers (fallbacks from constants.ts) |
@@ -263,7 +260,7 @@ and controls; the guard tests below list it.
 | `frontend/src/hooks/useReputationLevels.ts` | Batch reputation reads for feed/search |
 | `frontend/src/lib/invite.ts` | Secure invite-secret generation/storage |
 | `frontend/src/lib/duelMessage.ts` | Frontend Unicode duel-message validation; `normalizeDuelMessage`, the one trim the create page's field, counter, check and create call all judge |
-| `frontend/src/lib/duelSearch.ts` | Shared visible-field search indexing |
+| `frontend/src/lib/duelSearch.ts` | The lists' search text (feed rows, open duels) and the query folding they share |
 | `frontend/src/lib/actionFlowConfigs.ts` | The signing window's configs for duel actions, the one-transaction answers included |
 | `frontend/src/lib/balanceRefresh.ts` | Shared client-side balance refresh event bus |
 | `frontend/src/components/topup/TopUpWindow.tsx` | The site's one top-up window, for the `chainId` it is given: QR and grouped address, what to send and not to, the faucet, the balance there; for a duel (`duel`), what it needs, from the flow's own balance read; for a signing window's fees (`eth`), the ETH they need |
@@ -407,7 +404,7 @@ and controls; the guard tests below list it.
 - **USD₮0 validates permit through ERC-1271 whenever the owner address has code**, which an EIP-7702 delegation gives a plain EOA. Such a player's permit can fail (`"Permit failed"`). The contract still accepts the plain `createDuel` / `joinDuel` once an allowance exists, but the UI does not currently offer that route while relaying is on — the approve step is pinned off — and `approve` cannot be relayed anyway, since the token does not trust our forwarder. So this player is blocked in the signing window, which says so (`sign.err.permit`); reaching them needs a product decision, not just ETH.
 - **The relayer's budget ledger, per-IP rate limit, repeat memory and signer holds are in-memory**, so they reset on redeploy and are not shared across replicas. Accurate for the current single-container-per-env deployment; more than one replica needs a shared store.
 - **The per-IP rate limit trusts the right-most `X-Forwarded-For` entry** because Caddy, with no `trusted_proxies`, overwrites the header with the address it saw, nothing sits in front of Caddy, and the container listens on `127.0.0.1` only. A CDN or another proxy in front of Caddy makes that entry the proxy's, and every player then shares one bucket: change the rule with it.
-- Use shared constants from `constants.ts` (`ZERO_ADDRESS`, `CHAIN_NAMES`) and `contracts.ts` (`ACTIVE_STATES`, `balanceOfAbi`, `transferAbi`, `getUsdtAddress`) — never redefine locally.
+- Use shared constants from `constants.ts` (`ZERO_ADDRESS`) and `contracts.ts` (`ACTIVE_STATES`, `balanceOfAbi`, `transferAbi`, `getUsdtAddress`) — never redefine locally.
 - **The CI `next build` has no Privy app id.** The `frontend` job builds without secrets, so `NEXT_PUBLIC_PRIVY_APP_ID` is undefined there, and that works only because the root layout is `force-dynamic` and nothing under it is prerendered. Remove `force-dynamic` and the job fails with `Cannot initialize the Privy provider with an invalid Privy app ID`, while the image build, which gets the real id, passes.
 - Frontend npm pinned to `^11.12.1` via `frontend/package.json` `engines` + `frontend/.npmrc` `engine-strict=true`. CI and `frontend/Dockerfile` both pin it with `corepack enable npm && corepack prepare npm@11.12.1 --activate` — `corepack enable` alone does **not** shim npm (npm ships with Node), so npm has to be named explicitly or the `packageManager` field is ignored. A mismatch caused `EUSAGE` / `EBADENGINE` in `npm ci`.
 - `overrides.eslint-plugin-react-hooks: 7.0.1` is a temporary pin — `7.1.x` adds `react-hooks/set-state-in-effect`, which flags existing patterns in `useCreateDuelFlow.ts`, `useJoinDuelFlow.ts`. Lift only after refactoring those files.

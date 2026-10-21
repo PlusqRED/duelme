@@ -8,6 +8,9 @@
  * "Design" in frontend/CLAUDE.md.
  */
 @theme {
+  /* Tailwind's own palette is off: a colour outside these roles has no class to reach it by. */
+  --color-*: initial;
+
   --color-canvas: #f1f4fb;
   --color-canvas-deep: #e5eaf6;
   --color-paper: #ffffff;

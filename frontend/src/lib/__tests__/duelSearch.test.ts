@@ -1,69 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
 import { DuelState } from '@/lib/contracts';
-import { toPlayerDuel } from '@/lib/duel';
 import { toFeedDuel, toRecentDuel, type RecentDuel } from '@/lib/duelFeed';
-import { buildDashboardDuelSearchText, buildFeedSearchText, buildPublicDuelSearchText, normalizeSearchQuery } from '@/lib/duelSearch';
+import { buildFeedSearchText, buildPublicDuelSearchText, normalizeSearchQuery } from '@/lib/duelSearch';
 import { translations, type TranslationKey } from '@/i18n/translations';
 import { enrichPublicDuel } from '@/lib/publicDuelsFilters';
 import { getReputationSummaryFromStats } from '@/lib/reputation';
 import { duelView } from '@/lib/__tests__/helpers/duelView';
 
 const WINNER = '0xAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa';
-
-const won = toPlayerDuel(
-  {
-    ...duelView({
-      state: DuelState.Resolved,
-      finalizedAt: 1n,
-      wagerAmount: 2_345_600_000n,
-      creatorPayout: 1_234_500_000n,
-      message: 'score 1,2,3, до 3, без читов',
-    }),
-    id: 7,
-  },
-  DEFAULT_CHAIN_ID
-);
-
-function finds(language: 'en' | 'ru', query: string) {
-  return buildDashboardDuelSearchText(won, WINNER, (key) => key, language, {}).includes(
-    normalizeSearchQuery(query, language)
-  );
-}
-
-describe('buildDashboardDuelSearchText', () => {
-  it('finds a payout waiting to be taken as the screen writes it', () => {
-    expect([finds('en', '1,234.5'), finds('ru', '1\u00a0234,5')]).toEqual([true, true]);
-  });
-
-  it('finds a Russian amount typed with a plain space or no space at all', () => {
-    expect([finds('ru', '1 234,5'), finds('ru', '1234,5')]).toEqual([true, true]);
-  });
-
-  it('finds a payout waiting to be taken as typed with a point, in either language', () => {
-    expect([finds('en', '1234.5'), finds('ru', '1234.5')]).toEqual([true, true]);
-  });
-
-  it('finds the stake as the card writes it, in either language', () => {
-    expect([finds('en', '2,345.6'), finds('ru', '2\u00a0345,6')]).toEqual([true, true]);
-  });
-
-  it('does not take an English thousands comma for a decimal point', () => {
-    expect(finds('en', '1.23')).toBe(false);
-  });
-
-  it('folds every comma in a run of digits, not every other one', () => {
-    expect(finds('ru', '2,3')).toBe(true);
-  });
-
-  it('finds a number typed up to the comma after it, as the text folds that comma too', () => {
-    expect(finds('ru', 'до 3,')).toBe(true);
-  });
-
-  it('does not find a finished duel by the words of one still waiting', () => {
-    expect(finds('en', 'waiting for opponent')).toBe(false);
-  });
-});
 
 describe('buildPublicDuelSearchText', () => {
   // Abandoned more than honored: the card calls this creator Risky.
@@ -117,7 +62,7 @@ describe('normalizeSearchQuery', () => {
 describe('buildFeedSearchText', () => {
   const OPPONENT = '0xBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBb';
   const joined = toRecentDuel({
-    ...duelView({ opponent: OPPONENT, state: DuelState.Funded, fundedAt: 2n, wagerAmount: 1_234_500_000n, message: 'best of three' }),
+    ...duelView({ opponent: OPPONENT, state: DuelState.Funded, fundedAt: 2n, wagerAmount: 1_234_500_000n, message: 'score 1,2,3, до 3, без читов' }),
     id: 12,
   }) as RecentDuel;
   const row = toFeedDuel(joined, (address) => (address === WINNER ? 'alice' : 'bob'), {
@@ -149,6 +94,26 @@ describe('buildFeedSearchText', () => {
 
   it('finds the stake typed with a point', () => {
     expect(findsRow('en', '1234.5')).toBe(true);
+  });
+
+  it('finds the stake as the row writes it, in either language', () => {
+    expect([findsRow('en', '1,234.5'), findsRow('ru', '1\u00a0234,5')]).toEqual([true, true]);
+  });
+
+  it('finds a Russian amount typed with a plain space or no space at all', () => {
+    expect([findsRow('ru', '1 234,5'), findsRow('ru', '1234,5')]).toEqual([true, true]);
+  });
+
+  it('does not take an English thousands comma for a decimal point', () => {
+    expect(findsRow('en', '1.23')).toBe(false);
+  });
+
+  it('folds every comma in a run of digits, not every other one', () => {
+    expect(findsRow('ru', '2,3')).toBe(true);
+  });
+
+  it('finds a number typed up to the comma after it, as the text folds that comma too', () => {
+    expect(findsRow('ru', 'до 3,')).toBe(true);
   });
 
   it('finds a duel by the state its pill names', () => {

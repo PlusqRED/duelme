@@ -82,9 +82,6 @@ export function getProfileAvatarUrls(profile: Pick<Profile, 'socialLinks'> | nul
   return urls;
 }
 
-export function getProfileAvatarUrl(profile: Pick<Profile, 'socialLinks'> | null | undefined): string | null {
-  return getProfileAvatarUrls(profile)[0] ?? null;
-}
 
 export interface ProfileRequest {
   nickname?: string | null;

@@ -37,7 +37,3 @@ export function getContractConfig(): ContractConfig {
 export function setContractConfig(next: Partial<ContractConfig>): void {
   currentConfig = { ...currentConfig, ...next };
 }
-
-export function resetContractConfig(): void {
-  currentConfig = DEFAULT_CONFIG;
-}
