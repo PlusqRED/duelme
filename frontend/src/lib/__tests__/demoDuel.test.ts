@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { actorsFirst, clockLeft, DEMO_STAKE_RAW, demoStage, demoStatus, hasActed, pauseClock, resumeClock, startClock, vaultTotal } from '@/lib/demoDuel';
+import { actorsFirst, barTurn, clockLeft, DEMO_STAKE_RAW, demoStage, demoStatus, hasActed, pauseClock, resumeClock, startClock, vaultTotal } from '@/lib/demoDuel';
 
 describe('demoStage', () => {
   it('starts with both wallets full and the safe empty and open', () => {
@@ -117,5 +117,19 @@ describe('step clock', () => {
     const running = startClock(1, 1000);
 
     expect([pauseClock(paused, 5000), resumeClock(running, 5000)]).toEqual([paused, running]);
+  });
+});
+
+describe('barTurn', () => {
+  it('testBarTurnFillsTheBarsOnwardsFromTheStepLeft', () => {
+    expect([3, 4, 5].map((bar) => barTurn(bar, 5, 2))).toEqual([0, 1, 2]);
+  });
+
+  it('testBarTurnEmptiesTheBarsBackTowardsTheStepLeft', () => {
+    expect([5, 4, 3].map((bar) => barTurn(bar, 2, 5))).toEqual([0, 1, 2]);
+  });
+
+  it('testBarTurnLeavesTheBarsAJumpDoesNotMove', () => {
+    expect([1, 2].map((bar) => barTurn(bar, 5, 2))).toEqual([null, null]);
   });
 });

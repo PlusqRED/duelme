@@ -242,7 +242,15 @@ export function useDemoDuel({ root, fly, cancelFlights }: UseDemoDuelArgs) {
 
   useDemoAutoplay(root, reducedMotion, { play, pause, playing, touched });
 
-  useEffect(() => () => clearTimeout(timer.current), []);
+  // A move still running when the demo goes away must not carry the play on through its steps.
+  useEffect(
+    () => () => {
+      clearTimeout(timer.current);
+      playing.current = false;
+      gen.current += 1;
+    },
+    []
+  );
 
   return { ...at, stage: view.stage, jump: view.jump, isPlaying, timing, isInviting, toggle, pickStep, pickOutcome };
 }

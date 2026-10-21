@@ -25,6 +25,12 @@ describe('SendReview', () => {
     expect(screen.getByText('Arbitrum Sepolia')).toBeTruthy();
   });
 
+  it('testSendReviewPutsTheFocusOnTheTransferNotOnSend', () => {
+    renderReview();
+
+    expect(document.activeElement?.tagName).toBe('DL');
+  });
+
   it('testSendReviewSendsOnlyFromItsButtonWhichNamesTheAmount', () => {
     const { onSend, onEdit } = renderReview();
 

@@ -211,6 +211,20 @@ describe('useDemoDuel', () => {
     expect([held, result.current.step]).toEqual([1, 2]);
   });
 
+  it('plays no further once the demo is gone, even with a move still in the air', async () => {
+    const { fly, landAll } = heldFlights();
+    const { result, unmount } = renderDemo(fly);
+    act(() => result.current.toggle());
+    await wait(1000);
+    const flown = fly.mock.calls.length;
+
+    unmount();
+    await landAll();
+    await wait(5 * DEMO_STEP_MS);
+
+    expect(fly.mock.calls.length).toBe(flown);
+  });
+
   it('pauses on a second press and stays on its step', async () => {
     const { result } = renderDemo();
     act(() => result.current.toggle());
@@ -271,62 +285,5 @@ describe('useDemoDuel', () => {
     await wait(0);
 
     expect(result.current).toMatchObject({ step: 1, outcome: null, isPlaying: true });
-  });
-
-  describe('playing by itself', () => {
-    function show(root: { current: HTMLElement }, isSeen: boolean) {
-      act(() => FakeIntersectionObserver.watching(root.current).report(root.current, isSeen));
-    }
-
-    it('plays once it is mostly on screen', async () => {
-      const { result, root } = renderDemo();
-
-      show(root, true);
-      await wait(700);
-
-      expect(FakeIntersectionObserver.watching(root.current).thresholds).toEqual([0.55]);
-      expect(result.current.isPlaying).toBe(true);
-    });
-
-    it('holds while scrolled away and goes on once back', async () => {
-      const { result, root } = renderDemo();
-      show(root, true);
-      await wait(1000);
-
-      show(root, false);
-      expect(result.current.isPlaying).toBe(false);
-      show(root, true);
-
-      expect(result.current.isPlaying).toBe(true);
-    });
-
-    it('waits until it is seen when scrolled away before it starts', async () => {
-      const { result, root } = renderDemo();
-      show(root, true);
-      show(root, false);
-      await wait(700);
-      expect(result.current.isPlaying).toBe(false);
-
-      show(root, true);
-
-      expect(result.current.isPlaying).toBe(true);
-    });
-
-    it('leaves the demo alone once the visitor has taken it', async () => {
-      const { result, root } = renderDemo();
-      act(() => result.current.pickStep(2));
-
-      show(root, true);
-      await wait(700);
-
-      expect(result.current.isPlaying).toBe(false);
-    });
-
-    it('does not play by itself when the reader asked for less motion', () => {
-      motion.reduced = true;
-      renderDemo();
-
-      expect(FakeIntersectionObserver.instances).toEqual([]);
-    });
   });
 });

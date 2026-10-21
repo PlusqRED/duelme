@@ -1,3 +1,4 @@
+import { HeadedSectionProvider } from '@/components/header/HeadedSectionProvider';
 import { HeaderEnd } from '@/components/header/HeaderEnd';
 import { NavLinks } from '@/components/header/NavLinks';
 import { TopBar } from '@/components/header/TopBar';
@@ -9,8 +10,10 @@ export function Header() {
     <TopBar>
       <div className="mx-auto flex min-h-[72px] w-full max-w-page items-center gap-4 px-gutter">
         <BrandLink />
-        <NavLinks />
-        <HeaderEnd />
+        <HeadedSectionProvider>
+          <NavLinks />
+          <HeaderEnd />
+        </HeadedSectionProvider>
       </div>
     </TopBar>
   );

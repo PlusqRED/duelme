@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { TranslationKey } from '@/i18n/translations';
 import { useTranslation } from '@/i18n/useTranslation';
-import { DEMO_STEPS } from '@/lib/demoDuel';
+import { barTurn, DEMO_STEPS } from '@/lib/demoDuel';
 import { cn } from '@/lib/utils';
 
 const STEP_LABELS: Record<(typeof DEMO_STEPS)[number], TranslationKey> = {
@@ -35,8 +35,6 @@ export function DemoStepper({ step, timing, isPaused, onPick }: DemoStepperProps
   if (shown.step !== step) {
     setShown({ step, from: shown.step });
   }
-  // Bars filling count on from the step left, bars emptying count back to it; the rest stay put.
-  const turnOf = (n: number) => (n <= step ? n - shown.from - 1 : shown.from - n);
 
   return (
     <ol aria-label={t('sim.stepsLabel')} className="mt-3.5 grid grid-cols-5 gap-1">
@@ -55,7 +53,7 @@ export function DemoStepper({ step, timing, isPaused, onPick }: DemoStepperProps
             <span className="truncate @max-[440px]/sim:sr-only">{t(STEP_LABELS[n])}</span>
             <i aria-hidden="true" className="absolute inset-x-1.5 bottom-[5px] h-[3px] overflow-hidden rounded-[3px] bg-line">
               <i
-                style={{ '--turn': Math.max(0, turnOf(n)) }}
+                style={{ '--turn': barTurn(n, step, shown.from) ?? 0 }}
                 className={cn(
                   'absolute inset-0 origin-left scale-x-0 bg-ink transition-transform duration-350 [transition-delay:calc(var(--turn)*70ms)] group-data-reached:scale-x-100',
                   n === timing && 'animate-fill transition-none group-data-reached:scale-x-0',

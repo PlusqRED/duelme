@@ -173,6 +173,20 @@ describe('SigningWindow — the wallet and the network at work', () => {
     expect(model.onClose).not.toHaveBeenCalled();
   });
 
+  it('testSigningWindowSaysBeforeThePressThatTheWalletInTheAppSignsAtOnce', () => {
+    wallet.clientType = 'privy';
+
+    render(<SigningWindow model={joinModel()} />);
+
+    expect(screen.getByText('Your wallet signs as soon as you press: no wallet window of its own will open.')).toBeTruthy();
+  });
+
+  it('testSigningWindowLeavesTheWarningOutForAnOutsideWalletWhichPromptsItself', () => {
+    render(<SigningWindow model={joinModel()} />);
+
+    expect(screen.queryByText(/no wallet window of its own/)).toBeNull();
+  });
+
   it('testSigningWindowAsksForTheSignatureInAnOutsideWallet', () => {
     render(<SigningWindow model={joinModel({ place: 'write', actionState: 'awaiting-wallet', signing: { ...joinModel().signing, phase: 'permit' } })} />);
 
@@ -185,6 +199,22 @@ describe('SigningWindow — the wallet and the network at work', () => {
     render(<SigningWindow model={joinModel({ place: 'write', actionState: 'awaiting-wallet', signing: { ...joinModel().signing, phase: 'permit' } })} />);
 
     expect([screen.queryByText('Sign in your wallet'), screen.getByText('Your wallet is signing…')]).toEqual([null, expect.anything()]);
+  });
+
+  it('testSigningWindowAsksForThePressOnAStepNotStartedEvenWithTheWalletInTheApp', () => {
+    wallet.clientType = 'privy';
+
+    render(<SigningWindow model={joinModel({ place: 'write', actionState: 'idle' })} />);
+
+    expect([screen.getByText('Sign in your wallet'), screen.queryByText('Signing')]).toEqual([expect.anything(), null]);
+  });
+
+  it('testSigningWindowSaysTheWalletInTheAppSignedOnceTheChainHasIt', () => {
+    wallet.clientType = 'privy';
+
+    render(<SigningWindow model={joinModel({ place: 'write', actionState: 'confirming', signing: { ...joinModel().signing, hash: HASH } })} />);
+
+    expect(screen.getByText('Signed by your wallet')).toBeTruthy();
   });
 
   it('testSigningWindowCountsTheSignatures', () => {

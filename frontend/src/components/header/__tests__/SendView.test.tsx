@@ -16,12 +16,11 @@ const sending = vi.hoisted(() => ({ send: vi.fn(), reset: vi.fn() }));
 vi.mock('@/hooks/useSendUsdt', () => ({
   useSendUsdt: () => ({ send: sending.send, reset: sending.reset, hash: undefined, isConfirming: false, isSuccess: false, error: null }),
 }));
-vi.mock('@/hooks/useActiveWallet', () => ({ useActiveWallet: () => ({ activeWallet: { address: MINE, walletClientType: 'privy' } }) }));
 
 const { SendView } = await import('@/components/header/SendView');
 
 function fillAndGoOn() {
-  render(<SendView address={MINE} network={NETWORK} faucetOffer={{ kind: 'none' }} onBack={vi.fn()} />);
+  render(<SendView address={MINE} network={NETWORK} faucetOffer={{ kind: 'none' }} isInAppWallet onBack={vi.fn()} />);
   fireEvent.change(screen.getByLabelText('To'), { target: { value: THEIRS } });
   fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '10' } });
   fireEvent.click(screen.getByRole('button', { name: 'Check the transfer' }));

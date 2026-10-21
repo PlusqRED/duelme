@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { QuietButton } from '@/components/header/QuietButton';
 import { SendRoute } from '@/components/header/SendRoute';
 import { Button } from '@/components/ui/button';
@@ -28,11 +28,18 @@ interface SendReviewProps {
 export function SendReview({ from, transfer, network, onSend, onEdit }: SendReviewProps) {
   const { t, language } = useTranslation();
   const amount = formatUSDT(transfer.raw, language);
+  const details = useRef<HTMLDListElement>(null);
+
+  // The focus lands on the transfer, not on Send: an Enter still held from the form must not send
+  // the money past the last look.
+  useEffect(() => {
+    details.current?.focus({ preventScroll: true });
+  }, []);
 
   return (
     <>
       <SendRoute stage="review" from={from} to={transfer.to} />
-      <dl className="grid gap-3 rounded-tile border border-line px-4 py-3.5">
+      <dl ref={details} tabIndex={-1} className="grid gap-3 rounded-tile border border-line px-4 py-3.5 outline-none">
         <Row label={t('send.amount')}>
           <span className="text-figure/[1.1] font-extrabold tracking-[-0.03em] tabular-nums">
             {amount}
@@ -47,7 +54,7 @@ export function SendReview({ from, transfer, network, onSend, onEdit }: SendRevi
         </Row>
       </dl>
       <Note icon="alert">{t('send.check')}</Note>
-      <Button size="lg" autoFocus onClick={onSend} className="w-full">
+      <Button size="lg" onClick={onSend} className="w-full">
         <Icon name="send" className="size-[18px]" />
         {t('send.button', { amount })}
       </Button>

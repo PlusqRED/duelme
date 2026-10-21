@@ -1,11 +1,24 @@
 // @vitest-environment happy-dom
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useHeadedSection } from '@/hooks/useHeadedSection';
 
-function scroll() {
+const page = vi.hoisted(() => ({ pathname: '/' }));
+vi.mock('next/navigation', () => ({ usePathname: () => page.pathname }));
+
+const { useHeadedSection } = await import('@/hooks/useHeadedSection');
+
+/** A scroll event, the page moved by `by` pixels first. */
+function scroll(by = 40) {
   act(() => {
+    window.scrollTo(0, window.scrollY + by);
     window.dispatchEvent(new Event('scroll'));
+  });
+}
+
+/** The reader's own scrolling: a wheel turned, or a key pressed. */
+function readerInput(event: Event) {
+  act(() => {
+    window.dispatchEvent(event);
   });
 }
 
@@ -16,6 +29,8 @@ function wait(ms: number) {
 }
 
 beforeEach(() => {
+  page.pathname = '/';
+  window.scrollTo(0, 0);
   vi.useFakeTimers();
 });
 
@@ -53,15 +68,48 @@ describe('useHeadedSection', () => {
     expect(result.current.headed).toBe('safety');
   });
 
-  it('testHeadedSectionLetsGoAtTheNextScrollAfterArriving', () => {
+  it('testHeadedSectionLetsGoAtTheReadersWheelAfterArriving', () => {
     const { result } = renderHook(() => useHeadedSection());
     act(() => result.current.headTo('demo'));
     scroll();
     wait(200);
 
-    scroll();
+    readerInput(new Event('wheel'));
 
     expect(result.current.headed).toBeNull();
+  });
+
+  it('testHeadedSectionLetsGoAtAScrollingKeyAfterArriving', () => {
+    const { result } = renderHook(() => useHeadedSection());
+    act(() => result.current.headTo('demo'));
+    scroll();
+    wait(200);
+
+    readerInput(new KeyboardEvent('keydown', { key: 'PageDown' }));
+
+    expect(result.current.headed).toBeNull();
+  });
+
+  it('testHeadedSectionHoldsThroughAKeyThatScrollsNothing', () => {
+    const { result } = renderHook(() => useHeadedSection());
+    act(() => result.current.headTo('demo'));
+    scroll();
+    wait(200);
+
+    readerInput(new KeyboardEvent('keydown', { key: 'a' }));
+
+    expect(result.current.headed).toBe('demo');
+  });
+
+  it('testHeadedSectionHoldsThroughAMoveNobodyScrolled', () => {
+    const { result } = renderHook(() => useHeadedSection());
+    act(() => result.current.headTo('safety'));
+    scroll();
+    wait(200);
+
+    scroll(-408);
+
+    expect(result.current.headed).toBe('safety');
   });
 
   it('testHeadedSectionWaitsForAGlideThatStartsLate', () => {
@@ -88,12 +136,24 @@ describe('useHeadedSection', () => {
     expect(result.current.headed).toBe('safety');
   });
 
+  it('testHeadedSectionLetsGoOnceThePageIsLeft', () => {
+    const { result, rerender } = renderHook(() => useHeadedSection());
+    act(() => result.current.headTo('demo'));
+
+    page.pathname = '/games';
+    rerender();
+    page.pathname = '/';
+    rerender();
+
+    expect(result.current.headed).toBeNull();
+  });
+
   it('testHeadedSectionLetsGoOnAPageThatWasAlreadyThere', () => {
     const { result } = renderHook(() => useHeadedSection());
     act(() => result.current.headTo('demo'));
     wait(500);
 
-    scroll();
+    readerInput(new Event('wheel'));
 
     expect(result.current.headed).toBeNull();
   });

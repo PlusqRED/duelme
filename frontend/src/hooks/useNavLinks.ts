@@ -1,11 +1,12 @@
 'use client';
 
+import type { MouseEvent } from 'react';
 import { usePathname } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
-import { useHeadedSection } from '@/hooks/useHeadedSection';
+import { useHeadedSectionContext } from '@/hooks/useHeadedSection';
 import { useSectionInView } from '@/hooks/useSectionInView';
 import { useTranslation } from '@/i18n/useTranslation';
-import { LANDING_SECTIONS, NAV_LINKS, isInSection, type NavLink } from '@/lib/navigation';
+import { LANDING_SECTIONS, NAV_LINKS, isInSection, isPlainClick, type NavLink } from '@/lib/navigation';
 
 const LANDING_IDS = LANDING_SECTIONS.map((link) => link.section);
 const NO_SECTIONS: readonly string[] = [];
@@ -16,7 +17,7 @@ export interface NavItem {
   /** Marks the page you are on, or on the landing the section you are reading. */
   current: 'page' | 'location' | undefined;
   /** A landing section's link: following it marks the section at once, not those passed on the way. */
-  onFollow?: () => void;
+  onFollow?: (event: MouseEvent<HTMLAnchorElement>) => void;
 }
 
 /**
@@ -30,7 +31,7 @@ export function useNavLinks(): NavItem[] {
   const { t } = useTranslation();
   const isLanding = pathname === '/';
   const inView = useSectionInView(isLanding ? LANDING_IDS : NO_SECTIONS);
-  const { headed, headTo } = useHeadedSection();
+  const { headed, headTo } = useHeadedSectionContext();
   const reading = headed ?? inView;
   const pages = NAV_LINKS.filter((link) => authenticated || !link.signedInOnly);
   const pageItem = (link: NavLink): NavItem => ({
@@ -48,7 +49,9 @@ export function useNavLinks(): NavItem[] {
         href: `#${link.section}`,
         label: t(link.labelKey),
         current: link.section === reading ? 'location' : undefined,
-        onFollow: () => headTo(link.section),
+        onFollow: (event) => {
+          if (isPlainClick(event)) headTo(link.section);
+        },
       })
     ),
     ...pages.filter((link) => link.signedInOnly).map(pageItem),

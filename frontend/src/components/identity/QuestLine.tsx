@@ -34,7 +34,7 @@ export function QuestLine({ quest, isEntering = false, isWaiting = false, isStac
 
   if (!quest.next) {
     return (
-      <p className={cn('flex items-center gap-2.5 text-note font-bold text-ink-2', className)}>
+      <p className={cn('flex items-center gap-2.5 text-note text-ink-2', className)}>
         <span
           className={cn(
             'grid size-7 flex-none place-items-center rounded-full bg-good-soft text-good-ink',

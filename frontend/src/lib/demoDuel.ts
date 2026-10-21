@@ -184,3 +184,14 @@ export function clockLeft(clock: StepClock, now: number, length: number): number
   const running = clock.since === null ? 0 : now - clock.since;
   return Math.max(0, length - clock.spent - running);
 }
+
+/**
+ * When a step's bar moves on a jump, in turns of the stagger: bars filling count on from the step
+ * left, bars emptying count back to it. Null for a bar the jump leaves as it was.
+ */
+export function barTurn(bar: number, step: number, from: number): number | null {
+  if (bar <= step) {
+    return bar > from ? bar - from - 1 : null;
+  }
+  return bar <= from ? from - bar : null;
+}

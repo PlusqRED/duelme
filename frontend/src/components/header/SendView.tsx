@@ -5,14 +5,12 @@ import { QuietButton } from '@/components/header/QuietButton';
 import { SendForm } from '@/components/header/SendForm';
 import { SendProgress } from '@/components/header/SendProgress';
 import { SendReview } from '@/components/header/SendReview';
-import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useSendUsdt } from '@/hooks/useSendUsdt';
 import type { NetworkBalances } from '@/hooks/useWalletBalances';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { FaucetOffer } from '@/lib/faucetApi';
 import { sendStage, type SendDraft, type Transfer } from '@/lib/sendUsdt';
 import { formatUSDT } from '@/lib/utils';
-import { EMBEDDED_WALLET_CLIENT_TYPE } from '@/lib/walletSelection';
 import { readingFigure } from '@/lib/walletBalances';
 
 interface SendViewProps {
@@ -22,6 +20,8 @@ interface SendViewProps {
   network: NetworkBalances;
   /** What the faucet offers, for the wallet with no ETH for the fee. */
   faucetOffer: FaucetOffer;
+  /** The wallet in the app, which sends as soon as it is asked. */
+  isInAppWallet: boolean;
   onBack: () => void;
 }
 
@@ -29,9 +29,8 @@ interface SendViewProps {
  * Sending USDT out: the form, a last look at the transfer, then the transfer on its way from your
  * wallet to the address.
  */
-export function SendView({ address, network, faucetOffer, onBack }: SendViewProps) {
+export function SendView({ address, network, faucetOffer, isInAppWallet, onBack }: SendViewProps) {
   const { t, language } = useTranslation();
-  const { activeWallet } = useActiveWallet();
   const [draft, setDraft] = useState<SendDraft>({ to: '', amount: '' });
   const [transfer, setTransfer] = useState<Transfer | null>(null);
   const [isSent, setIsSent] = useState(false);
@@ -78,7 +77,7 @@ export function SendView({ address, network, faucetOffer, onBack }: SendViewProp
           network={network.chain}
           hash={sending.hash}
           error={sending.error}
-          isInAppWallet={activeWallet?.walletClientType === EMBEDDED_WALLET_CLIENT_TYPE}
+          isInAppWallet={isInAppWallet}
           onDone={onBack}
           onRetry={retry}
         />

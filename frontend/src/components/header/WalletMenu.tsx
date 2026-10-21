@@ -34,6 +34,7 @@ type View = 'main' | 'send' | 'back-from-send';
  */
 export function WalletMenu({ address, walletAddress, walletClientType }: WalletMenuProps) {
   const { t } = useTranslation();
+  const isInAppWallet = walletClientType === EMBEDDED_WALLET_CLIENT_TYPE;
   const { logout } = usePrivy();
   const { exportWallet } = useExportWallet();
   const [isOpen, setIsOpen] = useState(false);
@@ -83,6 +84,7 @@ export function WalletMenu({ address, walletAddress, walletClientType }: WalletM
               address={address}
               network={picked}
               faucetOffer={faucet.offer}
+              isInAppWallet={isInAppWallet}
               onBack={() => setView('back-from-send')}
             />
           ) : (
@@ -105,7 +107,7 @@ export function WalletMenu({ address, walletAddress, walletClientType }: WalletM
                 isBackFromSend={view === 'back-from-send'}
               />
               <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 border-t border-line pt-2">
-                {walletClientType === EMBEDDED_WALLET_CLIENT_TYPE && (
+                {isInAppWallet && (
                   <QuietButton icon="key" onClick={() => leaveFor(() => void exportWallet())}>
                     {t('wallet.export')}
                   </QuietButton>

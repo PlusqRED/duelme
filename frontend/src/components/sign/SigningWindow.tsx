@@ -38,6 +38,7 @@ export function SigningWindow({ model }: { model: SigningModel }) {
   });
   const statuses = railStatuses(steps, spot);
   const canClose = model.canClose && !isBusy(spot);
+  const isInAppWallet = activeWallet?.walletClientType === EMBEDDED_WALLET_CLIENT_TYPE;
   const { press } = useSigningPress({ place: model.open ? place : null, actionState, run: model.run });
   const isConfirming = model.open && actionState === 'confirming';
   const isSlow = useTakingLong(isConfirming) || (isConfirming && model.wasLeft === true);
@@ -180,7 +181,7 @@ export function SigningWindow({ model }: { model: SigningModel }) {
           {spot.failed && model.error ? (
             <SignError model={model} error={model.error} sentByWallet={route === 'self' && spot.step !== 'network'} onRetry={retry} />
           ) : spot.step === 'check' ? (
-            <SignCheck model={model} fees={fees} usdt={usdt} eth={gas.eth} fix={checkFix()} onStart={start} />
+            <SignCheck model={model} fees={fees} usdt={usdt} eth={gas.eth} fix={checkFix()} isInAppWallet={isInAppWallet} onStart={start} />
           ) : spot.step === 'done' ? (
             <SignDone model={model} hash={lastHash} />
           ) : (
@@ -190,7 +191,7 @@ export function SigningWindow({ model }: { model: SigningModel }) {
               fees={fees}
               hash={signing.hash}
               isSlow={isSlow}
-              isInAppWallet={activeWallet?.walletClientType === EMBEDDED_WALLET_CLIENT_TYPE}
+              isInAppWallet={isInAppWallet}
               onStartStep={startStep}
             />
           )}

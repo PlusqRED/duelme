@@ -79,7 +79,10 @@ export function SignProgress({ model, spot, fees, hash, isSlow, isInAppWallet, o
         {model.route === 'self' && <SignList items={model.items} current={index} fees={fees} />}
         <SignTicks
           ticks={[
-            { text: t(model.route === 'self' ? 'sign.tick.confirmedWallet' : 'sign.tick.signed'), status: 'done' },
+            {
+              text: t(isInAppWallet ? 'sign.tick.signed.inApp' : model.route === 'self' ? 'sign.tick.confirmedWallet' : 'sign.tick.signed'),
+              status: 'done',
+            },
             {
               text:
                 model.route === 'self'
@@ -96,7 +99,8 @@ export function SignProgress({ model, spot, fees, hash, isSlow, isInAppWallet, o
     );
   }
 
-  const words = STEP_WORDS[isInAppWallet ? 'inApp' : 'asked'][spot.step === 'sign' ? 'sign' : isApprove ? 'approve' : 'send'];
+  // A step not started yet asks for the press, whichever wallet signs; only a running one says it is running.
+  const words = STEP_WORDS[isInAppWallet && spot.phase !== 'idle' ? 'inApp' : 'asked'][spot.step === 'sign' ? 'sign' : isApprove ? 'approve' : 'send'];
   const total = spot.step === 'sign' ? signatures.length : transactions.length;
   const position = spot.step === 'sign' ? signatures.indexOf(model.items[index]) : transactions.indexOf(model.items[index]);
   return (
