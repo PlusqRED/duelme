@@ -4,7 +4,7 @@
  * normalized to lowercase single-space strings.
  *
  * Wallet and RPC errors nest the useful text at unpredictable depths, so the
- * callers that classify a failure — guidedFlowRuntime's message mapping, the
+ * callers that classify a failure — `classifyFlowError` (lib/flowError.ts), the
  * relayer's error reporting — match against this flattened list rather than
  * guessing which field holds the reason this time.
  */
@@ -45,6 +45,14 @@ export function collectErrorDetails(error: unknown): string[] {
   }
 
   return Array.from(details);
+}
+
+/** Words a wallet uses when its owner turns a request down. */
+const REFUSAL_WORDS = ['reject', 'denied', 'cancelled', 'canceled'];
+
+/** Whether the wallet's owner turned the request down, so nothing was signed or sent. */
+export function isWalletRefusal(error: unknown): boolean {
+  return collectErrorDetails(error).some((detail) => REFUSAL_WORDS.some((word) => detail.includes(word)));
 }
 
 /**

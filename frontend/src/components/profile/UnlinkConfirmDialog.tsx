@@ -1,6 +1,5 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -10,7 +9,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
+import { PLATFORM_NAME_KEY } from '@/components/profile/PlatformIcon';
 import { useAppToast } from '@/hooks/useAppToast';
+import { useLastNonNull } from '@/hooks/useLastNonNull';
 import { useSocialLinks } from '@/hooks/useSocialLinks';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { SocialPlatform } from '@/lib/profile';
@@ -22,30 +24,23 @@ interface UnlinkConfirmDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-function platformKey(platform: SocialPlatform) {
-  return platform === 'steam'
-    ? 'profile.socialLinks.steam'
-    : platform === 'telegram'
-      ? 'profile.socialLinks.telegram'
-      : 'profile.socialLinks.instagram';
-}
-
 export function UnlinkConfirmDialog({ open, platform, onOpenChange }: UnlinkConfirmDialogProps) {
   const { t } = useTranslation();
   const toast = useAppToast();
   const { unlink } = useSocialLinks();
+  const shownPlatform = useLastNonNull(platform);
 
   async function handleConfirm() {
     if (!platform) return;
     try {
       await unlink.mutateAsync(platform);
-      toast.success('toast.socialLinks.unlinked', { platform: t(platformKey(platform)) });
+      toast.success('toast.socialLinks.unlinked', { platform: t(PLATFORM_NAME_KEY[platform]) });
       onOpenChange(false);
     } catch (error) {
       const code = (error as SocialLinkError | undefined)?.code;
       toast.error(
         code === 'unauthorized' ? 'toast.socialLinks.network' : 'toast.socialLinks.verificationFailed',
-        { platform: t(platformKey(platform)) },
+        { platform: t(PLATFORM_NAME_KEY[platform]) },
       );
     }
   }
@@ -55,12 +50,12 @@ export function UnlinkConfirmDialog({ open, platform, onOpenChange }: UnlinkConf
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {platform
-              ? t('profile.socialLinks.unlinkTitle', { platform: t(platformKey(platform)) })
+            {shownPlatform
+              ? t('profile.socialLinks.unlinkTitle', { platform: t(PLATFORM_NAME_KEY[shownPlatform]) })
               : t('profile.socialLinks.unlink')}
           </DialogTitle>
           <DialogDescription>
-            {platform && t('profile.socialLinks.unlinkBody', { platform: t(platformKey(platform)) })}
+            {shownPlatform && t('profile.socialLinks.unlinkBody', { platform: t(PLATFORM_NAME_KEY[shownPlatform]) })}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -68,20 +63,17 @@ export function UnlinkConfirmDialog({ open, platform, onOpenChange }: UnlinkConf
             variant="ghost"
             onClick={() => onOpenChange(false)}
             disabled={unlink.isPending}
-            className="h-11"
           >
             {t('profile.socialLinks.cancel')}
           </Button>
           <Button
-            variant="destructive"
             onClick={handleConfirm}
-            disabled={unlink.isPending || !platform}
-            className="h-11"
+            disabled={unlink.isPending || !shownPlatform}
             aria-busy={unlink.isPending}
           >
             {unlink.isPending ? (
               <>
-                <Loader2 aria-hidden="true" className="mr-2 h-4 w-4 animate-spin" />
+                <Spinner />
                 {t('profile.socialLinks.unlinking')}
               </>
             ) : (

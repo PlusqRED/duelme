@@ -5,12 +5,12 @@ import { usePrivy } from '@privy-io/react-auth';
 import { notifyManager } from '@tanstack/react-query';
 import { useAccount, useReadContract, useSwitchChain } from 'wagmi';
 import { useAppToast } from '@/hooks/useAppToast';
-import { useJoinDuelFlowLifecycle } from '@/hooks/useJoinDuelFlowLifecycle';
 import { useDuelActions } from '@/hooks/useDuelActions';
 import { type FlowReviewGate, useFlowFunding } from '@/hooks/useFlowFunding';
-import { useTranslation } from '@/i18n/useTranslation';
+import { useFlowLifecycle } from '@/hooks/useFlowLifecycle';
+import { emitBalanceRefresh } from '@/lib/balanceRefresh';
 import { joinDuelFlowActions } from '@/lib/joinDuelFlowActions';
-import type { JoinDuelFlowSession } from '@/lib/joinDuelFlow';
+import type { JoinDuelFlowSession, JoinDuelFlowStage } from '@/lib/joinDuelFlow';
 import { DUELME_ADDRESSES, DEFAULT_CHAIN } from '@/lib/constants';
 import { erc20Abi, type Duel } from '@/lib/contracts';
 import { canJoinWaitingDuel } from '@/lib/duel';
@@ -29,7 +29,6 @@ export function useJoinDuelFlow({
   inviteSecret,
   refetchDuel,
 }: UseJoinDuelFlowArgs) {
-  const { t } = useTranslation();
   const appToast = useAppToast();
   const [flow, setFlow] = useState<JoinDuelFlowSession | null>(null);
   const [allowanceRefreshCount, setAllowanceRefreshCount] = useState(0);
@@ -80,10 +79,8 @@ export function useJoinDuelFlow({
     await refetchAllowance();
   }, [fundsViaPermit, refetchAllowance]);
 
-  const canCloseFlow =
-    flow?.actionState !== 'awaiting-wallet' &&
-    flow?.actionState !== 'confirming' &&
-    flow?.stage !== 'success';
+  // Closing while the wallet or the network still works on it would hide a result that is coming.
+  const canCloseFlow = flow?.actionState !== 'awaiting-wallet' && flow?.actionState !== 'confirming';
 
   const needsNetworkSwitch =
     flow !== null &&
@@ -109,8 +106,8 @@ export function useJoinDuelFlow({
   });
 
   // On opening the flow and back from topping up, the duel may have been joined, cancelled or
-  // declined since the page read it (that read is not polled): read it again and keep Continue
-  // closed until the answer is in, then re-run the same checks as the page.
+  // declined since the page last polled it: read it again and keep Continue closed until the
+  // answer is in, then re-run the same checks as the page.
   // The count drops through React Query's own scheduler, i.e. after the new duel reached the page —
   // never in a render that still shows the old one. A count, not a flag: a second recheck cancels
   // the first refetch, whose promise then settles while the second is still in flight.
@@ -126,14 +123,21 @@ export function useJoinDuelFlow({
     chainId: flow?.draft.chainId ?? chainConfig.id,
     requiredRaw: flow?.draft.rawAmount ?? null,
     isReviewing: flow?.stage === 'review',
-    onShowReview: recheckDuel,
+    onCloseTopUp: recheckDuel,
   });
   const review: FlowReviewGate = {
     funding,
     canContinue: funding.status.kind === 'enough' && canJoin && !isRecheckingDuel,
     // Only once the wallet is known: while it resolves, canJoin is false for no reason the duel gave.
     blockedReason:
-      !canJoin && !isRecheckingDuel && !!walletAddress ? 'deposit.joinUnavailable' : null,
+      !canJoin && !isRecheckingDuel && !!walletAddress ? 'sign.join.unavailable' : null,
+    signing: {
+      phase: joinActions.signingPhase,
+      hash: joinActions.hash,
+      failedWhile: flow?.failedWhile ?? null,
+      feePaidWei: flow?.feePaidWei ?? 0n,
+      createdDuelId: null,
+    },
   };
 
   const actions = joinDuelFlowActions({
@@ -150,7 +154,6 @@ export function useJoinDuelFlow({
     reset: joinActions.reset,
     setFlow,
     switchChainAsync,
-    t,
     tokenAddress: chainConfig.usdt,
     approveToken: joinActions.approveToken,
     wagerAmount: duel?.wagerAmount ?? 0n,
@@ -159,17 +162,26 @@ export function useJoinDuelFlow({
     duelInviteHash: duel?.inviteHash ?? '',
   });
 
-  useJoinDuelFlowLifecycle({
-    error: joinActions.error,
+  const onWritten = useCallback(
+    (step: JoinDuelFlowStage): JoinDuelFlowStage => {
+      void refetchAllowanceIfRelevant();
+      if (step === 'approve') {
+        return 'join-duel';
+      }
+      emitBalanceRefresh();
+      void refetchDuel();
+      return 'success';
+    },
+    [refetchAllowanceIfRelevant, refetchDuel]
+  );
+
+  useFlowLifecycle<JoinDuelFlowStage, JoinDuelFlowSession>({
     flow,
-    isConfirming: joinActions.isConfirming,
-    isPending: joinActions.isPending,
-    isSuccess: joinActions.isSuccess,
-    refetchAllowance: refetchAllowanceIfRelevant,
-    refetchDuel,
-    reset: joinActions.reset,
     setFlow,
-    t,
+    write: joinActions,
+    chainId: chainConfig.id,
+    paysOwnFees: !fundsViaPermit,
+    onWritten,
   });
 
   const shouldRefreshReviewAllowance = flow?.stage === 'review';

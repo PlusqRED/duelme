@@ -1,10 +1,13 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Geologica } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/providers/Providers';
-import { Header } from '@/components/layout/Header';
+import { Header } from '@/components/header/Header';
 import { Footer } from '@/components/layout/Footer';
 import { JsonLd } from '@/components/seo/JsonLd';
+import { getLanguage } from '@/i18n/serverTranslation';
+import { brandColors } from '@/lib/brandColors';
+import { getRelayerStatus } from '@/lib/relayerConfig';
 import { SITE_NAME, SITE_URL } from '@/lib/constants';
 import {
   SEO_DESCRIPTION_EN,
@@ -15,8 +18,8 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-const inter = Inter({
-  variable: '--font-sans',
+const geologica = Geologica({
+  variable: '--font-geologica',
   subsets: ['latin', 'cyrillic'],
   display: 'swap',
 });
@@ -67,7 +70,7 @@ export const metadata: Metadata = {
       'max-video-preview': -1,
     },
   },
-  // Favicon is auto-registered by Next.js File Convention (`app/icon.png`).
+  // The favicon and the home-screen icon come from `app/icon.tsx` and `app/apple-icon.tsx`.
   formatDetection: {
     email: false,
     address: false,
@@ -81,24 +84,26 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#FAFAFA',
+  themeColor: brandColors.canvas,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const language = await getLanguage();
+
   return (
-    <html lang="en">
-      <body className={`${inter.variable} font-sans antialiased`}>
+    <html lang={language} className={geologica.variable} data-scroll-behavior="smooth">
+      <body>
         {/* Organization + WebApplication are global brand identity — safe on every page. */}
         {/* FAQ is intentionally NOT here: it must live only on the page where the */}
         {/* matching content is visible (homepage). See `app/page.tsx`. */}
         <JsonLd type="organization" />
         <JsonLd type="webApplication" />
-        <Providers>
-          <div className="flex min-h-screen flex-col bg-[#FAFAFA]">
+        <Providers language={language} relayerStatus={getRelayerStatus()}>
+          <div className="flex min-h-dvh flex-col">
             <Header />
             <main className="flex-1">{children}</main>
             <Footer />

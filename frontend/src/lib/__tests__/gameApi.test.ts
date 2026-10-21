@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   attachGameToDuel,
+  DUEL_META_BATCH_SIZE,
+  duelMetaBatches,
   fetchDuelMeta,
   fetchDuelMetaBatch,
   fetchDuelsByGame,
@@ -112,5 +114,34 @@ describe('duel metadata error handling', () => {
 
     await expect(fetchDuelMetaBatch(CHAIN_ID, CONTRACT, [])).resolves.toEqual([]);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('duelMetaBatches', () => {
+  it('asks for nothing when there are no duels', () => {
+    expect(duelMetaBatches([])).toEqual([]);
+  });
+
+  it('asks for each duel once, in order', () => {
+    expect(duelMetaBatches([7, 3, 7, 1])).toEqual([[1, 3, 7]]);
+  });
+
+  it('keeps every batch within what the backend takes', () => {
+    const ids = Array.from({ length: DUEL_META_BATCH_SIZE * 2 + 1 }, (_, id) => id);
+
+    const batches = duelMetaBatches(ids);
+
+    expect(batches.map((batch) => batch.length)).toEqual([DUEL_META_BATCH_SIZE, DUEL_META_BATCH_SIZE, 1]);
+    expect(batches.flat()).toEqual(ids);
+  });
+
+  it('changes only the last batch when one more duel comes', () => {
+    const ids = Array.from({ length: DUEL_META_BATCH_SIZE + 5 }, (_, id) => id);
+
+    const before = duelMetaBatches(ids);
+    const after = duelMetaBatches([...ids, DUEL_META_BATCH_SIZE + 5]);
+
+    expect(after[0]).toEqual(before[0]);
+    expect(after[1]).toEqual([...before[1], DUEL_META_BATCH_SIZE + 5]);
   });
 });

@@ -1,5 +1,5 @@
 import { SITE_NAME, SITE_URL } from '@/lib/constants';
-import { SEO_DESCRIPTION_EN, SEO_OG_IMAGE, SOCIAL_PROFILE_URLS } from '@/lib/seo';
+import { SEO_DESCRIPTION_EN, SOCIAL_PROFILE_URLS } from '@/lib/seo';
 
 export interface BreadcrumbItem {
   name: string;
@@ -10,8 +10,7 @@ export type JsonLdProps =
   | { type: 'organization' }
   | { type: 'webApplication' }
   | { type: 'faq' }
-  | { type: 'breadcrumb'; items: BreadcrumbItem[] }
-  | { type: 'game'; name: string; slug: string; description?: string };
+  | { type: 'breadcrumb'; items: BreadcrumbItem[] };
 
 function organizationSchema() {
   return {
@@ -141,19 +140,6 @@ function breadcrumbSchema(items: BreadcrumbItem[]) {
   };
 }
 
-function gameSchema(name: string, slug: string, description?: string) {
-  return {
-    '@type': 'VideoGame',
-    name,
-    url: `${SITE_URL}/games/${slug}`,
-    description: description ?? `Play ${name} 1v1 for USDT on ${SITE_NAME}.`,
-    image: SEO_OG_IMAGE,
-    playMode: 'MultiPlayer',
-    genre: ['Competitive', 'PvP', '1v1'],
-    publisher: { '@id': `${SITE_URL}#organization` },
-  };
-}
-
 function buildSchema(props: JsonLdProps): Record<string, unknown> {
   switch (props.type) {
     case 'organization':
@@ -164,8 +150,6 @@ function buildSchema(props: JsonLdProps): Record<string, unknown> {
       return faqSchema();
     case 'breadcrumb':
       return breadcrumbSchema(props.items);
-    case 'game':
-      return gameSchema(props.name, props.slug, props.description);
   }
 }
 

@@ -5,9 +5,10 @@ import { refusal, type RelayRefusal } from '@/lib/relayRequest';
  * Holds a signer back while their last relayed transaction is unconfirmed.
  *
  * Their next request was signed against the forwarder nonce that transaction is about to
- * spend, so once it lands the new one reverts on-chain and burns the relayer's gas. The app
- * signs afresh on every attempt, so a retry or a second tab is a different request, not a
- * copy the repeat check could recognise — it is refused here instead.
+ * spend, so once it lands the new one reverts on-chain and burns the relayer's gas. A retry the
+ * player starts, or a second tab, signs afresh, so it is a different request rather than a copy
+ * the repeat check could recognise — it is refused here instead. (An answer lost on the way back
+ * is posted again as the same request, and the repeat check does recognise that.)
  *
  * The hold is lifted by the transaction's receipt. If the relayer stops waiting before one
  * arrives, the hold outlives the request, since the transaction may still land.

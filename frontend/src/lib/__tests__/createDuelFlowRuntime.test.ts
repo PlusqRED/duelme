@@ -1,132 +1,129 @@
-import { describe, expect, it } from 'vitest';
-import type { TranslationKey, TranslationParams } from '@/i18n/translations';
-import { translations } from '@/i18n/translations';
-import { getCreateDuelFlowErrorMessage } from '@/lib/createDuelFlowRuntime';
-import { RelayRequestError } from '@/lib/relayApi';
-import { PermitDomainMismatchError } from '@/lib/permitSignature';
+// @vitest-environment happy-dom
+import { encodeAbiParameters, encodeEventTopics, type TransactionReceipt } from 'viem';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DEFAULT_CHAIN, DUELME_ADDRESSES, USDT_ADDRESSES } from '@/lib/constants';
+import { duelMeAbi } from '@/lib/contracts';
+import type { CreateDuelFlowDraft } from '@/lib/createDuelFlow';
+import { readStoredInviteSecret } from '@/lib/invite';
 
-function t(key: TranslationKey, params?: TranslationParams) {
-  let value = String(translations.en[key]);
+const api = vi.hoisted(() => ({ attachGameToDuel: vi.fn(async () => undefined) }));
+vi.mock('@/lib/gameApi', () => ({ attachGameToDuel: api.attachGameToDuel }));
 
-  if (!params) {
-    return value;
-  }
+const { buildDuelPath, extractCreatedDuelId, recordCreatedDuel } = await import('@/lib/createDuelFlowRuntime');
 
-  for (const [paramKey, paramValue] of Object.entries(params)) {
-    value = value.replaceAll(`{${paramKey}}`, String(paramValue));
-  }
+const CONTRACT = DUELME_ADDRESSES[DEFAULT_CHAIN.id];
+const SECRET = `0x${'ab'.repeat(32)}` as const;
+const CREATOR = '0x32a3fe56f4fee248e4f19ca3d4374a018ac9aa23';
+const NOBODY = '0x0000000000000000000000000000000000000000';
 
-  return value;
+function draft(overrides: Partial<CreateDuelFlowDraft> = {}): CreateDuelFlowDraft {
+  return {
+    rawAmount: 5_000_000n,
+    chainId: DEFAULT_CHAIN.id,
+    chainName: DEFAULT_CHAIN.name,
+    usdtAddress: USDT_ADDRESSES[DEFAULT_CHAIN.id],
+    contractAddress: CONTRACT,
+    inviteHash: `0x${'00'.repeat(32)}`,
+    inviteSecret: null,
+    isPublic: true,
+    gameName: '',
+    gameCategory: null,
+    message: '',
+    ...overrides,
+  };
 }
 
-describe('getCreateDuelFlowErrorMessage', () => {
-  it('surfaces the Arbitrum Sepolia gas-estimation error instead of the generic fallback', () => {
-    expect(
-      getCreateDuelFlowErrorMessage(
-        new Error('Execution reverted for an unknown reason. intrinsic gas too low'),
-        t,
-        'Arbitrum Sepolia'
-      )
-    ).toBe(
-      'Arbitrum Sepolia returned: intrinsic gas too low. This is a testnet gas issue. Please try again.'
-    );
+/** A receipt whose only log is the contract's DuelCreated for `duelId`. */
+function createdReceipt(duelId: bigint): TransactionReceipt {
+  const topics = encodeEventTopics({ abi: duelMeAbi, eventName: 'DuelCreated', args: { duelId, creator: CREATOR, invitedOpponent: NOBODY } });
+  const data = encodeAbiParameters(
+    [{ type: 'uint256' }, { type: 'bytes32' }, { type: 'string' }],
+    [5_000_000n, `0x${'00'.repeat(32)}`, '']
+  );
+  return { logs: [{ address: CONTRACT, topics, data }] } as unknown as TransactionReceipt;
+}
+
+const EMPTY_RECEIPT = { logs: [] } as unknown as TransactionReceipt;
+
+beforeEach(() => {
+  localStorage.clear();
+});
+
+afterEach(() => {
+  vi.clearAllMocks();
+});
+
+describe('extractCreatedDuelId', () => {
+  it('testExtractCreatedDuelIdReadsTheDuelCreatedEvent', () => {
+    const receipt = createdReceipt(7n);
+
+    expect(extractCreatedDuelId(receipt)).toBe('7');
   });
 
-  it('surfaces Arbitrum Sepolia fee-cap errors as testnet gas errors', () => {
-    expect(
-      getCreateDuelFlowErrorMessage(
-        new Error(
-          'the contract function "approve" reverted with the following reason: max fee per gas less than block base fee: maxfeepergas: 20002000 basefee: 20006000'
-        ),
-        t,
-        'Arbitrum Sepolia'
-      )
-    ).toBe(
-      'Arbitrum Sepolia returned: the contract function "approve" reverted with the following reason: max fee per gas less than block base fee: maxfeepergas: 20002000 basefee: 20006000. This is a testnet gas issue. Please try again.'
-    );
-  });
-
-  it('surfaces specific non-generic error details when available', () => {
-    expect(
-      getCreateDuelFlowErrorMessage(
-        new Error('Allowance refetch failed'),
-        t,
-        'Arbitrum Sepolia'
-      )
-    ).toBe('This step failed: allowance refetch failed.');
-  });
-
-  it('keeps the specific reason when a generic wrapper is followed by real details', () => {
-    expect(
-      getCreateDuelFlowErrorMessage(
-        new Error('Execution reverted for an unknown reason. nonce too low'),
-        t,
-        'Arbitrum Sepolia'
-      )
-    ).toBe('This step failed: nonce too low.');
+  it('testExtractCreatedDuelIdIsNullWithoutTheEvent', () => {
+    expect(extractCreatedDuelId(EMPTY_RECEIPT)).toBeNull();
   });
 });
 
-describe('getCreateDuelFlowErrorMessage — relay failures', () => {
-  it('explains a spent daily allowance instead of showing an HTTP error', () => {
-    const error = new RelayRequestError('BUDGET_EXCEEDED', 'Daily gas allowance is used up.');
-
-    expect(getCreateDuelFlowErrorMessage(error, t, 'Arbitrum One')).toBe(
-      translations.en['create.flow.error.relayBudget']
-    );
+describe('buildDuelPath', () => {
+  it('testBuildDuelPathCarriesAPrivateDuelsSecretInTheHash', () => {
+    expect(buildDuelPath('7', SECRET)).toBe(`/duel/7#${SECRET}`);
   });
 
-  it('tells a rate-limited player to wait rather than showing the server text', () => {
-    const error = new RelayRequestError('RATE_LIMITED', 'Too many relay requests — try again in a minute.');
+  it('testBuildDuelPathLeavesAPublicDuelBare', () => {
+    expect(buildDuelPath('7', null)).toBe('/duel/7');
+  });
+});
 
-    expect(getCreateDuelFlowErrorMessage(error, t, 'Arbitrum One')).toBe(
-      translations.en['create.flow.error.relayRateLimited']
-    );
+describe('recordCreatedDuel', () => {
+  it('testRecordCreatedDuelReturnsTheNewDuelsId', () => {
+    const id = recordCreatedDuel({ receipt: createdReceipt(9n), draft: draft(), identityToken: null, onGameAttachFailed: vi.fn() });
+
+    expect(id).toBe(9);
   });
 
-  it('asks the player to wait while their previous relayed transaction is confirmed', () => {
-    const error = new RelayRequestError('RELAY_PENDING', 'Still being confirmed.');
+  it('testRecordCreatedDuelKeepsThePrivateSecretUnderTheContract', () => {
+    recordCreatedDuel({ receipt: createdReceipt(9n), draft: draft({ inviteSecret: SECRET }), identityToken: null, onGameAttachFailed: vi.fn() });
 
-    expect(getCreateDuelFlowErrorMessage(error, t, 'Arbitrum One')).toBe(
-      translations.en['create.flow.error.relayPending']
-    );
+    expect(readStoredInviteSecret(DEFAULT_CHAIN.id, CONTRACT, 9)).toBe(SECRET);
   });
 
-  it('collapses every "relaying is off" code into one message', () => {
-    for (const code of ['RELAYER_UNAVAILABLE', 'INVALID_SIGNATURE', 'NOT_RELAYABLE'] as const) {
-      expect(getCreateDuelFlowErrorMessage(new RelayRequestError(code, 'x'), t, 'Arbitrum One')).toBe(
-        translations.en['create.flow.error.relayUnavailable']
-      );
-    }
+  it('testRecordCreatedDuelTagsTheGameForASignedInPlayer', () => {
+    recordCreatedDuel({ receipt: createdReceipt(9n), draft: draft({ gameName: 'CS2' }), identityToken: 'token', onGameAttachFailed: vi.fn() });
+
+    expect(api.attachGameToDuel).toHaveBeenCalledWith('token', 9, DEFAULT_CHAIN.id, CONTRACT, 'CS2', undefined);
   });
 
-  it('keeps the contract reason for a reverted action rather than hiding it', () => {
-    const error = new RelayRequestError(
-      'EXECUTION_REVERTED',
-      'The duel action would revert: Wager below minimum'
-    );
+  it('testRecordCreatedDuelFilesANewGameUnderItsCategory', () => {
+    recordCreatedDuel({
+      receipt: createdReceipt(9n),
+      draft: draft({ gameName: 'Rocket League', gameCategory: 'SPORT' }),
+      identityToken: 'token',
+      onGameAttachFailed: vi.fn(),
+    });
 
-    expect(getCreateDuelFlowErrorMessage(error, t, 'Arbitrum One')).toContain(
-      'wager below minimum'
-    );
+    expect(api.attachGameToDuel).toHaveBeenCalledWith('token', 9, DEFAULT_CHAIN.id, CONTRACT, 'Rocket League', 'SPORT');
   });
 
-  it('recognises the token refusing the permit rather than dumping the revert string', () => {
-    const error = new RelayRequestError(
-      'EXECUTION_REVERTED',
-      'The duel action would revert: permit failed'
-    );
+  it('testRecordCreatedDuelSkipsTheTagWithoutAToken', () => {
+    recordCreatedDuel({ receipt: createdReceipt(9n), draft: draft({ gameName: 'CS2' }), identityToken: null, onGameAttachFailed: vi.fn() });
 
-    expect(getCreateDuelFlowErrorMessage(error, t, 'Arbitrum One')).toBe(
-      translations.en['create.flow.error.permitUnsupported']
-    );
+    expect(api.attachGameToDuel).not.toHaveBeenCalled();
   });
 
-  it('tells a wallet that cannot sign a permit what to do instead', () => {
-    const error = new PermitDomainMismatchError('0xtoken');
+  it('testRecordCreatedDuelReportsATagThatCouldNotBeSaved', async () => {
+    api.attachGameToDuel.mockRejectedValueOnce(new Error('backend down'));
+    const onGameAttachFailed = vi.fn();
 
-    expect(getCreateDuelFlowErrorMessage(error, t, 'Arbitrum One')).toBe(
-      translations.en['create.flow.error.permitUnsupported']
-    );
+    recordCreatedDuel({ receipt: createdReceipt(9n), draft: draft({ gameName: 'CS2' }), identityToken: 'token', onGameAttachFailed });
+
+    await vi.waitFor(() => expect(onGameAttachFailed).toHaveBeenCalledOnce());
+  });
+
+  it('testRecordCreatedDuelKeepsNothingWhenTheReceiptNamesNoDuel', () => {
+    const id = recordCreatedDuel({ receipt: EMPTY_RECEIPT, draft: draft({ inviteSecret: SECRET, gameName: 'CS2' }), identityToken: 'token', onGameAttachFailed: vi.fn() });
+
+    expect(id).toBeNull();
+    expect(api.attachGameToDuel).not.toHaveBeenCalled();
   });
 });

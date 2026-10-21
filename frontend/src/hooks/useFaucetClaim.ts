@@ -1,36 +1,37 @@
 'use client';
 
 import { useCallback, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useIdentityToken } from '@privy-io/react-auth';
 import { useAppToast } from '@/hooks/useAppToast';
-import { useIsNonProductionHost } from '@/hooks/useIsNonProductionHost';
-import { TESTNET_CHAIN_IDS } from '@/lib/constants';
+import { FAUCET_STATUS_KEY, useFaucetStatus } from '@/hooks/useFaucetStatus';
 import { emitBalanceRefreshBurst } from '@/lib/balanceRefresh';
-import { FaucetClaimError, claimFaucet } from '@/lib/faucetApi';
+import { FaucetClaimError, claimFaucet, faucetOffer } from '@/lib/faucetApi';
 
 /**
- * The testnet faucet: available on non-production hosts for testnet chains only. One claim per
- * wallet per token — a MockUSDT redeploy re-opens it. Every refusal is a toast naming the reason;
- * nothing here promises that funds will arrive.
+ * The testnet faucet on `chainId`: what it offers there, by the backend's status, and the claim.
+ * One claim per wallet per token — a MockUSDT redeploy re-opens it. Every refusal is a toast naming
+ * the reason; a claim that went through says only that the money is on its way.
  */
 export function useFaucetClaim(chainId: number) {
   const appToast = useAppToast();
+  const queryClient = useQueryClient();
   const { identityToken } = useIdentityToken();
-  const isNonProdHost = useIsNonProductionHost();
+  const { data: status } = useFaucetStatus();
   const [isClaiming, setIsClaiming] = useState(false);
-  const canClaim = isNonProdHost && TESTNET_CHAIN_IDS.has(chainId);
+  const offer = faucetOffer(status, chainId);
 
-  const claim = useCallback(async () => {
-    if (!canClaim) return;
+  const claim = useCallback(async (): Promise<boolean> => {
+    if (offer.kind !== 'ready') return false;
     if (!identityToken) {
       appToast.error('toast.walletNotReady');
-      return;
+      return false;
     }
     setIsClaiming(true);
     try {
       await claimFaucet(identityToken);
-      appToast.success('toast.faucetClaimed');
       emitBalanceRefreshBurst();
+      return true;
     } catch (err) {
       if (err instanceof FaucetClaimError) {
         switch (err.code) {
@@ -43,10 +44,12 @@ export function useFaucetClaim(chainId: number) {
       } else {
         appToast.error('toast.faucetFailed');
       }
+      return false;
     } finally {
       setIsClaiming(false);
+      void queryClient.invalidateQueries({ queryKey: [FAUCET_STATUS_KEY] });
     }
-  }, [canClaim, identityToken, appToast]);
+  }, [offer.kind, identityToken, appToast, queryClient]);
 
-  return { canClaim, isClaiming, claim };
+  return { offer, isClaiming, claim };
 }

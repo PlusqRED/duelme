@@ -1,5 +1,7 @@
 import { decodeFunctionData, isAddress, isHex, type Hex } from 'viem';
+import { FORWARDER_ADDRESSES } from '@/lib/constants';
 import { duelMeAbi } from '@/lib/contracts';
+import { isRecord, parseUintString } from '@/lib/parsing';
 
 /**
  * Wire shape of an ERC-2771 forward request. `value` and `gas` travel as decimal strings
@@ -28,10 +30,22 @@ export interface RelaySuccessResponse {
   hash: Hex;
 }
 
-/** GET /api/relay — whether this deployment relays, and for which chain. */
+/**
+ * Whether this deployment relays, and for which chain. The server knows it from its own relayer
+ * config and hands it to the client with the page (see the root layout), so the answer is there
+ * on the first render and a duel write never has to wait for it.
+ */
 export interface RelayerStatus {
   available: boolean;
   chainId: number | null;
+}
+
+/**
+ * Whether duel writes on `chainId` can go through the relayer: the client needs a forwarder
+ * address for the chain (a build-time constant) and the server a funded relayer for that chain.
+ */
+export function isRelayAvailable(status: RelayerStatus, chainId: number): boolean {
+  return !!FORWARDER_ADDRESSES[chainId] && status.available && status.chainId === chainId;
 }
 
 export interface RelayErrorResponse {
@@ -257,16 +271,4 @@ export function toForwardRequestArgs(request: RelayForwardRequest) {
 
 function invalid(error: string): RelayPayloadResult {
   return { ok: false, code: 'INVALID_REQUEST', error };
-}
-
-export function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-/** Accepts only a canonical non-negative decimal string, so "0x10" / "1e9" / "-1" are out. */
-export function parseUintString(value: unknown): bigint | null {
-  if (typeof value !== 'string' || !/^(0|[1-9][0-9]*)$/.test(value)) {
-    return null;
-  }
-  return BigInt(value);
 }

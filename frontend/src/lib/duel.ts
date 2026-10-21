@@ -1,37 +1,38 @@
-import { formatUnits } from 'viem';
-import { DuelState, ACTIVE_STATES, type Duel } from '@/lib/contracts';
+import { DuelState, type Duel } from '@/lib/contracts';
 import { getContractConfig } from '@/lib/contractConfig';
-import { CHAIN_NAMES, USDT_DECIMALS, ZERO_ADDRESS } from '@/lib/constants';
+import { ZERO_ADDRESS } from '@/lib/constants';
 import { canPresentInvite } from '@/lib/invite';
-import type { TranslationKey } from '@/i18n/translations';
 
 export { ZERO_ADDRESS } from '@/lib/constants';
 
 /** A duel as the contract's `DuelView` returns it, plus the id it was read at. */
 export type DuelRecord = Duel & { id: number };
 
-/** A duel as the screens render it: the contract's fields, plus what display needs. */
-export interface PlayerDuel extends DuelRecord {
-  /** The wager as a display number. `wagerAmount` keeps the exact on-chain value. */
-  wager: number;
-  chainId: number;
-  chainName: string;
-}
+/** A player's seat: the creator's is red, the opponent's blue, wherever a duel is drawn. */
+export type SeatSide = 'creator' | 'opponent';
+export const SEAT_SIDES: readonly SeatSide[] = ['creator', 'opponent'];
 
 /**
- * The one conversion from a duel as the contract returns it to a duel as the screens render it.
- * Two hooks used to build this literal field by field: every field added to the contract's
- * `DuelView` then had to be threaded through both, and `invitedOpponent` was missed in exactly
- * that way.
+ * What the contract's safe, drawn between the seats, says it is doing with the money: empty, one
+ * stake in, both locked, paused while the players talk of stopping, unlocked once time ran out, the
+ * pot kept for the winner or paid, the stakes going back or returned.
  */
-export function toPlayerDuel(duel: DuelRecord, chainId: number): PlayerDuel {
-  return {
-    ...duel,
-    wager: parseFloat(formatUnits(duel.wagerAmount, USDT_DECIMALS)),
-    chainId,
-    chainName: CHAIN_NAMES[chainId] ?? `Chain ${chainId}`,
-  };
-}
+export type SafeTone =
+  | 'open'
+  | 'waiting'
+  | 'locked'
+  | 'paused'
+  | 'unlocked'
+  | 'forWinner'
+  | 'paid'
+  | 'returning'
+  | 'returned';
+
+/** What a player says over their seat about the duel. */
+export type SeatSay = 'won' | 'lost' | 'confirm' | 'dispute' | 'callOff' | 'agree' | 'decline';
+
+/** A player's time to answer a reported win: running, run out, or not asked for. */
+export type CountdownTimer = 'running' | 'up' | null;
 
 type ClaimableDuel = Pick<
   Duel,
@@ -51,30 +52,29 @@ type ClaimableDuel = Pick<
   | 'finalizedAt'
 >;
 
-export type DuelOutcomeTone = 'win' | 'loss' | 'neutral';
+type SidePayouts = Pick<Duel, 'creatorPayout' | 'opponentPayout' | 'creatorClaimed' | 'opponentClaimed'>;
 
-interface DuelOutcomeSummary {
-  key: TranslationKey;
-  detailKey: TranslationKey;
-  tone: DuelOutcomeTone;
+/** What the contract pays `side` out of the duel, taken or not. */
+export function payoutOf(duel: SidePayouts, side: SeatSide): bigint {
+  return side === 'creator' ? duel.creatorPayout : duel.opponentPayout;
+}
+
+/** Whether `side` has taken its payout. */
+export function hasClaimed(duel: SidePayouts, side: SeatSide): boolean {
+  return side === 'creator' ? duel.creatorClaimed : duel.opponentClaimed;
+}
+
+/** What the contract still keeps for `side`. Payouts are pull-based: a win or a stake waits there until taken. */
+export function owedOf(duel: SidePayouts, side: SeatSide): bigint {
+  return hasClaimed(duel, side) ? 0n : payoutOf(duel, side);
 }
 
 export function getClaimableAmountForAddress(
-  duel: Pick<ClaimableDuel, 'creator' | 'opponent' | 'creatorPayout' | 'opponentPayout' | 'creatorClaimed' | 'opponentClaimed'>,
+  duel: Pick<Duel, 'creator' | 'opponent'> & SidePayouts,
   address?: string | null
 ): bigint {
-  const normalized = address?.toLowerCase();
-  if (!normalized) return 0n;
-
-  if (normalized === duel.creator.toLowerCase()) {
-    return duel.creatorClaimed ? 0n : duel.creatorPayout;
-  }
-
-  if (normalized === duel.opponent.toLowerCase()) {
-    return duel.opponentClaimed ? 0n : duel.opponentPayout;
-  }
-
-  return 0n;
+  const side = seatOf(duel, address);
+  return side ? owedOf(duel, side) : 0n;
 }
 
 export function getRelevantDuelTimestamp(duel: ClaimableDuel): bigint {
@@ -83,24 +83,6 @@ export function getRelevantDuelTimestamp(duel: ClaimableDuel): bigint {
   if (duel.claimTimestamp > 0n) return duel.claimTimestamp;
   if (duel.fundedAt > 0n) return duel.fundedAt;
   return duel.createdAt;
-}
-
-export function hasClaimedPayoutForAddress(
-  duel: Pick<ClaimableDuel, 'creator' | 'opponent' | 'creatorClaimed' | 'opponentClaimed'>,
-  address?: string | null
-): boolean {
-  const normalized = address?.toLowerCase();
-  if (!normalized) return false;
-
-  if (normalized === duel.creator.toLowerCase()) {
-    return duel.creatorClaimed;
-  }
-
-  if (normalized === duel.opponent.toLowerCase()) {
-    return duel.opponentClaimed;
-  }
-
-  return false;
 }
 
 export function isDuelFullySettled(
@@ -112,21 +94,12 @@ export function isDuelFullySettled(
   );
 }
 
-export function getCounterpartyAddress(
-  duel: Pick<ClaimableDuel, 'creator' | 'opponent'>,
-  address?: string | null
-): string | null {
+/** The seat `address` sits in, or null for anyone else; the zero address sits nowhere. */
+export function seatOf(duel: Pick<Duel, 'creator' | 'opponent'>, address: string | null | undefined): SeatSide | null {
   const normalized = address?.toLowerCase();
-  if (!normalized) return null;
-
-  if (normalized === duel.creator.toLowerCase()) {
-    return duel.opponent;
-  }
-
-  if (normalized === duel.opponent.toLowerCase()) {
-    return duel.creator;
-  }
-
+  if (!normalized || normalized === ZERO_ADDRESS) return null;
+  if (normalized === duel.creator.toLowerCase()) return 'creator';
+  if (normalized === duel.opponent.toLowerCase()) return 'opponent';
   return null;
 }
 
@@ -140,18 +113,6 @@ export function isRefundableDuel(
   duel: { state: DuelState; claimTimestamp: bigint }
 ): boolean {
   return duel.state === DuelState.WinnerClaimed && isDuelClaimTimedOut(duel.claimTimestamp);
-}
-
-/**
- * Is this duel still something the players have to act on?
- *
- * A claim that timed out is history even though its state is still active: the refund is what is
- * left to do. `claimTimeout` is adjustable on-chain, so that carve-out is not a constant anyone
- * should re-spell — and the screens that split Active from History have to agree about the same
- * duel, which they cannot do while each one carries its own copy of the rule.
- */
-export function isActiveDuel(duel: { state: DuelState; claimTimestamp: bigint }): boolean {
-  return ACTIVE_STATES.has(duel.state) && !isRefundableDuel(duel);
 }
 
 /**
@@ -175,98 +136,6 @@ export function canJoinWaitingDuel(options: {
   if (!canPresentInvite(inviteSecret, duel.inviteHash, contractAddress, chainId)) return false;
   if (viewer === duel.creator.toLowerCase()) return false;
   return duel.invitedOpponent === ZERO_ADDRESS || viewer === duel.invitedOpponent.toLowerCase();
-}
-
-export function getDuelStateLabelKey(state: DuelState, timedOut?: boolean): TranslationKey {
-  switch (state) {
-    case DuelState.Nonexistent:
-      return 'duel.notFound';
-    case DuelState.Created:
-      return 'duel.waiting';
-    case DuelState.Funded:
-      return 'duel.inProgress';
-    case DuelState.WinnerClaimed:
-      return timedOut ? 'duel.responseTimedOut' : 'duel.waitingConfirm';
-    case DuelState.Resolved:
-      return 'duel.resolved';
-    case DuelState.Refunded:
-      return 'duel.refunded';
-    case DuelState.Cancelled:
-      return 'duel.cancelled';
-    case DuelState.Declined:
-      return 'duel.declined';
-    case DuelState.Disputed:
-      return 'duel.disputed';
-    case DuelState.MutualCancelRequested:
-      return 'duel.cancellationPending';
-    case DuelState.MutuallyCancelled:
-      return 'duel.mutuallyCancelled';
-  }
-}
-
-export function getDuelOutcomeSummary(
-  duel: Pick<ClaimableDuel, 'creator' | 'opponent' | 'claimedWinner' | 'state'>,
-  address?: string | null,
-  timedOut?: boolean
-): DuelOutcomeSummary {
-  const normalized = address?.toLowerCase();
-
-  if (duel.state === DuelState.Resolved && normalized) {
-    return duel.claimedWinner.toLowerCase() === normalized
-      ? {
-          key: 'dashboard.outcomeWon',
-          detailKey: 'duel.resolved',
-          tone: 'win',
-        }
-      : {
-          key: 'dashboard.outcomeLost',
-          detailKey: 'duel.resolved',
-          tone: 'loss',
-        };
-  }
-
-  if (duel.state === DuelState.WinnerClaimed && timedOut) {
-    return {
-      key: 'dashboard.outcomeNoWinner',
-      detailKey: 'duel.responseTimedOut',
-      tone: 'neutral',
-    };
-  }
-
-  if (
-    duel.state === DuelState.Refunded
-    || duel.state === DuelState.Cancelled
-    || duel.state === DuelState.Declined
-    || duel.state === DuelState.Disputed
-    || duel.state === DuelState.MutuallyCancelled
-  ) {
-    return {
-      key: 'dashboard.outcomeNoWinner',
-      detailKey: getDuelStateLabelKey(duel.state),
-      tone: 'neutral',
-    };
-  }
-
-  return {
-    key: getDuelStateLabelKey(duel.state),
-    detailKey: getDuelStateLabelKey(duel.state),
-    tone: 'neutral',
-  };
-}
-
-export function matchesDuelAddressFilter(
-  duel: Pick<ClaimableDuel, 'creator' | 'opponent' | 'claimedWinner' | 'claimedBy'>,
-  filter: string
-): boolean {
-  const normalizedFilter = filter.trim().toLowerCase();
-  if (!normalizedFilter) return true;
-
-  return [
-    duel.creator,
-    duel.opponent,
-    duel.claimedWinner,
-    duel.claimedBy,
-  ].some((address) => address.toLowerCase().includes(normalizedFilter));
 }
 
 export function truncateUnicode(value: string, maxCharacters: number): string {

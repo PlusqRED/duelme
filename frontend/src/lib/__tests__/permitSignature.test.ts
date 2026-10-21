@@ -1,12 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { hashDomain, parseSignature } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import {
-  PermitDomainMismatchError,
-  resetVerifiedPermitDomains,
-  signErc2612Permit,
-} from '@/lib/permitSignature';
+import { resetVerifiedPermitDomains, signErc2612Permit } from '@/lib/permitSignature';
 import { DUELME_ADDRESSES, SUPPORTED_CHAINS } from '@/lib/constants';
+import { PermitDomainMismatchError } from '@/lib/writeErrors';
 
 const ARBITRUM = SUPPORTED_CHAINS.arbitrum.id;
 const USDT = SUPPORTED_CHAINS.arbitrum.usdt;

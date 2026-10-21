@@ -1,35 +1,25 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { fetchRelayerStatus } from '@/lib/relayApi';
+import { createContext, useContext } from 'react';
 import { FORWARDER_ADDRESSES } from '@/lib/constants';
+import { isRelayAvailable, type RelayerStatus } from '@/lib/relayRequest';
 
 /**
- * Whether duel writes on `chainId` can go through the gas relayer.
- *
- * Both halves have to agree: the client needs a forwarder address for the chain (a
- * build-time constant, filled from the deploy artifacts) and the server needs a funded
- * relayer key. The probe answers the second half and is static for the life of the page,
- * so it runs once and is never refetched.
+ * The server's relayer status, handed down with the page by the root layout. Outside the
+ * provider — a test rendering one hook — relaying reads as off.
+ */
+export const RelayerStatusContext = createContext<RelayerStatus>({ available: false, chainId: null });
+
+/**
+ * Whether duel writes on `chainId` can go through the gas relayer. Known from the first render:
+ * the server reads its own relayer config as it renders the page, so no flow ever plans or
+ * sends a write before the answer is in.
  */
 export function useRelayerStatus(chainId: number) {
-  const forwarderAddress = FORWARDER_ADDRESSES[chainId];
-
-  const { data, isFetched } = useQuery({
-    queryKey: ['relayer-status'],
-    queryFn: ({ signal }) => fetchRelayerStatus(signal),
-    enabled: !!forwarderAddress,
-    retry: false,
-    staleTime: Infinity,
-    gcTime: Infinity,
-  });
-
-  const isRelayEnabled = !!forwarderAddress && data?.available === true && data.chainId === chainId;
+  const status = useContext(RelayerStatusContext);
 
   return {
-    isRelayEnabled,
-    forwarderAddress,
-    /** False only while the probe is still in flight, so UI never flashes the wrong badge. */
-    isRelayResolved: !forwarderAddress || isFetched,
+    isRelayEnabled: isRelayAvailable(status, chainId),
+    forwarderAddress: FORWARDER_ADDRESSES[chainId],
   };
 }

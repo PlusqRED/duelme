@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { isRecord } from '@/lib/relayRequest';
+import { isRecord } from '@/lib/parsing';
 import {
   minedReceipt,
   TX_HASH,

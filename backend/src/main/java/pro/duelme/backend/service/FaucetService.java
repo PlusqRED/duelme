@@ -17,6 +17,7 @@ import org.web3j.tx.TransactionManager;
 import org.web3j.utils.Convert;
 import pro.duelme.backend.config.FaucetProperties;
 import pro.duelme.backend.dto.FaucetClaimResponse;
+import pro.duelme.backend.dto.FaucetStatusResponse;
 import pro.duelme.backend.exception.FaucetAlreadyClaimedException;
 import pro.duelme.backend.exception.FaucetDisabledException;
 import pro.duelme.backend.exception.FaucetExecutionException;
@@ -38,7 +39,8 @@ import java.util.Optional;
  * signer drains at testers x redeploys rather than testers once.
  *
  * <p>The bean is ALWAYS wired. On-off is gated by the runtime
- * {@code duelme.faucet.enabled} flag checked inside {@link #claim}. We do not
+ * {@code duelme.faucet.enabled} flag, which every public method checks first:
+ * {@link #claim} refuses, {@link #status} answers that the faucet is off. We do not
  * use {@code @ConditionalOnProperty} here because Spring Boot's AOT evaluates
  * it at build time; in a GraalVM native image this would strip the bean
  * regardless of the runtime environment variable.
@@ -57,7 +59,7 @@ public class FaucetService {
     private final FaucetProperties props;
     private final FaucetClaimRepository repository;
     // Web3j + signer are only initialised when enabled. Disabled instances keep
-    // these null and short-circuit in claim() with FaucetDisabledException.
+    // these null, and every public method returns before it reaches them.
     private final Web3j web3j;
     private final Credentials credentials;
     private final TransactionManager txManager;
@@ -118,17 +120,14 @@ public class FaucetService {
             throw new FaucetExecutionException("Invalid wallet address", null);
         }
         String normalized = walletAddress.toLowerCase();
-        // The live MockUSDT is part of the key: a redeploy ships a new one, and a claim
-        // against the retired token must not stand in the way of claiming the new one.
-        // Validated in the constructor, which every enabled instance has already passed.
-        String token = props.mockUsdtAddress().toLowerCase();
+        String token = liveToken();
 
         FaucetClaim lock;
         Optional<FaucetClaim> existing =
             repository.findByWalletAddressAndTokenAddress(normalized, token);
         if (existing.isPresent()) {
             lock = existing.get();
-            if (lock.usdtTxHash() != null) {
+            if (minted(lock)) {
                 throw new FaucetAlreadyClaimedException(normalized);
             }
             // Otherwise resume: lock.ethTxHash() may hold a prior (landed)
@@ -158,8 +157,7 @@ public class FaucetService {
             BigInteger gasPrice = web3j.ethGasPrice().send().getGasPrice().multiply(BigInteger.TWO);
 
             if (ethTxHash == null) {
-                BigInteger ethValue = Convert.toWei(props.ethAmountEth(), Convert.Unit.ETHER).toBigInteger();
-                ethTxHash = sendRaw(gasPrice, ETH_GAS_LIMIT, normalized, "", ethValue, "ETH transfer");
+                ethTxHash = sendRaw(gasPrice, ETH_GAS_LIMIT, normalized, "", ethPerClaimWei(), "ETH transfer");
             }
             String usdtTxHash = sendRaw(
                 gasPrice,
@@ -195,6 +193,45 @@ public class FaucetService {
             if (ex instanceof FaucetExecutionException fee) throw fee;
             throw new FaucetExecutionException("Faucet execution failed", ex);
         }
+    }
+
+    /** What the caller's next claim gives and whether they already have it. */
+    public FaucetStatusResponse status(String walletAddress) {
+        if (!props.enabled()) {
+            return FaucetStatusResponse.disabled();
+        }
+        Optional<FaucetClaim> claim = repository
+            .findByWalletAddressAndTokenAddress(walletAddress.toLowerCase(), liveToken());
+        // A claim resumed after a failed mint sends only the USDT: its ETH already went out.
+        boolean ethSent = claim.map(c -> c.ethTxHash() != null).orElse(false);
+        return new FaucetStatusResponse(
+            true,
+            claim.map(FaucetService::minted).orElse(false),
+            props.chainId(),
+            props.usdtAmountRaw().toString(),
+            (ethSent ? BigInteger.ZERO : ethPerClaimWei()).toString()
+        );
+    }
+
+    /**
+     * The live MockUSDT, lowercased as claims are keyed. It is part of the key because a redeploy
+     * ships a new one, and a claim against the retired token must not stand in the way of claiming
+     * the new one. Validated in the constructor, which every enabled instance has already passed.
+     */
+    private String liveToken() {
+        return props.mockUsdtAddress().toLowerCase();
+    }
+
+    /**
+     * A claim is done once its mint went out. Until then it can be resumed, so {@link #claim} takes it
+     * up again and {@link #status} still offers it.
+     */
+    private static boolean minted(FaucetClaim claim) {
+        return claim.usdtTxHash() != null;
+    }
+
+    private BigInteger ethPerClaimWei() {
+        return Convert.toWei(props.ethAmountEth(), Convert.Unit.ETHER).toBigInteger();
     }
 
     private String sendRaw(

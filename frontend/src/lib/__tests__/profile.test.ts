@@ -1,8 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   getProfileAvatarUrls,
-  getProfileAvatarUrl,
-  getWalletIdenticon,
   isUsableAvatarImageSize,
   isUsableSteamAvatarUrl,
   isValidInstagramHandle,
@@ -69,10 +67,10 @@ describe('isValidInstagramHandle', () => {
   });
 });
 
-describe('getProfileAvatarUrl', () => {
+describe('getProfileAvatarUrls', () => {
   it('prefers a custom Steam avatar over Telegram photo', () => {
     expect(
-      getProfileAvatarUrl({
+      getProfileAvatarUrls({
         socialLinks: {
           steam: {
             steamId: '76561197960287930',
@@ -89,13 +87,13 @@ describe('getProfileAvatarUrl', () => {
           },
           instagram: null,
         },
-      }),
+      })[0],
     ).toBe('https://avatars.steamstatic.com/custom_full.jpg');
   });
 
   it('falls back to Telegram when Steam has the default empty avatar', () => {
     expect(
-      getProfileAvatarUrl({
+      getProfileAvatarUrls({
         socialLinks: {
           steam: {
             steamId: '76561197960287930',
@@ -112,12 +110,12 @@ describe('getProfileAvatarUrl', () => {
           },
           instagram: null,
         },
-      }),
+      })[0],
     ).toBe('https://t.me/i/userpic/320/alice.jpg');
   });
 
-  it('returns null when no social avatar is usable', () => {
-    expect(getProfileAvatarUrl({ socialLinks: null })).toBeNull();
+  it('returns no URL when no social avatar is usable', () => {
+    expect(getProfileAvatarUrls({ socialLinks: null })).toEqual([]);
   });
 
   it('returns candidate URLs in fallback order', () => {
@@ -148,7 +146,7 @@ describe('getProfileAvatarUrl', () => {
 
   it('ignores non-http avatar URLs', () => {
     expect(
-      getProfileAvatarUrl({
+      getProfileAvatarUrls({
         socialLinks: {
           steam: {
             steamId: '76561197960287930',
@@ -166,12 +164,12 @@ describe('getProfileAvatarUrl', () => {
           instagram: null,
         },
       }),
-    ).toBeNull();
+    ).toEqual([]);
   });
 
   it('ignores http avatar URLs to avoid mixed-content profile images', () => {
     expect(
-      getProfileAvatarUrl({
+      getProfileAvatarUrls({
         socialLinks: {
           steam: {
             steamId: '76561197960287930',
@@ -189,12 +187,12 @@ describe('getProfileAvatarUrl', () => {
           instagram: null,
         },
       }),
-    ).toBeNull();
+    ).toEqual([]);
   });
 
   it('does not synthesize a Telegram avatar URL from username when photoUrl is missing', () => {
     expect(
-      getProfileAvatarUrl({
+      getProfileAvatarUrls({
         socialLinks: {
           steam: null,
           telegram: {
@@ -207,12 +205,12 @@ describe('getProfileAvatarUrl', () => {
           instagram: null,
         },
       }),
-    ).toBeNull();
+    ).toEqual([]);
   });
 
   it('ignores invalid Telegram username when photoUrl is missing', () => {
     expect(
-      getProfileAvatarUrl({
+      getProfileAvatarUrls({
         socialLinks: {
           steam: null,
           telegram: {
@@ -225,7 +223,7 @@ describe('getProfileAvatarUrl', () => {
           instagram: null,
         },
       }),
-    ).toBeNull();
+    ).toEqual([]);
   });
 
   it('uses Telegram photoUrl without adding a t.me username fallback', () => {
@@ -266,31 +264,5 @@ describe('isUsableAvatarImageSize', () => {
   it('accepts real avatar-sized images', () => {
     expect(isUsableAvatarImageSize(8, 8)).toBe(true);
     expect(isUsableAvatarImageSize(320, 320)).toBe(true);
-  });
-});
-
-describe('getWalletIdenticon', () => {
-  it('returns null when wallet address is missing', () => {
-    expect(getWalletIdenticon(null)).toBeNull();
-    expect(getWalletIdenticon('   ')).toBeNull();
-  });
-
-  it('generates a stable case-insensitive identicon for a wallet', () => {
-    const wallet = '0x1111111111111111111111111111111111111111';
-    const identicon = getWalletIdenticon(wallet);
-
-    expect(identicon).toEqual(getWalletIdenticon(wallet.toUpperCase()));
-    expect(identicon?.backgroundColor).toMatch(/^hsl\(\d{1,3}, 48%, 92%\)$/);
-    expect(identicon?.foregroundColor).toMatch(/^hsl\(\d{1,3}, 70%, 42%\)$/);
-    expect(identicon?.cells.length).toBeGreaterThanOrEqual(5);
-    expect(identicon?.cells.every((cell) => (
-      cell.x >= 0 && cell.x < 5 && cell.y >= 0 && cell.y < 5
-    ))).toBe(true);
-  });
-
-  it('generates a different identicon for a different wallet', () => {
-    expect(getWalletIdenticon('0x1111111111111111111111111111111111111111')).not.toEqual(
-      getWalletIdenticon('0x2222222222222222222222222222222222222222'),
-    );
   });
 });

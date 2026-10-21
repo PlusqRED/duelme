@@ -1,4 +1,4 @@
-import { SITE_NAME, SITE_URL } from './constants';
+import { SITE_NAME } from './constants';
 
 export const SEO_KEYWORDS: readonly string[] = [
   // EN — core product
@@ -101,12 +101,6 @@ export const SEO_TITLE_TEMPLATE = `%s | ${SITE_NAME}`;
 // that budget so the value prop ("0% fee, no KYC, on-chain") isn't cut off.
 export const SEO_DESCRIPTION_EN =
   'Stake USDT in 1v1 crypto duels and win the full pot. Smart-contract escrow on Arbitrum — 0% platform fee, no KYC, no admin override.';
-
-// Absolute URL of the OG image rendered by `app/opengraph-image.tsx` (Next.js
-// File Convention). Used by JSON-LD references that need an absolute URL.
-// Metadata API gets the image auto-injected from the convention file and does
-// NOT use this constant.
-export const SEO_OG_IMAGE = `${SITE_URL}/opengraph-image`;
 
 // Add real profile URLs when they exist; Organization schema reads `sameAs`
 // only when this array is non-empty.

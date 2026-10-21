@@ -1,7 +1,7 @@
 plugins {
     java
     id("org.springframework.boot") version "4.1.1"
-    id("org.graalvm.buildtools.native") version "0.11.5"
+    id("org.graalvm.buildtools.native") version "1.1.14"
 }
 
 group = "pro.duelme"
@@ -29,7 +29,13 @@ dependencies {
     // web3j powers the dev-only testnet faucet (signing + JSON-RPC). Kept in
     // core deps so JVM + native builds both include it; on-off is gated at
     // runtime inside FaucetService via `duelme.faucet.enabled`.
-    implementation("org.web3j:core:4.14.0")
+    // Since 4.13 web3j also pulls in the AWS SDK (KMS, with its own Netty 4.1
+    // client and Apache httpclient) for HSMAwsKMSRequestProcessor alone. The
+    // faucet signs with a local key, so the SDK would only add weight. Netty 4.2
+    // stays: web3j's crypto module needs it through tuweni and vert.x.
+    implementation("org.web3j:core:4.14.0") {
+        exclude(group = "software.amazon.awssdk")
+    }
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")

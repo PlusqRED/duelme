@@ -1,0 +1,72 @@
+/* The dashboard's own moves, as `animate-*` utilities: a duel calling for the reader's move, the
+   history's rows rising, stamped and paging, and the placeholders while the duels are read. The
+   rules every move keeps, and the moves the app shares, are in `motion.css`. */
+@theme {
+  --animate-call: call 0.9s ease-out 2;
+  --animate-row-in: row-in 0.38s var(--ease-sheet) both;
+  --animate-row-swap: row-in 0.26s var(--ease-sheet) both;
+  --animate-row-next: row-next 0.32s var(--ease-sheet) both;
+  --animate-row-prev: row-prev 0.32s var(--ease-sheet) both;
+  --animate-stamp: stamp 0.5s var(--ease-spring) both;
+  --animate-wait: wait 1.4s ease-in-out infinite;
+
+  /* A duel whose move is the reader's calls twice: a glow in their seat's colour, laid under the
+     card, spreads past its edge and fades. */
+  @keyframes call {
+    from {
+      opacity: 0.4;
+    }
+    to {
+      opacity: 0;
+      scale: 1.08;
+    }
+  }
+
+  /* A row of the history rises into place: as the page opens, and after a filter or a search. */
+  @keyframes row-in {
+    from {
+      opacity: 0;
+      translate: 0 10px;
+    }
+  }
+
+  /* Another page of the history slides in from the side it lies on. */
+  @keyframes row-next {
+    from {
+      opacity: 0;
+      translate: 22px 0;
+    }
+  }
+
+  @keyframes row-prev {
+    from {
+      opacity: 0;
+      translate: -22px 0;
+    }
+  }
+
+  /* A result is stamped onto its row. */
+  @keyframes stamp {
+    0% {
+      opacity: 0;
+      scale: 1.7;
+      rotate: -9deg;
+    }
+    60% {
+      opacity: 1;
+      scale: 0.94;
+      rotate: 2deg;
+    }
+    100% {
+      scale: 1;
+      rotate: 0deg;
+    }
+  }
+
+  /* A placeholder breathes while the duels are read from the contract. */
+  @keyframes wait {
+    50% {
+      opacity: 0.5;
+    }
+  }
+}

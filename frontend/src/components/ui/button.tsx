@@ -1,60 +1,49 @@
-"use client"
+import { Button as ButtonPrimitive } from '@base-ui/react/button';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from '@/lib/utils';
 
-import { Button as ButtonPrimitive } from "@base-ui/react/button"
-import { cva, type VariantProps } from "class-variance-authority"
-
-import { cn } from "@/lib/utils"
-
+/**
+ * Buttons are keycaps that press down. Navy is every action, paper the quiet alternative beside
+ * it, and sun is kept for taking a payout. Ghost has no keycap, for what should not compete with
+ * the action on screen: sign out, back, a filter reset. It keeps the room below that a keycap's edge
+ * takes, so the two line up side by side.
+ *
+ * `buttonVariants` gives a link the same look: `<Link className={buttonVariants({ size: 'lg' })}>`.
+ */
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  'inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full text-center font-label no-underline select-none disabled:pointer-events-none disabled:opacity-55 data-disabled:pointer-events-none data-disabled:opacity-55 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=size-])]:size-5',
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
-        outline:
-          "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
-        ghost:
-          "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
-        destructive:
-          "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
-        link: "text-primary underline-offset-4 hover:underline",
+        navy: 'keycap bg-ink text-paper [--keycap-edge:var(--color-ink-edge)]',
+        paper:
+          'keycap bg-paper text-ink [--keycap-edge:var(--color-line-strong)] [--keycap-ring:var(--color-line-strong)]',
+        sun: 'keycap bg-sun text-ink [--keycap-edge:var(--color-sun-edge)]',
+        // Paper on the contract's navy safe, where a light edge would glow: it stands on the safe's own dark edge.
+        paperOnNavy: 'keycap bg-paper text-ink [--keycap-edge:var(--color-ink-edge)]',
+        ghost: 'mb-1 text-ink-2 transition-colors hover:bg-ink/5 hover:text-ink',
       },
+      // The line height rides on the type size: cn() drops a `leading-*` that comes before one.
       size: {
-        default:
-          "h-8 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-        xs: "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
-        lg: "h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
-        icon: "size-8",
-        "icon-xs":
-          "size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
-        "icon-sm":
-          "size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
-        "icon-lg": "size-9",
+        sm: 'min-h-11 px-4 text-body-sm/[1.1]',
+        md: 'min-h-12 px-[22px] text-base/[1.1]',
+        lg: 'min-h-14 px-7 text-body/[1.1]',
       },
     },
     defaultVariants: {
-      variant: "default",
-      size: "default",
+      variant: 'navy',
+      size: 'md',
     },
   }
-)
+);
 
-function Button({
-  className,
-  variant = "default",
-  size = "default",
-  ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
-  return (
-    <ButtonPrimitive
-      data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    />
-  )
+// Base UI also takes a className function of the button's state, which cn() would drop.
+interface ButtonProps extends Omit<ButtonPrimitive.Props, 'className'>, VariantProps<typeof buttonVariants> {
+  className?: string;
 }
 
-export { Button, buttonVariants }
+function Button({ className, variant, size, ...props }: ButtonProps) {
+  return <ButtonPrimitive className={cn(buttonVariants({ variant, size }), className)} {...props} />;
+}
+
+export { Button, buttonVariants };

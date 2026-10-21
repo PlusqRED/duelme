@@ -1,45 +1,50 @@
-'use client';
+import { BrandLink } from '@/components/identity/BrandLink';
+import { PlatformIcon } from '@/components/profile/PlatformIcon';
+import { getTranslation } from '@/i18n/serverTranslation';
+import { DEVELOPER_EMAIL, INSTAGRAM_URL, SITE_NAME, TELEGRAM_URL } from '@/lib/constants';
 
-import Image from 'next/image';
-import { Mail } from 'lucide-react';
-import { useTranslation } from '@/i18n/useTranslation';
+const channels = [
+  { platform: 'telegram', name: 'Telegram', href: TELEGRAM_URL },
+  { platform: 'instagram', name: 'Instagram', href: INSTAGRAM_URL },
+] as const;
 
-const DEVELOPER_EMAIL = 'rickes.oleg@gmail.com';
-
-export function Footer() {
-  const { t } = useTranslation();
+/**
+ * The foot of every page, as the landing's demo draws it: the mark, what DuelMe is, its channels,
+ * who to write to and the rights — stacked on a phone, one line from a wide screen up.
+ */
+export async function Footer() {
+  const { t } = await getTranslation();
 
   return (
-    <footer className="border-t border-slate-200 bg-white">
-      <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 px-4 py-6 text-center sm:flex-row sm:justify-between sm:gap-4 sm:px-6 sm:py-8 sm:text-left">
-        <div className="flex flex-col items-center gap-1 sm:flex-row sm:items-center sm:gap-2">
-          <Image
-            src="/logo.png"
-            alt="DuelMe logo"
-            width={20}
-            height={20}
-            className="h-5 w-5 shrink-0 rounded-full"
-          />
-          <span className="text-sm font-semibold text-slate-900">DuelMe</span>
-          <span className="hidden text-sm text-slate-300 sm:inline">&middot;</span>
-          <span className="text-xs text-slate-500 sm:text-sm">
-            {t('footer.tagline')}
-          </span>
-        </div>
-
-        <a
-          href={`mailto:${DEVELOPER_EMAIL}`}
-          title={t('footer.developer')}
-          aria-label={`${t('footer.developer')}: ${DEVELOPER_EMAIL}`}
-          className="group inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-slate-500 transition-colors hover:bg-indigo-50 hover:text-indigo-600 sm:text-sm"
-        >
-          <Mail className="h-3.5 w-3.5 text-slate-400 transition-colors group-hover:text-indigo-600" />
-          <span className="font-medium">{DEVELOPER_EMAIL}</span>
-        </a>
-
-        <span className="text-xs text-slate-400">
-          &copy; {new Date().getFullYear()} DuelMe. {t('footer.rights')}
-        </span>
+    <footer className="border-t border-line">
+      <div className="mx-auto grid w-full max-w-page gap-2 px-gutter pt-7 pb-10 text-body-sm text-ink-3 wide:grid-cols-[auto_1fr_auto_auto_auto] wide:items-center wide:gap-7">
+        <BrandLink className="w-fit" />
+        <p>{t('footer.tagline')}</p>
+        <ul className="-ml-2.5 flex gap-1 wide:ml-0">
+          {channels.map(({ platform, name, href }) => (
+            <li key={platform}>
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={name}
+                title={name}
+                className="grid size-11 place-items-center rounded-full text-ink-2 transition-colors hover:bg-paper hover:text-ink"
+              >
+                <PlatformIcon platform={platform} className="size-5" />
+              </a>
+            </li>
+          ))}
+        </ul>
+        <p>
+          {t('footer.developer')}:{' '}
+          <a href={`mailto:${DEVELOPER_EMAIL}`} className="inline-flex min-h-11 items-center text-ink underline-offset-4 hover:underline">
+            {DEVELOPER_EMAIL}
+          </a>
+        </p>
+        <p>
+          © {new Date().getFullYear()} {SITE_NAME}. {t('footer.rights')}
+        </p>
       </div>
     </footer>
   );

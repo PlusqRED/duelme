@@ -1,14 +1,10 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
+import { skipToken, useQuery } from '@tanstack/react-query';
 import type { Abi, Hex } from 'viem';
-import {
-  useAccount,
-  usePublicClient,
-  useWaitForTransactionReceipt,
-  useWalletClient,
-  useWriteContract,
-} from 'wagmi';
+import { useAccount, useConfig, usePublicClient, useWalletClient, useWriteContract } from 'wagmi';
+import { getWalletClient } from 'wagmi/actions';
 import {
   buildTransactionParams,
   type DuelPublicClient,
@@ -19,12 +15,14 @@ import { buildSignedForwardRequest } from '@/lib/forwardRequest';
 import { submitRelayRequest } from '@/lib/relayApi';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useRelayerStatus } from '@/hooks/useRelayerStatus';
+import { ARBITRUM_SEPOLIA_DEFAULT_MIN_GAS } from '@/lib/testnetGas';
 import { EMBEDDED_WALLET_CLIENT_TYPE } from '@/lib/walletSelection';
+import { isFinalReceiptError, WalletNotReadyError } from '@/lib/writeErrors';
+import { waitForWriteReceipt } from '@/lib/writeReceipt';
 
-// Default min-gas floor used for non-create/approve actions on Sepolia.
-// Sepolia's eth_estimateGas occasionally under-reports; this is generous but
-// still fits inside a single L2 block. Mainnet ignores the floor.
-const DEFAULT_TESTNET_MIN_GAS = 200_000n;
+function toError(value: unknown): Error {
+  return value instanceof Error ? value : new Error(String(value));
+}
 
 export type WriteConfig = Parameters<
   ReturnType<typeof useWriteContract>['writeContract']
@@ -38,6 +36,7 @@ type EstimateContractGasConfig = Parameters<DuelPublicClient['estimateContractGa
  * functions on top and decides when a write needs an EIP-2612 permit.
  */
 export function useWriteWithGas(chainId: number) {
+  const wagmiConfig = useConfig();
   const { address: accountAddress } = useAccount();
   const publicClient = usePublicClient({ chainId });
   const { data: walletClient } = useWalletClient({ chainId });
@@ -64,7 +63,6 @@ export function useWriteWithGas(chainId: number) {
   // writeWithGas), so at most one of them holds state for the current write.
   const hash = managedHash ?? wagmiHash;
   const isPending = managedIsPending || wagmiIsPending;
-  const error = managedError ?? wagmiError;
 
   const reset = useCallback(() => {
     setManagedHash(undefined);
@@ -74,14 +72,27 @@ export function useWriteWithGas(chainId: number) {
     wagmiReset();
   }, [wagmiReset]);
 
+  // Not wagmi's useWaitForTransactionReceipt: it watches the chain the wallet is on now, not the
+  // one the write went to, and on a revert it guesses from how its replay of the call failed.
+  // This read decides by the receipt: a revert or a replacement is final and ends the write in an
+  // error; any other failure to read it says nothing about whether the transaction went through,
+  // so the read keeps trying — a write reported as failed that went through is one "Try again"
+  // away from being sent twice.
   const {
-    isLoading: receiptIsConfirming,
     isSuccess,
     data: receipt,
-  } = useWaitForTransactionReceipt({
-    hash,
+    error: receiptError,
+  } = useQuery({
+    queryKey: ['write-receipt', chainId, hash],
+    queryFn: publicClient && hash ? () => waitForWriteReceipt(publicClient, hash) : skipToken,
+    retry: (_failureCount, readError) => !isFinalReceiptError(readError),
+    staleTime: Infinity,
   });
-  const isConfirming = managedIsConfirming || receiptIsConfirming;
+  const receiptEnd = isFinalReceiptError(receiptError) ? receiptError : null;
+  // A sent write confirms until its receipt decides, whatever the read is doing meanwhile: paused
+  // offline, it reports no loading, and the buttons it gates would send the write again.
+  const isConfirming = managedIsConfirming || (!!hash && !isSuccess && !receiptEnd);
+  const error = managedError ?? wagmiError ?? receiptEnd;
 
   /**
    * Owns the pending → confirming → hash sequence for every write this hook sends itself.
@@ -103,7 +114,7 @@ export function useWriteWithGas(chainId: number) {
           })
         );
       } catch (sendError) {
-        setManagedError(sendError instanceof Error ? sendError : new Error(String(sendError)));
+        setManagedError(toError(sendError));
       } finally {
         setManagedIsPending(false);
         setManagedIsConfirming(false);
@@ -131,7 +142,8 @@ export function useWriteWithGas(chainId: number) {
   const relayWrite = useCallback(
     async (config: WriteConfig) => {
       if (!relayContext) {
-        setManagedError(new Error('Gasless relaying is not available'));
+        // Relaying is on (the caller routed here), so what is missing is the wallet's clients.
+        setManagedError(new WalletNotReadyError());
         return;
       }
 
@@ -162,25 +174,25 @@ export function useWriteWithGas(chainId: number) {
   //   - Injected wallets accept the pre-filled values as-is and skip their own
   //     estimation round-trip.
   const writeWithGas = useCallback(
-    async (config: WriteConfig, minimumTestnetGas: bigint = DEFAULT_TESTNET_MIN_GAS) => {
-      function reportError(err: unknown) {
-        if (isPrivyEmbedded) {
-          setManagedError(err instanceof Error ? err : new Error(String(err)));
+    async (config: WriteConfig, minimumTestnetGas: bigint = ARBITRUM_SEPOLIA_DEFAULT_MIN_GAS) => {
+      // A guard that bails reports through the managed error for every wallet type: nothing has
+      // reached wagmi, so its own state would never tell the caller the write is over.
+      if (!publicClient || !accountAddress) {
+        setManagedError(new WalletNotReadyError());
+        return;
+      }
+
+      // The embedded wallet's client is read now, not taken from the last render: a write sent
+      // right after a network switch would sign with the client from before it, and a client
+      // asked for while the wallet was elsewhere stays failed after the wallet gets there.
+      let embeddedClient: Awaited<ReturnType<typeof getWalletClient>> | undefined;
+      if (isPrivyEmbedded) {
+        try {
+          embeddedClient = await getWalletClient(wagmiConfig, { chainId });
+        } catch {
+          setManagedError(new WalletNotReadyError('Embedded wallet client not ready'));
           return;
         }
-        // Injected-wallet pre-write failures only happen on wagmi
-        // misconfiguration (missing clients) — log and bail.
-        console.error('useWriteWithGas: pre-write failed for injected wallet', err);
-      }
-
-      if (!publicClient || !accountAddress) {
-        reportError(new Error('Wallet or RPC client not ready'));
-        return;
-      }
-
-      if (isPrivyEmbedded && !walletClient) {
-        reportError(new Error('Embedded wallet client not ready — please retry'));
-        return;
       }
 
       // Clear both result surfaces so the merged selectors can't mix in stale
@@ -207,7 +219,7 @@ export function useWriteWithGas(chainId: number) {
         if (isPrivyEmbedded) {
           // No wagmi fallback for Privy: it would re-hit the single-URL
           // broadcast bug AND the all-zero-gas bug. Surface the error instead.
-          reportError(estimateError);
+          setManagedError(toError(estimateError));
           return;
         }
         // Injected wallets handle their own RPC reliably — let the wallet
@@ -220,10 +232,10 @@ export function useWriteWithGas(chainId: number) {
         return;
       }
 
-      if (isPrivyEmbedded && walletClient) {
+      if (embeddedClient) {
         await runManagedSend(() =>
           broadcastWithFallback({
-            walletClient,
+            walletClient: embeddedClient,
             publicClient,
             account: accountAddress,
             chainId,
@@ -244,9 +256,9 @@ export function useWriteWithGas(chainId: number) {
     },
     [
       chainId,
+      wagmiConfig,
       accountAddress,
       publicClient,
-      walletClient,
       isPrivyEmbedded,
       writeContract,
       wagmiReset,

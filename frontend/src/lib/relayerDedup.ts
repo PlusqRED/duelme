@@ -10,8 +10,10 @@ import { toForwardRequestArgs, type RelayForwardRequest, type RelayOutcome } fro
  * again in that window it buys a second transaction, which reverts on the spent nonce and
  * burns the relayer's gas. A replay of a payload someone saw, or any client posting the
  * same body twice, looks like that — so every copy shares the first one's outcome, the same
- * transaction hash, and only the first is ever sent. (The app itself signs afresh on every
- * attempt; relayerSignerHold covers its retries.)
+ * transaction hash, and only the first is ever sent. The app counts on this when an answer is
+ * lost: it posts the same signed request again to learn the first one's outcome (relayApi). A
+ * retry the player starts signs afresh, and relayerSignerHold holds that one back until the
+ * first has a receipt.
  *
  * Only a success is remembered past its own request. A refusal sent nothing, so the same
  * signed request may try again once whatever refused it has changed.

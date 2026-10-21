@@ -25,21 +25,21 @@ Comprehensive hardening applied across CI/CD, Docker, reverse proxy, and runtime
 | Measure | Details |
 |---------|---------|
 | Network isolation | Separate `backend` and `frontend` Docker networks — frontend cannot reach MongoDB |
-| MongoDB authentication | Root credentials via `--auth` flag, authenticated healthcheck, connection URI with `authSource=admin` |
+| MongoDB authentication | Root credentials via `--auth` flag, unauthenticated `ping` healthcheck (no credentials in any argv), connection URI with `authSource=admin` |
 | Secrets management | `.env` files generated at deploy time from GitHub environment secrets — no secrets in repo or on disk manually |
-| Swagger blocked in prod | Disabled via Spring profile (`application-prod.yml`) and blocked at Caddy level (404 for `/swagger-ui`, `/docs`, `/v3/api-docs`) |
+| Swagger blocked in prod | Switched off in `application-prod.yml` and denied at runtime by `SecurityConfig` (the native image ignores the profile's springdoc switches) and blocked at Caddy level (404 for `/api/v1/swagger-ui*`, `/api/v1/docs*`, `/api/v1/v3/api-docs*`) |
 
 ## HTTP Security Headers (Caddy)
 
 | Header | Value |
 |--------|-------|
-| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains; preload` |
+| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload` |
 | `Content-Security-Policy` | Scoped `default-src`, `script-src`, `connect-src`, `frame-src` with explicit allowlist for Privy, the RPC hosts and Google Fonts |
 | `X-Content-Type-Options` | `nosniff` |
 | `X-Frame-Options` | `DENY` |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` |
 | `Permissions-Policy` | `camera=(), microphone=(), geolocation=(), payment=()` |
-| `Server` | Removed |
+| `Server`, `X-Powered-By` | Removed |
 | Request body limit | 1 MB max |
 
 ## Resource Management
@@ -79,6 +79,6 @@ Comprehensive hardening applied across CI/CD, Docker, reverse proxy, and runtime
 
 | Service | Endpoint | Interval | Timeout | Start period | Retries |
 |---------|----------|----------|---------|--------------|---------|
-| MongoDB | `mongosh` ping with auth | 10s | 3s | 10s | 3 |
+| MongoDB | `mongosh` ping (needs no auth) | 10s | 3s | 10s | 3 |
 | Backend | `GET /api/v1/health` | 10s | 3s | 5s | 3 |
 | Frontend | `GET /api/health` | 10s | 3s | 5s | 3 |

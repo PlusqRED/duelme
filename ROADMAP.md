@@ -4,14 +4,14 @@
 **Status:** Approved — this document is the plan as it was approved, kept as written. What has
 actually shipped since is below.
 
-## Shipped since (as of 2026-09-20)
+## Shipped since (as of 2026-10-21)
 
 | Phase | State |
 |---|---|
 | 1 — Game catalog + duel metadata | **Done.** `games` and `duelMeta` collections, `/games` and `/games/[slug]`, duels tagged by game |
-| 2 — Leaderboard + search | **Partly.** Search shipped across the dashboard, the open lobby and the recent feed. No event indexer and no leaderboard: listing screens read the contract directly, in pages |
+| 2 — Leaderboard + search | **Partly.** Search shipped across the dashboard's history, the open lobby and the recent feed. No event indexer and no leaderboard: listing screens read the contract directly, in pages |
 | 3 — Boss Fight | Not started. No `BossFight.sol` |
-| 4 — Design refresh | **Partly.** The landing, duel and dashboard screens were reworked; not tracked against the item list below |
+| 4 — Design refresh | **Done, differently.** Every screen moved to one new design in October 2026: a light theme instead of the dark one below, Geologica, keycap buttons, the duel drawn as an arena with both seats and the contract's safe, and one signing window for every duel write. Its rules live under "Design" in `frontend/CLAUDE.md`. No Boss Fight pages, since Phase 3 has not started |
 | 5 — Social + bridge + languages | **Partly.** Steam, Telegram and Instagram links shipped; EN/RU shipped. No bridge/swap widget |
 | 6 — NFT badges + mainnet | **Partly.** Deployed to Arbitrum One. No `DuelMeBadges.sol` |
 

@@ -1,150 +1,88 @@
-import type { PlayerDuel } from '@/lib/duel';
-import type { RecentDuel } from '@/hooks/useRecentDuels';
 import type { Language, TranslationKey, TranslationParams } from '@/i18n/translations';
-import { DuelState } from '@/lib/contracts';
-import { formatDateTime, formatUSDT } from '@/lib/utils';
-import {
-  getClaimableAmountForAddress,
-  getCounterpartyAddress,
-  getDuelOutcomeSummary,
-  getDuelStateLabelKey,
-  getRelevantDuelTimestamp,
-  hasClaimedPayoutForAddress,
-  isDuelClaimTimedOut,
-} from '@/lib/duel';
-import { getReputationLabelKey, type ReputationLevel } from '@/lib/reputation';
+import { formatUnits } from 'viem';
+import { USDT_DECIMALS } from '@/lib/constants';
+import { getCategoryLabelKey } from '@/lib/game';
+import type { FeedDuel } from '@/lib/duelFeed';
+import type { EnrichedDuel } from '@/lib/publicDuelsFilters';
+import { formatUSDT } from '@/lib/utils';
+import { getReputationLabelKey } from '@/lib/reputation';
 
 type Translate = (key: TranslationKey, params?: TranslationParams) => string;
 
-const CANONICAL_STATE_TERMS: Record<DuelState, string[]> = {
-  // The paged readers drop `Nonexistent` records and a direct link to an id nobody issued takes
-  // the not-found branch, so no screen renders one. The entry is here because the record is
-  // exhaustive over the enum.
-  [DuelState.Nonexistent]: [],
-  [DuelState.Created]: ['waiting for opponent', 'created'],
-  [DuelState.Funded]: ['in progress', 'funded', 'live'],
-  [DuelState.WinnerClaimed]: ['waiting for confirmation', 'result submitted'],
-  [DuelState.Resolved]: ['resolved', 'duel resolved'],
-  [DuelState.Refunded]: ['refunded', 'refund unlocked'],
-  [DuelState.Cancelled]: ['cancelled', 'canceled'],
-  [DuelState.Declined]: ['declined', 'invite declined'],
-  [DuelState.Disputed]: ['disputed', 'result disputed'],
-  [DuelState.MutualCancelRequested]: ['cancellation requested', 'mutual cancel requested'],
-  [DuelState.MutuallyCancelled]: ['cancelled by agreement', 'mutually cancelled', 'mutually canceled'],
-};
+/** A comma in a number as the language writes it: Russian's decimal point, English's thousands separator. */
+function foldedComma(language: Language): string {
+  return language === 'ru' ? '.' : '';
+}
 
-const CANONICAL_OUTCOME_TERMS: Record<string, string[]> = {
-  'dashboard.outcomeWon': ['won', 'victory', 'winner'],
-  'dashboard.outcomeLost': ['lost', 'defeat', 'loser'],
-  'dashboard.outcomeNoWinner': ['no winner', 'refund', 'draw'],
-};
+/**
+ * Search text as it is matched: lower case, ё as е the way it is often typed, any run of spaces (a
+ * non-breaking one in a Russian amount too) as one space, and a comma beside a digit read the way
+ * the language writes numbers. In Russian it is the decimal point, so `1 234,5` typed matches
+ * `1 234,5` shown and `1234,5` matches `1234.5`; in English it groups thousands and is dropped, so
+ * `1,234.5` matches `1234.5` while `1.5` does not match `1,500`. A comma with a digit on one side
+ * only folds as well, in the text and in a query alike, so `1 234,` typed on the way to `1 234,5`
+ * keeps matching, and so does `до 3,` typed against «до 3, без».
+ */
+function foldSearchText(text: string, language: Language): string {
+  return text
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/\s+/g, ' ')
+    .replace(/(?<=\d),|,(?=\d)/g, foldedComma(language));
+}
 
-function normalizeSearchParts(parts: Array<string | number | undefined | null | false>) {
+/** A search box's query, folded the way the search text is. */
+export function normalizeSearchQuery(query: string, language: Language): string {
+  return foldSearchText(query.trim(), language);
+}
+
+function normalizeSearchParts(parts: Array<string | number | undefined | null | false>, language: Language) {
   return parts
     .filter((part): part is string | number => part !== undefined && part !== null && part !== false && part !== '')
-    .map((part) => String(part).toLowerCase())
+    .map((part) => foldSearchText(String(part), language))
     .join(' ');
 }
 
-function getReputationLabel(
-  reputationByAddress: Record<string, ReputationLevel>,
-  address: string,
-  t: Translate
-) {
-  const level = reputationByAddress[address.toLowerCase()];
-  return level ? t(getReputationLabelKey(level)) : '';
-}
-
-export function buildDashboardDuelSearchText(
-  duel: PlayerDuel,
-  viewerAddress: string | undefined,
-  t: Translate,
-  language: Language,
-  reputationByAddress: Record<string, ReputationLevel>,
-  nicknameByAddress?: Record<string, string | null>
-) {
-  const isTimedOut = duel.state === DuelState.WinnerClaimed && isDuelClaimTimedOut(duel.claimTimestamp);
-  const outcome = getDuelOutcomeSummary(duel, viewerAddress, isTimedOut);
-  const stateLabel = t(getDuelStateLabelKey(duel.state, isTimedOut));
-  const outcomeLabel = t(outcome.key);
-  const detailLabel = t(outcome.detailKey);
-  const counterparty = getCounterpartyAddress(duel, viewerAddress) ?? duel.opponent;
-  const claimableAmount = getClaimableAmountForAddress(duel, viewerAddress);
-  const claimed = hasClaimedPayoutForAddress(duel, viewerAddress);
-
+/**
+ * A feed row's search text: what the row shows, its number, game, players by name and address, note,
+ * stake and pot as the row writes them, the stake as typed with its currency, and its state as its
+ * pill names it.
+ */
+export function buildFeedSearchText(duel: FeedDuel, stateLabel: string, language: Language) {
   return normalizeSearchParts([
-    duel.id,
-    duel.wager,
-    `${duel.wager} usdt`,
-    duel.message,
-    outcomeLabel,
-    detailLabel,
-    stateLabel,
-    ...CANONICAL_STATE_TERMS[duel.state],
-    isTimedOut ? 'timed out' : '',
-    isTimedOut ? 'response timed out' : '',
-    t('dashboard.opponentLabel'),
-    t('dashboard.waitingOpponent'),
-    counterparty,
-    duel.creator,
-    duel.opponent,
-    duel.claimedWinner,
-    duel.claimedBy,
-    getReputationLabel(reputationByAddress, duel.creator, t),
-    getReputationLabel(reputationByAddress, duel.opponent, t),
-    nicknameByAddress?.[duel.creator.toLowerCase()] ?? '',
-    nicknameByAddress?.[duel.opponent.toLowerCase()] ?? '',
-    duel.chainName,
-    'arbitrum sepolia',
-    'arb sepolia',
-    formatDateTime(getRelevantDuelTimestamp(duel), language),
-    t('dashboard.lastUpdateLabel'),
-    ...(CANONICAL_OUTCOME_TERMS[outcome.key] ?? []),
-    claimed ? t('dashboard.claimed') : '',
-    claimed ? 'claimed' : '',
-    claimableAmount > 0n ? t('dashboard.claimReady') : '',
-    claimableAmount > 0n ? 'ready to claim' : '',
-    claimableAmount > 0n ? 'claimable' : '',
-    claimableAmount > 0n ? formatUSDT(claimableAmount) : '',
-    claimableAmount > 0n ? t('dashboard.claimButton') : '',
-  ]);
-}
-
-export function buildRecentDuelSearchText(
-  duel: RecentDuel,
-  t: Translate,
-  language: Language,
-  reputationByAddress: Record<string, ReputationLevel>,
-  nicknameByAddress?: Record<string, string | null>,
-  gameName?: string | null
-) {
-  const isTimedOut = duel.state === DuelState.WinnerClaimed && isDuelClaimTimedOut(duel.claimTimestamp);
-  const stateLabel = t(getDuelStateLabelKey(duel.state, isTimedOut));
-
-  return normalizeSearchParts([
-    duel.id,
-    duel.wager,
-    `${duel.wager} usdt`,
-    duel.message,
+    `#${duel.id}`,
+    duel.game?.gameName,
+    duel.creatorName,
+    duel.opponentName,
     duel.player1,
     duel.player2,
-    duel.winner,
+    duel.message,
+    formatUSDT(duel.wagerAmount, language),
+    formatUSDT(duel.wagerAmount * 2n, language),
+    `${formatUnits(duel.wagerAmount, USDT_DECIMALS)} usdt`,
     stateLabel,
-    ...CANONICAL_STATE_TERMS[duel.state],
-    isTimedOut ? 'timed out' : '',
-    isTimedOut ? 'response timed out' : '',
-    duel.chainName,
-    'arbitrum sepolia',
-    'arb sepolia',
-    duel.state === DuelState.Resolved ? t('recent.won') : '',
-    duel.state === DuelState.Resolved ? 'won' : '',
-    duel.state === DuelState.Resolved ? 'winner' : '',
-    formatDateTime(duel.lastEventAt, language),
-    t('recent.updated'),
-    getReputationLabel(reputationByAddress, duel.player1, t),
-    getReputationLabel(reputationByAddress, duel.player2, t),
-    nicknameByAddress?.[duel.player1.toLowerCase()] ?? '',
-    nicknameByAddress?.[duel.player2.toLowerCase()] ?? '',
-    gameName ?? '',
-  ]);
+  ], language);
+}
+
+/**
+ * An open duel's search text: its creator and their level as the card names it, its stake as typed
+ * with its currency and as the card writes it, the pot as the card writes it, its game and the
+ * game's category.
+ */
+export function buildPublicDuelSearchText(duel: EnrichedDuel, t: Translate, language: Language) {
+  const stats = duel.reputationStats;
+
+  return normalizeSearchParts([
+    duel.creatorName,
+    duel.creator,
+    `${formatUnits(duel.wagerAmount, USDT_DECIMALS)} usdt`,
+    formatUSDT(duel.wagerAmount, language),
+    formatUSDT(duel.wagerAmount * 2n, language),
+    duel.message,
+    duel.gameName,
+    duel.gameCategory && t(getCategoryLabelKey(duel.gameCategory)),
+    stats && t(getReputationLabelKey(stats.level)),
+    stats?.honored,
+    stats?.total,
+  ], language);
 }

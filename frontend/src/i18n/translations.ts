@@ -1,41 +1,71 @@
-import { actionFlowClaimsTranslations } from './translations/actionFlowClaims';
-import { actionFlowResultsTranslations } from './translations/actionFlowResults';
 import { createDuelTranslations } from './translations/createDuel';
+import { dashboardTranslations } from './translations/dashboard';
 import { dashboardWalletTranslations } from './translations/dashboardWallet';
-import { depositTranslations } from './translations/deposit';
+import { demoDuelTranslations } from './translations/demoDuel';
 import { duelTranslations } from './translations/duel';
-import { joinDuelFlowTranslations } from './translations/joinDuelFlow';
+import { duelRoomTranslations } from './translations/duelRoom';
+import { homeTranslations } from './translations/home';
 import { landingTranslations } from './translations/landing';
+import { landingListsTranslations } from './translations/landingLists';
+import { landingTrustTranslations } from './translations/landingTrust';
 import { navigationTranslations } from './translations/navigation';
 import { profileGamesTranslations } from './translations/profileGames';
 import { socialLinksTranslations } from './translations/socialLinks';
+import { topupTranslations } from './translations/topup';
+import { uiTranslations } from './translations/ui';
+import { walletTranslations } from './translations/wallet';
+import { duelTurnTranslations } from './translations/duelTurn';
+import { duelMovesTranslations } from './translations/duelMoves';
+import { signingTranslations } from './translations/signing';
+import { browseTranslations } from './translations/browse';
+import { signingActionsTranslations } from './translations/signingActions';
 
 export const translations = {
   en: {
     ...navigationTranslations.en,
+    ...homeTranslations.en,
+    ...demoDuelTranslations.en,
     ...landingTranslations.en,
+    ...landingListsTranslations.en,
+    ...landingTrustTranslations.en,
     ...createDuelTranslations.en,
-    ...joinDuelFlowTranslations.en,
-    ...actionFlowResultsTranslations.en,
-    ...actionFlowClaimsTranslations.en,
     ...duelTranslations.en,
+    ...duelRoomTranslations.en,
     ...dashboardWalletTranslations.en,
-    ...depositTranslations.en,
+    ...walletTranslations.en,
+    ...topupTranslations.en,
     ...profileGamesTranslations.en,
     ...socialLinksTranslations.en,
+    ...uiTranslations.en,
+    ...duelTurnTranslations.en,
+    ...duelMovesTranslations.en,
+    ...signingTranslations.en,
+    ...dashboardTranslations.en,
+    ...browseTranslations.en,
+    ...signingActionsTranslations.en,
   },
   ru: {
     ...navigationTranslations.ru,
+    ...homeTranslations.ru,
+    ...demoDuelTranslations.ru,
     ...landingTranslations.ru,
+    ...landingListsTranslations.ru,
+    ...landingTrustTranslations.ru,
     ...createDuelTranslations.ru,
-    ...joinDuelFlowTranslations.ru,
-    ...actionFlowResultsTranslations.ru,
-    ...actionFlowClaimsTranslations.ru,
     ...duelTranslations.ru,
+    ...duelRoomTranslations.ru,
     ...dashboardWalletTranslations.ru,
-    ...depositTranslations.ru,
+    ...walletTranslations.ru,
+    ...topupTranslations.ru,
     ...profileGamesTranslations.ru,
     ...socialLinksTranslations.ru,
+    ...uiTranslations.ru,
+    ...duelTurnTranslations.ru,
+    ...duelMovesTranslations.ru,
+    ...signingTranslations.ru,
+    ...dashboardTranslations.ru,
+    ...browseTranslations.ru,
+    ...signingActionsTranslations.ru,
   },
 } as const;
 

@@ -2,7 +2,8 @@ import { createPublicClient, createWalletClient, http, parseEther, type Account,
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrum, arbitrumSepolia } from 'viem/chains';
 import { DEFAULT_CHAIN, DEFAULT_CHAIN_ID, DUELME_ADDRESSES, FORWARDER_ADDRESSES } from '@/lib/constants';
-import { parseUintString } from '@/lib/relayRequest';
+import { parseUintString } from '@/lib/parsing';
+import type { RelayerStatus } from '@/lib/relayRequest';
 
 /**
  * Server-side relayer wiring. Reads secrets from non-`NEXT_PUBLIC_` env, so nothing here
@@ -64,8 +65,24 @@ let cached: RelayerConfigResult | undefined;
  * viem clients are safe to share across requests.
  */
 export function getRelayerConfig(): RelayerConfigResult {
-  cached ??= buildRelayerConfig();
+  if (!cached) {
+    cached = buildRelayerConfig();
+    if (!cached.ok) {
+      // Pages are only told that relaying is off, so the reason goes where the operator looks.
+      console.error('[relay] disabled:', cached.reason);
+    }
+  }
   return cached;
+}
+
+/**
+ * What the client is told about relaying: that it is on, and for which chain. Nothing about the
+ * relayer's address, its balance or the budgets.
+ */
+export function getRelayerStatus(): RelayerStatus {
+  const resolved = getRelayerConfig();
+
+  return resolved.ok ? { available: true, chainId: resolved.config.chainId } : { available: false, chainId: null };
 }
 
 function buildRelayerConfig(): RelayerConfigResult {
@@ -112,7 +129,15 @@ function buildRelayerConfig(): RelayerConfigResult {
     retryCount: 2,
   });
 
-  const account = privateKeyToAccount(normalizedKey as `0x${string}`);
+  // 64 hex digits can still be no key at all (zero, or past the curve order), and viem throws on
+  // those. The root layout reads this config on every page, so a bad key must read as relaying
+  // off rather than take every page down with it.
+  let account: Account;
+  try {
+    account = privateKeyToAccount(normalizedKey as `0x${string}`);
+  } catch {
+    return { ok: false, reason: 'RELAYER_PRIVATE_KEY is not a valid secp256k1 private key.' };
+  }
 
   return {
     ok: true,

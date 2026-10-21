@@ -1,126 +1,80 @@
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { ImageResponse } from 'next/og';
+import { brandColors } from '@/lib/brandColors';
+import { BrandMarkImage } from '@/lib/brandImage';
+import { SITE_NAME, SITE_URL } from '@/lib/constants';
 
 export const OG_IMAGE_SIZE = { width: 1200, height: 630 };
 export const OG_IMAGE_ALT = 'DuelMe — 1v1 USDT duels on Arbitrum, 0% platform fee';
 export const OG_IMAGE_CONTENT_TYPE = 'image/png';
 
-export function renderBrandOgImage() {
+const motto = ['Skill should pay you.', 'Not the platform.'];
+const facts = ['0% platform fee', 'Stakes held by a smart contract', 'Arbitrum'];
+
+// `ImageResponse` reads TTF, OTF and WOFF but not the WOFF2 `next/font` serves, so the share
+// images carry their own copy of Geologica (SIL Open Font License, next to the files).
+async function geologica(weight: 400 | 700 | 800) {
+  const data = await readFile(join(process.cwd(), `src/assets/fonts/Geologica-${weight}.woff`));
+  return { name: 'Geologica', data, weight, style: 'normal' as const };
+}
+
+/** The image a shared link shows: the mark, the motto, what a duel is, and the site. */
+export async function renderBrandOgImage() {
   return new ImageResponse(
     (
       <div
         style={{
-          height: '100%',
           width: '100%',
+          height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          background:
-            'radial-gradient(circle at 25% 20%, rgba(99, 102, 241, 0.45) 0%, transparent 55%), radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.35) 0%, transparent 50%), linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%)',
-          color: 'white',
-          fontFamily: 'sans-serif',
-          padding: '64px',
+          justifyContent: 'space-between',
+          padding: '64px 72px',
+          background: brandColors.canvas,
+          color: brandColors.ink,
+          fontFamily: 'Geologica',
         }}
       >
-        <div
-          style={{
-            fontSize: '88px',
-            fontWeight: 900,
-            letterSpacing: '-0.04em',
-            background: 'linear-gradient(135deg, #818CF8 0%, #34D399 100%)',
-            backgroundClip: 'text',
-            color: 'transparent',
-            display: 'flex',
-            marginBottom: '40px',
-          }}
-        >
-          DuelMe
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+            <BrandMarkImage unit={1.6} />
+            <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: '-0.03em' }}>{SITE_NAME}</div>
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: brandColors.ink3 }}>{new URL(SITE_URL).host}</div>
         </div>
 
-        <div
-          style={{
-            fontSize: '60px',
-            fontWeight: 800,
-            textAlign: 'center',
-            lineHeight: 1.05,
-            letterSpacing: '-0.03em',
-            maxWidth: '950px',
-            marginBottom: '36px',
-            display: 'flex',
-          }}
-        >
-          1v1 USDT Duels.
-        </div>
-        <div
-          style={{
-            fontSize: '40px',
-            fontWeight: 600,
-            color: '#A5B4FC',
-            textAlign: 'center',
-            marginBottom: '48px',
-            display: 'flex',
-          }}
-        >
-          Winner takes 100%. Not 95%.
-        </div>
-
-        <div
-          style={{
-            display: 'flex',
-            gap: '40px',
-            fontSize: '28px',
-            fontWeight: 600,
-            color: '#E2E8F0',
-          }}
-        >
-          <div
-            style={{
-              padding: '14px 28px',
-              borderRadius: '999px',
-              background: 'rgba(99, 102, 241, 0.2)',
-              border: '1px solid rgba(165, 180, 252, 0.4)',
-              display: 'flex',
-            }}
-          >
-            0% Platform Fee
-          </div>
-          <div
-            style={{
-              padding: '14px 28px',
-              borderRadius: '999px',
-              background: 'rgba(16, 185, 129, 0.18)',
-              border: '1px solid rgba(52, 211, 153, 0.4)',
-              display: 'flex',
-            }}
-          >
-            On-Chain · Arbitrum
-          </div>
-          <div
-            style={{
-              padding: '14px 28px',
-              borderRadius: '999px',
-              background: 'rgba(255, 255, 255, 0.08)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              display: 'flex',
-            }}
-          >
-            No KYC
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {motto.map((line) => (
+            <div key={line} style={{ fontSize: 92, fontWeight: 800, lineHeight: 0.98, letterSpacing: '-0.04em' }}>
+              {line}
+            </div>
+          ))}
+          <div style={{ marginTop: 32, fontSize: 36, fontWeight: 400, color: brandColors.ink2 }}>
+            Play 1v1 for USDT. The winner takes the whole pot.
           </div>
         </div>
 
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '36px',
-            fontSize: '24px',
-            color: '#94A3B8',
-            display: 'flex',
-          }}
-        >
-          duelme.pro
+        <div style={{ display: 'flex', gap: 14 }}>
+          {facts.map((fact) => (
+            <div
+              key={fact}
+              style={{
+                display: 'flex',
+                padding: '12px 22px',
+                borderRadius: 999,
+                background: brandColors.paper,
+                border: `2px solid ${brandColors.line}`,
+                fontSize: 26,
+                fontWeight: 700,
+              }}
+            >
+              {fact}
+            </div>
+          ))}
         </div>
       </div>
     ),
-    { ...OG_IMAGE_SIZE },
+    { ...OG_IMAGE_SIZE, fonts: await Promise.all([geologica(400), geologica(700), geologica(800)]) }
   );
 }

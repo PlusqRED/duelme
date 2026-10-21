@@ -1,131 +1,127 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useAccount, useSwitchChain } from 'wagmi';
-import { useTranslation } from '@/i18n/useTranslation';
 import { useDuelActions } from '@/hooks/useDuelActions';
-import { useActionFlowLifecycle } from '@/hooks/useActionFlowLifecycle';
-import { getGuidedFlowErrorMessage } from '@/lib/guidedFlowRuntime';
+import { useFlowLifecycle } from '@/hooks/useFlowLifecycle';
 import { DEFAULT_CHAIN } from '@/lib/constants';
-import type { ActionFlowConfig, ActionFlowSession } from '@/lib/actionFlow';
+import { classifyFlowError } from '@/lib/flowError';
+import { reduceFlow, startFlow, type FlowEvent } from '@/lib/flowSession';
+import type { ActionFlowConfig, ActionFlowSession, ActionFlowStage, ActionFlowState } from '@/lib/actionFlow';
 
 interface UseActionFlowArgs {
   duelId: number;
   refetchDuel: () => void;
 }
 
+/**
+ * One duel action signed in the signing window: open it with the action's config, then review,
+ * switch the network if the wallet is elsewhere, and send. The write's progress comes from
+ * `useDuelActions` through the flows' shared lifecycle.
+ */
 export function useActionFlow({ duelId, refetchDuel }: UseActionFlowArgs) {
-  const { t } = useTranslation();
   const { switchChainAsync } = useSwitchChain();
   const { chainId: connectedChainId } = useAccount();
   const chainConfig = DEFAULT_CHAIN;
 
   const actions = useDuelActions(chainConfig.id);
-  const [flow, setFlow] = useState<ActionFlowSession | null>(null);
+  const [state, setState] = useState<ActionFlowState | null>(null);
   const [activeConfig, setActiveConfig] = useState<ActionFlowConfig | null>(null);
 
-  useActionFlowLifecycle({
-    error: actions.error,
-    flow,
-    activeConfig,
-    isConfirming: actions.isConfirming,
-    isPending: actions.isPending,
-    isSuccess: actions.isSuccess,
-    refetchDuel,
-    reset: actions.reset,
-    setFlow,
-    t,
+  const dispatch = useCallback(
+    (event: FlowEvent<ActionFlowStage>) => setState((current) => current && reduceFlow(current, event)),
+    []
+  );
+
+  const onWritten = useCallback((): ActionFlowStage => {
+    refetchDuel();
+    activeConfig?.onSuccess?.();
+    return 'success';
+  }, [refetchDuel, activeConfig]);
+
+  useFlowLifecycle<ActionFlowStage, ActionFlowState>({
+    flow: state,
+    setFlow: setState,
+    write: actions,
+    chainId: chainConfig.id,
+    paysOwnFees: !actions.isRelayEnabled,
+    onWritten,
   });
 
   function openFlow(config: ActionFlowConfig) {
     actions.reset();
     setActiveConfig(config);
-    setFlow({
+    setState({
+      ...startFlow<ActionFlowStage>('review'),
       actionType: config.type,
       duelId: BigInt(duelId),
       chainId: chainConfig.id,
       chainName: chainConfig.name,
-      stage: 'review',
-      actionState: 'idle',
-      errorMessage: null,
-      pendingTransaction: false,
-      completedSwitchNetwork: false,
     });
   }
 
   function closeFlow() {
-    setFlow(null);
+    setState(null);
     setActiveConfig(null);
     actions.reset();
   }
 
   function handleContinue() {
-    if (!flow) return;
-    if (connectedChainId !== flow.chainId) {
-      setFlow((c) => c ? { ...c, stage: 'switch-network', actionState: 'idle', errorMessage: null } : c);
-      return;
-    }
-    setFlow((c) => c ? { ...c, stage: 'execute', actionState: 'idle', errorMessage: null } : c);
+    if (!state) return;
+    dispatch({ type: 'moved', stage: connectedChainId === state.chainId ? 'execute' : 'switch-network' });
   }
 
   async function handleSwitchNetwork() {
-    if (!flow) return;
-    setFlow((c) => c ? { ...c, stage: 'switch-network', actionState: 'awaiting-wallet', errorMessage: null } : c);
+    if (!state) return;
+    dispatch({ type: 'switching', stage: 'switch-network' });
     try {
-      await switchChainAsync({ chainId: flow.chainId });
-      setFlow((c) =>
-        c ? { ...c, completedSwitchNetwork: true, stage: 'execute', actionState: 'idle', errorMessage: null } : c
-      );
+      await switchChainAsync({ chainId: state.chainId });
+      dispatch({ type: 'switched', next: 'execute' });
     } catch (switchError) {
-      setFlow((c) =>
-        c
-          ? {
-              ...c,
-              actionState: 'error',
-              errorMessage: getGuidedFlowErrorMessage(switchError, t, c.chainName, 'create.flow.error.switch'),
-              pendingTransaction: false,
-            }
-          : c
-      );
+      dispatch({ type: 'failed', error: classifyFlowError(switchError, { chainId: state.chainId, isNetworkSwitch: true }) });
     }
   }
 
   function handleExecute() {
-    if (!flow || !activeConfig) return;
-    if (connectedChainId !== flow.chainId) {
-      setFlow((c) => c ? { ...c, stage: 'switch-network', actionState: 'idle', errorMessage: null } : c);
+    if (!state || !activeConfig) return;
+    if (connectedChainId !== state.chainId) {
+      dispatch({ type: 'moved', stage: 'switch-network' });
       return;
     }
     actions.reset();
-    setFlow((c) =>
-      c ? { ...c, stage: 'execute', actionState: 'awaiting-wallet', errorMessage: null, pendingTransaction: true } : c
-    );
-    try {
-      activeConfig.execute();
-    } catch (executeError) {
+    dispatch({ type: 'writing', step: 'execute' });
+    const failed = (executeError: unknown) => {
       actions.reset();
-      setFlow((c) =>
-        c
-          ? {
-              ...c,
-              actionState: 'error',
-              errorMessage: getGuidedFlowErrorMessage(executeError, t, c.chainName),
-              pendingTransaction: false,
-            }
-          : c
-      );
+      dispatch({ type: 'failed', step: 'execute', error: classifyFlowError(executeError, { chainId: state.chainId }) });
+    };
+    try {
+      void Promise.resolve(activeConfig.execute(actions)).catch(failed);
+    } catch (executeError) {
+      failed(executeError);
     }
   }
 
-  const canClose =
-    flow?.actionState !== 'awaiting-wallet' &&
-    flow?.actionState !== 'confirming' &&
-    flow?.stage !== 'success';
+  const flow = useMemo<ActionFlowSession | null>(
+    () =>
+      state && {
+        ...state,
+        signing: {
+          phase: actions.signingPhase,
+          hash: actions.hash,
+          failedWhile: state.failedWhile,
+          feePaidWei: state.feePaidWei,
+          createdDuelId: null,
+        },
+      },
+    [state, actions.signingPhase, actions.hash]
+  );
+
+  // Closing while the wallet or the network still works on it would hide a result that is coming.
+  const canClose = state?.actionState !== 'awaiting-wallet' && state?.actionState !== 'confirming';
 
   const needsNetworkSwitch =
-    flow !== null &&
-    (flow.stage === 'switch-network' ||
-      (flow.stage === 'review' && connectedChainId !== flow.chainId));
+    state !== null &&
+    (state.stage === 'switch-network' || (state.stage === 'review' && connectedChainId !== state.chainId));
 
   return {
     flow,
@@ -138,6 +134,5 @@ export function useActionFlow({ duelId, refetchDuel }: UseActionFlowArgs) {
     handleSwitchNetwork,
     handleExecute,
     handleFlowOpenChange: (open: boolean) => { if (!open) closeFlow(); },
-    duelActions: actions,
   };
 }

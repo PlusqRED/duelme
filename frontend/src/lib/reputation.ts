@@ -2,6 +2,18 @@ import type { TranslationKey } from '@/i18n/translations';
 
 export type ReputationLevel = 'new' | 'honorable' | 'fair' | 'unreliable';
 
+/** The levels from the bottom up, New to Reliable: the scale's order, and how a level gained is told from one lost. */
+export const reputationLevels: readonly ReputationLevel[] = ['new', 'unreliable', 'fair', 'honorable'];
+
+/** Honored duels that make a clean record, with nothing abandoned, Reliable. */
+export const CLEAN_RECORD_DUELS = 5;
+/** The lowest scores of Reliable and of Fair, once a duel was abandoned; below Fair is Risky. */
+export const HONORABLE_SCORE = 0.75;
+export const FAIR_SCORE = 0.4;
+
+/** What a finished duel adds to a player's record: a duel seen through, or one walked away from. */
+export type ReputationMark = 'honored' | 'abandoned';
+
 export interface ReputationSummary {
   honored: number;
   abandoned: number;
@@ -35,11 +47,11 @@ export function getReputationLevel(
   if (total === 0) return 'new';
 
   if (abandoned === 0) {
-    return honored >= 5 ? 'honorable' : 'fair';
+    return honored >= CLEAN_RECORD_DUELS ? 'honorable' : 'fair';
   }
 
-  if (score >= 0.75) return 'honorable';
-  if (score >= 0.4) return 'fair';
+  if (score >= HONORABLE_SCORE) return 'honorable';
+  if (score >= FAIR_SCORE) return 'fair';
   return 'unreliable';
 }
 
@@ -64,6 +76,20 @@ export function getReputationSummaryFromStats(
   };
 }
 
+/** What a level tells someone about to accept a duel from the player, in a sentence. */
+export function getReputationDescriptionKey(level: ReputationLevel): TranslationKey {
+  switch (level) {
+    case 'new':
+      return 'rep.levelNew';
+    case 'honorable':
+      return 'rep.levelHonorable';
+    case 'fair':
+      return 'rep.levelFair';
+    case 'unreliable':
+      return 'rep.levelUnreliable';
+  }
+}
+
 export function getReputationLabelKey(level: ReputationLevel): TranslationKey {
   switch (level) {
     case 'new':
@@ -75,4 +101,62 @@ export function getReputationLabelKey(level: ReputationLevel): TranslationKey {
     case 'unreliable':
       return 'rep.unreliable';
   }
+}
+
+/** The way to the next level, as the wallet menu and the dashboard draw it. */
+export interface LevelQuest {
+  level: ReputationLevel;
+  /** The level the next honored duels lead to, or null at the top. */
+  next: ReputationLevel | null;
+  /** Honored duels so far, and how many the next level needs. At the top both are 1. */
+  have: number;
+  need: number;
+}
+
+/** How far up the levels one is, New to Reliable: to tell a level gained from a level lost. */
+export function levelRank(level: ReputationLevel): number {
+  return reputationLevels.indexOf(level);
+}
+
+/**
+ * The fewest more honored duels that lift the level, by the rule `getReputationLevel` applies: a
+ * new player needs one, a clean record five, and an abandoned duel more the more of them there are.
+ * The level only rises with honored duels, so the answer is found by doubling and then halving.
+ */
+export function levelQuest(honored: number, abandoned: number): LevelQuest {
+  const level = getReputationLevelFromStats(honored, abandoned);
+  if (level === 'honorable') {
+    return { level, next: null, have: 1, need: 1 };
+  }
+  const lifts = (more: number) =>
+    levelRank(getReputationLevelFromStats(honored + more, abandoned)) > levelRank(level);
+
+  let high = 1;
+  while (!lifts(high)) {
+    high *= 2;
+  }
+  let low = high / 2;
+  while (high - low > 1) {
+    const middle = Math.floor((low + high) / 2);
+    if (lifts(middle)) {
+      high = middle;
+    } else {
+      low = middle;
+    }
+  }
+  return {
+    level,
+    next: getReputationLevelFromStats(honored + high, abandoned),
+    have: honored,
+    need: honored + high,
+  };
+}
+
+/** Past this many, a quest's cells each stand for more than one duel, so the line keeps its width. */
+const MAX_QUEST_CELLS = 12;
+
+/** The quest's cells: one per duel it needs, up to `MAX_QUEST_CELLS`, and how many of them are lit. */
+export function questCells(quest: LevelQuest): { count: number; lit: number } {
+  const count = Math.min(quest.need, MAX_QUEST_CELLS);
+  return { count, lit: Math.round((quest.have / quest.need) * count) };
 }

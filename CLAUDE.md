@@ -93,7 +93,7 @@ cost the first time.
 
 ### General Principles
 
-- **File size:** ≤300 lines. Extract helpers/sub-components/composable hooks when approaching the limit. One file = one purpose (SRP). Three files are over it today — `frontend/src/lib/contracts.ts` (the ABI mirror, which must stay a literal copy of the artifact), `frontend/src/app/duel/[id]/page.tsx` and `frontend/src/components/layout/Header.tsx`. The last two are debt, not precedent: don't add to them.
+- **File size:** ≤300 lines. Extract helpers/sub-components/composable hooks when approaching the limit. One file = one purpose (SRP). In `frontend/src` one file is over it: `lib/contracts.ts`, the ABI mirror, which must stay a literal copy of the artifact.
 - **DRY:** single source of truth for every constant/type/helper/ABI. See `frontend/src/lib/constants.ts` / `contracts.ts`.
 - **YAGNI:** build what the task requires. No abstractions for hypothetical futures. Three similar lines beats a premature abstraction.
 - **Fail fast:** validate at system boundaries (user input, API, contract calls). Inside, trust the types. Never silently swallow errors.
@@ -145,7 +145,7 @@ Runtime config source of truth: GitHub repository/environment secrets. Deploy wo
 
 - USDT has a blocklist — keep payouts pull-based, no push transfers.
 - README contract addresses auto-generated from `run-latest.json` by `scripts/sync_readme_contract_addresses.py` / pre-commit hook — don't edit that block manually.
-- **Contract addresses and chain ids have exactly one source.** `contracts/broadcast/*/run-latest.json` is what is deployed; `constants.ts` mirrors it by hand; everything else reads `constants.ts`. Never inline an address or a chain id anywhere else — `getUsdtAddress` once kept its own copy "to avoid a circular import" (`constants.ts` imports nothing, so there was no cycle), and after a MockUSDT redeploy the permit path read `nonces()` off the previous token, so duels failed with a revert that named no address. `deployedAddresses.test.ts` pins `constants.ts` and both of `application.yml`'s address copies (the faucet token and `duelme.contracts.duel-me`) to the broadcast artifact; `contractAddresses.test.ts` pins `getUsdtAddress`, `CHAIN_NAMES` and the forwarder map to `constants.ts`. Both run in the `frontend` CI job (`npm test`).
+- **Contract addresses and chain ids have exactly one source.** `contracts/broadcast/*/run-latest.json` is what is deployed; `constants.ts` mirrors it by hand; everything else reads `constants.ts`. Never inline an address or a chain id anywhere else — `getUsdtAddress` once kept its own copy "to avoid a circular import" (`constants.ts` imports nothing, so there was no cycle), and after a MockUSDT redeploy the permit path read `nonces()` off the previous token, so duels failed with a revert that named no address. `deployedAddresses.test.ts` pins `constants.ts` and both of `application.yml`'s address copies (the faucet token and `duelme.contracts.duel-me`) to the broadcast artifact; `contractAddresses.test.ts` pins `getUsdtAddress` and the forwarder map to `constants.ts`. Both run in the `frontend` CI job (`npm test`).
 - **A duel id identifies a duel only together with the contract it came from.** Ids are handed out
   by `duelCount`, which restarts at zero on every redeploy, so after a same-chain redeploy duel 3
   is a different duel than yesterday's duel 3. Anything keyed on `{duelId, chainId}` silently

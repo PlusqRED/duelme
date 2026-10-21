@@ -1,7 +1,6 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { Loader2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -12,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 import { useAppToast } from '@/hooks/useAppToast';
 import { useSocialLinks } from '@/hooks/useSocialLinks';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -74,7 +74,7 @@ export function InstagramHandleDialog({ open, initialHandle, onOpenChange }: Ins
           <DialogDescription>{t('profile.socialLinks.instagramDialogBody')}</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-2">
-          <label htmlFor="instagram-handle" className="text-xs font-medium uppercase tracking-wide text-slate-400">
+          <label htmlFor="instagram-handle" className="text-body-sm font-label text-ink-2">
             {t('profile.socialLinks.instagramLabel')}
           </label>
           <Input
@@ -89,13 +89,12 @@ export function InstagramHandleDialog({ open, initialHandle, onOpenChange }: Ins
             autoCorrect="off"
             aria-describedby={`${counterId} ${invalid ? errorId : ''}`.trim()}
             aria-invalid={invalid || undefined}
-            className="h-11"
           />
-          <div className="flex items-center justify-between text-xs text-slate-400">
+          <div className="flex items-center justify-between text-note text-ink-3 tabular-nums">
             <span id={counterId}>{t('profile.charCount', { count: stripped.length, max: PROFILE_LIMITS.instagramHandle })}</span>
           </div>
           {invalid && (
-            <p id={errorId} className="text-xs text-red-600">
+            <p id={errorId} className="text-note font-label text-orange-ink">
               {t('profile.socialLinks.instagramInvalid')}
             </p>
           )}
@@ -103,21 +102,19 @@ export function InstagramHandleDialog({ open, initialHandle, onOpenChange }: Ins
         <DialogFooter>
           <Button
             variant="ghost"
-            className="h-11"
             onClick={() => onOpenChange(false)}
             disabled={setInstagram.isPending}
           >
             {t('profile.socialLinks.cancel')}
           </Button>
           <Button
-            className="h-11"
             onClick={handleSave}
             disabled={!canSave || setInstagram.isPending}
             aria-busy={setInstagram.isPending}
           >
             {setInstagram.isPending ? (
               <>
-                <Loader2 aria-hidden="true" className="mr-2 h-4 w-4 animate-spin" />
+                <Spinner />
                 {t('profile.socialLinks.saving')}
               </>
             ) : (

@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CHAIN_NAMES,
   DUELME_ADDRESSES,
   FORWARDER_ADDRESSES,
   SUPPORTED_CHAINS,
@@ -32,7 +31,6 @@ describe('chain-keyed constants', () => {
 
   it('derives an entry per chain, and a forwarder only where one is configured', () => {
     expect(Object.keys(DUELME_ADDRESSES)).toHaveLength(chains.length);
-    expect(Object.keys(CHAIN_NAMES)).toHaveLength(chains.length);
     // Sorted on both sides: these keys are integer-like, so Object.keys returns them in
     // ascending numeric order whatever order they were inserted in, while the chain list
     // keeps its own. The claim is which chains have an entry, never in what order — and
