@@ -6,27 +6,29 @@ import { HttpRequestError, WaitForTransactionReceiptTimeoutError, type Transacti
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WriteConfig } from '@/hooks/useWriteWithGas';
 import { DEFAULT_CHAIN } from '@/lib/constants';
+import type { ResilientBroadcastArgs } from '@/lib/resilientBroadcast';
 import { TransactionReplacedError, TransactionRevertedError } from '@/lib/writeErrors';
 
 const HASH = `0x${'a'.repeat(64)}` as const;
+const SIGNED = '0x02f86d' as const;
+const ACCOUNT = '0x1111111111111111111111111111111111111111';
 const CHAIN_CLIENT = { chain: 'the write\'s chain' };
 
-const WAGMI_CONFIG = { config: 'wagmi' };
-const EMBEDDED_CLIENT = { client: 'the embedded wallet on the write\'s chain' };
 const PARAMS = { gas: 1n, maxFeePerGas: 2n, maxPriorityFeePerGas: 3n, nonce: 4 };
 
 const wagmi = vi.hoisted(() => ({
   publicClient: {} as object | undefined,
   writeHash: undefined as `0x${string}` | undefined,
   walletClientType: 'metamask',
-  getWalletClient: vi.fn<(config: object, parameters: { chainId: number }) => Promise<object>>(),
 }));
+const privySignTransaction = vi.hoisted(() =>
+  vi.fn<(input: object, options: { address: string }) => Promise<{ signature: `0x${string}` }>>()
+);
 const waitForWriteReceipt = vi.hoisted(() => vi.fn<(client: object, hash: string) => Promise<TransactionReceipt>>());
-const broadcastWithFallback = vi.hoisted(() => vi.fn<(params: object) => Promise<`0x${string}`>>());
+const broadcastWithFallback = vi.hoisted(() => vi.fn<(params: ResilientBroadcastArgs) => Promise<`0x${string}`>>());
 
 vi.mock('wagmi', () => ({
-  useConfig: () => WAGMI_CONFIG,
-  useAccount: () => ({ address: '0x1111111111111111111111111111111111111111' }),
+  useAccount: () => ({ address: ACCOUNT }),
   usePublicClient: ({ chainId }: { chainId: number }) => (chainId === DEFAULT_CHAIN.id ? wagmi.publicClient : undefined),
   useWalletClient: () => ({ data: undefined }),
   useWriteContract: () => ({
@@ -38,7 +40,9 @@ vi.mock('wagmi', () => ({
   }),
 }));
 
-vi.mock('wagmi/actions', () => ({ getWalletClient: wagmi.getWalletClient }));
+vi.mock('@privy-io/react-auth', () => ({
+  useSignTransaction: () => ({ signTransaction: privySignTransaction }),
+}));
 
 vi.mock('@/lib/buildTransactionParams', () => ({ buildTransactionParams: async () => PARAMS }));
 
@@ -162,25 +166,38 @@ describe('useWriteWithGas — the embedded wallet', () => {
     waitForWriteReceipt.mockReturnValue(new Promise(() => {}));
   });
 
-  it('signs with the wallet\'s client for the write\'s network, read when the write is sent', async () => {
-    wagmi.getWalletClient.mockResolvedValue(EMBEDDED_CLIENT);
+  it('broadcasts the write with its pre-filled gas and reports the hash', async () => {
     broadcastWithFallback.mockResolvedValue(HASH);
     const { result } = renderWrite();
 
     await act(() => result.current.writeWithGas(CONFIG));
 
-    expect(wagmi.getWalletClient).toHaveBeenCalledExactlyOnceWith(WAGMI_CONFIG, { chainId: DEFAULT_CHAIN.id });
-    expect(broadcastWithFallback).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ walletClient: EMBEDDED_CLIENT, ...PARAMS }));
+    expect(broadcastWithFallback).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ account: ACCOUNT, chainId: DEFAULT_CHAIN.id, ...PARAMS })
+    );
     expect(result.current.hash).toBe(HASH);
   });
 
-  it('sends nothing and reports the wallet as not ready while it cannot sign on the write\'s network', async () => {
-    wagmi.getWalletClient.mockRejectedValue(new Error('Chain mismatch'));
+  it('signs through Privy as the write\'s account and hands back the signed transaction', async () => {
+    broadcastWithFallback.mockResolvedValue(HASH);
+    privySignTransaction.mockResolvedValue({ signature: SIGNED });
+    const { result } = renderWrite();
+    await act(() => result.current.writeWithGas(CONFIG));
+    const { signTransaction } = broadcastWithFallback.mock.calls[0][0];
+
+    const signed = await signTransaction({ type: 2 });
+
+    expect(signed).toBe(SIGNED);
+    expect(privySignTransaction).toHaveBeenCalledExactlyOnceWith({ type: 2 }, { address: ACCOUNT });
+  });
+
+  it('reports a signature Privy refuses as the write error', async () => {
+    broadcastWithFallback.mockRejectedValue(new Error('[Input error] `params.transaction.type`'));
     const { result } = renderWrite();
 
     await act(() => result.current.writeWithGas(CONFIG));
 
-    expect(broadcastWithFallback).not.toHaveBeenCalled();
-    expect(result.current.error?.message).toBe('Embedded wallet client not ready');
+    expect(result.current.error?.message).toBe('[Input error] `params.transaction.type`');
+    expect(result.current.hash).toBeUndefined();
   });
 });
