@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LANDING_SECTIONS, NAV_LINKS, isInSection } from '@/lib/navigation';
+import { LANDING_SECTIONS, NAV_LINKS, isInSection, isPlainClick } from '@/lib/navigation';
 
 describe('isInSection', () => {
   it('counts the section’s own page', () => {
@@ -34,4 +34,19 @@ describe('LANDING_SECTIONS', () => {
   it('lists the landing’s sections in the order the page has them', () => {
     expect(LANDING_SECTIONS.map((link) => link.section)).toEqual(['public-duels', 'recent-duels', 'demo', 'safety']);
   });
+});
+
+describe('isPlainClick', () => {
+  const plain = { button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false };
+
+  it('takes a plain click as following the link here', () => {
+    expect(isPlainClick(plain)).toBe(true);
+  });
+
+  it.each([{ metaKey: true }, { ctrlKey: true }, { shiftKey: true }, { altKey: true }, { button: 1 }])(
+    'takes %o as opening the link elsewhere',
+    (keys) => {
+      expect(isPlainClick({ ...plain, ...keys })).toBe(false);
+    }
+  );
 });

@@ -37,6 +37,35 @@ const PALETTE_CLASS = new RegExp(
 const RAW_COLOUR =
   /#[0-9a-f]{3,8}(?![0-9a-z-])|(?<![a-z-])(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color-mix|color)\(|(?:[[:]\s*|['"])(?:white|black)(?=\s*[\]'";)}])/i;
 
+/** Each `@theme` block of a stylesheet, plain or inline (with any other options too), with its body up to its own closing brace. */
+function themeBlocks(css: string): { isInline: boolean; body: string }[] {
+  return [...css.matchAll(/@theme\b([^{;]*)\{/g)].map((match) => {
+    const start = match.index + match[0].length;
+    let depth = 1;
+    let end = start;
+    for (; end < css.length && depth > 0; end++) {
+      if (css[end] === '{') depth++;
+      if (css[end] === '}') depth--;
+    }
+    return { isInline: /\binline\b/.test(match[1]), body: css.slice(start, end - 1) };
+  });
+}
+
+/**
+ * The moves of a plain `@theme` that read a variable no theme declares, such as a length the
+ * element playing them sets. A plain theme variable resolves on `:root`, where that variable does
+ * not exist, so the move is silently dropped; it belongs in `@theme inline`.
+ */
+function movesReadingElementVariables(css: string[]): string[] {
+  const blocks = css.flatMap(themeBlocks);
+  const declared = new Set(blocks.flatMap(({ body }) => [...body.matchAll(/^\s*(--[\w-]+):/gm)].map(([, name]) => name)));
+  return blocks
+    .filter(({ isInline }) => !isInline)
+    .flatMap(({ body }) => [...body.matchAll(/(--animate-[\w-]+):([^;]+);/g)])
+    .filter(([, , value]) => [...value.matchAll(/var\((--[\w-]+)/g)].some(([, name]) => !declared.has(name)))
+    .map(([, name]) => name);
+}
+
 function pathsMatching(pattern: RegExp): string[] {
   return files.filter((file) => pattern.test(file.text)).map((file) => file.path);
 }
@@ -89,6 +118,24 @@ describe('design guard', () => {
 
   it('sets figures with tabular-nums rather than a monospace face', () => {
     expect(pathsMatching(/(?<![\w-])font-mono(?![\w-])/)).toEqual([]);
+  });
+
+  it('sees a move in a plain theme that reads a length its element sets', () => {
+    const css = '@theme {\n  --ease-x: ease;\n  --animate-ok: ok 1s var(--ease-x);\n  --animate-fill: fill var(--dwell) linear;\n}';
+
+    expect(movesReadingElementVariables([css])).toEqual(['--animate-fill']);
+  });
+
+  it('reads a theme on one line and an inline theme with more options', () => {
+    const css = '@theme { --animate-fill: fill var(--dwell) linear; }\n@theme static inline { --animate-leave: leave var(--leave) ease-in; }';
+
+    expect(movesReadingElementVariables([css])).toEqual(['--animate-fill']);
+  });
+
+  it('keeps every move that reads a length its element sets in an inline theme', () => {
+    const css = files.filter((file) => file.path.endsWith('.css')).map((file) => file.text);
+
+    expect(movesReadingElementVariables(css)).toEqual([]);
   });
 
   it('puts every move in its final place at once with motion reduced, a delayed one too', () => {

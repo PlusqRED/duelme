@@ -13,7 +13,6 @@ vi.mock('@/hooks/useActionFlow', () => ({
   useActionFlow: () => ({
     flow: fake.stage === null ? null : { stage: fake.stage },
     openFlow: fake.openFlow,
-    duelActions: { refundAndClaimPayouts: fake.refundAndClaimPayouts },
   }),
 }));
 

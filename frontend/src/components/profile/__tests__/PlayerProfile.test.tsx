@@ -74,6 +74,14 @@ describe('PlayerProfile', () => {
     expect(screen.getAllByText(en['rep.fair']).length).toBeGreaterThan(0);
   });
 
+  it('names the top level only in the head and on the scale', () => {
+    viewer.reputation = { honored: 5, abandoned: 0, isLoading: false, isError: false };
+
+    render(<PlayerProfile address={ADDRESS} />);
+
+    expect(screen.getAllByText(en['rep.honorable'])).toHaveLength(2);
+  });
+
   it('names a player without a nickname by the address, and writes it out whole beside it', () => {
     viewer.profile = null;
     render(<PlayerProfile address={ADDRESS} />);

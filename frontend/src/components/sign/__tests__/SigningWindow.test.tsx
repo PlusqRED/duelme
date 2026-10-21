@@ -24,7 +24,7 @@ const gas = vi.hoisted(() => ({
 }));
 
 vi.mock('@/hooks/useActiveWallet', () => ({
-  useActiveWallet: () => ({ activeWallet: { address: ADDRESS }, walletAddress: ADDRESS.toLowerCase() }),
+  useActiveWallet: () => ({ activeWallet: { address: ADDRESS, walletClientType: 'metamask' }, walletAddress: ADDRESS.toLowerCase() }),
 }));
 vi.mock('@/hooks/useSignGas', () => ({ useSignGas: () => gas.state }));
 vi.mock('@/hooks/useUsdtBalance', () => ({ useUsdtBalance: () => ({ read: null, refetch: vi.fn() }) }));

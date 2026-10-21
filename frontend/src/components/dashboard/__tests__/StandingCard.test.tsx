@@ -79,6 +79,14 @@ describe('StandingCard', () => {
     expect(screen.getByText('The highest level. An abandoned duel can lower it.')).toBeTruthy();
   });
 
+  it('draws no quest at the top level, where there is no way left', () => {
+    env.honored = 40;
+
+    renderCard();
+
+    expect(screen.queryByRole('img', { name: /^To / })).toBeNull();
+  });
+
   it('stands in for the reputation while it is read', () => {
     env.isLoading = true;
 

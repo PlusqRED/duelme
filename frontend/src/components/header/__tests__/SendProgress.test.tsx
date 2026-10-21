@@ -11,7 +11,7 @@ const HASH = `0x${'ab'.repeat(32)}` as const;
 
 afterEach(cleanup);
 
-function renderProgress(stage: Exclude<SendStage, 'form'>, error: Error | null = null) {
+function renderProgress(stage: Exclude<SendStage, 'form'>, error: Error | null = null, isInAppWallet = false) {
   const onDone = vi.fn();
   const onRetry = vi.fn();
   render(
@@ -22,6 +22,7 @@ function renderProgress(stage: Exclude<SendStage, 'form'>, error: Error | null =
       network={SUPPORTED_CHAINS.arbitrumSepolia}
       hash={stage === 'done' ? HASH : undefined}
       error={error}
+      isInAppWallet={isInAppWallet}
       onDone={onDone}
       onRetry={onRetry}
     />
@@ -35,6 +36,12 @@ describe('SendProgress', () => {
 
     expect(screen.getByText('Confirm the transfer in your wallet.')).toBeTruthy();
     expect(screen.queryByRole('button')).toBeNull();
+  });
+
+  it('asks nothing of the wallet in the app, which sends without a prompt', () => {
+    renderProgress('confirm', null, true);
+
+    expect(screen.getByText('Your wallet is sending the transfer…')).toBeTruthy();
   });
 
   it('says the transfer is on its network', () => {

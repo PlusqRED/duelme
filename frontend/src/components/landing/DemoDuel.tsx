@@ -9,7 +9,7 @@ import { Chip } from '@/components/ui/chip';
 import { Icon } from '@/components/ui/icon';
 import type { IconName } from '@/components/ui/iconPaths';
 import { useContractConfig } from '@/hooks/useContractConfig';
-import { DEMO_DWELL_MS, useDemoDuel } from '@/hooks/useDemoDuel';
+import { DEMO_STEP_MS, useDemoDuel } from '@/hooks/useDemoDuel';
 import { useStakeFlights } from '@/hooks/useStakeFlights';
 import type { TranslationKey } from '@/i18n/translations';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -52,14 +52,16 @@ export function DemoDuel() {
   const demo = useDemoDuel({ root: rootRef, fly: flights.fly, cancelFlights: flights.cancel });
   const timeout = durationWords(claimTimeout, plural);
   const status = demoStatus(demo.step, demo.outcome);
-  const mode: PlayMode = demo.isPlaying ? 'pause' : demo.step === DEMO_LAST_STEP ? 'replay' : 'play';
+  // A play paused on a step still has its time to run: the button goes on with it.
+  const isPaused = !demo.isPlaying && demo.timing !== null;
+  const mode: PlayMode = demo.isPlaying ? 'pause' : demo.step === DEMO_LAST_STEP && !isPaused ? 'replay' : 'play';
 
   return (
     <section
       id={LANDING_SECTION_IDS.demo}
       ref={rootRef}
       aria-labelledby={titleId}
-      style={{ '--dwell': `${DEMO_DWELL_MS}ms` }}
+      style={{ '--dwell': `${DEMO_STEP_MS}ms` }}
       className="@container/sim relative min-w-0 rounded-[28px] border border-line bg-paper px-[clamp(14px,2.4vw,28px)] pt-[18px] pb-5 shadow-stage max-xs:rounded-3xl"
     >
       <header className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
@@ -95,7 +97,7 @@ export function DemoDuel() {
         </p>
       </div>
 
-      <DemoStepper step={demo.step} timing={demo.timing} onPick={demo.pickStep} />
+      <DemoStepper step={demo.step} timing={demo.timing} isPaused={isPaused} onPick={demo.pickStep} />
       <DemoEndings
         picked={demo.step === DEMO_LAST_STEP ? demo.outcome : null}
         isInviting={demo.isInviting}

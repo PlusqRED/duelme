@@ -46,7 +46,8 @@ export function OpenDuelCard({ duel, isCompact, isOwn, className }: OpenDuelCard
     <article
       aria-labelledby={titleId}
       className={cn(
-        'group/duel grid content-start gap-5 rounded-3xl border border-line bg-paper p-[clamp(18px,2.4vw,26px)]',
+        // One column no wider than the card: a long game name is cut, not let push the card over its neighbours.
+        'group/duel grid grid-cols-1 content-start gap-5 rounded-3xl border border-line bg-paper p-[clamp(18px,2.4vw,26px)]',
         isCompact && 'grid-rows-[auto_1fr_auto_auto]',
         className
       )}
@@ -54,7 +55,7 @@ export function OpenDuelCard({ duel, isCompact, isOwn, className }: OpenDuelCard
       <header className="flex items-center gap-3">
         <GameTile name={duel.gameName} category={duel.gameCategory} />
         <div className="min-w-0">
-          <h3 id={titleId} className="truncate text-xl">
+          <h3 id={titleId} title={duel.gameName ?? undefined} className="truncate text-xl">
             {duel.gameName ?? t('publicDuels.noGame')}
           </h3>
           <p className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm text-ink-3">
@@ -86,7 +87,7 @@ export function OpenDuelCard({ duel, isCompact, isOwn, className }: OpenDuelCard
         )}
         <div className="flex min-w-0 flex-col items-center gap-1.5 text-center [grid-area:a]">
           <Avatar address={duel.creator} tone="red" className="size-16" />
-          <p className={cn('font-bold tabular-nums [overflow-wrap:anywhere]', isCompact && 'text-body-sm whitespace-nowrap')}>
+          <p className={cn('font-bold tabular-nums [overflow-wrap:anywhere]', isCompact && 'max-w-full truncate text-body-sm')}>
             {duel.creatorName}
           </p>
           {stats && (

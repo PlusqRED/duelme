@@ -12,6 +12,13 @@ rules live in this file.
 - `createConfig` must be imported from `@privy-io/wagmi`, NOT `wagmi`
 - `setActiveWalletForWagmi` prop on `<WagmiProvider>` ensures Privy embedded wallet beats MetaMask
 - Chain switching via wagmi's `useSwitchChain` (not Privy's `switchChain`)
+- Privy's own prompts are off (`embeddedWallets.showWalletUIs: false` in `Providers.tsx`): the embedded
+  wallet signs as soon as it is asked, so whatever asks it shows what is signed first, and the press
+  in that window is the confirmation — the signing window for duel writes, `SendReview` for sending
+  USDT out. A new way to make the embedded wallet sign needs such a window too, and
+  `lib/__tests__/signingGuard.test.ts` fails until it is added there: it lists the only files that
+  ask a wallet to sign or send, or take a wallet client, read from the code itself, and who imports
+  them, up to the flows behind those windows. External wallets still prompt in their own window.
 
 ### Transaction Pattern
 Write ops, relayed: check chain → sign EIP-2612 permit (funding calls only) → sign
@@ -190,8 +197,8 @@ test can check.
 | `frontend/src/components/ui/iconPaths.ts` | The design's icons as shapes, drawn by `ui/icon.tsx` |
 | `frontend/src/components/ui/dialog.tsx` | The one window: a card from a fixed top on a wide screen, a sheet below 560px; `--dialog-width` widens it; `DialogFooter isPinned` keeps a long sheet's last action on screen on a phone |
 | `frontend/src/components/ui/popover.tsx` | The menus: a panel under its button on a wide screen, a modal sheet below 560px, with a title the sheet shows and a panel only reads out |
-| `frontend/src/components/header/Header.tsx` | The top bar on every page: the brand, the sections (`lib/navigation.ts`; on the landing its own, the one being read marked through `useSectionInView`) from 980px, the language, the wallet menu or Sign in, and the navigation menu below 980px |
-| `frontend/src/components/header/WalletMenu.tsx` | The wallet button (the duel network's USDT, never a sum across networks, and a pip while money waits in the contract) and its menu: player card, the small safe (`SafeMini`), a balance tile per network, Top up, Send, the faucet flask, key export and sign out |
+| `frontend/src/components/header/Header.tsx` | The top bar on every page: the brand, the sections (`lib/navigation.ts`; on the landing its own, the one being read marked through `useSectionInView`, and a followed link's section held by `useHeadedSection` while the page glides there, one hold for the bar and the phone menu through `HeadedSectionProvider`) from 980px, the language, the wallet menu or Sign in, and the navigation menu below 980px |
+| `frontend/src/components/header/WalletMenu.tsx` | The wallet button (the duel network's USDT, never a sum across networks, and a pip while money waits in the contract) and its menu: player card, the small safe (`SafeMini`), a balance tile per network, Top up, Send (the form, a last look in `SendReview`, then the transfer, its route drawn by `SendRoute`), the faucet flask, key export and sign out |
 | `frontend/src/hooks/useWalletBalances.ts` | The wallet's USDT and ETH on each network the build lists, read apart (USDT on `useUsdtBalance`'s query): the button's balance polled always, the rest while the menu is open, all again on the balance bus |
 | `frontend/src/hooks/useSendUsdt.ts` | Sends USDT on the network picked: moves the wallet there, then `writeWithGas` |
 | `frontend/src/lib/sendUsdt.ts` | The send form's rules: the typed amount, the transfer it asks for, what stops it, and where a sent one is |
@@ -225,7 +232,7 @@ test can check.
 | `frontend/src/hooks/useDuelActions.ts` | Write actions (join, cancel, claim, refundAndClaimPayouts, etc.) |
 | `frontend/src/hooks/useWriteWithGas.ts` | Duel write dispatcher: relayed / resilient / plain routing + merged hash/isPending/error surface |
 | `frontend/src/lib/writeReceipt.ts` | Waits for a write's receipt and decides by it: the receipt, `TransactionRevertedError` with the replayed reason, or `TransactionReplacedError` |
-| `frontend/src/lib/writeErrors.ts` | The ways a write ends without running (reverted, replaced, wallet not ready), which `lib/flowError.ts` words for the signing window |
+| `frontend/src/lib/writeErrors.ts` | The ways a write ends without running (reverted, replaced, wallet not ready, a token whose permit domain is not EIP-2612's), which `lib/flowError.ts` words for the signing window |
 | `frontend/src/app/dashboard/page.tsx` | My duels: the title and Create a duel, then `components/dashboard/Dashboard` |
 | `frontend/src/components/dashboard/` | The dashboard's parts: `Dashboard` (the guest's invitation, loading, a wallet with no duels, the desk), `TakeSafe` (the navy safe and its one Take; `TakenLine` once emptied), `DuelBoard`s of `MiniDuelCard`s (a small `ArenaStage`), `History` (`FormLine`, the lists' search, filters and pager, `HistoryRow`), `StandingCard` (`StandingReputation` on the landing's `ReputationGauge`, `StandingTotals` on `identity/PlayerTotals`); `TakeFlowDialog` is the one place Take's signing window is rendered |
 | `frontend/src/hooks/useDashboard.ts` | The reader's duels filed for the dashboard: on (their move or waiting), finished, the money waiting, totals, each duel's game and the other players' names |
@@ -235,7 +242,7 @@ test can check.
 | `frontend/src/hooks/useDuelMetas.ts` | Duel metadata (the game) by id, read in the backend's batches of 200 and keyed with the contract address |
 | `frontend/src/lib/owed.ts` | What the contract keeps for a player — wins, stakes coming back, timed-out claims — and the safe's bars; `useOwed` reads it from the shared `useDuelRange` history and looks again when a claim runs out of time |
 | `frontend/src/components/landing/Hero.tsx` | The landing's first screen: the motto, the two ways in, the developer's note (`DevNote`; its last update is the build's time, which `next.config.ts` writes in as `DUELME_BUILT_AT`), the platform's figures and the demo duel |
-| `frontend/src/components/landing/DemoDuel.tsx` | The demo duel: stills of a 10 USDT duel from `lib/demoDuel.ts`, moved between by `useDemoDuel` (steps, three endings, one play by itself once in view), stakes flown by `useStakeFlights` |
+| `frontend/src/components/landing/DemoDuel.tsx` | The demo duel: stills of a 10 USDT duel from `lib/demoDuel.ts`, moved between by `useDemoDuel` (steps, three endings, a pause that holds the step and its bar) and played by itself once in view by `useDemoAutoplay`, stakes flown by `useStakeFlights` |
 | `frontend/src/components/landing/OpenDuels.tsx` | The landing's open public duels (`useOpenDuels`): one as a wide card, two or more as a lobby that is a strip to swipe below the `wide:` breakpoint, none as the invitation to make one; the count is every open duel |
 | `frontend/src/components/landing/GettingStarted.tsx` | The landing's first-duel quest (`useQuest`): the steps written down (`QuestLog`) beside a phone that acts each out (`QuestPhone`, its screens `QuestScreens` built from `QuestScreenParts`), and what a made wallet leaves in the player's hands (`ControlFacts`); step 3 and the gas line follow `useRelayerStatus` |
 | `frontend/src/components/landing/Safety.tsx` | The landing's navy band: the escrow contract to check (`EscrowCard`: its address settling out of noise via `useScrambleReveal`, copy, three explorer tabs) and the four guarantees as badges that unlock (`Guarantees`; the test count and coverage are `lib/contractFacts.ts`) |
@@ -344,6 +351,11 @@ test can check.
 
 ## Common Pitfalls
 
+- **A theme animation whose length is a variable set on the element goes in `@theme inline`.**
+  `--animate-fill: fill var(--dwell) …` in a plain `@theme` is a variable on `:root`, where
+  `--dwell` does not exist, so the animation resolved to nothing and was silently dropped: the
+  landing demo's step bars and its feed rows' exit never played. `landingMotion.css` keeps those
+  two (`--dwell`, `--leave`) in its `@theme inline`.
 - `createConfig` from `wagmi` instead of `@privy-io/wagmi` silently breaks wallet routing.
 - `useSetActiveWallet` in `useEffect` is too late — use `setActiveWalletForWagmi` sync callback.
 - Invite-only duels rely on the full private link (URL fragment) — never fall back to plain `/duel/{id}`.
@@ -353,7 +365,7 @@ test can check.
 - **Privy embedded wallets** sign with all-zero gas/nonce when SDK auto-populates — bypass by passing `gas` / `maxFeePerGas` / `maxPriorityFeePerGas` / `nonce` explicitly in every `writeContract` call. Centralized in `useWriteWithGas` (used by `useDuelActions`; uses `buildTransactionParams` + `resilientBroadcast`) — never call `writeContract` directly from action functions.
 - **`ox` peer clash:** `@privy-io/react-auth` declares an *optional* peer `permissionless@^0.2.x`, which in turn declares an optional peer `ox@^0.8.0` that conflicts with viem 2.47's `ox@0.14.5`. Resolved by pinning `ox` in `frontend/package.json` `overrides`. Don't remove it — `npm ci` will ERESOLVE, even though DuelMe itself no longer depends on `permissionless`.
 - **Dependabot never edits `overrides` on a version update**, so it would move `viem` and both `@privy-io/*` packages (each pins viem or ox exactly) while `ox` stays on the override above. `.github/dependabot.yml` ignores their minor/patch updates for that reason — bump the four by hand, in one commit.
-- **A dead RPC provider looks like nothing at all.** `resolveRpcUrl` validates the URL's shape, never calls it, and Privy embedded wallets broadcast through one URL with no fallback — so an endpoint that has been disabled upstream surfaces only as "HTTP request failed" in the wallet modal, with the fee estimate rendering fine because that goes through Privy's own RPC. On 2026-09-20 the configured Arbitrum One provider answered `403 App is inactive` and withdrawals were dead; the wallet had ample ETH, and gas was the first thing everyone suspected. Before blaming the chain, `curl` the endpoint with `eth_chainId`.
+- **A dead RPC provider looks like nothing at all.** `resolveRpcUrl` validates the URL's shape, never calls it, and Privy embedded wallets broadcast through one URL with no fallback — so an endpoint that has been disabled upstream surfaces only as "HTTP request failed" in the details of the signing window's or Send's error (it showed in Privy's wallet modal, before its prompts were turned off), while the fee estimate renders fine because that goes through Privy's own RPC. On 2026-09-20 the configured Arbitrum One provider answered `403 App is inactive` and withdrawals were dead; the wallet had ample ETH, and gas was the first thing everyone suspected. Before blaming the chain, `curl` the endpoint with `eth_chainId`.
 - **Relayer gas limit must clear `request.gas * 64 / 63` plus forwarder overhead.** `ERC2771Forwarder._checkForwardedGas` triggers `invalid()` — burning the *entire* limit, not just the unused part — when the forwarded call did not get the gas the request promised. On Arbitrum the L1 posting fee is charged out of the same limit and only `eth_estimateGas` knows its size, so `relayGasLimit` adds the floor ON TOP of the estimate; `max(floor, estimate)` would starve the inner call. Measured forwarder overhead beyond the floor is ~25k.
 - **`ERC2771Forwarder.execute` does not bubble up the inner revert reason** — a failed forwarded call surfaces as a bare `Errors.FailedCall()`. `/api/relay` re-simulates the inner call directly as the signer to recover the real message.
 - **A sent write is decided by its receipt, on the chain it went to.** `useWriteWithGas` reads the

@@ -38,6 +38,15 @@ describe('PlayerCard', () => {
     expect(screen.getByRole('img', { name: 'To Reliable: 4 of 5 honored' })).toBeTruthy();
   });
 
+  it('names the top level once, under the address, and says it is the highest', () => {
+    player.reputation = { honored: 5, abandoned: 0, isLoading: false, isError: false };
+
+    renderCard();
+
+    expect(screen.getAllByText('Reliable')).toHaveLength(1);
+    expect(screen.getByText('The highest level. An abandoned duel can lower it.')).toBeTruthy();
+  });
+
   it('copies the full address', () => {
     renderCard();
 

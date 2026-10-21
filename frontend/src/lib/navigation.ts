@@ -42,3 +42,8 @@ export const LANDING_SECTIONS: readonly SectionLink[] = [
 export function isInSection(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
+
+/** A click that follows a link in this tab: not a middle click, nor one held for a new tab or window. */
+export function isPlainClick(event: Pick<MouseEvent, 'button' | 'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey'>): boolean {
+  return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
+}

@@ -1,4 +1,5 @@
 import { LevelBadge } from '@/components/identity/LevelBadge';
+import { Icon } from '@/components/ui/icon';
 import { useTranslation } from '@/i18n/useTranslation';
 import { getReputationLabelKey, questCells, type LevelQuest, type ReputationLevel } from '@/lib/reputation';
 import { cn } from '@/lib/utils';
@@ -24,19 +25,34 @@ interface QuestLineProps {
 
 /**
  * The way to the next level as a quest: a cell per honored duel it needs, the ones done lit in the
- * next level's colour, the next one breathing, and the next level's badge still locked.
+ * next level's colour, the next one breathing, and the next level's badge still locked. At the top
+ * there is no way left, so it says so in a line, without naming the level the badge beside it
+ * already names.
  */
 export function QuestLine({ quest, isEntering = false, isWaiting = false, isStacked = false, className }: QuestLineProps) {
   const { t } = useTranslation();
-  const zone = quest.next ?? quest.level;
+
+  if (!quest.next) {
+    return (
+      <p className={cn('flex items-center gap-2.5 text-note text-ink-2', className)}>
+        <span
+          className={cn(
+            'grid size-7 flex-none place-items-center rounded-full bg-good-soft text-good-ink',
+            isEntering && !isWaiting && 'animate-pop'
+          )}
+        >
+          <Icon name="trophy" className="size-4" />
+        </span>
+        {t('quest.summit')}
+      </p>
+    );
+  }
+
+  const zone = quest.next;
   const colours = ZONE[zone];
   const cells = questCells(quest);
-  const { label, score } = quest.next
-    ? {
-        label: t('wallet.quest', { level: t(getReputationLabelKey(quest.next)), have: quest.have, need: quest.need }),
-        score: t('quest.score', { have: quest.have, need: quest.need }),
-      }
-    : { label: t('wallet.quest.top', { level: t(getReputationLabelKey(quest.level)) }), score: t('quest.top') };
+  const label = t('wallet.quest', { level: t(getReputationLabelKey(zone)), have: quest.have, need: quest.need });
+  const score = t('quest.score', { have: quest.have, need: quest.need });
 
   return (
     <div
@@ -70,7 +86,7 @@ export function QuestLine({ quest, isEntering = false, isWaiting = false, isStac
         ))}
       </span>
       <span className={cn('text-note font-bold text-ink-2 tabular-nums', isStacked && '[grid-area:score]')}>{score}</span>
-      <LevelBadge level={zone} isLocked={quest.next !== null} className={cn('h-[34px] pr-3 pl-2.5 text-sm', isStacked && '[grid-area:goal]')} />
+      <LevelBadge level={zone} isLocked className={cn('h-[34px] pr-3 pl-2.5 text-sm', isStacked && '[grid-area:goal]')} />
     </div>
   );
 }

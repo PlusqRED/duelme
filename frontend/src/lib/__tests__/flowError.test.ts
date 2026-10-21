@@ -2,9 +2,8 @@ import { BaseError, ContractFunctionRevertedError, HttpRequestError, UserRejecte
 import { describe, expect, it } from 'vitest';
 import { SUPPORTED_CHAINS } from '@/lib/constants';
 import { classifyFlowError, flowError, rawErrorText } from '@/lib/flowError';
-import { PermitDomainMismatchError } from '@/lib/permitSignature';
 import { RelayAnswerLostError, RelayRequestError } from '@/lib/relayApi';
-import { TransactionReplacedError, TransactionRevertedError, WalletNotReadyError } from '@/lib/writeErrors';
+import { PermitDomainMismatchError, TransactionReplacedError, TransactionRevertedError, WalletNotReadyError } from '@/lib/writeErrors';
 
 const SEPOLIA = { chainId: SUPPORTED_CHAINS.arbitrumSepolia.id };
 const ONE = { chainId: SUPPORTED_CHAINS.arbitrum.id };

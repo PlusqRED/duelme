@@ -29,6 +29,8 @@ interface SignCheckProps {
   usdt?: UsdtNeed;
   eth?: EthNeed;
   fix: CheckFix | null;
+  /** The wallet in the app signs at the press, so the press here is the player's consent. */
+  isInAppWallet: boolean;
   onStart: () => void;
 }
 
@@ -37,7 +39,7 @@ interface SignCheckProps {
  * needs for it, the facts as chips, and the details for whoever checks. The main button signs, or
  * first gets what is missing.
  */
-export function SignCheck({ model, fees, usdt, eth, fix, onStart }: SignCheckProps) {
+export function SignCheck({ model, fees, usdt, eth, fix, isInAppWallet, onStart }: SignCheckProps) {
   const { t } = useTranslation();
   const isSelf = model.route === 'self';
   const count = model.items.length;
@@ -64,6 +66,7 @@ export function SignCheck({ model, fees, usdt, eth, fix, onStart }: SignCheckPro
         </Fact>
       </p>
       <TechnicalDetails facts={model.facts} chainId={model.chainId} chainName={model.chainName} />
+      {isInAppWallet && <Note icon="pen">{t('sign.inApp.note')}</Note>}
       <SignActions>
         {fix ? (
           <Button

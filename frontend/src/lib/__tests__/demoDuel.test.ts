@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { actorsFirst, DEMO_STAKE_RAW, demoStage, demoStatus, hasActed, vaultTotal } from '@/lib/demoDuel';
+import { actorsFirst, barTurn, clockLeft, DEMO_STAKE_RAW, demoStage, demoStatus, hasActed, pauseClock, resumeClock, startClock, vaultTotal } from '@/lib/demoDuel';
 
 describe('demoStage', () => {
   it('starts with both wallets full and the safe empty and open', () => {
@@ -88,5 +88,48 @@ describe('demoStatus', () => {
   it('names the ending at the last step', () => {
     expect(demoStatus(5, 'timeout')).toEqual({ state: 'duel.responseTimedOut', tone: 'idle', desc: 'sim.desc.timeout' });
     expect(demoStatus(5, 'confirm').tone).toBe('paid');
+  });
+});
+
+describe('step clock', () => {
+  it('testClockLeftCountsDownWhileRunning', () => {
+    expect(clockLeft(startClock(1, 1000), 2500, 4800)).toBe(3300);
+  });
+
+  it('testClockLeftHoldsWhilePaused', () => {
+    const paused = pauseClock(startClock(1, 1000), 2000);
+
+    expect(clockLeft(paused, 9000, 4800)).toBe(3800);
+  });
+
+  it('testClockLeftGoesOnFromWhereItPaused', () => {
+    const resumed = resumeClock(pauseClock(startClock(1, 1000), 2000), 9000);
+
+    expect(clockLeft(resumed, 9500, 4800)).toBe(3300);
+  });
+
+  it('testClockLeftNeverGoesBelowZero', () => {
+    expect(clockLeft(startClock(1, 0), 9000, 4800)).toBe(0);
+  });
+
+  it('testPauseAndResumeClockAreIdempotent', () => {
+    const paused = pauseClock(startClock(1, 1000), 2000);
+    const running = startClock(1, 1000);
+
+    expect([pauseClock(paused, 5000), resumeClock(running, 5000)]).toEqual([paused, running]);
+  });
+});
+
+describe('barTurn', () => {
+  it('testBarTurnFillsTheBarsOnwardsFromTheStepLeft', () => {
+    expect([3, 4, 5].map((bar) => barTurn(bar, 5, 2))).toEqual([0, 1, 2]);
+  });
+
+  it('testBarTurnEmptiesTheBarsBackTowardsTheStepLeft', () => {
+    expect([5, 4, 3].map((bar) => barTurn(bar, 2, 5))).toEqual([0, 1, 2]);
+  });
+
+  it('testBarTurnLeavesTheBarsAJumpDoesNotMove', () => {
+    expect([1, 2].map((bar) => barTurn(bar, 5, 2))).toEqual([null, null]);
   });
 });

@@ -11,7 +11,7 @@ import type { TranslationKey } from '@/i18n/translations';
 import { useTranslation } from '@/i18n/useTranslation';
 import { USDT_DECIMALS } from '@/lib/constants';
 import type { FaucetOffer } from '@/lib/faucetApi';
-import { checkTransfer, parseUsdtAmount, type SendDraft, type SendProblems, type Transfer } from '@/lib/sendUsdt';
+import { checkTransfer, type SendDraft, type SendProblems, type Transfer } from '@/lib/sendUsdt';
 import { formatEth, formatUSDT } from '@/lib/utils';
 import { readingFigure, readingRaw } from '@/lib/walletBalances';
 
@@ -35,8 +35,8 @@ interface SendFormProps {
 }
 
 /**
- * Where to and how much. Its checks wait for the first try to send, then follow every keystroke;
- * the button names the amount as it is typed.
+ * Where to and how much. Its checks wait for the first try to go on, then follow every keystroke;
+ * nothing is sent from here, the transfer is looked over first.
  */
 export function SendForm({ address, network, faucetOffer, draft, onDraft, onSubmit }: SendFormProps) {
   const { t, language } = useTranslation();
@@ -49,7 +49,6 @@ export function SendForm({ address, network, faucetOffer, draft, onDraft, onSubm
   const usdtRaw = readingRaw(network.usdt);
   const check = checkTransfer(draft, { address, usdtRaw, ethWei: readingRaw(network.eth) });
   const problems = isTried ? check.problems : {};
-  const amountRaw = parseUsdtAmount(draft.amount);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -126,10 +125,9 @@ export function SendForm({ address, network, faucetOffer, draft, onDraft, onSubm
           ? t('send.err.eth', { network: network.chain.name }) + offersEth
           : t('send.fee', { eth: readingFigure(network.eth, (wei) => formatEth(wei, language)) })}
       </Note>
-      <Note icon="alert">{t('send.check')}</Note>
       <Button type="submit" size="lg" className="mt-1 w-full">
-        <Icon name="send" />
-        {amountRaw ? t('send.button', { amount: formatUSDT(amountRaw, language) }) : t('send.button.empty')}
+        {t('send.next')}
+        <Icon name="chevron-right" />
       </Button>
     </form>
   );

@@ -155,3 +155,43 @@ const OUTCOME_STATUS: Record<DemoOutcome, DemoStatus> = {
 export function demoStatus(step: number, outcome: DemoOutcome | null): DemoStatus {
   return step === DEMO_LAST_STEP ? OUTCOME_STATUS[outcome ?? DEMO_DEFAULT_OUTCOME] : STEP_STATUS[step];
 }
+
+/** A played step's time on screen, which a pause holds. */
+export interface StepClock {
+  step: number;
+  /** Time already spent on screen before the last pause. */
+  spent: number;
+  /** When it last went on running; null while paused. */
+  since: number | null;
+  /** The step's moves are over, so only its time is left to wait out. */
+  isMoved: boolean;
+}
+
+export function startClock(step: number, now: number): StepClock {
+  return { step, spent: 0, since: now, isMoved: false };
+}
+
+export function pauseClock(clock: StepClock, now: number): StepClock {
+  return clock.since === null ? clock : { ...clock, spent: clock.spent + now - clock.since, since: null };
+}
+
+export function resumeClock(clock: StepClock, now: number): StepClock {
+  return clock.since === null ? { ...clock, since: now } : clock;
+}
+
+/** How much of a step's `length` it still has to stay on screen. */
+export function clockLeft(clock: StepClock, now: number, length: number): number {
+  const running = clock.since === null ? 0 : now - clock.since;
+  return Math.max(0, length - clock.spent - running);
+}
+
+/**
+ * When a step's bar moves on a jump, in turns of the stagger: bars filling count on from the step
+ * left, bars emptying count back to it. Null for a bar the jump leaves as it was.
+ */
+export function barTurn(bar: number, step: number, from: number): number | null {
+  if (bar <= step) {
+    return bar > from ? bar - from - 1 : null;
+  }
+  return bar <= from ? from - bar : null;
+}

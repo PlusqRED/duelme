@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
-import { cleanup, renderHook } from '@testing-library/react';
+import { createElement, type MouseEvent, type ReactNode } from 'react';
+import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const session = vi.hoisted(() => ({ pathname: '/games', authenticated: false, inView: null as string | null }));
@@ -8,6 +9,15 @@ vi.mock('@privy-io/react-auth', () => ({ usePrivy: () => ({ authenticated: sessi
 vi.mock('@/hooks/useSectionInView', () => ({ useSectionInView: () => session.inView }));
 
 const { useNavLinks } = await import('@/hooks/useNavLinks');
+const { HeadedSectionProvider } = await import('@/components/header/HeadedSectionProvider');
+
+function inTopBar({ children }: { children: ReactNode }) {
+  return createElement(HeadedSectionProvider, null, children);
+}
+
+function click(keys: Partial<MouseEvent<HTMLAnchorElement>> = {}) {
+  return { button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, ...keys } as MouseEvent<HTMLAnchorElement>;
+}
 
 beforeEach(() => {
   session.pathname = '/games';
@@ -68,5 +78,27 @@ describe('useNavLinks', () => {
     expect(result.current.filter((link) => link.current).map((link) => [link.href, link.current])).toEqual([
       ['#demo', 'location'],
     ]);
+  });
+
+  it('marks the section a link was followed to over the one the glide passes on the way', () => {
+    session.pathname = '/';
+    session.inView = 'recent-duels';
+    const { result, rerender } = renderHook(() => useNavLinks(), { wrapper: inTopBar });
+
+    act(() => result.current.find((link) => link.href === '#safety')?.onFollow?.(click()));
+    session.inView = 'demo';
+    rerender();
+
+    expect(result.current.filter((link) => link.current).map((link) => link.href)).toEqual(['#safety']);
+  });
+
+  it('holds nothing for a link opened in a new tab', () => {
+    session.pathname = '/';
+    session.inView = 'recent-duels';
+    const { result } = renderHook(() => useNavLinks(), { wrapper: inTopBar });
+
+    act(() => result.current.find((link) => link.href === '#safety')?.onFollow?.(click({ metaKey: true })));
+
+    expect(result.current.filter((link) => link.current).map((link) => link.href)).toEqual(['#recent-duels']);
   });
 });

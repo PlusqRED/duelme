@@ -31,7 +31,7 @@ function renderForm(network = NETWORK, faucetOffer = NO_FAUCET) {
     onSubmit,
     to: screen.getByLabelText('To'),
     amount: screen.getByLabelText('Amount'),
-    send: () => fireEvent.click(screen.getByRole('button', { name: /^Send/ })),
+    send: () => fireEvent.click(screen.getByRole('button', { name: 'Check the transfer' })),
   };
 }
 
@@ -65,14 +65,6 @@ describe('SendForm', () => {
     expect(screen.getByText('That’s more than you have: 46.7 USDT.')).toBeTruthy();
   });
 
-  it('names the amount on the button as it is typed', () => {
-    const { amount } = renderForm();
-
-    fireEvent.change(amount, { target: { value: '12,5' } });
-
-    expect(screen.getByRole('button', { name: 'Send 12.5\u00a0USDT' })).toBeTruthy();
-  });
-
   it('fills in the whole balance with All', () => {
     const { amount } = renderForm();
 
@@ -81,7 +73,7 @@ describe('SendForm', () => {
     expect((amount as HTMLInputElement).value).toBe('46.7');
   });
 
-  it('sends the transfer once nothing is wrong', () => {
+  it('hands the transfer on to be looked over once nothing is wrong', () => {
     const { to, amount, send, onSubmit } = renderForm();
     fireEvent.change(to, { target: { value: ` ${THEIRS} ` } });
     fireEvent.change(amount, { target: { value: '10' } });
