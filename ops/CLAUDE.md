@@ -39,7 +39,9 @@ Environments, CI jobs and deploys. The root `CLAUDE.md` applies here too.
   "Salt user IDs" stays on: Rybbit names an anonymous visitor by a hash of IP and browser, and
   keeps the link to a Privy id that an identify made, so unsalted a yes taken back still tied the
   browser to the player for good; salted, the hash changes each UTC day, as the page says. "URL
-  params" stays off: Privy's sign-in returns with its OAuth code in the query string.
+  params" stays off: Privy's sign-in returns with its OAuth code in the query string. Web Vitals
+  has no switch on a self-hosted dashboard (Rybbit shows it only in its cloud), though the backend
+  honours it, so it is set in Rybbit's Postgres: `"webVitals"` in `sites`, on for both sites.
 - Players' browsers reach the tracker on the site itself: Caddy (`ops/caddy/rybbit-tracker.caddy`,
   imported by both public sites) rewrites an allowlist of `/t/*` paths (the scripts, `track`, `identify`, the tracking config, replay uploads) to `/api/*`
   on 3030 and answers 404 for any other `/t/` path, so the dashboard's API is never served from
