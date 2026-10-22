@@ -1,0 +1,279 @@
+# Self-hosted Rybbit analytics, shared by dev.duelme.pro and duelme.pro (one site each).
+# Started from upstream's v2.9.0 docker-compose.yml with its Caddy dropped (the host Caddy
+# fronts it), the stores taken off host ports and the containers hardened like ours. Its
+# network.xml is gone too: the image's own docker_related_config.xml already listens on all
+# addresses (its `::` and `0.0.0.0` log "Address already in use" for 0.0.0.0, harmlessly).
+# Deployed by .github/workflows/rybbit.yml into ~/apps/rybbit/; see "Analytics" in ops/CLAUDE.md.
+name: rybbit
+
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:26.3.17.4
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_DB: analytics
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?CLICKHOUSE_PASSWORD must be set in .env}
+      # Lets the backend create its least-privilege `rybbit_query` user at startup.
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    configs:
+      - source: clickhouse_logging
+        target: /etc/clickhouse-server/config.d/logging_rules.xml
+      - source: clickhouse_resource_limits
+        target: /etc/clickhouse-server/config.d/resource_limits.xml
+      # Profile (user-level) settings are only read from users.d, not config.d.
+      - source: clickhouse_user_settings
+        target: /etc/clickhouse-server/users.d/user_settings.xml
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
+    # The entrypoint writes the default user's password into users.d before it drops to the
+    # clickhouse user, so users.d is a tmpfs and the config files above are mounted into it.
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=256m
+      - /var/log/clickhouse-server:noexec,nosuid,size=64m
+      - /etc/clickhouse-server/users.d:noexec,nosuid,size=1m
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    cap_drop:
+      - ALL
+    # KILL: on first start the entrypoint stops the temporary server it ran as the clickhouse
+    # user to create the database; without it the init fails and the container restarts.
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETUID
+      - SETGID
+      - KILL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 4g
+    cpus: 2.0
+    # ClickHouse runs pools of threads, and pids_limit counts threads.
+    pids_limit: 4096
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    stop_grace_period: 30s
+    networks:
+      - data
+
+  postgres:
+    image: postgres:17.11
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rybbit
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+      POSTGRES_DB: analytics
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rybbit -d analytics"]
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 5
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=64m
+      - /var/run/postgresql:noexec,nosuid,size=1m
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETUID
+      - SETGID
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 256
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    stop_grace_period: 10s
+    networks:
+      - data
+
+  redis:
+    image: redis:8.6.7-alpine
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
+    # The password goes through a config file in tmpfs, not argv, so neither `ps` on the host
+    # nor `docker inspect` shows it. noeviction and AOF are upstream's: Redis holds session
+    # tracking and bot counters, whose keys expire on their own.
+    entrypoint:
+      - sh
+      - -c
+      - |
+        umask 077
+        printf 'requirepass "%s"\n' "$$REDIS_PASSWORD" > /tmp/redis.conf
+        chown redis:redis /tmp/redis.conf
+        exec docker-entrypoint.sh redis-server /tmp/redis.conf --appendonly yes --appendfsync everysec --maxmemory 192mb --maxmemory-policy noeviction
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_PASSWORD\" redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      start_period: 5s
+      retries: 5
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=1m
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    cpus: 0.5
+    pids_limit: 64
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    stop_grace_period: 10s
+    networks:
+      - data
+
+  backend:
+    image: ghcr.io/rybbit-io/rybbit-backend:v2.9.0@sha256:5a824932c8b7b16364c8ee132e29d1d9d9574445e0d1f091e6364695e117bd66
+    restart: unless-stopped
+    # The image has no USER; `node` is its unprivileged user.
+    user: "1000:1000"
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      CLICKHOUSE_HOST: http://clickhouse:8123
+      CLICKHOUSE_DB: analytics
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_QUERY_PASSWORD: ${CLICKHOUSE_QUERY_PASSWORD:?CLICKHOUSE_QUERY_PASSWORD must be set in .env}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: analytics
+      POSTGRES_USER: rybbit
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET must be set in .env}
+      BASE_URL: https://stats.duelme.pro
+      # Sign-up stays closed unless a manual run of the workflow opens it for the first account.
+      DISABLE_SIGNUP: ${DISABLE_SIGNUP:-true}
+      DISABLE_TELEMETRY: "true"
+      CLUSTER_WORKERS: "2"
+      # The entrypoint runs `npm run db:migrate`; the root filesystem is read-only.
+      npm_config_cache: /tmp/npm
+      npm_config_update_notifier: "false"
+    ports:
+      - "127.0.0.1:3030:3001"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3001/api/health"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    read_only: true
+    tmpfs:
+      - /tmp:nosuid,size=256m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    cpus: 2.0
+    pids_limit: 512
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    stop_grace_period: 10s
+    networks:
+      - data
+      - web
+
+  client:
+    image: ghcr.io/rybbit-io/rybbit-client:v2.9.0@sha256:2f6f7cbfd65f50129573b67082148b5bb00c20c04420d74ae133c1fd4dc8ac99
+    restart: unless-stopped
+    depends_on:
+      - backend
+    # Upstream also passes NEXT_PUBLIC_* here, but the published image has them baked in at
+    # build time: it calls the API on its own origin, which Caddy routes to the backend.
+    environment:
+      NODE_ENV: production
+    ports:
+      - "127.0.0.1:3031:3002"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3002/"]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=64m
+      - /app/.next/cache:noexec,nosuid,uid=1001,gid=1001,size=128m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    stop_grace_period: 5s
+    networks:
+      - web
+
+volumes:
+  clickhouse_data:
+  postgres_data:
+  redis_data:
+
+networks:
+  # The stores have no way out: only the backend, which also sits on `web`, reaches them.
+  data:
+    internal: true
+  web:
+
+# Upstream inlines these as `configs: content:`, which compose cannot write into a read-only
+# container; the files sit next to this one and the workflow copies them with it.
+configs:
+  clickhouse_logging:
+    file: ./clickhouse/logging_rules.xml
+  clickhouse_resource_limits:
+    file: ./clickhouse/resource_limits.xml
+  clickhouse_user_settings:
+    file: ./clickhouse/user_settings.xml

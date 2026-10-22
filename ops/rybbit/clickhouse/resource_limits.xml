@@ -1,0 +1,7 @@
+<clickhouse>
+  <!-- Upstream's ratios. Under the container's mem_limit they apply to that limit, not to the
+       host, which ClickHouse shares with both DuelMe stacks. -->
+  <max_server_memory_usage_to_ram_ratio>0.80</max_server_memory_usage_to_ram_ratio>
+  <concurrent_threads_soft_limit_ratio_to_cores>1</concurrent_threads_soft_limit_ratio_to_cores>
+  <merges_mutations_memory_usage_to_ram_ratio>0.25</merges_mutations_memory_usage_to_ram_ratio>
+</clickhouse>
