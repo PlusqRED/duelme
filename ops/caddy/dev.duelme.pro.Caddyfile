@@ -12,9 +12,8 @@ dev.duelme.pro {
 		-X-Powered-By
 	}
 
-	request_body {
-		max_size 1MB
-	}
+	# The tracker under /t/ and the body limits: ops/caddy/rybbit-tracker.caddy.
+	import /etc/caddy/rybbit-tracker.caddy
 
 	handle /api/v1/* {
 		reverse_proxy 127.0.0.1:8080

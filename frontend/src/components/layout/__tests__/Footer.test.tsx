@@ -21,6 +21,12 @@ describe('Footer', () => {
     expect(screen.getByText(translations.ru['footer.tagline'])).toBeTruthy();
   });
 
+  it('links the privacy page', async () => {
+    render(await Footer());
+
+    expect(screen.getByRole('link', { name: translations.ru['footer.privacy'] }).getAttribute('href')).toBe('/privacy');
+  });
+
   it('links both channels by name, opening them in a new tab', async () => {
     render(await Footer());
 

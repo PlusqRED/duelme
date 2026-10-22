@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { BrandLink } from '@/components/identity/BrandLink';
 import { PlatformIcon } from '@/components/profile/PlatformIcon';
 import { getTranslation } from '@/i18n/serverTranslation';
@@ -7,6 +8,8 @@ const channels = [
   { platform: 'telegram', name: 'Telegram', href: TELEGRAM_URL },
   { platform: 'instagram', name: 'Instagram', href: INSTAGRAM_URL },
 ] as const;
+
+const FOOTER_LINK = 'inline-flex min-h-11 items-center text-ink underline-offset-4 hover:underline';
 
 /**
  * The foot of every page, as the landing's demo draws it: the mark, what DuelMe is, its channels,
@@ -38,12 +41,15 @@ export async function Footer() {
         </ul>
         <p>
           {t('footer.developer')}:{' '}
-          <a href={`mailto:${DEVELOPER_EMAIL}`} className="inline-flex min-h-11 items-center text-ink underline-offset-4 hover:underline">
+          <a href={`mailto:${DEVELOPER_EMAIL}`} className={FOOTER_LINK}>
             {DEVELOPER_EMAIL}
           </a>
         </p>
         <p>
-          © {new Date().getFullYear()} {SITE_NAME}. {t('footer.rights')}
+          © {new Date().getFullYear()} {SITE_NAME}. {t('footer.rights')}{' '}
+          <Link href="/privacy" className={FOOTER_LINK}>
+            {t('footer.privacy')}
+          </Link>
         </p>
       </div>
     </footer>
