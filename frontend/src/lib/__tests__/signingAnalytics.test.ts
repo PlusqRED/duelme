@@ -8,7 +8,7 @@ const JOIN: SigningProps = { action: 'joinDuelWithPermit', chain_id: DEFAULT_CHA
 const CREATE: SigningProps = { action: 'createDuelWithPermit', chain_id: DEFAULT_CHAIN.id, contract: '0xc0', route: 'relay', stake: '5' };
 
 function snap(overrides: Partial<SigningSnapshot> = {}): SigningSnapshot {
-  return { open: true, place: 'review', error: null, confirming: false, props: JOIN, ...overrides };
+  return { open: true, place: 'review', error: null, confirming: false, awaitsDuelId: false, props: JOIN, ...overrides };
 }
 
 const rejected: FlowError = { kind: 'rejected', detail: 'User rejected the request.', canRetry: true };
@@ -71,10 +71,10 @@ describe('signingEvents', () => {
   });
 
   it('holds a create’s Done until its receipt names the duel', () => {
-    const waiting = snap({ place: 'success', props: CREATE });
+    const waiting = snap({ place: 'success', props: CREATE, awaitsDuelId: true });
     const named = snap({ place: 'success', props: { ...CREATE, duel_id: 12 } });
 
-    expect(signingEvents(snap({ place: 'write', props: CREATE }), waiting)).toEqual([]);
+    expect(signingEvents(snap({ place: 'write', props: CREATE, awaitsDuelId: true }), waiting)).toEqual([]);
     expect(signingEvents(waiting, named)).toEqual([{ name: 'signing_done', props: { ...CREATE, duel_id: 12 } }]);
   });
 
@@ -87,9 +87,9 @@ describe('signingEvents', () => {
   });
 
   it('still reports a create closed on Done before its duel was named', () => {
-    const waiting = snap({ place: 'success', props: CREATE });
+    const waiting = snap({ place: 'success', props: CREATE, awaitsDuelId: true });
 
-    expect(signingEvents(waiting, snap({ open: false, place: 'success', props: CREATE }))).toEqual([
+    expect(signingEvents(waiting, snap({ open: false, place: 'success', props: CREATE, awaitsDuelId: true }))).toEqual([
       { name: 'signing_done', props: CREATE },
     ]);
   });

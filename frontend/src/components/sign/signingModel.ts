@@ -76,9 +76,9 @@ export interface SigningModel {
   chainName: string;
   /**
    * The duel the window signs for, which the analytics name it by: a create's once its receipt
-   * names it, null until then; null for a Take over several, which gives `duelCount` instead.
+   * names it, `pending` until then; null for a Take over several, which gives `duelCount` instead.
    */
-  duelId: number | null;
+  duelId: number | 'pending' | null;
   duelCount?: number;
   /** The stake, bare, for the words about an approve that stays. */
   wager?: string;

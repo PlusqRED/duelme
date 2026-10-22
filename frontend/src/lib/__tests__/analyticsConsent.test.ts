@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const sent = vi.hoisted(() => ({ events: [] as [string, unknown][] }));
 vi.mock('@/lib/analytics', () => ({
   trackEvent: (name: string, props: unknown) => sent.events.push([name, props]),
+  forgetPlayer: () => sent.events.push(['forget', null]),
+  stopReplay: () => sent.events.push(['stop replay', null]),
 }));
 
 const {
@@ -81,6 +83,8 @@ describe('chooseAnalytics', () => {
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(sent.events).toEqual([
       ['analytics_choice', { choice: 'granted' }],
+      ['forget', null],
+      ['stop replay', null],
       ['analytics_choice', { choice: 'denied' }],
     ]);
   });

@@ -132,6 +132,21 @@ describe('with a site id', () => {
     expect(tracker.event).toHaveBeenCalledTimes(50);
   });
 
+  it('keeps forgetting and stopping however full the wait is, for they take something back', async () => {
+    const { trackEvent, forgetPlayer, stopReplay, flushAnalytics } = await loadAnalytics(SITE_ID);
+
+    for (let i = 0; i < 80; i += 1) {
+      trackEvent('signed_out', {});
+    }
+    forgetPlayer();
+    stopReplay();
+    const tracker = installTracker();
+    flushAnalytics();
+
+    expect(tracker.clearUserId).toHaveBeenCalledTimes(1);
+    expect(tracker.stopSessionReplay).toHaveBeenCalledTimes(1);
+  });
+
   it('ignores a window.rybbit that is not the tracker', async () => {
     const { trackEvent, flushAnalytics } = await loadAnalytics(SITE_ID);
     Reflect.set(window, 'rybbit', { event: 'nope' });

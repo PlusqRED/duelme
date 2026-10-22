@@ -8,6 +8,8 @@ vi.mock('@/lib/analytics', () => ({
   get ANALYTICS_SITE_ID() {
     return tracker.siteId;
   },
+  forgetPlayer: vi.fn(),
+  stopReplay: vi.fn(),
   trackEvent: vi.fn(),
 }));
 

@@ -67,7 +67,7 @@ export function CreateSigningWindow(props: CreateSigningWindowProps) {
     <SigningWindow
       model={{
         ...funding,
-        duelId: createdId,
+        duelId: createdId ?? 'pending',
         copy,
         title: t(copy.title, params),
         sub: game ? t('sign.create.sub', params) : t('sign.create.sub.noGame'),

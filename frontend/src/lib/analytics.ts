@@ -112,14 +112,15 @@ function run(api: RybbitApi, call: TrackerCall) {
   }
 }
 
-function withTracker(call: TrackerCall) {
+/** `essential`: a call that takes something back (forget, stop recording) waits whatever the count. */
+function withTracker(call: TrackerCall, essential = false) {
   if (!ANALYTICS_SITE_ID) {
     return;
   }
   const api = tracker();
   if (api) {
     run(api, call);
-  } else if (pending.length < MAX_PENDING) {
+  } else if (essential || pending.length < MAX_PENDING) {
     pending.push(call);
   }
 }
@@ -153,7 +154,7 @@ export function identifyPlayer(userId: string, traits: PlayerTraits) {
 
 /** Unties this browser from the player, as on signing out or taking the agreement back. */
 export function forgetPlayer() {
-  withTracker((api) => api.clearUserId());
+  withTracker((api) => api.clearUserId(), true);
 }
 
 // The answer as it stands now: the tracker's config and rrweb each take a while to arrive, and the
@@ -203,5 +204,5 @@ export function startReplay() {
 
 export function stopReplay() {
   isReplayWanted = false;
-  withTracker((api) => api.stopSessionReplay());
+  withTracker((api) => api.stopSessionReplay(), true);
 }

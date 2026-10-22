@@ -7,6 +7,27 @@ import { trackEvent, type SigningProps, type WalletKind } from '@/lib/analytics'
 import { USDT_DECIMALS } from '@/lib/constants';
 import { signingEvents, type SigningEvent, type SigningSnapshot } from '@/lib/signingAnalytics';
 
+function snapshotOf(model: SigningModel, walletKind: WalletKind | undefined): SigningSnapshot {
+  const props: SigningProps = {
+    action: model.facts.functionName,
+    chain_id: model.chainId,
+    contract: model.facts.contract.toLowerCase(),
+    route: model.route,
+    duel_id: typeof model.duelId === 'number' ? model.duelId : undefined,
+    duels: model.duelCount,
+    stake: model.stake ? formatUnits(model.stake.needRaw, USDT_DECIMALS) : undefined,
+    wallet_kind: walletKind,
+  };
+  return {
+    open: model.open,
+    place: model.place,
+    error: model.error,
+    confirming: model.actionState === 'confirming',
+    awaitsDuelId: model.duelId === 'pending',
+    props,
+  };
+}
+
 function send(events: SigningEvent[]) {
   for (const event of events) {
     trackEvent(event.name, event.props);
@@ -21,28 +42,11 @@ function send(events: SigningEvent[]) {
 export function useSigningAnalytics(model: SigningModel, walletKind: WalletKind | undefined) {
   const last = useRef<SigningSnapshot | null>(null);
 
-  const props: SigningProps = {
-    action: model.facts.functionName,
-    chain_id: model.chainId,
-    contract: model.facts.contract.toLowerCase(),
-    route: model.route,
-    duel_id: model.duelId ?? undefined,
-    duels: model.duelCount,
-    stake: model.stake ? formatUnits(model.stake.needRaw, USDT_DECIMALS) : undefined,
-    wallet_kind: walletKind,
-  };
-  const snapshot: SigningSnapshot = {
-    open: model.open,
-    place: model.place,
-    error: model.error,
-    confirming: model.actionState === 'confirming',
-    props,
-  };
-
   // Every render: the events are the difference between this one and the one before.
   useEffect(() => {
-    send(signingEvents(last.current, snapshot));
-    last.current = snapshot;
+    const now = snapshotOf(model, walletKind);
+    send(signingEvents(last.current, now));
+    last.current = now;
   });
 
   // A window taken off the page while open (another page, the back gesture) closes there.

@@ -34,8 +34,12 @@ Environments, CI jobs and deploys. The root `CLAUDE.md` applies here too.
   in the page), built into the frontend image; unset, the site loads no tracker. What the tracker
   collects (clicks, errors, web vitals, replays…) is each site's settings in the dashboard, not
   code, and the privacy page lists it (`privacy.analytics.*` in
-  `frontend/src/i18n/translations/privacy.ts`): a setting turned on goes onto that list too. Keep
-  "track IP" off: the page says the IP is not kept.
+  `frontend/src/i18n/translations/privacy.ts`): a setting turned on goes onto that list too. Three
+  settings back what the page promises. "Track IP" stays off: the page says the IP is not kept.
+  "Salt user IDs" stays on: Rybbit names an anonymous visitor by a hash of IP and browser, and
+  keeps the link to a Privy id that an identify made, so unsalted a yes taken back still tied the
+  browser to the player for good; salted, the hash changes each UTC day, as the page says. "URL
+  params" stays off: Privy's sign-in returns with its OAuth code in the query string.
 - Players' browsers reach the tracker on the site itself: Caddy (`ops/caddy/rybbit-tracker.caddy`,
   imported by both public sites) rewrites an allowlist of `/t/*` paths (the scripts, `track`, `identify`, the tracking config, replay uploads) to `/api/*`
   on 3030 and answers 404 for any other `/t/` path, so the dashboard's API is never served from
@@ -47,10 +51,13 @@ Environments, CI jobs and deploys. The root `CLAUDE.md` applies here too.
 - Sign-up is closed (`DISABLE_SIGNUP`). For the first account, run the workflow by hand on `dev`
   with `allow_signup`, sign up, then run it again without it.
 - Rybbit deletes replays after 30 days; events are kept until deleted.
-- Nothing throttles the public tracker paths, and a replay upload may be 10 MB, while the disk is
-  the host's, MongoDB's too. So ClickHouse writes nothing more once 50 GiB of it are free
-  (`keep_free_space_bytes` in `ops/rybbit/clickhouse/resource_limits.xml`): a flood stops the
-  analytics, never the site.
+- Nothing throttles the public tracker paths (stock Caddy has no rate limiter), and a replay
+  upload may be 10 MB, while the disk is the host's, MongoDB's too. So ClickHouse writes nothing
+  more once 50 GiB of it are free (`keep_free_space_bytes` in
+  `ops/rybbit/clickhouse/resource_limits.xml`). Postgres has no such guard: an identify adds a
+  player's row, so a flood of identifies with made-up ids grows it until a rate limit exists.
+- Rybbit's identify takes the device's IP, browser and anonymous id from its body, unchecked, so
+  anyone can tie a device to any id: the analytics can be forged, as any public tracker's can.
 
 ## Key Files
 

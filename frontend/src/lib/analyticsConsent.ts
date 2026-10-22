@@ -1,4 +1,4 @@
-import { trackEvent } from '@/lib/analytics';
+import { forgetPlayer, stopReplay, trackEvent } from '@/lib/analytics';
 import { isRecord } from '@/lib/parsing';
 
 /**
@@ -91,6 +91,11 @@ export function subscribeToConsent(onChange: () => void): () => void {
 export function chooseAnalytics(choice: ConsentChoice) {
   const storage = browserStorage();
   unsavedChoice = storage && saveConsent(storage, choice) ? null : choice;
+  // A no takes effect before it is counted, or its own event would still carry the player's id.
+  if (choice === 'denied') {
+    forgetPlayer();
+    stopReplay();
+  }
   trackEvent('analytics_choice', { choice });
   listeners.forEach((listener) => listener());
 }

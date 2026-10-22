@@ -1,12 +1,13 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ANALYTICS_CONSENT_KEY, chooseAnalytics, saveConsent } from '@/lib/analyticsConsent';
+import { ANALYTICS_CONSENT_KEY, saveConsent } from '@/lib/analyticsConsent';
 import { translations } from '@/i18n/translations';
 
 const tracker = vi.hoisted(() => ({
   siteId: 'abc123' as string | null,
   flushAnalytics: vi.fn(),
+  forgetPlayer: vi.fn(),
   startReplay: vi.fn(),
   stopReplay: vi.fn(),
   trackEvent: vi.fn(),
@@ -18,6 +19,7 @@ vi.mock('@/lib/analytics', () => ({
   },
   TRACKER_PATH: '/t',
   flushAnalytics: tracker.flushAnalytics,
+  forgetPlayer: tracker.forgetPlayer,
   startReplay: tracker.startReplay,
   stopReplay: tracker.stopReplay,
   trackEvent: tracker.trackEvent,
@@ -95,11 +97,14 @@ describe('Analytics', () => {
     expect(banner()).toBeNull();
   });
 
-  it('stops the recording when the yes is taken back', () => {
+  it('stops the recording when the yes is taken back in another tab', () => {
     answer('granted');
     render(<Analytics />);
 
-    act(() => chooseAnalytics('denied'));
+    act(() => {
+      answer('denied');
+      window.dispatchEvent(new StorageEvent('storage', { key: ANALYTICS_CONSENT_KEY }));
+    });
 
     expect(tracker.stopReplay).toHaveBeenCalledTimes(1);
   });

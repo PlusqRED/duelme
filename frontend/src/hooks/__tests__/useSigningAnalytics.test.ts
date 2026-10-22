@@ -63,6 +63,17 @@ describe('useSigningAnalytics', () => {
     ]);
   });
 
+  it('holds a create’s Done until its receipt names the duel', () => {
+    const { rerender } = windowOf(joinModel({ place: 'success', duelId: 'pending' }), 'embedded');
+
+    rerender({ shown: joinModel({ place: 'success', duelId: 12 }) });
+
+    expect(sent.trackEvent.mock.calls.map(([name, props]) => [name, props.duel_id])).toEqual([
+      ['signing_opened', undefined],
+      ['signing_done', 12],
+    ]);
+  });
+
   it('names the wallet as the window gives it, and none while signed out', () => {
     windowOf(joinModel(), 'external');
     windowOf(joinModel(), undefined);

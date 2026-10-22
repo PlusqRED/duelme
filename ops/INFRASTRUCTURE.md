@@ -27,7 +27,7 @@ Comprehensive hardening applied across CI/CD, Docker, reverse proxy, and runtime
 | Network isolation | Separate `backend` and `frontend` Docker networks — frontend cannot reach MongoDB |
 | MongoDB authentication | Root credentials via `--auth` flag, unauthenticated `ping` healthcheck (no credentials in any argv), connection URI with `authSource=admin` |
 | Secrets management | `.env` files generated at deploy time from GitHub environment secrets — no secrets in repo or on disk manually |
-| Analytics ingest allowlist | The public sites pass only the tracker's own paths under `/t/` to Rybbit; any other `/t/` path is a 404, so its dashboard API is reachable only through stats.duelme.pro. Caddy sets `X-Real-IP` to the connecting address and drops `CF-Connecting-IP`, the two headers Rybbit trusts before `X-Forwarded-For`, so a visitor cannot pass for another IP |
+| Analytics ingest allowlist | The public sites pass only the tracker's own paths under `/t/` to Rybbit; any other `/t/` path is a 404, so its dashboard API is reachable only through stats.duelme.pro. Caddy sets `X-Real-IP` to the connecting address and drops `CF-Connecting-IP`, the two headers Rybbit trusts before `X-Forwarded-For`, so an event cannot pass for another IP (Rybbit's identify still takes one from its body) |
 | Analytics dashboard | stats.duelme.pro: Caddy basic auth (bcrypt, kept on the host only) before Rybbit's login, sign-up closed, `X-Robots-Tag: noindex`; fail2ban bans an IP for a day after 5 wrong passwords in an hour |
 | Analytics stores | ClickHouse, Postgres and Redis on an internal Docker network with no host ports; Redis's password via a tmpfs config file, not argv |
 | Swagger blocked in prod | Switched off in `application-prod.yml` and denied at runtime by `SecurityConfig` (the native image ignores the profile's springdoc switches) and blocked at Caddy level (404 for `/api/v1/swagger-ui*`, `/api/v1/docs*`, `/api/v1/v3/api-docs*`) |
@@ -53,7 +53,7 @@ Comprehensive hardening applied across CI/CD, Docker, reverse proxy, and runtime
 | CPU limits | MongoDB 1.0, backend 1.0, frontend 0.5; analytics: ClickHouse 2.0, Rybbit backend 2.0, Postgres and dashboard 1.0, Redis 0.5 |
 | PID limits | MongoDB 256, backend 128, frontend 128; analytics: ClickHouse 4096 (it counts threads), Rybbit backend 512, Postgres 256, dashboard 128, Redis 64 |
 | Log rotation | `json-file` driver, 10 MB max per file, 3 files retained; ClickHouse logs to the console only, so Docker rotates its logs too |
-| Analytics disk guard | ClickHouse stops writing while the host disk has under 50 GiB free, so a flood of public uploads cannot fill the disk MongoDB shares |
+| Analytics disk guard | ClickHouse stops writing while the host disk has under 50 GiB free, so a flood of public uploads cannot fill the disk MongoDB shares; Rybbit's Postgres has no such guard, and nothing rate-limits the public tracker paths |
 | Stop grace period | MongoDB 10s, backend/frontend 5s |
 
 ## CI/CD Pipeline

@@ -9,6 +9,8 @@ export interface SigningSnapshot {
   error: FlowError | null;
   /** The write is sent and the chain is confirming it. */
   confirming: boolean;
+  /** A create whose receipt has not named the new duel yet: its Done waits for the id. */
+  awaitsDuelId: boolean;
   props: SigningProps;
 }
 
@@ -29,16 +31,8 @@ function shortDetail(detail: string | null): string | undefined {
   return detail?.replace(LONG_HEX, '0x…').slice(0, MAX_DETAIL);
 }
 
-/**
- * A create's Done can come before its receipt names the duel; its event waits for the id. Only a
- * create has neither: every other window names its duel, or counts the duels of a Take.
- */
-function awaitsDuelId(snapshot: SigningSnapshot): boolean {
-  return snapshot.props.duel_id === undefined && snapshot.props.duels === undefined;
-}
-
 function isDone(snapshot: SigningSnapshot | null): boolean {
-  return snapshot !== null && snapshot.open && snapshot.place === 'success' && !awaitsDuelId(snapshot);
+  return snapshot !== null && snapshot.open && snapshot.place === 'success' && !snapshot.awaitsDuelId;
 }
 
 /**
@@ -71,7 +65,7 @@ export function signingEvents(before: SigningSnapshot | null, now: SigningSnapsh
     if (before.place !== 'success') {
       const name = before.confirming ? 'signing_left' : 'signing_abandoned';
       events.push({ name, props: { ...before.props, place: before.place } });
-    } else if (awaitsDuelId(before)) {
+    } else if (before.awaitsDuelId) {
       // Closed on Done before the receipt named the duel: it was made all the same.
       events.push({ name: 'signing_done', props: before.props });
     }
