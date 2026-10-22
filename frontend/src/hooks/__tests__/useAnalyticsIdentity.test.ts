@@ -34,7 +34,7 @@ vi.mock('@privy-io/react-auth', () => ({
 vi.mock('@/hooks/useActiveWallet', () => ({
   useActiveWallet: () => ({ activeWallet: privy.wallet, walletAddress: privy.address }),
 }));
-vi.mock('@/lib/analytics', () => analytics);
+vi.mock('@/lib/analytics', async (importOriginal) => ({ ...(await importOriginal<object>()), ...analytics }));
 
 const { useAnalyticsIdentity } = await import('@/hooks/useAnalyticsIdentity');
 
@@ -99,7 +99,7 @@ describe('useAnalyticsIdentity', () => {
     expect(analytics.forgetPlayer).toHaveBeenCalledTimes(1);
   });
 
-  it('waits for the answer and for Privy before doing either', () => {
+  it('waits for the answer, and for Privy before naming anyone', () => {
     signIn();
     identity('unknown');
     privy.ready = false;
@@ -107,6 +107,14 @@ describe('useAnalyticsIdentity', () => {
 
     expect(analytics.identifyPlayer).not.toHaveBeenCalled();
     expect(analytics.forgetPlayer).not.toHaveBeenCalled();
+  });
+
+  it('forgets a player without a yes at once, before Privy is ready', () => {
+    privy.ready = false;
+
+    identity('denied');
+
+    expect(analytics.forgetPlayer).toHaveBeenCalledTimes(1);
   });
 
   it('counts a sign-in with its method and whether the player is new, for everyone', () => {

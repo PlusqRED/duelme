@@ -1,5 +1,6 @@
 import type { FlowErrorKind } from '@/lib/flowError';
 import { isRecord } from '@/lib/parsing';
+import { EMBEDDED_WALLET_CLIENT_TYPE } from '@/lib/walletSelection';
 import type { WriteRoute } from '@/lib/writeRoute';
 
 /**
@@ -27,6 +28,14 @@ type PropValue = string | number;
 /** Whether Privy made the player's wallet or they brought their own. */
 export type WalletKind = 'embedded' | 'external';
 
+/** The kind of the wallet a player signs with; none while signed out. */
+export function walletKindOf(wallet: { walletClientType: string } | null | undefined): WalletKind | undefined {
+  if (!wallet) {
+    return undefined;
+  }
+  return wallet.walletClientType === EMBEDDED_WALLET_CLIENT_TYPE ? 'embedded' : 'external';
+}
+
 /** A signing window's flow, sent with every event it raises. */
 export interface SigningProps {
   /** The contract function the window sends. */
@@ -50,6 +59,8 @@ export interface AnalyticsEvents {
   signing_done: SigningProps;
   /** Closed before Done, from wherever the flow stood. */
   signing_abandoned: SigningProps & { place: string };
+  /** Left while the chain confirmed a sent write, which may still go through out of sight. */
+  signing_left: SigningProps & { place: string };
   signed_in: { method: string; new_user: 0 | 1 };
   signed_out: Record<string, never>;
   analytics_choice: { choice: 'granted' | 'denied' };
@@ -68,9 +79,11 @@ interface RybbitApi {
   startSessionReplay(): void;
   stopSessionReplay(): void;
   isSessionReplayActive(): boolean;
+  /** Calls back once the tracker has its site's config; at once if it has, never if opted out. */
+  onReady(callback: () => void): void;
 }
 
-const API_METHODS = ['event', 'identify', 'clearUserId', 'startSessionReplay', 'stopSessionReplay', 'isSessionReplayActive'];
+const API_METHODS = ['event', 'identify', 'clearUserId', 'startSessionReplay', 'stopSessionReplay', 'isSessionReplayActive', 'onReady'];
 
 function isRybbitApi(value: unknown): value is RybbitApi {
   return isRecord(value) && API_METHODS.every((method) => typeof value[method] === 'function');
@@ -143,39 +156,52 @@ export function forgetPlayer() {
   withTracker((api) => api.clearUserId());
 }
 
+// The answer as it stands now: the tracker's config and rrweb each take a while to arrive, and the
+// player can take the yes back meanwhile, so every step asks again.
+let isReplayWanted = false;
 let isReplayLoading = false;
 
+function recordIfWanted(api: RybbitApi) {
+  if (isReplayWanted && !api.isSessionReplayActive()) {
+    api.startSessionReplay();
+  }
+}
+
+function loadReplayAndRecord(api: RybbitApi) {
+  if (!isReplayWanted || isReplayLoading || api.isSessionReplayActive()) {
+    return;
+  }
+  if (Reflect.get(window, 'rrweb') !== undefined) {
+    recordIfWanted(api);
+    return;
+  }
+  isReplayLoading = true;
+  const script = document.createElement('script');
+  script.src = `${TRACKER_PATH}/replay.js`;
+  script.async = true;
+  script.onload = () => {
+    isReplayLoading = false;
+    withTracker(recordIfWanted);
+  };
+  script.onerror = () => {
+    isReplayLoading = false;
+    console.warn('Session replay could not load');
+  };
+  document.head.appendChild(script);
+}
+
 /**
- * Starts recording the session once the player agrees on this page. The tracker starts recording
- * by itself only when its tag allowed it (`AnalyticsTracker` holds it back until there is consent);
- * after that, Rybbit 2.9's recorder starts only once rrweb is on the page, which it fetches for
- * itself only in the first case. So this brings the tracker's own copy of rrweb and then starts it.
+ * Records the session while the player agrees, from a page loaded with their yes or from the yes
+ * given on it. The tag always holds Rybbit's own recording back, since Rybbit 2.9 cannot stop one
+ * still fetching rrweb; this brings the tracker's copy of rrweb once the tracker is ready
+ * (`onReady`: its recorder exists only then, and an opted-out tracker never is) and starts it.
  */
 export function startReplay() {
-  withTracker((api) => {
-    if (api.isSessionReplayActive() || isReplayLoading) {
-      return;
-    }
-    if (Reflect.get(window, 'rrweb') !== undefined) {
-      api.startSessionReplay();
-      return;
-    }
-    isReplayLoading = true;
-    const script = document.createElement('script');
-    script.src = `${TRACKER_PATH}/replay.js`;
-    script.async = true;
-    script.onload = () => {
-      isReplayLoading = false;
-      withTracker((loaded) => loaded.startSessionReplay());
-    };
-    script.onerror = () => {
-      isReplayLoading = false;
-      console.warn('Session replay could not load');
-    };
-    document.head.appendChild(script);
-  });
+  isReplayWanted = true;
+  withTracker((api) => api.onReady(() => withTracker(loadReplayAndRecord)));
 }
 
 export function stopReplay() {
+  isReplayWanted = false;
   withTracker((api) => api.stopSessionReplay());
 }

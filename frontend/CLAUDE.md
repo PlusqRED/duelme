@@ -85,8 +85,8 @@ session's recording; taking it back, here or in another tab, stops both. The ans
 `localStorage` (`lib/analyticsConsent.ts`), changed on the privacy page too (`AnalyticsChoice`).
 The app's own events and what each carries are `AnalyticsEvents` in `lib/analytics.ts`, sent only
 through `trackEvent`; the signing window reports itself (`useSigningAnalytics`, on
-`lib/signingAnalytics.ts`): opened, failed, done or abandoned, with the action, duel, contract,
-stake and wallet kind.
+`lib/signingAnalytics.ts`): opened, failed, done, abandoned, or left while the chain confirmed (a
+write that may still land out of its sight), with the action, duel, contract, stake and wallet kind.
 
 ## Standards (Next.js / React / TS / Tailwind)
 
@@ -427,11 +427,11 @@ test can check.
   language left `localStorage`. The analytics answer does live there, so `useAnalyticsConsent`
   reports `unknown` on the server and in the first render, and nothing analytics draws or sends
   happens until it knows.
-- **Rybbit's tag is read once, when its script runs.** `data-replay-sample-rate="0"` is what keeps
-  a visitor without a yes from being recorded, and changing the attribute later does nothing: a yes
-  given on the page starts the recording through `startReplay` (which loads `/t/replay.js` first),
-  and a no stops it through `stopReplay`; `next/script` adds the tag once and never updates it.
-  Only a page loaded with the yes already given drops the attribute and records from the start.
+- **Rybbit records only through `startReplay`.** Its tag always carries
+  `data-replay-sample-rate="0"`: left to itself, Rybbit 2.9 fetches rrweb before it records and
+  cannot be stopped meanwhile, so a yes taken back in those seconds was recorded all the same.
+  `startReplay` waits for the tracker (`onReady`: its recorder exists only once the site's config
+  arrived), loads `/t/replay.js`, and asks the answer again at each step; `stopReplay` stops it.
 - **The image build copies root config files by name.** `Dockerfile` lists them in a `COPY`, and a
   pull request's CI does not build the image, so deleting one of them (as with shadcn's
   `components.json`) passes every check and breaks the deploy only after the merge.

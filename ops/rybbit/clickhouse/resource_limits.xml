@@ -4,4 +4,13 @@
   <max_server_memory_usage_to_ram_ratio>0.80</max_server_memory_usage_to_ram_ratio>
   <concurrent_threads_soft_limit_ratio_to_cores>1</concurrent_threads_soft_limit_ratio_to_cores>
   <merges_mutations_memory_usage_to_ram_ratio>0.25</merges_mutations_memory_usage_to_ram_ratio>
+  <!-- The tracker's endpoints are public and nothing throttles them, and the disk is the host's,
+       MongoDB's too. ClickHouse writes nothing more once 50 GiB are all that is left. -->
+  <storage_configuration>
+    <disks>
+      <default>
+        <keep_free_space_bytes>53687091200</keep_free_space_bytes>
+      </default>
+    </disks>
+  </storage_configuration>
 </clickhouse>

@@ -5,7 +5,13 @@ import { formatUnits } from 'viem';
 import type { SigningModel } from '@/components/sign/signingModel';
 import { trackEvent, type SigningProps, type WalletKind } from '@/lib/analytics';
 import { USDT_DECIMALS } from '@/lib/constants';
-import { signingEvents, type SigningSnapshot } from '@/lib/signingAnalytics';
+import { signingEvents, type SigningEvent, type SigningSnapshot } from '@/lib/signingAnalytics';
+
+function send(events: SigningEvent[]) {
+  for (const event of events) {
+    trackEvent(event.name, event.props);
+  }
+}
 
 /**
  * Reports how a signing window goes (`lib/signingAnalytics.ts`): every duel write passes through
@@ -25,13 +31,28 @@ export function useSigningAnalytics(model: SigningModel, walletKind: WalletKind 
     stake: model.stake ? formatUnits(model.stake.needRaw, USDT_DECIMALS) : undefined,
     wallet_kind: walletKind,
   };
-  const snapshot: SigningSnapshot = { open: model.open, place: model.place, error: model.error, props };
+  const snapshot: SigningSnapshot = {
+    open: model.open,
+    place: model.place,
+    error: model.error,
+    confirming: model.actionState === 'confirming',
+    props,
+  };
 
   // Every render: the events are the difference between this one and the one before.
   useEffect(() => {
-    for (const event of signingEvents(last.current, snapshot)) {
-      trackEvent(event.name, event.props);
-    }
+    send(signingEvents(last.current, snapshot));
     last.current = snapshot;
   });
+
+  // A window taken off the page while open (another page, the back gesture) closes there.
+  useEffect(
+    () => () => {
+      const shown = last.current;
+      if (shown) {
+        send(signingEvents(shown, { ...shown, open: false }));
+      }
+    },
+    []
+  );
 }

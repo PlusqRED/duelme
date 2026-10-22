@@ -34,7 +34,7 @@ export const privacyTranslations = defineSection({
       'The nickname, status, about text and games you fill in, and the Steam, Telegram or Instagram accounts you link, are kept on our server and shown on your public profile. You change or remove them on the profile page.',
     'privacy.analytics.title': 'Analytics',
     'privacy.analytics.text':
-      'We count how DuelMe is used with Rybbit, which runs on our own server: nothing goes to an analytics company. For everyone: the pages opened and the links followed to other sites, the buttons pressed and the text on them, text copied from a page, which fields are filled in (not what is typed), errors, how signing a duel went, the page’s speed, the browser and device, and the country and city worked out from the IP address, which is not kept. None of it is tied to your account.',
+      'We count how DuelMe is used with Rybbit, which runs on our own server: nothing goes to an analytics company. For everyone: the pages opened and the links followed to other sites, the buttons pressed and the text on them, text copied from a page, which fields are filled in (not what is typed), errors, how signing a duel went (which duel, its stake, the error if any), the page’s speed, the browser and device, and the country and city worked out from the IP address, which is not kept. None of it is tied to your account, though a duel named there can be looked up on the blockchain, players included.',
     'privacy.analytics.consent':
       'If you allow it, it is also tied to your Privy id and wallet address, and your sessions are recorded: what the screen showed and where you pressed, with what you type into fields hidden. Recordings are deleted after 30 days.',
     'privacy.browser.title': 'In your browser',
@@ -79,7 +79,7 @@ export const privacyTranslations = defineSection({
       'Ник, статус, текст о себе и игры, которые ты указываешь, и привязанные аккаунты Steam, Telegram или Instagram хранятся на нашем сервере и видны в публичном профиле. Изменить или убрать их можно на странице профиля.',
     'privacy.analytics.title': 'Аналитика',
     'privacy.analytics.text':
-      'Мы считаем, как пользуются DuelMe, через Rybbit на своём сервере: в аналитические компании ничего не уходит. У всех: открытые страницы и ссылки на другие сайты, нажатые кнопки и текст на них, скопированный со страницы текст, какие поля заполнены (но не что в них введено), ошибки, как прошла подпись дуэли, скорость страниц, браузер и устройство, страна и город по IP-адресу, сам адрес не хранится. Ничего из этого не связано с твоим аккаунтом.',
+      'Мы считаем, как пользуются DuelMe, через Rybbit на своём сервере: в аналитические компании ничего не уходит. У всех: открытые страницы и ссылки на другие сайты, нажатые кнопки и текст на них, скопированный со страницы текст, какие поля заполнены (но не что в них введено), ошибки, как прошла подпись дуэли (сама дуэль, ставка и ошибка, если была), скорость страниц, браузер и устройство, страна и город по IP-адресу, сам адрес не хранится. Ничего из этого не связано с твоим аккаунтом, но названную там дуэль можно найти в блокчейне, вместе с игроками.',
     'privacy.analytics.consent':
       'С твоего разрешения это ещё связывается с идентификатором в Privy и адресом кошелька, а сессии записываются: что было на экране и куда было нажатие, без того, что вводится в поля. Записи удаляются через 30 дней.',
     'privacy.browser.title': 'В браузере',

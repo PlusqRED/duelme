@@ -115,8 +115,8 @@ services:
     restart: unless-stopped
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
-    # The password goes through a config file in tmpfs, not argv, so neither `ps` on the host
-    # nor `docker inspect` shows it. noeviction and AOF are upstream's: Redis holds session
+    # The password reaches redis-server through a config file in tmpfs, not argv, so `ps` on the
+    # host does not show it (`docker inspect` does, as for every variable here). noeviction and AOF are upstream's: Redis holds session
     # tracking and bot counters, whose keys expire on their own.
     entrypoint:
       - sh

@@ -47,6 +47,10 @@ Environments, CI jobs and deploys. The root `CLAUDE.md` applies here too.
 - Sign-up is closed (`DISABLE_SIGNUP`). For the first account, run the workflow by hand on `dev`
   with `allow_signup`, sign up, then run it again without it.
 - Rybbit deletes replays after 30 days; events are kept until deleted.
+- Nothing throttles the public tracker paths, and a replay upload may be 10 MB, while the disk is
+  the host's, MongoDB's too. So ClickHouse writes nothing more once 50 GiB of it are free
+  (`keep_free_space_bytes` in `ops/rybbit/clickhouse/resource_limits.xml`): a flood stops the
+  analytics, never the site.
 
 ## Key Files
 

@@ -9,6 +9,7 @@ interface FakeTracker {
   startSessionReplay: ReturnType<typeof vi.fn>;
   stopSessionReplay: ReturnType<typeof vi.fn>;
   isSessionReplayActive: ReturnType<typeof vi.fn>;
+  onReady: ReturnType<typeof vi.fn>;
 }
 
 function fakeTracker(): FakeTracker {
@@ -19,6 +20,7 @@ function fakeTracker(): FakeTracker {
     startSessionReplay: vi.fn(),
     stopSessionReplay: vi.fn(),
     isSessionReplayActive: vi.fn(() => false),
+    onReady: vi.fn((callback: () => void) => callback()),
   };
 }
 
@@ -61,6 +63,16 @@ describe('parseSiteId', () => {
     for (const value of [undefined, '', '   ', 'abc def', '"><script>', 'A'.repeat(33), 'ABC']) {
       expect(parseSiteId(value)).toBeNull();
     }
+  });
+});
+
+describe('walletKindOf', () => {
+  it('names Privy’s wallet embedded, any other external, and none while signed out', async () => {
+    const { walletKindOf } = await loadAnalytics(SITE_ID);
+
+    expect(walletKindOf({ walletClientType: 'privy' })).toBe('embedded');
+    expect(walletKindOf({ walletClientType: 'metamask' })).toBe('external');
+    expect(walletKindOf(null)).toBeUndefined();
   });
 });
 
@@ -203,6 +215,44 @@ describe('startReplay', () => {
     startReplay();
 
     expect(tracker.startSessionReplay).not.toHaveBeenCalled();
+    expect(scripts).toHaveLength(0);
+  });
+
+  it('records nothing when the yes was taken back while rrweb loaded', async () => {
+    const { startReplay, stopReplay } = await loadAnalytics(SITE_ID);
+    const tracker = installTracker();
+    const scripts = catchScripts();
+
+    startReplay();
+    stopReplay();
+    scripts[0].onload?.(new Event('load'));
+
+    expect(tracker.startSessionReplay).not.toHaveBeenCalled();
+  });
+
+  it('waits for the tracker to be ready, and loads nothing for one that never is', async () => {
+    const { startReplay } = await loadAnalytics(SITE_ID);
+    const tracker = installTracker();
+    tracker.onReady.mockImplementation(() => undefined);
+    const scripts = catchScripts();
+
+    startReplay();
+
+    expect(scripts).toHaveLength(0);
+    expect(tracker.startSessionReplay).not.toHaveBeenCalled();
+  });
+
+  it('asks the answer again once the tracker is ready', async () => {
+    const { startReplay, stopReplay } = await loadAnalytics(SITE_ID);
+    const tracker = installTracker();
+    const ready: (() => void)[] = [];
+    tracker.onReady.mockImplementation((callback: () => void) => ready.push(callback));
+    const scripts = catchScripts();
+
+    startReplay();
+    stopReplay();
+    ready.forEach((callback) => callback());
+
     expect(scripts).toHaveLength(0);
   });
 

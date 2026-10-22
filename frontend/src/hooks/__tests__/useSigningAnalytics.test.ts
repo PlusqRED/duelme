@@ -50,6 +50,19 @@ describe('useSigningAnalytics', () => {
     expect(sent.trackEvent.mock.calls.map(([name]) => name)).toEqual(['signing_opened', 'signing_failed', 'signing_done']);
   });
 
+  it('reports a window taken off the page while open: abandoned, or left while confirming', () => {
+    windowOf(joinModel({ place: 'write' }), 'embedded').unmount();
+    windowOf(joinModel({ place: 'write', actionState: 'confirming' }), 'embedded').unmount();
+    windowOf(joinModel({ place: 'success', open: false }), 'embedded').unmount();
+
+    expect(sent.trackEvent.mock.calls.map(([name, props]) => [name, props.place])).toEqual([
+      ['signing_opened', undefined],
+      ['signing_abandoned', 'write'],
+      ['signing_opened', undefined],
+      ['signing_left', 'write'],
+    ]);
+  });
+
   it('names the wallet as the window gives it, and none while signed out', () => {
     windowOf(joinModel(), 'external');
     windowOf(joinModel(), undefined);

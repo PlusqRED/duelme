@@ -62,16 +62,18 @@ describe('Analytics', () => {
     render(<Analytics />);
 
     expect(screen.getByTestId('tracker').dataset.sample).toBe('0');
+    expect(tracker.startReplay).not.toHaveBeenCalled();
   });
 
-  it('lets a visitor who said yes before be recorded from the start, without asking again', () => {
+  it('records a visitor who said yes before from the page’s load, without asking again', () => {
     answer('granted');
 
     render(<Analytics />);
 
-    expect(screen.getByTestId('tracker').dataset.sample).toBe('undefined');
+    expect(tracker.startReplay).toHaveBeenCalledTimes(1);
     expect(banner()).toBeNull();
-    expect(tracker.startReplay).not.toHaveBeenCalled();
+    // Rybbit's own recording stays held: it could not be stopped while it loads.
+    expect(screen.getByTestId('tracker').dataset.sample).toBe('0');
   });
 
   it('starts the recording on this page at a yes, and hides the question', () => {

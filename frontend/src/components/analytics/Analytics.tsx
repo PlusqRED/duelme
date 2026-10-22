@@ -8,13 +8,13 @@ import { useAnalyticsIdentity } from '@/hooks/useAnalyticsIdentity';
 import { ANALYTICS_SITE_ID, TRACKER_PATH, flushAnalytics, startReplay, stopReplay } from '@/lib/analytics';
 import type { ConsentState } from '@/lib/analyticsConsent';
 
-/** Starts or stops the recording when the answer changes after the page loaded, in any tab. */
+/** Records while the answer is a yes: from the page's load, from a yes given later, in any tab. */
 function useReplayFollowsConsent(consent: ConsentState) {
   const answered = useRef<ConsentState>('unknown');
   useEffect(() => {
     const before = answered.current;
     answered.current = consent;
-    if (before === 'unknown' || before === consent) {
+    if (before === consent) {
       return;
     }
     if (consent === 'granted') {
@@ -40,14 +40,13 @@ export function Analytics() {
 
   return (
     <>
-      {/* next/script adds the tag once, and Rybbit reads it once: only a page loaded with a yes
-          records from its start, and a later answer acts through startReplay / stopReplay. */}
+      {/* Rybbit records only through startReplay: the tag holds its own recording back for good. */}
       <Script
         id="rybbit"
         src={`${TRACKER_PATH}/script.js`}
         strategy="afterInteractive"
         data-site-id={ANALYTICS_SITE_ID}
-        data-replay-sample-rate={consent === 'granted' ? undefined : '0'}
+        data-replay-sample-rate="0"
         onLoad={flushAnalytics}
       />
       {consent === 'unset' && <ConsentBanner />}

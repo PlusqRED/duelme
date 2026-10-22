@@ -8,7 +8,7 @@ const JOIN: SigningProps = { action: 'joinDuelWithPermit', chain_id: DEFAULT_CHA
 const CREATE: SigningProps = { action: 'createDuelWithPermit', chain_id: DEFAULT_CHAIN.id, contract: '0xc0', route: 'relay', stake: '5' };
 
 function snap(overrides: Partial<SigningSnapshot> = {}): SigningSnapshot {
-  return { open: true, place: 'review', error: null, props: JOIN, ...overrides };
+  return { open: true, place: 'review', error: null, confirming: false, props: JOIN, ...overrides };
 }
 
 const rejected: FlowError = { kind: 'rejected', detail: 'User rejected the request.', canRetry: true };
@@ -52,6 +52,16 @@ describe('signingEvents', () => {
     expect(event.name === 'signing_failed' && event.props.detail?.length).toBe(300);
   });
 
+  it('keeps addresses and hashes out of an error, which would tie it to a wallet', () => {
+    const address = `0x${'ab'.repeat(20)}`;
+    const hash = `0x${'cd'.repeat(32)}`;
+    const reverted: FlowError = { kind: 'reverted', detail: `sender: ${address} tx ${hash} at 0x12`, canRetry: false };
+
+    const [event] = signingEvents(snap(), snap({ error: reverted }));
+
+    expect(event.name === 'signing_failed' && event.props.detail).toBe('sender: 0x… tx 0x… at 0x12');
+  });
+
   it('reports Done once', () => {
     const done = snap({ place: 'success' });
 
@@ -84,7 +94,13 @@ describe('signingEvents', () => {
     ]);
   });
 
-  it('reports a window closed before Done as left, from where it stood', () => {
+  it('reports a window closed while the chain confirmed as left, not abandoned', () => {
+    expect(signingEvents(snap({ place: 'write', confirming: true }), snap({ open: false }))).toEqual([
+      { name: 'signing_left', props: { ...JOIN, place: 'write' } },
+    ]);
+  });
+
+  it('reports a window closed before Done as abandoned, from where it stood', () => {
     expect(signingEvents(snap({ place: 'switch-network' }), snap({ open: false }))).toEqual([
       { name: 'signing_abandoned', props: { ...JOIN, place: 'switch-network' } },
     ]);

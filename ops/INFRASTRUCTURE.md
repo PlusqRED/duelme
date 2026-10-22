@@ -52,7 +52,8 @@ Comprehensive hardening applied across CI/CD, Docker, reverse proxy, and runtime
 | Memory limits | MongoDB 512 MB, backend 256 MB, frontend 256 MB; analytics: ClickHouse 4 GB, Rybbit backend 1 GB, Postgres and dashboard 512 MB, Redis 256 MB |
 | CPU limits | MongoDB 1.0, backend 1.0, frontend 0.5; analytics: ClickHouse 2.0, Rybbit backend 2.0, Postgres and dashboard 1.0, Redis 0.5 |
 | PID limits | MongoDB 256, backend 128, frontend 128; analytics: ClickHouse 4096 (it counts threads), Rybbit backend 512, Postgres 256, dashboard 128, Redis 64 |
-| Log rotation | `json-file` driver, 10 MB max per file, 3 files retained |
+| Log rotation | `json-file` driver, 10 MB max per file, 3 files retained; ClickHouse logs to the console only, so Docker rotates its logs too |
+| Analytics disk guard | ClickHouse stops writing while the host disk has under 50 GiB free, so a flood of public uploads cannot fill the disk MongoDB shares |
 | Stop grace period | MongoDB 10s, backend/frontend 5s |
 
 ## CI/CD Pipeline

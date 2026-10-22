@@ -3,9 +3,8 @@
 import { useEffect } from 'react';
 import { useLogin, useLogout, usePrivy } from '@privy-io/react-auth';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
-import { forgetPlayer, identifyPlayer, trackEvent } from '@/lib/analytics';
+import { forgetPlayer, identifyPlayer, trackEvent, walletKindOf } from '@/lib/analytics';
 import type { ConsentState } from '@/lib/analyticsConsent';
-import { EMBEDDED_WALLET_CLIENT_TYPE } from '@/lib/walletSelection';
 
 /**
  * Who the analytics say a visitor is. Signing in and out are counted for everyone, with nothing
@@ -27,13 +26,22 @@ export function useAnalyticsIdentity(consent: ConsentState) {
   useLogout({ onSuccess: () => trackEvent('signed_out', {}) });
 
   const userId = ready && authenticated ? (user?.id ?? null) : null;
-  const walletKind = activeWallet ? (activeWallet.walletClientType === EMBEDDED_WALLET_CLIENT_TYPE ? 'embedded' : 'external') : undefined;
+  const walletKind = walletKindOf(activeWallet);
 
   useEffect(() => {
-    if (consent === 'unknown' || !ready) {
+    if (consent === 'unknown') {
       return;
     }
-    if (consent === 'granted' && userId) {
+    // Without a yes the player is forgotten at once: Rybbit sends an id it kept from before with
+    // its first page view, which comes long before Privy is ready.
+    if (consent !== 'granted') {
+      forgetPlayer();
+      return;
+    }
+    if (!ready) {
+      return;
+    }
+    if (userId) {
       identifyPlayer(userId, { wallet: walletAddress, wallet_kind: walletKind });
     } else {
       forgetPlayer();

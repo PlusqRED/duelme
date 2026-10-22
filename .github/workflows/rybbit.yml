@@ -24,10 +24,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: rybbit-deploy
-  cancel-in-progress: false
-
 jobs:
   validate:
     name: Validate the Rybbit stack
@@ -59,6 +55,11 @@ jobs:
     # The dev environment holds the deploy key for the host, which both DuelMe stacks share
     # with this one.
     environment: dev
+    # On the job, not the workflow: a pull request's validation queued behind a deploy would
+    # otherwise take the waiting deploy's place and cancel it.
+    concurrency:
+      group: rybbit-deploy
+      cancel-in-progress: false
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6

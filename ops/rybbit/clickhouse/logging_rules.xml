@@ -1,7 +1,11 @@
 <clickhouse>
+  <!-- To the console only, which Docker rotates: the files would fill the small tmpfs they sit on
+       long before ClickHouse rotates them. -->
   <logger>
       <level>warning</level>
       <console>true</console>
+      <log remove="remove"/>
+      <errorlog remove="remove"/>
   </logger>
   <query_thread_log remove="remove"/>
   <query_log remove="remove"/>

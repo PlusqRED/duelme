@@ -7,6 +7,8 @@ export interface SigningSnapshot {
   open: boolean;
   place: FlowPlace;
   error: FlowError | null;
+  /** The write is sent and the chain is confirming it. */
+  confirming: boolean;
   props: SigningProps;
 }
 
@@ -19,6 +21,13 @@ export type SigningEvent = {
 // Rybbit keeps 2KB of properties per event, and the start of a wallet's or a chain's message says
 // what went wrong; viem's dumps run on for pages.
 const MAX_DETAIL = 300;
+
+// An address or a transaction hash in an error would tie an anonymous event to a wallet.
+const LONG_HEX = /0x[0-9a-fA-F]{40,}/g;
+
+function shortDetail(detail: string | null): string | undefined {
+  return detail?.replace(LONG_HEX, '0x…').slice(0, MAX_DETAIL);
+}
 
 /**
  * A create's Done can come before its receipt names the duel; its event waits for the id. Only a
@@ -35,7 +44,8 @@ function isDone(snapshot: SigningSnapshot | null): boolean {
 /**
  * The events a window raises between two renders: opened; failed, once per error it shows; done,
  * once it reaches Done (a create's with the new duel's id); abandoned, closed before Done, from
- * where it stood. The first snapshot is the previous render's, or null on the window's first.
+ * where it stood, or left, closed while the chain confirmed. The first snapshot is the previous
+ * render's, or null on the window's first.
  */
 export function signingEvents(before: SigningSnapshot | null, now: SigningSnapshot): SigningEvent[] {
   const events: SigningEvent[] = [];
@@ -49,7 +59,7 @@ export function signingEvents(before: SigningSnapshot | null, now: SigningSnapsh
     const { kind, canRetry, detail } = now.error;
     events.push({
       name: 'signing_failed',
-      props: { ...now.props, place: now.place, kind, retry: canRetry ? 1 : 0, detail: detail?.slice(0, MAX_DETAIL) },
+      props: { ...now.props, place: now.place, kind, retry: canRetry ? 1 : 0, detail: shortDetail(detail) },
     });
   }
 
@@ -59,7 +69,8 @@ export function signingEvents(before: SigningSnapshot | null, now: SigningSnapsh
 
   if (before && wasOpen && !now.open) {
     if (before.place !== 'success') {
-      events.push({ name: 'signing_abandoned', props: { ...before.props, place: before.place } });
+      const name = before.confirming ? 'signing_left' : 'signing_abandoned';
+      events.push({ name, props: { ...before.props, place: before.place } });
     } else if (awaitsDuelId(before)) {
       // Closed on Done before the receipt named the duel: it was made all the same.
       events.push({ name: 'signing_done', props: before.props });
