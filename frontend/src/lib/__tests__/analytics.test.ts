@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DEFAULT_CHAIN } from '@/lib/constants';
 
 interface FakeTracker {
   event: ReturnType<typeof vi.fn>;
@@ -82,11 +83,11 @@ describe('with a site id', () => {
     const { trackEvent } = await loadAnalytics(SITE_ID);
     const tracker = installTracker();
 
-    trackEvent('signing_opened', { action: 'joinDuel', chain_id: 421614, contract: '0xc', route: 'relay', duel_id: undefined });
+    trackEvent('signing_opened', { action: 'joinDuel', chain_id: DEFAULT_CHAIN.id, contract: '0xc', route: 'relay', duel_id: undefined });
 
     expect(tracker.event).toHaveBeenCalledWith('signing_opened', {
       action: 'joinDuel',
-      chain_id: 421614,
+      chain_id: DEFAULT_CHAIN.id,
       contract: '0xc',
       route: 'relay',
     });

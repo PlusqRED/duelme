@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { SigningProps } from '@/lib/analytics';
 import type { FlowError } from '@/lib/flowError';
+import { DEFAULT_CHAIN } from '@/lib/constants';
 import { signingEvents, type SigningSnapshot } from '@/lib/signingAnalytics';
 
-const JOIN: SigningProps = { action: 'joinDuelWithPermit', chain_id: 421614, contract: '0xc0', route: 'relay', duel_id: 7, stake: '5' };
-const CREATE: SigningProps = { action: 'createDuelWithPermit', chain_id: 421614, contract: '0xc0', route: 'relay', stake: '5' };
+const JOIN: SigningProps = { action: 'joinDuelWithPermit', chain_id: DEFAULT_CHAIN.id, contract: '0xc0', route: 'relay', duel_id: 7, stake: '5' };
+const CREATE: SigningProps = { action: 'createDuelWithPermit', chain_id: DEFAULT_CHAIN.id, contract: '0xc0', route: 'relay', stake: '5' };
 
 function snap(overrides: Partial<SigningSnapshot> = {}): SigningSnapshot {
   return { open: true, place: 'review', error: null, props: JOIN, ...overrides };
@@ -68,7 +69,7 @@ describe('signingEvents', () => {
   });
 
   it('reports a Take over several duels as done at once: it has no one duel to wait for', () => {
-    const take: SigningProps = { action: 'refundAndClaimPayouts', chain_id: 421614, contract: '0xc0', route: 'relay', duels: 3 };
+    const take: SigningProps = { action: 'refundAndClaimPayouts', chain_id: DEFAULT_CHAIN.id, contract: '0xc0', route: 'relay', duels: 3 };
 
     expect(signingEvents(snap({ place: 'write', props: take }), snap({ place: 'success', props: take }))).toEqual([
       { name: 'signing_done', props: take },
