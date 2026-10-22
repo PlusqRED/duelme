@@ -46,7 +46,7 @@ function answer(choice: 'granted' | 'denied') {
 }
 
 function banner() {
-  return screen.queryByRole('region', { name: en['analytics.banner.label'] });
+  return screen.queryByRole('region', { name: en['analytics.banner.title'] });
 }
 
 beforeEach(() => {
@@ -98,7 +98,7 @@ describe('Analytics', () => {
     expect(banner()).toBeNull();
   });
 
-  it('keeps counting anonymously after Anonymous only, and records nothing', () => {
+  it('keeps counting anonymously after Anonymous, and records nothing', () => {
     render(<Analytics />);
 
     fireEvent.click(screen.getByRole('button', { name: en['analytics.banner.deny'] }));

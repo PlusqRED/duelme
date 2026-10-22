@@ -5,16 +5,14 @@ export const privacyTranslations = defineSection({
   en: {
     'footer.privacy': 'Privacy',
 
-    'analytics.banner.label': 'Analytics',
-    'analytics.banner.title': 'Help us make DuelMe better',
-    'analytics.banner.text':
-      'We count visits and presses on our own server, without tying them to your account. If you allow it, we also tie them to your account and record sessions, to see where things break.',
-    'analytics.banner.more': 'What exactly',
+    'analytics.banner.title': 'Cookies and analytics',
+    'analytics.banner.text': 'We use them to keep DuelMe fast and easy to use, and to find what breaks sooner.',
+    'analytics.banner.more': 'Learn more',
     'analytics.banner.allow': 'Allow',
-    'analytics.banner.deny': 'Anonymous only',
+    'analytics.banner.deny': 'Anonymous',
 
     'analytics.choice.granted': 'Allowed: analytics knows your account and records your sessions.',
-    'analytics.choice.denied': 'Anonymous only: analytics does not tie what you do to your account.',
+    'analytics.choice.denied': 'Anonymous: analytics does not tie what you do to your account.',
     'analytics.choice.unset': 'No answer yet: analytics does not tie what you do to your account.',
     'analytics.choice.off': 'This copy of the site runs without analytics.',
 
@@ -50,11 +48,10 @@ export const privacyTranslations = defineSection({
   ru: {
     'footer.privacy': 'Конфиденциальность',
 
-    'analytics.banner.label': 'Аналитика',
-    'analytics.banner.title': 'Помоги сделать DuelMe лучше',
+    'analytics.banner.title': 'Cookies и аналитика',
     'analytics.banner.text':
-      'Мы считаем визиты и нажатия на своём сервере, не связывая их с твоим аккаунтом. С твоего разрешения мы ещё связываем их с аккаунтом и записываем сессии, чтобы видеть, где что ломается.',
-    'analytics.banner.more': 'Что именно',
+      'Мы используем их, чтобы DuelMe оставался быстрым и удобным, а ошибки находились раньше.',
+    'analytics.banner.more': 'Подробнее',
     'analytics.banner.allow': 'Разрешить',
     'analytics.banner.deny': 'Анонимно',
 
