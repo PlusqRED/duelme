@@ -60,6 +60,7 @@ export function joinModel(overrides: Partial<SigningModel> = {}, route: WriteRou
     approved: false,
     chainId: DEFAULT_CHAIN.id,
     chainName: DEFAULT_CHAIN.name,
+    duelId: 3,
     wager: '5',
     stake: { funding: funding(), needRaw: 5_000_000n, isJoining: true },
     blockedReason: null,

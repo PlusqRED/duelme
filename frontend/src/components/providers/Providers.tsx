@@ -15,6 +15,7 @@ import { LanguageProvider } from '@/i18n/LanguageContext';
 import type { Language } from '@/i18n/translations';
 import { BrandMark } from '@/components/identity/BrandMark';
 import { Toaster } from '@/components/ui/toaster';
+import { Analytics } from '@/components/analytics/Analytics';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -96,6 +97,7 @@ export function Providers({ children, language, relayerStatus }: ProvidersProps)
             <LanguageProvider language={language}>
               {children}
               <Toaster position="top-center" />
+              <Analytics />
             </LanguageProvider>
           </RelayerStatusContext.Provider>
         </WagmiProvider>

@@ -1,0 +1,121 @@
+name: Rybbit
+
+# Deploys the self-hosted Rybbit analytics stack (ops/rybbit), which dev.duelme.pro and duelme.pro
+# share. It runs apart from CI's deploys: the stack changes rarely, and a DuelMe deploy should
+# not restart it. See "Analytics" in ops/CLAUDE.md.
+on:
+  push:
+    branches: [dev]
+    paths:
+      - ops/rybbit/**
+      - .github/workflows/rybbit.yml
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - ops/rybbit/**
+      - .github/workflows/rybbit.yml
+  workflow_dispatch:
+    inputs:
+      allow_signup:
+        description: Open sign-up on stats.duelme.pro until the next deploy, for creating the first account
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate the Rybbit stack
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+
+      - name: Validate compose
+        env:
+          CLICKHOUSE_PASSWORD: placeholder
+          CLICKHOUSE_QUERY_PASSWORD: placeholder
+          POSTGRES_PASSWORD: placeholder
+          REDIS_PASSWORD: placeholder
+          BETTER_AUTH_SECRET: placeholder
+        run: docker compose -f ops/rybbit/docker-compose.yml config --quiet
+
+  deploy:
+    name: Deploy Rybbit
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/dev'
+    needs: [validate]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    # The dev environment holds the deploy key for the host, which both DuelMe stacks share
+    # with this one.
+    environment: dev
+    # On the job, not the workflow: a pull request's validation queued behind a deploy would
+    # otherwise take the waiting deploy's place and cancel it.
+    concurrency:
+      group: rybbit-deploy
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@e83874834305fe9a4a2997156cb26c5de65a8555 # v0.10.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Configure known hosts
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          CLICKHOUSE_PASSWORD: ${{ secrets.RYBBIT_CLICKHOUSE_PASSWORD }}
+          CLICKHOUSE_QUERY_PASSWORD: ${{ secrets.RYBBIT_CLICKHOUSE_QUERY_PASSWORD }}
+          # Postgres takes this one only when it creates its volume; see the Rybbit pitfall in
+          # ops/CLAUDE.md before rotating it.
+          POSTGRES_PASSWORD: ${{ secrets.RYBBIT_POSTGRES_PASSWORD }}
+          REDIS_PASSWORD: ${{ secrets.RYBBIT_REDIS_PASSWORD }}
+          BETTER_AUTH_SECRET: ${{ secrets.RYBBIT_BETTER_AUTH_SECRET }}
+          DISABLE_SIGNUP: ${{ inputs.allow_signup && 'false' || 'true' }}
+        run: |
+          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'mkdir -p ~/apps/rybbit/clickhouse'
+          scp -q ops/rybbit/docker-compose.yml "$DEPLOY_USER@$DEPLOY_HOST:~/apps/rybbit/docker-compose.yml"
+          scp -q ops/rybbit/clickhouse/*.xml "$DEPLOY_USER@$DEPLOY_HOST:~/apps/rybbit/clickhouse/"
+          # Pipe secrets via stdin so they never appear in ps / audit / .bash_history.
+          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" 'umask 077 && cat > ~/apps/rybbit/.env' <<ENVEOF
+          CLICKHOUSE_PASSWORD=$CLICKHOUSE_PASSWORD
+          CLICKHOUSE_QUERY_PASSWORD=$CLICKHOUSE_QUERY_PASSWORD
+          POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+          REDIS_PASSWORD=$REDIS_PASSWORD
+          BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
+          DISABLE_SIGNUP=$DISABLE_SIGNUP
+          ENVEOF
+          # --wait fails the step unless every service reports healthy within the timeout.
+          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
+            cd ~/apps/rybbit
+            docker compose pull -q || exit 1
+            docker compose up -d --remove-orphans --quiet-pull --wait --wait-timeout 180
+          '
+
+      - name: Verify the tracker answers
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          ssh -q "$DEPLOY_USER@$DEPLOY_HOST" '
+            curl -sf --max-time 5 http://127.0.0.1:3030/api/health >/dev/null \
+              && curl -sf --max-time 5 -o /dev/null http://127.0.0.1:3030/api/script.js \
+              && curl -sf --max-time 5 -o /dev/null http://127.0.0.1:3031/
+          ' && echo "Backend, tracker script and dashboard answer" && exit 0
+          ssh "$DEPLOY_USER@$DEPLOY_HOST" 'cd ~/apps/rybbit && docker compose ps && docker compose logs --tail=30'
+          exit 1

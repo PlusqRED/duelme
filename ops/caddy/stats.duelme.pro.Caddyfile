@@ -1,0 +1,39 @@
+# Rybbit's dashboard (ops/rybbit). Its own login sits behind a second password here, kept out of
+# the repo in /etc/caddy/stats-auth.caddy; fail2ban bans an IP for a day after five wrong ones
+# within an hour, counting them in the log below (ops/fail2ban).
+stats.duelme.pro {
+	log {
+		output file /var/log/caddy/stats.log {
+			mode 0640
+			roll_size 20MiB
+			roll_keep 5
+		}
+	}
+
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		X-Robots-Tag "noindex, nofollow"
+		-Server
+		-X-Powered-By
+	}
+
+	request_body {
+		max_size 10MB
+	}
+
+	import /etc/caddy/stats-auth.caddy
+
+	handle /api/* {
+		reverse_proxy 127.0.0.1:3030
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:3031
+	}
+}

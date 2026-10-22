@@ -68,7 +68,9 @@ What commonly breaks, and the local check before merging to `main`: "Native Imag
 `frontend/` (Next.js) reads and writes the contract directly through wagmi/viem with Privy wallets,
 and hosts the gas relayer behind `/api/relay` ("Gasless Duel Actions" in `frontend/CLAUDE.md`).
 `backend/` (Spring Boot + MongoDB) keeps only off-chain data: profiles, social links, the game
-catalogue and duel metadata, the testnet faucet. Environments and deploys: `ops/CLAUDE.md`.
+catalogue and duel metadata, the testnet faucet. Product analytics is a self-hosted Rybbit,
+served under the site's own `/t/` and asked for consent before it learns who anyone is ("Analytics" in
+`frontend/CLAUDE.md` and `ops/CLAUDE.md`). Environments and deploys: `ops/CLAUDE.md`.
 
 ## Duel States
 

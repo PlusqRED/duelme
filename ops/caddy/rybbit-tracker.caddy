@@ -1,0 +1,32 @@
+# Rybbit analytics (ops/rybbit) on a public DuelMe site, imported into the duelme.pro and
+# dev.duelme.pro site blocks. On the host it is /etc/caddy/rybbit-tracker.caddy, copied by hand
+# like the live Caddyfile: see "Analytics" in ops/CLAUDE.md.
+
+# A session-replay batch opens with a snapshot of the whole page, which can run past the 1MB every
+# other request is held to; the backend takes up to 10MB.
+@rybbitReplay path /t/session-replay/record/*
+request_body @rybbitReplay {
+	max_size 10MB
+}
+
+@notRybbitReplay not path /t/session-replay/record/*
+request_body @notRybbitReplay {
+	max_size 1MB
+}
+
+# Only the paths the tracker script calls, mapped onto the backend's /api. The rest of that API
+# (accounts, sites, the stored data) answers on stats.duelme.pro alone, behind its password.
+@rybbit path /t/script.js /t/replay.js /t/metrics.js /t/track /t/identify /t/site/tracking-config/* /t/session-replay/record/*
+handle @rybbit {
+	uri path_regexp ^/t/ /api/
+	# Rybbit reads the visitor's IP from X-Real-IP, then CF-Connecting-IP, before the
+	# X-Forwarded-For Caddy writes; a visitor could send either, so they are set here.
+	reverse_proxy 127.0.0.1:3030 {
+		header_up X-Real-IP {remote_host}
+		header_up -CF-Connecting-IP
+	}
+}
+
+handle /t/* {
+	respond "Not Found" 404
+}

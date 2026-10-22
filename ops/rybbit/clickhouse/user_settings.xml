@@ -1,0 +1,15 @@
+<clickhouse>
+  <profiles>
+    <default>
+      <enable_json_type>1</enable_json_type>
+      <async_insert>1</async_insert>
+      <wait_for_async_insert>1</wait_for_async_insert>
+      <log_queries>0</log_queries>
+      <log_query_threads>0</log_query_threads>
+      <log_processors_profiles>0</log_processors_profiles>
+      <!-- Upstream allows 32 GB and 16 threads per query, sized for a machine of its own. -->
+      <max_memory_usage>2000000000</max_memory_usage>
+      <max_threads>4</max_threads>
+    </default>
+  </profiles>
+</clickhouse>
