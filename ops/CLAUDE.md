@@ -36,8 +36,8 @@ Environments, CI jobs and deploys. The root `CLAUDE.md` applies here too.
   code, and the privacy page lists it (`privacy.analytics.*` in
   `frontend/src/i18n/translations/privacy.ts`): a setting turned on goes onto that list too. Keep
   "track IP" off: the page says the IP is not kept.
-- Players' browsers reach the tracker on the site itself: Caddy rewrites an allowlist of
-  `/t/*` paths (the scripts, `track`, `identify`, the tracking config, replay uploads) to `/api/*`
+- Players' browsers reach the tracker on the site itself: Caddy (`ops/caddy/rybbit-tracker.caddy`,
+  imported by both public sites) rewrites an allowlist of `/t/*` paths (the scripts, `track`, `identify`, the tracking config, replay uploads) to `/api/*`
   on 3030 and answers 404 for any other `/t/` path, so the dashboard's API is never served from
   duelme.pro, and the CSP needs no analytics host. Replay uploads may be 10 MB; every other body 1 MB.
 - The dashboard, stats.duelme.pro, is behind Caddy basic auth before Rybbit's own login. The login
@@ -59,6 +59,7 @@ Environments, CI jobs and deploys. The root `CLAUDE.md` applies here too.
 | `ops/caddy/{dev.duelme.pro,duelme.pro}.Caddyfile` | Caddy reverse proxy |
 | `.github/workflows/rybbit.yml` | Validates and deploys the analytics stack (see Analytics) |
 | `ops/rybbit/docker-compose.yml` | The analytics stack, hardened like ours; `ops/rybbit/clickhouse/` its ClickHouse settings |
+| `ops/caddy/rybbit-tracker.caddy` | The tracker's routes and the body limits, imported by both public sites |
 | `ops/caddy/stats.duelme.pro.Caddyfile` | The analytics dashboard behind basic auth |
 | `ops/fail2ban/` | Filter and jail that ban an IP guessing the dashboard's password |
 
@@ -77,9 +78,11 @@ relayer key is runtime-only; prod pins the faucet off): `frontend/CLAUDE.md`, `b
 - The relayer's per-IP rate limit reads the right-most `X-Forwarded-For` entry, which is the
   client only while nothing sits in front of Caddy. Putting a CDN or proxy there, or setting
   `trusted_proxies`, means changing that rule too: see the `X-Forwarded-For` pitfall in `frontend/CLAUDE.md`.
-- **The live Caddyfile carries the analytics routes and the stats site by hand.** A Rybbit upgrade
-  that adds a tracker path needs it in the `@rybbit` allowlist of both site files here and of the
-  live `/etc/caddy/Caddyfile`; until then the tracker's request is a 404, which nothing reports.
+- **The tracker's routes reach the host by hand.** Both public sites import
+  `/etc/caddy/rybbit-tracker.caddy`, a copy of `ops/caddy/rybbit-tracker.caddy` that CI does not
+  deploy, like the live Caddyfile. A Rybbit upgrade that adds a tracker path needs it in that
+  file's `@rybbit` allowlist, then copied there and Caddy reloaded; until then the tracker's request
+  is a 404, which nothing reports.
 - **Postgres reads `POSTGRES_PASSWORD` only when it creates its volume.** Changing
   `RYBBIT_POSTGRES_PASSWORD` alone leaves the database on the old one and the Rybbit backend unable
   to log in. Change it in the database first (`ALTER USER rybbit PASSWORD …` through

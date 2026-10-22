@@ -1,33 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import Script from 'next/script';
 import { ConsentBanner } from '@/components/analytics/ConsentBanner';
 import { useAnalyticsConsent } from '@/hooks/useAnalyticsConsent';
 import { useAnalyticsIdentity } from '@/hooks/useAnalyticsIdentity';
 import { ANALYTICS_SITE_ID, TRACKER_PATH, flushAnalytics, startReplay, stopReplay } from '@/lib/analytics';
 import type { ConsentState } from '@/lib/analyticsConsent';
-
-interface AnalyticsTrackerProps {
-  siteId: string;
-  /** The answer when the page loaded: only a yes lets the tracker record from its start. */
-  recordsFromStart: boolean;
-}
-
-/** Rybbit's script; its tag is read once, so later answers act through `startReplay` / `stopReplay`. */
-function AnalyticsTracker({ siteId, recordsFromStart }: AnalyticsTrackerProps) {
-  const [holdsReplay] = useState(!recordsFromStart);
-  return (
-    <Script
-      id="rybbit"
-      src={`${TRACKER_PATH}/script.js`}
-      strategy="afterInteractive"
-      data-site-id={siteId}
-      data-replay-sample-rate={holdsReplay ? '0' : undefined}
-      onLoad={flushAnalytics}
-    />
-  );
-}
 
 /** Starts or stops the recording when the answer changes after the page loaded, in any tab. */
 function useReplayFollowsConsent(consent: ConsentState) {
@@ -61,7 +40,16 @@ export function Analytics() {
 
   return (
     <>
-      <AnalyticsTracker siteId={ANALYTICS_SITE_ID} recordsFromStart={consent === 'granted'} />
+      {/* next/script adds the tag once, and Rybbit reads it once: only a page loaded with a yes
+          records from its start, and a later answer acts through startReplay / stopReplay. */}
+      <Script
+        id="rybbit"
+        src={`${TRACKER_PATH}/script.js`}
+        strategy="afterInteractive"
+        data-site-id={ANALYTICS_SITE_ID}
+        data-replay-sample-rate={consent === 'granted' ? undefined : '0'}
+        onLoad={flushAnalytics}
+      />
       {consent === 'unset' && <ConsentBanner />}
     </>
   );

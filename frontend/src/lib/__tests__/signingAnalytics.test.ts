@@ -67,6 +67,14 @@ describe('signingEvents', () => {
     expect(signingEvents(waiting, named)).toEqual([{ name: 'signing_done', props: { ...CREATE, duel_id: 12 } }]);
   });
 
+  it('reports a Take over several duels as done at once: it has no one duel to wait for', () => {
+    const take: SigningProps = { action: 'refundAndClaimPayouts', chain_id: 421614, contract: '0xc0', route: 'relay', duels: 3 };
+
+    expect(signingEvents(snap({ place: 'write', props: take }), snap({ place: 'success', props: take }))).toEqual([
+      { name: 'signing_done', props: take },
+    ]);
+  });
+
   it('still reports a create closed on Done before its duel was named', () => {
     const waiting = snap({ place: 'success', props: CREATE });
 

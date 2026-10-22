@@ -66,7 +66,7 @@ describe('useAnalyticsIdentity', () => {
 
     identity('granted');
 
-    expect(analytics.identifyPlayer).toHaveBeenCalledWith('did:privy:abc', { wallet: '0xabc', embedded_wallet: 1 });
+    expect(analytics.identifyPlayer).toHaveBeenCalledWith('did:privy:abc', { wallet: '0xabc', wallet_kind: 'embedded' });
     expect(analytics.forgetPlayer).not.toHaveBeenCalled();
   });
 
@@ -76,7 +76,7 @@ describe('useAnalyticsIdentity', () => {
 
     identity('granted');
 
-    expect(analytics.identifyPlayer).toHaveBeenCalledWith('did:privy:abc', { wallet: '0xabc', embedded_wallet: 0 });
+    expect(analytics.identifyPlayer).toHaveBeenCalledWith('did:privy:abc', { wallet: '0xabc', wallet_kind: 'external' });
   });
 
   it('never names a player without their yes', () => {

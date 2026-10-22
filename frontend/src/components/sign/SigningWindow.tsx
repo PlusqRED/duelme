@@ -44,7 +44,7 @@ export function SigningWindow({ model }: { model: SigningModel }) {
   const isConfirming = model.open && actionState === 'confirming';
   const isSlow = useTakingLong(isConfirming) || (isConfirming && model.wasLeft === true);
   const lastHash = useLastNonNull(signing.hash ?? null);
-  useSigningAnalytics(model);
+  useSigningAnalytics(model, activeWallet ? (isInAppWallet ? 'embedded' : 'external') : undefined);
 
   const unpaid = place === 'success' ? [] : items.filter((item) => item.kind === 'transaction' && !(item.part === 'approve' && model.approved));
   const gas = useSignGas({ open: model.open, chainId: model.chainId, route, unpaid });

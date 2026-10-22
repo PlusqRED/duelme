@@ -24,6 +24,9 @@ export const ANALYTICS_SITE_ID = parseSiteId(process.env.NEXT_PUBLIC_RYBBIT_SITE
 
 type PropValue = string | number;
 
+/** Whether Privy made the player's wallet or they brought their own. */
+export type WalletKind = 'embedded' | 'external';
+
 /** A signing window's flow, sent with every event it raises. */
 export interface SigningProps {
   /** The contract function the window sends. */
@@ -37,7 +40,7 @@ export interface SigningProps {
   duels?: number;
   /** The stake in USDT, as a decimal string. */
   stake?: string;
-  wallet?: 'embedded' | 'external';
+  wallet_kind?: WalletKind;
 }
 
 /** Every event the app sends and what it carries; Rybbit records clicks and page views itself. */
@@ -55,7 +58,7 @@ export interface AnalyticsEvents {
 /** What a player is known by once they agree: their wallet, and whether Privy made it. */
 export interface PlayerTraits {
   wallet?: string;
-  embedded_wallet?: 0 | 1;
+  wallet_kind?: WalletKind;
 }
 
 interface RybbitApi {

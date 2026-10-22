@@ -10,20 +10,22 @@ export interface SigningSnapshot {
   props: SigningProps;
 }
 
+type SigningEventName = Extract<keyof AnalyticsEvents, `signing_${string}`>;
+
 export type SigningEvent = {
-  [TName in 'signing_opened' | 'signing_failed' | 'signing_done' | 'signing_abandoned']: {
-    name: TName;
-    props: AnalyticsEvents[TName];
-  };
-}['signing_opened' | 'signing_failed' | 'signing_done' | 'signing_abandoned'];
+  [TName in SigningEventName]: { name: TName; props: AnalyticsEvents[TName] };
+}[SigningEventName];
 
 // Rybbit keeps 2KB of properties per event, and the start of a wallet's or a chain's message says
 // what went wrong; viem's dumps run on for pages.
 const MAX_DETAIL = 300;
 
-/** A create's Done can come before its receipt names the duel; its event waits for the id. */
+/**
+ * A create's Done can come before its receipt names the duel; its event waits for the id. Only a
+ * create has neither: every other window names its duel, or counts the duels of a Take.
+ */
 function awaitsDuelId(snapshot: SigningSnapshot): boolean {
-  return snapshot.props.action.startsWith('createDuel') && snapshot.props.duel_id === undefined;
+  return snapshot.props.duel_id === undefined && snapshot.props.duels === undefined;
 }
 
 function isDone(snapshot: SigningSnapshot | null): boolean {

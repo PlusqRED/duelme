@@ -430,8 +430,8 @@ test can check.
 - **Rybbit's tag is read once, when its script runs.** `data-replay-sample-rate="0"` is what keeps
   a visitor without a yes from being recorded, and changing the attribute later does nothing: a yes
   given on the page starts the recording through `startReplay` (which loads `/t/replay.js` first),
-  and the tag keeps the value it was added with (`AnalyticsTracker` holds it in state). Only a page
-  loaded with the yes already given drops the attribute and records from the start.
+  and a no stops it through `stopReplay`; `next/script` adds the tag once and never updates it.
+  Only a page loaded with the yes already given drops the attribute and records from the start.
 - **The image build copies root config files by name.** `Dockerfile` lists them in a `COPY`, and a
   pull request's CI does not build the image, so deleting one of them (as with shadcn's
   `components.json`) passes every check and breaks the deploy only after the merge.

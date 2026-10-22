@@ -27,16 +27,16 @@ export function useAnalyticsIdentity(consent: ConsentState) {
   useLogout({ onSuccess: () => trackEvent('signed_out', {}) });
 
   const userId = ready && authenticated ? (user?.id ?? null) : null;
-  const isEmbedded = activeWallet?.walletClientType === EMBEDDED_WALLET_CLIENT_TYPE;
+  const walletKind = activeWallet ? (activeWallet.walletClientType === EMBEDDED_WALLET_CLIENT_TYPE ? 'embedded' : 'external') : undefined;
 
   useEffect(() => {
     if (consent === 'unknown' || !ready) {
       return;
     }
     if (consent === 'granted' && userId) {
-      identifyPlayer(userId, { wallet: walletAddress, embedded_wallet: walletAddress ? (isEmbedded ? 1 : 0) : undefined });
+      identifyPlayer(userId, { wallet: walletAddress, wallet_kind: walletKind });
     } else {
       forgetPlayer();
     }
-  }, [consent, ready, userId, walletAddress, isEmbedded]);
+  }, [consent, ready, userId, walletAddress, walletKind]);
 }

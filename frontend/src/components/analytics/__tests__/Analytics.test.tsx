@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ANALYTICS_CONSENT_KEY, chooseAnalytics } from '@/lib/analyticsConsent';
+import { ANALYTICS_CONSENT_KEY, chooseAnalytics, saveConsent } from '@/lib/analyticsConsent';
 import { translations } from '@/i18n/translations';
 
 const tracker = vi.hoisted(() => ({
@@ -35,7 +35,11 @@ const { Analytics } = await import('@/components/analytics/Analytics');
 const en = translations.en;
 
 function answer(choice: 'granted' | 'denied') {
-  window.localStorage.setItem(ANALYTICS_CONSENT_KEY, JSON.stringify({ choice, at: '2026-10-22T00:00:00.000Z' }));
+  saveConsent(window.localStorage, choice);
+}
+
+function banner() {
+  return screen.queryByRole('region', { name: en['analytics.banner.label'] });
 }
 
 beforeEach(() => {
@@ -51,7 +55,7 @@ describe('Analytics', () => {
     render(<Analytics />);
 
     expect(screen.getByTestId('tracker').dataset.src).toBe('/t/script.js');
-    expect(screen.getByRole('region', { name: en['analytics.banner.label'] })).toBeTruthy();
+    expect(banner()).toBeTruthy();
   });
 
   it('holds the recording back until there is a yes', () => {
@@ -66,7 +70,7 @@ describe('Analytics', () => {
     render(<Analytics />);
 
     expect(screen.getByTestId('tracker').dataset.sample).toBe('undefined');
-    expect(screen.queryByRole('region', { name: en['analytics.banner.label'] })).toBeNull();
+    expect(banner()).toBeNull();
     expect(tracker.startReplay).not.toHaveBeenCalled();
   });
 
@@ -76,9 +80,7 @@ describe('Analytics', () => {
     fireEvent.click(screen.getByRole('button', { name: en['analytics.banner.allow'] }));
 
     expect(tracker.startReplay).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('region', { name: en['analytics.banner.label'] })).toBeNull();
-    // The tag stays as it was: the recording runs through startReplay.
-    expect(screen.getByTestId('tracker').dataset.sample).toBe('0');
+    expect(banner()).toBeNull();
   });
 
   it('keeps counting anonymously after Anonymous only, and records nothing', () => {
@@ -88,7 +90,7 @@ describe('Analytics', () => {
 
     expect(tracker.startReplay).not.toHaveBeenCalled();
     expect(screen.getByTestId('tracker')).toBeTruthy();
-    expect(screen.queryByRole('region', { name: en['analytics.banner.label'] })).toBeNull();
+    expect(banner()).toBeNull();
   });
 
   it('stops the recording when the yes is taken back', () => {
@@ -108,7 +110,7 @@ describe('Analytics', () => {
       window.dispatchEvent(new StorageEvent('storage', { key: ANALYTICS_CONSENT_KEY }));
     });
 
-    expect(screen.queryByRole('region', { name: en['analytics.banner.label'] })).toBeNull();
+    expect(banner()).toBeNull();
   });
 
   it('is not there at all without a site id', () => {
