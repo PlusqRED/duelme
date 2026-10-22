@@ -42,11 +42,16 @@ function send(events: SigningEvent[]) {
 export function useSigningAnalytics(model: SigningModel, walletKind: WalletKind | undefined) {
   const last = useRef<SigningSnapshot | null>(null);
 
-  // Every render: the events are the difference between this one and the one before.
+  // Every render: the events are the difference between this one and the one before. Whatever
+  // goes wrong here stays here: analytics never stops a window.
   useEffect(() => {
-    const now = snapshotOf(model, walletKind);
-    send(signingEvents(last.current, now));
-    last.current = now;
+    try {
+      const now = snapshotOf(model, walletKind);
+      send(signingEvents(last.current, now));
+      last.current = now;
+    } catch (error) {
+      console.warn('Signing analytics failed', error);
+    }
   });
 
   // A window taken off the page while open (another page, the back gesture) closes there.

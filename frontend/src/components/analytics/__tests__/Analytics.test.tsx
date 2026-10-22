@@ -28,7 +28,12 @@ vi.mock('@/hooks/useAnalyticsIdentity', () => ({ useAnalyticsIdentity: vi.fn() }
 // The tag as next/script would be asked to add it.
 vi.mock('next/script', () => ({
   default: (props: Record<string, unknown>) => (
-    <div data-testid="tracker" data-src={String(props.src)} data-sample={String(props['data-replay-sample-rate'])} />
+    <div
+      data-testid="tracker"
+      data-src={String(props.src)}
+      data-sample={String(props['data-replay-sample-rate'])}
+      data-mask={String(props['data-mask-patterns'])}
+    />
   ),
 }));
 
@@ -58,6 +63,12 @@ describe('Analytics', () => {
 
     expect(screen.getByTestId('tracker').dataset.src).toBe('/t/script.js');
     expect(banner()).toBeTruthy();
+  });
+
+  it('counts every profile as one page, so a path names no wallet', () => {
+    render(<Analytics />);
+
+    expect(JSON.parse(screen.getByTestId('tracker').dataset.mask ?? '[]')).toEqual(['/profile/*']);
   });
 
   it('holds the recording back until there is a yes', () => {

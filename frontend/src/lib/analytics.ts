@@ -75,6 +75,8 @@ export interface PlayerTraits {
 interface RybbitApi {
   event(name: string, properties?: Record<string, PropValue>): void;
   identify(userId: string, traits?: Record<string, PropValue>): void;
+  setTraits(traits: Record<string, PropValue>): void;
+  getUserId(): string | null;
   clearUserId(): void;
   startSessionReplay(): void;
   stopSessionReplay(): void;
@@ -83,7 +85,7 @@ interface RybbitApi {
   onReady(callback: () => void): void;
 }
 
-const API_METHODS = ['event', 'identify', 'clearUserId', 'startSessionReplay', 'stopSessionReplay', 'isSessionReplayActive', 'onReady'];
+const API_METHODS = ['event', 'identify', 'setTraits', 'getUserId', 'clearUserId', 'startSessionReplay', 'stopSessionReplay', 'isSessionReplayActive', 'onReady'];
 
 function isRybbitApi(value: unknown): value is RybbitApi {
   return isRecord(value) && API_METHODS.every((method) => typeof value[method] === 'function');
@@ -112,7 +114,7 @@ function run(api: RybbitApi, call: TrackerCall) {
   }
 }
 
-/** `essential`: a call that takes something back (forget, stop recording) waits whatever the count. */
+/** `essential`: a call that follows the player's answer (identify, forget, record or stop) waits whatever the count. */
 function withTracker(call: TrackerCall, essential = false) {
   if (!ANALYTICS_SITE_ID) {
     return;
@@ -149,7 +151,15 @@ export function trackEvent<TName extends keyof AnalyticsEvents>(name: TName, pro
 /** Ties what this browser sends from now on to the player. Only once they agreed (`useAnalyticsIdentity`). */
 export function identifyPlayer(userId: string, traits: PlayerTraits) {
   const properties = toProps(traits);
-  withTracker((api) => api.identify(userId, properties));
+  // Each identify links the device to the player again and rewrites its earlier events, so a
+  // player the tracker already knows only has their traits brought up to date.
+  withTracker((api) => {
+    if (api.getUserId() !== userId) {
+      api.identify(userId, properties);
+    } else if (Object.keys(properties).length > 0) {
+      api.setTraits(properties);
+    }
+  }, true);
 }
 
 /** Unties this browser from the player, as on signing out or taking the agreement back. */
@@ -199,7 +209,7 @@ function loadReplayAndRecord(api: RybbitApi) {
  */
 export function startReplay() {
   isReplayWanted = true;
-  withTracker((api) => api.onReady(() => withTracker(loadReplayAndRecord)));
+  withTracker((api) => api.onReady(() => withTracker(loadReplayAndRecord)), true);
 }
 
 export function stopReplay() {

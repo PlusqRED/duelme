@@ -74,6 +74,16 @@ describe('useSigningAnalytics', () => {
     ]);
   });
 
+  it('never takes the window down, whatever the model holds', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const broken = joinModel();
+    Reflect.set(broken.facts, 'contract', undefined);
+
+    expect(() => windowOf(broken, 'embedded')).not.toThrow();
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
   it('names the wallet as the window gives it, and none while signed out', () => {
     windowOf(joinModel(), 'external');
     windowOf(joinModel(), undefined);

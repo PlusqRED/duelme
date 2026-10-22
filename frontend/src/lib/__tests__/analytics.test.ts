@@ -5,6 +5,8 @@ import { DEFAULT_CHAIN } from '@/lib/constants';
 interface FakeTracker {
   event: ReturnType<typeof vi.fn>;
   identify: ReturnType<typeof vi.fn>;
+  setTraits: ReturnType<typeof vi.fn>;
+  getUserId: ReturnType<typeof vi.fn>;
   clearUserId: ReturnType<typeof vi.fn>;
   startSessionReplay: ReturnType<typeof vi.fn>;
   stopSessionReplay: ReturnType<typeof vi.fn>;
@@ -16,6 +18,8 @@ function fakeTracker(): FakeTracker {
   return {
     event: vi.fn(),
     identify: vi.fn(),
+    setTraits: vi.fn(),
+    getUserId: vi.fn(() => null),
     clearUserId: vi.fn(),
     startSessionReplay: vi.fn(),
     stopSessionReplay: vi.fn(),
@@ -132,19 +136,36 @@ describe('with a site id', () => {
     expect(tracker.event).toHaveBeenCalledTimes(50);
   });
 
-  it('keeps forgetting and stopping however full the wait is, for they take something back', async () => {
-    const { trackEvent, forgetPlayer, stopReplay, flushAnalytics } = await loadAnalytics(SITE_ID);
+  it('keeps what follows the player’s answer however full the wait is', async () => {
+    const { trackEvent, identifyPlayer, forgetPlayer, startReplay, stopReplay, flushAnalytics } = await loadAnalytics(SITE_ID);
 
     for (let i = 0; i < 80; i += 1) {
       trackEvent('signed_out', {});
     }
+    identifyPlayer('did:privy:1', {});
+    startReplay();
     forgetPlayer();
     stopReplay();
     const tracker = installTracker();
     flushAnalytics();
 
+    expect(tracker.identify).toHaveBeenCalledTimes(1);
+    expect(tracker.onReady).toHaveBeenCalledTimes(1);
     expect(tracker.clearUserId).toHaveBeenCalledTimes(1);
     expect(tracker.stopSessionReplay).toHaveBeenCalledTimes(1);
+  });
+
+  it('only brings the traits up to date for a player the tracker already knows', async () => {
+    const { identifyPlayer } = await loadAnalytics(SITE_ID);
+    const tracker = installTracker();
+    tracker.getUserId.mockReturnValue('did:privy:1');
+
+    identifyPlayer('did:privy:1', { wallet: '0xabc', wallet_kind: 'embedded' });
+    identifyPlayer('did:privy:1', {});
+    identifyPlayer('did:privy:2', {});
+
+    expect(tracker.setTraits.mock.calls).toEqual([[{ wallet: '0xabc', wallet_kind: 'embedded' }]]);
+    expect(tracker.identify.mock.calls).toEqual([['did:privy:2', {}]]);
   });
 
   it('ignores a window.rybbit that is not the tracker', async () => {

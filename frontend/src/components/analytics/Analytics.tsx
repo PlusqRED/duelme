@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import Script from 'next/script';
 import { ConsentBanner } from '@/components/analytics/ConsentBanner';
 import { useAnalyticsConsent } from '@/hooks/useAnalyticsConsent';
@@ -8,20 +8,17 @@ import { useAnalyticsIdentity } from '@/hooks/useAnalyticsIdentity';
 import { ANALYTICS_SITE_ID, TRACKER_PATH, flushAnalytics, startReplay, stopReplay } from '@/lib/analytics';
 import type { ConsentState } from '@/lib/analyticsConsent';
 
+// A profile's address is its path: counted as one page, a profile names no wallet.
+const PROFILE_PATHS = JSON.stringify(['/profile/*']);
+
 /** Records while the answer is a yes: from the page's load, from a yes given later, in any tab. */
 function useReplayFollowsConsent(consent: ConsentState) {
-  const answered = useRef<ConsentState>('unknown');
   useEffect(() => {
-    const before = answered.current;
-    answered.current = consent;
-    if (before === consent) {
+    if (consent !== 'granted') {
       return;
     }
-    if (consent === 'granted') {
-      startReplay();
-    } else if (before === 'granted') {
-      stopReplay();
-    }
+    startReplay();
+    return stopReplay;
   }, [consent]);
 }
 
@@ -47,6 +44,7 @@ export function Analytics() {
         strategy="afterInteractive"
         data-site-id={ANALYTICS_SITE_ID}
         data-replay-sample-rate="0"
+        data-mask-patterns={PROFILE_PATHS}
         onLoad={flushAnalytics}
       />
       {consent === 'unset' && <ConsentBanner />}

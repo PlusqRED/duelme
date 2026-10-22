@@ -83,6 +83,9 @@ anonymously, the answer or none: page views, presses, errors and whatever else t
 turn on. A yes adds who they are (`useAnalyticsIdentity`: the Privy id, the wallet) and the
 session's recording; taking it back, here or in another tab, stops both. The answer is in
 `localStorage` (`lib/analyticsConsent.ts`), changed on the privacy page too (`AnalyticsChoice`).
+A player the tracker already knows only has their traits updated (`identifyPlayer`): each identify
+links the device to them again and rewrites its earlier events. Profile paths reach Rybbit as
+`/profile/*` (the tag's `data-mask-patterns`), so a page view names no wallet.
 The app's own events and what each carries are `AnalyticsEvents` in `lib/analytics.ts`, sent only
 through `trackEvent`; the signing window reports itself (`useSigningAnalytics`, on
 `lib/signingAnalytics.ts`): opened, failed, done, abandoned, or left while the chain confirmed (a
