@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { BrandLink } from '@/components/identity/BrandLink';
 import { PlatformIcon } from '@/components/profile/PlatformIcon';
 import { getTranslation } from '@/i18n/serverTranslation';
@@ -43,7 +44,10 @@ export async function Footer() {
           </a>
         </p>
         <p>
-          © {new Date().getFullYear()} {SITE_NAME}. {t('footer.rights')}
+          © {new Date().getFullYear()} {SITE_NAME}. {t('footer.rights')}{' '}
+          <Link href="/privacy" className="inline-flex min-h-11 items-center text-ink underline-offset-4 hover:underline">
+            {t('footer.privacy')}
+          </Link>
         </p>
       </div>
     </footer>

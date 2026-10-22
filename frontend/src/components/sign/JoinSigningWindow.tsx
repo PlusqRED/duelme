@@ -62,6 +62,7 @@ export function JoinSigningWindow(props: JoinSigningWindowProps) {
     <SigningWindow
       model={{
         ...funding,
+        duelId: Number(draft.duelId),
         copy,
         title: t(copy.title, params),
         sub: draft.chainName,

@@ -74,6 +74,12 @@ export interface SigningModel {
   approved: boolean;
   chainId: number;
   chainName: string;
+  /**
+   * The duel the window signs for, which the analytics name it by: a create's once its receipt
+   * names it, null until then; null for a Take over several, which gives `duelCount` instead.
+   */
+  duelId: number | null;
+  duelCount?: number;
   /** The stake, bare, for the words about an approve that stays. */
   wager?: string;
   stake?: SigningFunding;

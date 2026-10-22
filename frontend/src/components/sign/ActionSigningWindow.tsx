@@ -115,6 +115,8 @@ export function ActionSigningWindow({
     approved: false,
     chainId: shownFlow.chainId,
     chainName: shownFlow.chainName,
+    duelId: shownConfig.batch ? null : Number(shownFlow.duelId),
+    duelCount: shownConfig.batch?.count,
     blockedReason: null,
     canContinue: true,
     canClose,

@@ -74,6 +74,20 @@ false, so a refusal (spent daily budget, `"Permit failed"` on a delegated EOA) s
 error rather than reverting to the self-paid approve path. Relaying being *off* — no forwarder
 address, no relayer key — is the case the self-paid path still covers.
 
+### Analytics
+DuelMe's own Rybbit ("Analytics" in `ops/CLAUDE.md`), loaded from the site itself: `/t/script.js`,
+which Caddy routes to it, so the CSP stays `'self'`. `components/analytics/Analytics.tsx`, in
+`Providers`, adds the tracker on every page when the build has a site id
+(`NEXT_PUBLIC_RYBBIT_SITE_ID`), and the banner until the visitor answers. Everyone is counted
+anonymously, the answer or none: page views, presses, errors and whatever else the site's settings
+turn on. A yes adds who they are (`useAnalyticsIdentity`: the Privy id, the wallet) and the
+session's recording; taking it back, here or in another tab, stops both. The answer is in
+`localStorage` (`lib/analyticsConsent.ts`), changed on the privacy page too (`AnalyticsChoice`).
+The app's own events and what each carries are `AnalyticsEvents` in `lib/analytics.ts`, sent only
+through `trackEvent`; the signing window reports itself (`useSigningAnalytics`, on
+`lib/signingAnalytics.ts`): opened, failed, done or abandoned, with the action, duel, contract,
+stake and wallet kind.
+
 ## Standards (Next.js / React / TS / Tailwind)
 
 **Mobile-first — non-negotiable.** Treat mobile as primary, not afterthought. Design at 360–640px first; `sm:`/`md:`/`lg:` are enhancements.
@@ -226,7 +240,7 @@ test can check.
 | `frontend/src/i18n/__tests__/translationsGuard.test.ts` | Fails on a translation key nothing uses and on Russian «вы» |
 | `frontend/src/lib/__tests__/helpers/sourceFiles.ts` | What the guards read: the shipped source files and the theme's tokens |
 | `frontend/src/lib/constants.ts` | Chain configs, contract addresses, ZERO_ADDRESS |
-| `frontend/src/components/providers/Providers.tsx` | Privy + wagmi + QueryClient providers, the relayer status and the language the root layout read |
+| `frontend/src/components/providers/Providers.tsx` | Privy + wagmi + QueryClient providers, the relayer status and the language the root layout read, the toasts and analytics |
 | `frontend/src/hooks/useDuel.ts` | Read single duel, polled until it is over and paid out; a failed poll keeps the last duel |
 | `frontend/src/hooks/useDuelReads.ts` | Paged `getDuels` / `getDuelsByIds` readers shared by every listing screen |
 | `frontend/src/lib/duel.ts` | `DuelRecord`, seats (`seatOf`), the arena's shared types, claimable-amount and timeout helpers, `canJoinWaitingDuel` |
@@ -341,6 +355,12 @@ test can check.
 | `frontend/src/lib/gasNeeds.ts` | The self-paid path's fees: typical gas per kind, the fee quote, the expected fee and the ETH a wallet must hold |
 | `frontend/src/hooks/useFlowLifecycle.ts` | Follows a flow's write in the wallet and on the network until it is confirmed or fails; each flow says what a confirmed write means |
 | `frontend/src/hooks/useSignGas.ts` | The fee side of a self-paid window: what each transaction costs, the ETH needed against the ETH held, and the faucet or top-up that fixes a shortfall |
+| `frontend/src/lib/analytics.ts` | The app's analytics events and what they carry (`AnalyticsEvents`), `trackEvent`, the player's identity, starting and stopping the recording; held until the tracker loads, never throwing |
+| `frontend/src/lib/analyticsConsent.ts` | The visitor's answer on analytics, kept in `localStorage` and followed across tabs; `useAnalyticsConsent` reads it after hydration |
+| `frontend/src/components/analytics/` | `Analytics` (the tracker's tag, the recording following the answer), `ConsentBanner`, and `AnalyticsChoice` on the privacy page |
+| `frontend/src/hooks/useAnalyticsIdentity.ts` | Sign-ins and sign-outs as events, and the player's Privy id and wallet given to analytics only after a yes |
+| `frontend/src/hooks/useSigningAnalytics.ts` | The signing window's events, each sent once from the change between two renders (`lib/signingAnalytics.ts`) |
+| `frontend/src/app/privacy/page.tsx` | What DuelMe keeps and where, and the answer on analytics to change |
 
 ## Environment
 
@@ -352,6 +372,7 @@ test can check.
 - `RELAYER_RPC_URL` — server-side RPC for the relayer. Optional; defaults to the default chain's public RPC. A browser-origin-locked `NEXT_PUBLIC_*` key will NOT work here — server requests send no `Origin`.
 - `RELAYER_DAILY_BUDGET_WEI` — per-address daily gas allowance in wei. Optional; defaults to 0.0005 ETH.
 - `RELAYER_GLOBAL_DAILY_BUDGET_WEI` — relayer-wide daily ceiling in wei. Optional; defaults to 0.01 ETH. Addresses are free to create, so this — not the per-address budget — is what bounds a sybil drain.
+- `NEXT_PUBLIC_RYBBIT_SITE_ID` — the Rybbit site this build reports to, **build-time**, from each environment's `RYBBIT_SITE_ID` variable. Unset or malformed ⇒ no tracker, no banner, and the privacy page says the copy runs without analytics.
 
 ## Common Pitfalls
 
@@ -403,7 +424,14 @@ test can check.
 - **Nothing in the browser may pick the language before hydration.** A first render that reads
   `localStorage` or `navigator.language` draws other words than the server did from the cookie
   ("i18n" under Standards), and React reports a hydration mismatch on every page; that is why the
-  language left `localStorage`.
+  language left `localStorage`. The analytics answer does live there, so `useAnalyticsConsent`
+  reports `unknown` on the server and in the first render, and nothing analytics draws or sends
+  happens until it knows.
+- **Rybbit's tag is read once, when its script runs.** `data-replay-sample-rate="0"` is what keeps
+  a visitor without a yes from being recorded, and changing the attribute later does nothing: a yes
+  given on the page starts the recording through `startReplay` (which loads `/t/replay.js` first),
+  and the tag keeps the value it was added with (`AnalyticsTracker` holds it in state). Only a page
+  loaded with the yes already given drops the attribute and records from the start.
 - **The image build copies root config files by name.** `Dockerfile` lists them in a `COPY`, and a
   pull request's CI does not build the image, so deleting one of them (as with shadcn's
   `components.json`) passes every check and breaks the deploy only after the merge.

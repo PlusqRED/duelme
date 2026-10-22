@@ -13,6 +13,7 @@ import { Icon } from '@/components/ui/icon';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useLastNonNull } from '@/hooks/useLastNonNull';
 import { useSignGas } from '@/hooks/useSignGas';
+import { useSigningAnalytics } from '@/hooks/useSigningAnalytics';
 import { useSigningPress } from '@/hooks/useSigningPress';
 import { useTakingLong } from '@/hooks/useTakingLong';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -43,6 +44,7 @@ export function SigningWindow({ model }: { model: SigningModel }) {
   const isConfirming = model.open && actionState === 'confirming';
   const isSlow = useTakingLong(isConfirming) || (isConfirming && model.wasLeft === true);
   const lastHash = useLastNonNull(signing.hash ?? null);
+  useSigningAnalytics(model);
 
   const unpaid = place === 'success' ? [] : items.filter((item) => item.kind === 'transaction' && !(item.part === 'approve' && model.approved));
   const gas = useSignGas({ open: model.open, chainId: model.chainId, route, unpaid });

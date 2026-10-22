@@ -19,6 +19,7 @@ import { duelMovesTranslations } from './translations/duelMoves';
 import { signingTranslations } from './translations/signing';
 import { browseTranslations } from './translations/browse';
 import { signingActionsTranslations } from './translations/signingActions';
+import { privacyTranslations } from './translations/privacy';
 
 export const translations = {
   en: {
@@ -43,6 +44,7 @@ export const translations = {
     ...dashboardTranslations.en,
     ...browseTranslations.en,
     ...signingActionsTranslations.en,
+    ...privacyTranslations.en,
   },
   ru: {
     ...navigationTranslations.ru,
@@ -66,6 +68,7 @@ export const translations = {
     ...dashboardTranslations.ru,
     ...browseTranslations.ru,
     ...signingActionsTranslations.ru,
+    ...privacyTranslations.ru,
   },
 } as const;
 
