@@ -1,7 +1,7 @@
 plugins {
     java
     id("org.springframework.boot") version "4.1.1"
-    id("org.graalvm.buildtools.native") version "1.1.14"
+    id("org.graalvm.buildtools.native") version "1.1.16"
 }
 
 group = "pro.duelme"
