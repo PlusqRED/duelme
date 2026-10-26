@@ -230,6 +230,7 @@ test can check.
 | `frontend/src/lib/brandColors.ts` | Theme colours as hex for what CSS cannot reach (theme colour, Privy's window, the images `ImageResponse` draws, the no-entry pointer in `lib/seatCursor.ts`) |
 | `frontend/src/lib/brandImage.tsx` | The brand mark for `ImageResponse`: the favicon, the home-screen icon and `/logo.png` |
 | `frontend/src/lib/ogImage.tsx` | The share image; carries Geologica as WOFF (`src/assets/fonts/`, OFL), since `ImageResponse` cannot read WOFF2 |
+| `frontend/src/lib/structuredData.ts` | The pages' JSON-LD (organization, web app, breadcrumbs) and its one serializer, which escapes `<`: a game's name comes from players and must not close the script tag. `components/seo/JsonLd.tsx` renders it |
 | `frontend/src/components/identity/Avatar.tsx` | A player's face: the address's identicon (`lib/identicon.ts`) on their seat's colour |
 | `frontend/src/components/identity/ReputationPill.tsx` | A reputation level as a pill with its three-bar meter |
 | `frontend/src/i18n/intlLocales.ts` | The locale `Intl` formats each language's numbers and dates in |

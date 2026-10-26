@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { CreateDuelRoom } from '@/components/duel/create/CreateDuelRoom';
 import { JsonLd } from '@/components/seo/JsonLd';
+import { breadcrumbSchema } from '@/lib/structuredData';
 
 export const metadata: Metadata = {
   title: 'Create a 1v1 USDT Duel — On-Chain PvP for Crypto',
@@ -22,11 +23,10 @@ export default function CreateDuelPage() {
   return (
     <>
       <JsonLd
-        type="breadcrumb"
-        items={[
-          { name: 'Home', url: '/' },
-          { name: 'Create Duel', url: '/duel/create' },
-        ]}
+        data={breadcrumbSchema([
+          { name: 'Home', path: '/' },
+          { name: 'Create Duel', path: '/duel/create' },
+        ])}
       />
       <CreateDuelRoom />
     </>

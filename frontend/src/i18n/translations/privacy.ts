@@ -7,7 +7,7 @@ export const privacyTranslations = defineSection({
 
     'analytics.banner.title': 'Cookies and analytics',
     'analytics.banner.text': 'We use them to keep DuelMe fast and easy to use, and to find what breaks sooner.',
-    'analytics.banner.more': 'Learn more',
+    'analytics.banner.more': 'How DuelMe uses them',
     'analytics.banner.allow': 'Allow',
     'analytics.banner.deny': 'Anonymous',
 
@@ -51,7 +51,7 @@ export const privacyTranslations = defineSection({
     'analytics.banner.title': 'Cookies и аналитика',
     'analytics.banner.text':
       'Мы используем их, чтобы DuelMe оставался быстрым и удобным, а ошибки находились раньше.',
-    'analytics.banner.more': 'Подробнее',
+    'analytics.banner.more': 'Как DuelMe их использует',
     'analytics.banner.allow': 'Разрешить',
     'analytics.banner.deny': 'Анонимно',
 

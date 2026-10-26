@@ -100,3 +100,5 @@ export const INSTAGRAM_URL = 'https://www.instagram.com/rickes.oleg';
 /** The project's open devlog, and how its address is written out. */
 export const DEVLOG_HANDLE = 't.me/duelme_info';
 export const DEVLOG_URL = `https://${DEVLOG_HANDLE}`;
+/** The project's open source code. */
+export const SOURCE_CODE_URL = 'https://github.com/PlusqRED/duelme';

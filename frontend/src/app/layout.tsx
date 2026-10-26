@@ -9,12 +9,8 @@ import { getLanguage } from '@/i18n/serverTranslation';
 import { brandColors } from '@/lib/brandColors';
 import { getRelayerStatus } from '@/lib/relayerConfig';
 import { SITE_NAME, SITE_URL } from '@/lib/constants';
-import {
-  SEO_DESCRIPTION_EN,
-  SEO_KEYWORDS,
-  SEO_TITLE_EN,
-  SEO_TITLE_TEMPLATE,
-} from '@/lib/seo';
+import { SEO_DESCRIPTION_EN, SEO_TITLE_EN, SEO_TITLE_TEMPLATE } from '@/lib/seo';
+import { organizationSchema, webApplicationSchema } from '@/lib/structuredData';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +33,6 @@ export const metadata: Metadata = {
   },
   description: SEO_DESCRIPTION_EN,
   applicationName: SITE_NAME,
-  keywords: [...SEO_KEYWORDS],
   authors: [{ name: SITE_NAME, url: SITE_URL }],
   creator: SITE_NAME,
   publisher: SITE_NAME,
@@ -97,11 +92,9 @@ export default async function RootLayout({
   return (
     <html lang={language} className={geologica.variable} data-scroll-behavior="smooth">
       <body>
-        {/* Organization + WebApplication are global brand identity — safe on every page. */}
-        {/* FAQ is intentionally NOT here: it must live only on the page where the */}
-        {/* matching content is visible (homepage). See `app/page.tsx`. */}
-        <JsonLd type="organization" />
-        <JsonLd type="webApplication" />
+        {/* Who runs the site and what it is: the same on every page. */}
+        <JsonLd data={organizationSchema(SEO_DESCRIPTION_EN)} />
+        <JsonLd data={webApplicationSchema(SEO_DESCRIPTION_EN)} />
         <Providers language={language} relayerStatus={getRelayerStatus()}>
           <div className="flex min-h-dvh flex-col">
             <Header />

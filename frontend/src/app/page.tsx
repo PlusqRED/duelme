@@ -6,7 +6,6 @@ import { OpenDuels } from '@/components/landing/OpenDuels';
 import { RecentDuels } from '@/components/landing/RecentDuels';
 import { ReputationLab } from '@/components/landing/ReputationLab';
 import { Safety } from '@/components/landing/Safety';
-import { JsonLd } from '@/components/seo/JsonLd';
 
 export const metadata: Metadata = {
   alternates: {
@@ -22,9 +21,6 @@ export const metadata: Metadata = {
 export default function HomePage() {
   return (
     <>
-      {/* FAQ schema lives here (not in root layout) so it's only emitted on the */}
-      {/* page that's expected to carry FAQ content per Google's policy. */}
-      <JsonLd type="faq" />
       <Hero />
       <OpenDuels />
       <RecentDuels />
