@@ -22,7 +22,7 @@ export const cs2Guide: GameGuide = {
         },
         {
           heading: 'Settling the result',
-          text: 'The winner claims the pot on DuelMe and the opponent confirms it; the contract pays out on the spot. A result can be disputed only for something serious, like a cheat or a crashed server, and then each player takes back their own stake.',
+          text: 'The winner claims the pot on DuelMe and the opponent confirms it; the pot is then the winner’s, to take out of the contract any time. A result can be disputed only for something serious, like a cheat or a crashed server, and then each player takes back their own stake.',
         },
       ],
     },
@@ -43,7 +43,7 @@ export const cs2Guide: GameGuide = {
         },
         {
           heading: 'Как засчитать результат',
-          text: 'Победитель забирает банк в DuelMe, соперник подтверждает, и контракт сразу выплачивает деньги. Оспорить результат стоит только из-за серьёзного — чита или упавшего сервера: тогда каждый забирает свою сумму обратно.',
+          text: 'Победитель забирает банк в DuelMe, соперник подтверждает, и банк сразу записывается на победителя: вывести его из контракта можно когда угодно. Оспорить результат стоит только из-за серьёзного — чита или упавшего сервера: тогда каждый забирает свою сумму обратно.',
         },
       ],
     },

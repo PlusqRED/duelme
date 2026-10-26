@@ -16,17 +16,27 @@ interface GamePageProps {
 }
 
 /**
- * The game the page is about, as the page server knows it: the catalog's, or the guide's for a game
- * nobody has duelled in yet; undefined when there is no backend to ask, and the page reads it in
- * the browser. A slug neither the catalog nor a guide knows is a 404, not a page saying so.
+ * A game with a guide is drawn whatever the backend says: the catalog's game when it can be read,
+ * otherwise the guide's, so a page search engines list never fails with the backend. A failed read
+ * is still logged. Without a guide the catalog decides: a slug it does not know is a 404, a backend
+ * that fails is an error, and with no backend to ask the page reads the game in the browser.
  */
+async function readGuided(slug: string, guide: GameGuide): Promise<Game> {
+  try {
+    const read = await readGame(slug);
+    return read.status === 'found' ? read.game : uncataloguedGame(guide);
+  } catch (error) {
+    console.error(`[game page] ${slug}: the catalog could not be read, drawing the game from its guide`, error);
+    return uncataloguedGame(guide);
+  }
+}
+
 async function pageGame(slug: string): Promise<{ game: Game | undefined; guide: GameGuide | null }> {
   const guide = gameGuide(slug);
+  if (guide) return { game: await readGuided(slug, guide), guide };
   const read = await readGame(slug);
-  if (read.status === 'found') return { game: read.game, guide };
-  if (guide) return { game: uncataloguedGame(guide), guide };
   if (read.status === 'missing') notFound();
-  return { game: undefined, guide };
+  return { game: read.status === 'found' ? read.game : undefined, guide };
 }
 
 export async function generateMetadata({ params }: GamePageProps): Promise<Metadata> {

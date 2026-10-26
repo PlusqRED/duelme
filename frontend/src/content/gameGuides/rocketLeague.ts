@@ -22,7 +22,7 @@ export const rocketLeagueGuide: GameGuide = {
         },
         {
           heading: 'Settling the result',
-          text: 'The winner claims the pot on DuelMe and the opponent confirms it; the contract pays out on the spot. If a disconnect ruins a game, replay it or dispute the result, and then each player takes back their own stake.',
+          text: 'The winner claims the pot on DuelMe and the opponent confirms it; the pot is then the winner’s, to take out of the contract any time. If a disconnect ruins a game, replay it or dispute the result, and then each player takes back their own stake.',
         },
       ],
     },
@@ -43,7 +43,7 @@ export const rocketLeagueGuide: GameGuide = {
         },
         {
           heading: 'Как засчитать результат',
-          text: 'Победитель забирает банк в DuelMe, соперник подтверждает, и контракт сразу выплачивает деньги. Если игру испортил обрыв связи, переиграй её или оспорь результат: тогда каждый заберёт свою сумму обратно.',
+          text: 'Победитель забирает банк в DuelMe, соперник подтверждает, и банк сразу записывается на победителя: вывести его из контракта можно когда угодно. Если игру испортил обрыв связи, переиграй её или оспорь результат: тогда каждый заберёт свою сумму обратно.',
         },
       ],
     },

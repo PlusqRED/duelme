@@ -36,7 +36,7 @@ export const seoTranslations = defineSection({
       'Every step of a DuelMe duel: create it, play the match, settle the result. A smart contract holds both stakes, the winner takes the pot, 0% fee.',
     'seo.safety.title': 'Is DuelMe safe? How the money is kept',
     'seo.safety.description':
-      'The stakes sit in a public, verified smart contract that DuelMe cannot use to pick a winner or move money. What it guarantees, and what it cannot.',
+      'The stakes sit in a public, verified smart contract. DuelMe cannot pick a winner, and its one emergency exit is announced on-chain {days} ahead.',
     'seo.about.title': 'About DuelMe — 1v1 duels with no platform cut',
     'seo.about.description':
       'Who builds DuelMe, why it takes no fee, where it stands and how to reach its developer.',
@@ -78,7 +78,7 @@ export const seoTranslations = defineSection({
       'Каждый шаг дуэли в DuelMe: создай её, сыграй матч, засчитай результат. USDT обоих держит смарт-контракт, победитель забирает всё, комиссия 0%.',
     'seo.safety.title': 'Безопасен ли DuelMe и где хранятся деньги',
     'seo.safety.description':
-      'Суммы игроков лежат в открытом проверенном смарт-контракте, через который DuelMe не может выбрать победителя или сдвинуть деньги. Что он гарантирует, а что нет.',
+      'Суммы игроков лежат в открытом проверенном смарт-контракте. DuelMe не может выбрать победителя, а аварийный вывод объявляется в блокчейне за {days}.',
     'seo.about.title': 'О DuelMe — дуэли 1 на 1 без доли платформы',
     'seo.about.description': 'Кто делает DuelMe, почему он не берёт комиссию, что уже готово и как связаться с разработчиком.',
     'seo.player.title': 'Профиль игрока',

@@ -22,7 +22,7 @@ export const starcraft2Guide: GameGuide = {
         },
         {
           heading: 'Settling the result',
-          text: 'The winner claims the pot on DuelMe and the opponent confirms it, or concedes the duel first; the contract pays out on the spot. A dropped game can be replayed, or the result disputed, and then each player takes back their own stake.',
+          text: 'The winner claims the pot on DuelMe and the opponent confirms it, or concedes the duel first; the pot is then the winner’s, to take out of the contract any time. A dropped game can be replayed, or the result disputed, and then each player takes back their own stake.',
         },
       ],
     },
@@ -43,7 +43,7 @@ export const starcraft2Guide: GameGuide = {
         },
         {
           heading: 'Как засчитать результат',
-          text: 'Победитель забирает банк в DuelMe, соперник подтверждает или сразу признаёт поражение, и контракт выплачивает деньги. Сорвавшуюся игру можно переиграть или оспорить результат: тогда каждый заберёт свою сумму обратно.',
+          text: 'Победитель забирает банк в DuelMe, соперник подтверждает или сразу признаёт поражение, и банк сразу записывается на победителя: вывести его из контракта можно когда угодно. Сорвавшуюся игру можно переиграть или оспорить результат: тогда каждый заберёт свою сумму обратно.',
         },
       ],
     },

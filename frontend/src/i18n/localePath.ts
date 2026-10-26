@@ -39,12 +39,11 @@ export function localePath(href: string, language: Language): string {
 }
 
 /** A page's address in every language, and under `x-default` the one for a reader in none of them. */
-export function languageAddresses(path: string): Record<Language | 'x-default', string> {
-  const addresses = { 'x-default': localePath(path, DEFAULT_LANGUAGE) } as Record<Language | 'x-default', string>;
-  for (const language of LANGUAGES) {
-    addresses[language] = localePath(path, language);
-  }
-  return addresses;
+export function languageAddresses(path: string): Record<string, string> {
+  return Object.fromEntries([
+    ...LANGUAGES.map((language) => [language, localePath(path, language)]),
+    ['x-default', localePath(path, DEFAULT_LANGUAGE)],
+  ]);
 }
 
 /** An address on the site in full, as a search engine reads it: the home page with no trailing slash. */

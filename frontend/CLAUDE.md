@@ -349,8 +349,8 @@ test can check.
 | `frontend/src/components/feed/` | Duels someone joined as rows: `DuelFeed` (search, state filters with their counts, pages of 20) of `DuelRow`s, each opening into its `DuelReceipt`; the rules are `lib/duelFeed.ts` |
 | `frontend/src/components/lists/` | What every list shares, the dashboard's history too: `SearchField`, `FilterPill`, `Pager` (`lib/pages.ts`; the focus moves to the page shown after a turn) |
 | `frontend/src/components/duels/` | `/duels/public` (`OpenDuelsBoard`: search, game and stake-band filters, `OpenDuelGrid`) and `/duels/recent` (`RecentDuelsBoard`: the feed beside the popular games, its search kept in `?q=` by `useSearchQuery`) |
-| `frontend/src/components/game/GameCatalog.tsx` | `/games`: search, category pills and the games as cards (`CatalogGame`), most played first |
-| `frontend/src/components/game/GameDetail.tsx` | `/games/[slug]`: `GameHead`, the game's open duels (`GameOpenDuels`) and its `DuelFeed`; no such game, or a failed read, as a `LostPage` |
+| `frontend/src/components/game/GameCatalog.tsx` | `/games`: the guides' shortcuts (handed in from the server), search, category pills and the games as cards (`CatalogGame`), most played first |
+| `frontend/src/components/game/GameDetail.tsx` | `/games/[slug]`: `GameHead` with the guide's lead, the game's open duels (`GameOpenDuels`), its `DuelFeed`, then what the server hands in after them (the guide, the other guides). Takes the game the server read; read in the browser only without one, where no such game or a failed read is a `LostPage`. On the server an unknown slug is a 404, and a game with a guide is drawn from it when the backend cannot be read |
 | `frontend/src/components/layout/LostPage.tsx` | A page with nothing to show, drawn as the brand mark: `app/not-found.tsx`, `app/error.tsx`, a missing game |
 | `frontend/Dockerfile` | Frontend container (multi-stage, Node 22) |
 | `frontend/src/app/duel/create/page.tsx` | The create page: `CreateDuelRoom` |
@@ -378,14 +378,14 @@ test can check.
 | `frontend/src/hooks/useAnalyticsIdentity.ts` | Sign-ins and sign-outs as events, and the player's Privy id and wallet given to analytics only after a yes |
 | `frontend/src/hooks/useSigningAnalytics.ts` | The signing window's events, each sent once from the change between two renders (`lib/signingAnalytics.ts`) |
 | `frontend/src/app/privacy/page.tsx` | What DuelMe keeps and where, and the answer on analytics to change |
-| `frontend/src/app/how-it-works/page.tsx`, `safety/page.tsx`, `about/page.tsx` | The pages that explain DuelMe — a duel step by step, where the money sits and what the contract cannot do, who runs it — linked from the footer on every page. Their facts come from the code (`lib/contractFacts.ts`, `DUELME_ADDRESSES`), never typed into the copy |
-| `frontend/src/components/layout/Prose.tsx` | The frame of a page of plain text (`ProsePage`) and its parts (`ProseSection`), shared by the privacy page and the explainers |
+| `frontend/src/app/how-it-works/page.tsx`, `safety/page.tsx`, `about/page.tsx` | The pages that explain DuelMe — a duel step by step, where the money sits and what the contract cannot do, who runs it — linked from the footer on every page. The figures that change with the code — the test count, coverage, emergency delay and the contract's address — come from it (`lib/contractFacts.ts`, pinned by its test to the contract, and `DUELME_ADDRESSES`), never typed into the copy |
+| `frontend/src/components/layout/ProsePage.tsx`, `ProseSection.tsx` | The frame of a page of plain text and its parts, shared by the privacy page and the explainers |
 
 ## Environment
 
 - `NEXT_PUBLIC_PRIVY_APP_ID` — Privy app ID (frontend)
 - `NEXT_PUBLIC_API_URL` — Backend API base URL (default `/api/v1`)
-- `API_INTERNAL_URL` — the backend as the page server reaches it, **runtime**: `http://backend:8080/api/v1`, a literal in each compose file, like `APP_ENV`, since it is no secret (`lib/__tests__/composeServerApi.test.ts` pins it). Game pages read their game on the server through it. Unset (a local dev server, the browser tests) ⇒ they read it in the browser, and a game nobody knows shows its not-found card with a 200 instead of a 404.
+- `API_INTERNAL_URL` — the backend as the page server reaches it, **runtime**: `http://backend:8080/api/v1`, a literal in each compose file, like `APP_ENV`, since it is no secret (`lib/__tests__/composeServerApi.test.ts` pins it). Game pages read their game on the server through it. Unset (a local dev server, the browser tests) ⇒ they read it in the browser, and a game nobody knows shows its not-found card with a 200 instead of a 404; a game with a guide is then drawn from its guide.
 - `NEXT_PUBLIC_ARBITRUM_RPC_URL` — authenticated RPC for Arbitrum One. **Unset since 2026-09-20**, so both environments run on Tenderly Gateway public; the previous provider was disabled upstream and took withdrawals down with it (see the RPC gotcha below). Used as Privy embedded-wallet override + first wagmi fallback. If you set it: check the endpoint answers `eth_chainId`, add its host to `connect-src`, and lock the URL via the provider's "Allowed Origins" — `NEXT_PUBLIC_*` are inlined into the JS bundle.
 - `NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL` — same for Arbitrum Sepolia. Optional; Tenderly public works for dev.
 - `RELAYER_PRIVATE_KEY` — hot wallet that pays gas for relayed duel actions (frontend container, **runtime** not build-time). Unset, or not a valid private key ⇒ `/api/relay` returns 503 and duel writes stay self-paid. Dedicated key; fund it with only what the daily budgets can spend.

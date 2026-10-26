@@ -24,7 +24,7 @@ export const infoPagesTranslations = defineSection({
       'The match is played in the game itself, as agreed: a private lobby, a friendly, a direct challenge. DuelMe is not in the match; it holds the money and records how the duel ended.',
     'howItWorks.step5.title': 'Settle the result',
     'howItWorks.step5.text':
-      'The winner claims the pot and the opponent confirms: the contract pays the whole pot at once. The loser can also concede straight away. And if both agree to call the duel off, each takes back their own stake.',
+      'The winner claims the pot and the opponent confirms: the whole pot is the winner’s at once, kept in the contract until they take it out. The loser can also concede straight away. And if both agree to call the duel off, each takes back their own stake.',
     'howItWorks.trouble.title': 'When players disagree',
     'howItWorks.trouble.text':
       'A claim can be disputed for something serious, like a cheat or a dropped connection. Nobody wins a disputed duel: each player takes back their own stake, and reputation stays the same. If the opponent does not answer a claim in time, each player takes their stake back too, and the silence counts as an abandoned duel.',
@@ -41,9 +41,9 @@ export const infoPagesTranslations = defineSection({
     'safety.contract.text':
       'The contract’s source is published and verified on Arbiscan under the MIT license, and built on OpenZeppelin v5. Every move of every stake is on the blockchain for anyone to check.',
     'safety.contract.link': 'The contract on Arbiscan',
-    'safety.limits.title': 'What DuelMe cannot do',
+    'safety.limits.title': 'What DuelMe can and cannot do',
     'safety.limits.text':
-      'Nothing in the contract lets DuelMe pick a winner or move a stake. Its only emergency exit has to be announced on the blockchain first and opens 30 days later at the earliest, so everyone would see it coming.',
+      'Nothing in the contract lets DuelMe pick a winner. It can move money only through one emergency exit, which reaches players’ stakes too: each use has to be announced on the blockchain first and can be carried out {days} later at the earliest, so everyone would see it coming.',
     'safety.payouts.title': 'Your winnings are yours to take',
     'safety.payouts.text':
       'A pot you won or a stake that came back waits in the contract under your address until you withdraw it, whenever you like. Nobody sends it for you, and nobody can hold it back.',
@@ -96,7 +96,7 @@ export const infoPagesTranslations = defineSection({
       'Матч идёт в самой игре, как договорились: приватное лобби, товарищеский матч, прямой вызов. DuelMe в матче не участвует: он держит деньги и записывает, чем кончилась дуэль.',
     'howItWorks.step5.title': 'Засчитай результат',
     'howItWorks.step5.text':
-      'Победитель заявляет победу, соперник подтверждает, и контракт сразу выплачивает весь банк. Проигравший может и сам признать поражение. А если оба согласны отменить дуэль, каждый забирает свою сумму.',
+      'Победитель заявляет победу, соперник подтверждает, и весь банк сразу записывается на победителя: он ждёт в контракте, пока его не выведут. Проигравший может и сам признать поражение. А если оба согласны отменить дуэль, каждый забирает свою сумму.',
     'howItWorks.trouble.title': 'Если игроки не согласны',
     'howItWorks.trouble.text':
       'Заявку на победу можно оспорить из-за серьёзного — чита или обрыва связи. В оспоренной дуэли нет победителя: каждый забирает свою сумму, репутация не меняется. Если соперник не ответит на заявку вовремя, каждый тоже заберёт свою сумму, а молчание засчитают как брошенную дуэль.',
@@ -113,9 +113,9 @@ export const infoPagesTranslations = defineSection({
     'safety.contract.text':
       'Исходный код контракта опубликован и проверен на Arbiscan под лицензией MIT и построен на OpenZeppelin v5. Каждое движение каждой суммы видно в блокчейне, проверить может любой.',
     'safety.contract.link': 'Контракт на Arbiscan',
-    'safety.limits.title': 'Чего DuelMe сделать не может',
+    'safety.limits.title': 'Что DuelMe может, а что нет',
     'safety.limits.text':
-      'В контракте нет способа выбрать победителя или сдвинуть чью-то сумму. Единственный аварийный выход нужно сначала объявить в блокчейне, и открывается он не раньше чем через 30 дней, так что это увидят все.',
+      'В контракте нет способа выбрать победителя. Двигать деньги DuelMe может только через единственный аварийный вывод, который достаёт и до сумм игроков: каждый вывод нужно сначала объявить в блокчейне, и выполнить его можно не раньше чем через {days}, так что это увидят все.',
     'safety.payouts.title': 'Выигрыш забираешь ты',
     'safety.payouts.text':
       'Выигранный банк или вернувшаяся сумма ждёт в контракте на твоём адресе, пока ты не выведешь её, когда захочешь. Никто не отправляет её за тебя и никто не может её задержать.',

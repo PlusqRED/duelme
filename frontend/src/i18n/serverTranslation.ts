@@ -8,7 +8,8 @@ import { translations, type Language, type TranslationKey } from './translations
 /** The words a server component can say: the browser's, and the ones only pages say. */
 export type ServerTranslator = Translator<TranslationKey | PageTranslationKey>;
 
-const serverDictionaries = {
+/** Every word a server component can say, by language: the browser's, and the pages' own over them. */
+export const serverDictionaries = {
   en: { ...translations.en, ...pageTranslations.en },
   ru: { ...translations.ru, ...pageTranslations.ru },
 };

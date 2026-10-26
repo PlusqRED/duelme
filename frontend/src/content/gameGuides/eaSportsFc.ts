@@ -22,7 +22,7 @@ export const eaSportsFcGuide: GameGuide = {
         },
         {
           heading: 'Settling the result',
-          text: 'The winner claims the pot on DuelMe and the opponent confirms it; the contract pays out on the spot. If the connection drops mid-match, replay it or dispute the result, and then each player takes back their own stake.',
+          text: 'The winner claims the pot on DuelMe and the opponent confirms it; the pot is then the winner’s, to take out of the contract any time. If the connection drops mid-match, replay it or dispute the result, and then each player takes back their own stake.',
         },
       ],
     },
@@ -43,7 +43,7 @@ export const eaSportsFcGuide: GameGuide = {
         },
         {
           heading: 'Как засчитать результат',
-          text: 'Победитель забирает банк в DuelMe, соперник подтверждает, и контракт сразу выплачивает деньги. Если связь оборвалась посреди матча, переиграй его или оспорь результат: тогда каждый заберёт свою сумму обратно.',
+          text: 'Победитель забирает банк в DuelMe, соперник подтверждает, и банк сразу записывается на победителя: вывести его из контракта можно когда угодно. Если связь оборвалась посреди матча, переиграй его или оспорь результат: тогда каждый заберёт свою сумму обратно.',
         },
       ],
     },

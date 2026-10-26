@@ -1,14 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { pageTranslations } from '@/i18n/pageTranslations';
+import { serverDictionaries } from '@/i18n/serverTranslation';
 import { translations } from '@/i18n/translations';
 import { isFormal } from '@/lib/__tests__/helpers/russianVoice';
 import { sourceFiles } from '@/lib/__tests__/helpers/sourceFiles';
 
-/** Every word, the browser's and the ones only pages say, in both languages. */
-const dictionaries: Record<'en' | 'ru', Record<string, string>> = {
-  en: { ...translations.en, ...pageTranslations.en },
-  ru: { ...translations.ru, ...pageTranslations.ru },
-};
+const dictionaries: Record<'en' | 'ru', Record<string, string>> = serverDictionaries;
 
 const keys = Object.keys(dictionaries.en);
 

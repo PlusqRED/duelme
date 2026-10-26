@@ -1,15 +1,20 @@
 import type { Metadata } from 'next';
-import { PROSE_TEXT, ProsePage, ProseSection } from '@/components/layout/Prose';
+import { ProsePage } from '@/components/layout/ProsePage';
+import { PROSE_TEXT, ProseSection } from '@/components/layout/ProseSection';
 import { getTranslation } from '@/i18n/serverTranslation';
 import { DEFAULT_CHAIN_ID, DUELME_ADDRESSES } from '@/lib/constants';
-import { contractCoverage, contractTestsLabel } from '@/lib/contractFacts';
+import { contractCoverage, contractTestsLabel, emergencyDelayLabel } from '@/lib/contractFacts';
 import { explorerLink } from '@/lib/explorer';
 import { pageMetadata } from '@/lib/pageMetadata';
 import { formatPercent } from '@/lib/utils';
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { t } = await getTranslation();
-  return pageMetadata({ path: '/safety', title: t('seo.safety.title'), description: t('seo.safety.description') });
+  const { t, plural, language } = await getTranslation();
+  return pageMetadata({
+    path: '/safety',
+    title: t('seo.safety.title'),
+    description: t('seo.safety.description', { days: emergencyDelayLabel(plural, language) }),
+  });
 }
 
 /**
@@ -35,7 +40,7 @@ export default async function SafetyPage() {
           </a>
         </p>
       </ProseSection>
-      <ProseSection title={t('safety.limits.title')} text={t('safety.limits.text')} />
+      <ProseSection title={t('safety.limits.title')} text={t('safety.limits.text', { days: emergencyDelayLabel(plural, language) })} />
       <ProseSection title={t('safety.payouts.title')} text={t('safety.payouts.text')} />
       <ProseSection title={t('safety.tests.title')}>
         <p className={PROSE_TEXT}>

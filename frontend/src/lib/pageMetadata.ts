@@ -6,7 +6,7 @@ import { getTranslation } from '@/i18n/serverTranslation';
 import type { Language } from '@/i18n/translations';
 import { SITE_NAME } from '@/lib/constants';
 import { isIndexed } from '@/lib/indexedPages';
-import { OG_IMAGE_CONTENT_TYPE, OG_IMAGE_SIZE, shareImagePath } from '@/lib/ogImage';
+import { OG_IMAGE_CONTENT_TYPE, ogImageSize, shareImagePath } from '@/lib/ogImage';
 
 /** Open Graph writes a locale with an underscore: `ru_RU`. */
 function openGraphLocale(language: Language): string {
@@ -14,14 +14,14 @@ function openGraphLocale(language: Language): string {
 }
 
 /** Large image previews and whole snippets: Google otherwise keeps both short. */
-const INDEXED: Metadata['robots'] = {
+const indexedRobots: Metadata['robots'] = {
   index: true,
   follow: true,
   googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1, 'max-video-preview': -1 },
 };
 
 /** Its links still lead a search engine on to the pages it may list. */
-const UNINDEXED: Metadata['robots'] = { index: false, follow: true };
+const unindexedRobots: Metadata['robots'] = { index: false, follow: true };
 
 export interface PageMetadataInput {
   /** The page's address in English, the language without a prefix: `/games`. Listed in search results only if `INDEXED_PAGES` has it. */
@@ -54,9 +54,9 @@ export async function pageMetadata({ path, title, description }: PageMetadataInp
       url: address,
       locale: openGraphLocale(language),
       alternateLocale: LANGUAGES.filter((other) => other !== language).map(openGraphLocale),
-      images: [{ url: shareImagePath(language), ...OG_IMAGE_SIZE, type: OG_IMAGE_CONTENT_TYPE, alt: t('seo.image.alt') }],
+      images: [{ url: shareImagePath(language), ...ogImageSize, type: OG_IMAGE_CONTENT_TYPE, alt: t('seo.image.alt') }],
     },
     twitter: { card: 'summary_large_image' },
-    robots: indexed ? INDEXED : UNINDEXED,
+    robots: indexed ? indexedRobots : unindexedRobots,
   };
 }

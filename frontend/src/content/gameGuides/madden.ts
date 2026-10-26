@@ -22,7 +22,7 @@ export const maddenGuide: GameGuide = {
         },
         {
           heading: 'Settling the result',
-          text: 'The winner claims the pot on DuelMe and the opponent confirms it; the contract pays out on the spot. Dispute only for something serious, like a cheat or a disconnect, and then each player takes back their own stake.',
+          text: 'The winner claims the pot on DuelMe and the opponent confirms it; the pot is then the winner’s, to take out of the contract any time. Dispute only for something serious, like a cheat or a disconnect, and then each player takes back their own stake.',
         },
       ],
     },
@@ -43,7 +43,7 @@ export const maddenGuide: GameGuide = {
         },
         {
           heading: 'Как засчитать результат',
-          text: 'Победитель забирает выигрыш в DuelMe, соперник подтверждает, и контракт сразу выплачивает деньги. Оспаривать стоит только серьёзное — чит или обрыв связи: тогда каждый забирает свою сумму обратно.',
+          text: 'Победитель забирает выигрыш в DuelMe, соперник подтверждает, и банк сразу записывается на победителя: вывести его из контракта можно когда угодно. Оспаривать стоит только серьёзное — чит или обрыв связи: тогда каждый забирает свою сумму обратно.',
         },
       ],
     },

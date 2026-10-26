@@ -2,6 +2,7 @@ import { SectionHead } from '@/components/landing/SectionHead';
 import { Icon } from '@/components/ui/icon';
 import { getTranslation } from '@/i18n/serverTranslation';
 import type { PageTranslationKey } from '@/i18n/pageTranslations';
+import { emergencyDelayLabel } from '@/lib/contractFacts';
 
 const TITLE_ID = 'faq-title';
 
@@ -24,7 +25,8 @@ const QUESTIONS: readonly (readonly [PageTranslationKey, PageTranslationKey])[] 
  * data: Google stopped showing it in 2026.
  */
 export async function Faq() {
-  const { t } = await getTranslation();
+  const { t, plural, language } = await getTranslation();
+  const days = emergencyDelayLabel(plural, language);
 
   return (
     <section id="faq" aria-labelledby={TITLE_ID} className="mx-auto w-full max-w-page px-gutter pt-section">
@@ -42,7 +44,7 @@ export async function Faq() {
                   <Icon name="plus" className="size-5 transition-transform duration-300 ease-spring group-open/faq:rotate-45" />
                 </span>
               </summary>
-              <p className="max-w-[62ch] animate-rise pb-6 text-body text-pretty text-ink-2">{t(answer)}</p>
+              <p className="max-w-[62ch] animate-rise pb-6 text-body text-pretty text-ink-2">{t(answer, { days })}</p>
             </details>
           ))}
         </div>

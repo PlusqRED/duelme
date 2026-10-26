@@ -2,12 +2,11 @@
 import { cleanup, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LANGUAGE_HEADER } from '@/i18n/language';
-import { pageTranslations } from '@/i18n/pageTranslations';
+import { serverDictionaries } from '@/i18n/serverTranslation';
 import { translator } from '@/i18n/translate';
-import { translations } from '@/i18n/translations';
 import { renderIn } from '@/lib/__tests__/helpers/renderIn';
 import { DEFAULT_CHAIN_ID, DUELME_ADDRESSES, DEVELOPER_EMAIL, SOURCE_CODE_URL } from '@/lib/constants';
-import { contractTestsLabel } from '@/lib/contractFacts';
+import { contractTestsLabel, emergencyDelayLabel } from '@/lib/contractFacts';
 import { explorerLink } from '@/lib/explorer';
 
 vi.mock('next/headers', () => ({ headers: async () => new Headers({ [LANGUAGE_HEADER]: 'ru' }) }));
@@ -16,7 +15,7 @@ const { default: HowItWorksPage } = await import('@/app/how-it-works/page');
 const { default: SafetyPage } = await import('@/app/safety/page');
 const { default: AboutPage } = await import('@/app/about/page');
 
-const ru = { ...translations.ru, ...pageTranslations.ru };
+const ru = serverDictionaries.ru;
 
 afterEach(cleanup);
 
@@ -56,6 +55,13 @@ describe('safety', () => {
     const tests = contractTestsLabel(translator('ru').plural, 'ru');
 
     expect(screen.getByText((text) => text.startsWith(tests))).toBeTruthy();
+  });
+
+  it('says how long the emergency exit waits, as the contract has it', async () => {
+    renderIn('ru', await SafetyPage());
+    const days = emergencyDelayLabel(translator('ru').plural, 'ru');
+
+    expect(screen.getByText((text) => text.includes(`не раньше чем через ${days},`))).toBeTruthy();
   });
 });
 

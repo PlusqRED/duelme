@@ -7,11 +7,11 @@ import { brandColors } from '@/lib/brandColors';
 import { BrandMarkImage } from '@/lib/brandImage';
 import { SITE_NAME, SITE_URL } from '@/lib/constants';
 
-export const OG_IMAGE_SIZE = { width: 1200, height: 630 };
+export const ogImageSize = { width: 1200, height: 630 };
 export const OG_IMAGE_CONTENT_TYPE = 'image/png';
 
 /** The motto's size, as large as its longest line allows on one line of the image: Russian runs longer. */
-const MOTTO_SIZE: Record<Language, number> = { en: 92, ru: 72 };
+const mottoSize: Record<Language, number> = { en: 92, ru: 72 };
 
 /** Where a page's share image is, in the page's language: `app/og/[language]/route.ts` draws it. */
 export function shareImagePath(language: Language): string {
@@ -56,7 +56,7 @@ export async function renderBrandOgImage(language: Language) {
 
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {motto.map((line) => (
-            <div key={line} style={{ fontSize: MOTTO_SIZE[language], fontWeight: 800, lineHeight: 0.98, letterSpacing: '-0.04em' }}>
+            <div key={line} style={{ fontSize: mottoSize[language], fontWeight: 800, lineHeight: 0.98, letterSpacing: '-0.04em' }}>
               {line}
             </div>
           ))}
@@ -85,6 +85,6 @@ export async function renderBrandOgImage(language: Language) {
         </div>
       </div>
     ),
-    { ...OG_IMAGE_SIZE, fonts: await Promise.all([geologica(400), geologica(700), geologica(800)]) }
+    { ...ogImageSize, fonts: await Promise.all([geologica(400), geologica(700), geologica(800)]) }
   );
 }

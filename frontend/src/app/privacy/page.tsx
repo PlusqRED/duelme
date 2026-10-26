@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { AnalyticsChoice } from '@/components/analytics/AnalyticsChoice';
-import { PROSE_TEXT, ProsePage, ProseSection } from '@/components/layout/Prose';
+import { ProsePage } from '@/components/layout/ProsePage';
+import { PROSE_TEXT, ProseSection } from '@/components/layout/ProseSection';
 import { getTranslation } from '@/i18n/serverTranslation';
 import { DEVELOPER_EMAIL } from '@/lib/constants';
 import { pageMetadata } from '@/lib/pageMetadata';

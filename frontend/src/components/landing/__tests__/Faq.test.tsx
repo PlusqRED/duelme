@@ -3,6 +3,8 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LANGUAGE_HEADER } from '@/i18n/language';
 import { pageTranslations } from '@/i18n/pageTranslations';
+import { translator } from '@/i18n/translate';
+import { emergencyDelayLabel } from '@/lib/contractFacts';
 
 vi.mock('next/headers', () => ({ headers: async () => new Headers({ [LANGUAGE_HEADER]: 'ru' }) }));
 
@@ -21,7 +23,13 @@ describe('Faq', () => {
   it('has every answer in the page before it is opened, for search engines to read', async () => {
     const { container } = render(await Faq());
 
-    expect(container.textContent).toContain(pageTranslations.ru['faq.custody.a']);
+    expect(container.textContent).toContain(pageTranslations.ru['faq.dispute.a']);
+  });
+
+  it('gives the emergency delay the contract enforces', async () => {
+    const { container } = render(await Faq());
+
+    expect(container.textContent).toContain(`не раньше чем через ${emergencyDelayLabel(translator('ru').plural, 'ru')}.`);
   });
 
   it('opens an answer on a press of its question', async () => {

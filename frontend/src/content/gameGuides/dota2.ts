@@ -22,7 +22,7 @@ export const dota2Guide: GameGuide = {
         },
         {
           heading: 'Settling the result',
-          text: 'The winner claims the pot on DuelMe and the opponent confirms it, or concedes first; the contract pays out on the spot. Dispute only for something serious, like a disconnect or a cheat: then each player takes back their own stake.',
+          text: 'The winner claims the pot on DuelMe and the opponent confirms it, or concedes first; the pot is then the winner’s, to take out of the contract any time. Dispute only for something serious, like a disconnect or a cheat: then each player takes back their own stake.',
         },
       ],
     },
@@ -43,7 +43,7 @@ export const dota2Guide: GameGuide = {
         },
         {
           heading: 'Как засчитать результат',
-          text: 'Победитель забирает банк в DuelMe, соперник подтверждает или сам признаёт поражение, и контракт сразу выплачивает деньги. Оспаривать стоит только серьёзное — обрыв связи или чит: тогда каждый забирает свою сумму обратно.',
+          text: 'Победитель забирает банк в DuelMe, соперник подтверждает или сам признаёт поражение, и банк сразу записывается на победителя: вывести его из контракта можно когда угодно. Оспаривать стоит только серьёзное — обрыв связи или чит: тогда каждый забирает свою сумму обратно.',
         },
       ],
     },

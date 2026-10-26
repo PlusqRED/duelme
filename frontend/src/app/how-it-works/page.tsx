@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
-import { PROSE_TEXT, ProsePage, ProseSection } from '@/components/layout/Prose';
+import { ProsePage } from '@/components/layout/ProsePage';
+import { PROSE_TEXT, ProseSection } from '@/components/layout/ProseSection';
 import { buttonVariants } from '@/components/ui/button';
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { getTranslation } from '@/i18n/serverTranslation';
