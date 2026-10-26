@@ -278,7 +278,7 @@ test can check.
 | `frontend/src/hooks/useContractConfig.ts` | Reads owner-adjustable on-chain params (minWager, claimTimeout, maxMessageCodepoints, maxMessageBytes), syncs contractConfig store |
 | `frontend/src/lib/contractConfig.ts` | Module-level cache of on-chain params for non-hook helpers (fallbacks from constants.ts) |
 | `frontend/src/hooks/useDuelActions.ts` | Write actions (join, cancel, claim, refundAndClaimPayouts, etc.) |
-| `frontend/src/hooks/useWriteWithGas.ts` | Duel write dispatcher: relayed / resilient / plain routing + merged hash/isPending/error surface |
+| `frontend/src/hooks/useWriteWithGas.ts` | Duel write dispatcher: relayed / resilient / plain routing + merged hash/isPending/error surface; `relaySigned` follows the relayed USDT transfer the same way |
 | `frontend/src/lib/writeReceipt.ts` | Waits for a write's receipt and decides by it: the receipt, `TransactionRevertedError` with the replayed reason, or `TransactionReplacedError` |
 | `frontend/src/lib/writeErrors.ts` | The ways a write ends without running (reverted, replaced, wallet not ready, a token whose permit domain is not EIP-2612's), which `lib/flowError.ts` words for the signing window |
 | `frontend/src/app/dashboard/page.tsx` | My duels: the title and Create a duel, then `components/dashboard/Dashboard` |
