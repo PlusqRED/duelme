@@ -12,7 +12,7 @@ type LocaleLinkProps = Omit<ComponentProps<typeof Link>, 'href'> & {
 
 /**
  * The site's one link: a page of the site in the page's own language, so a reader on `/ru` stays
- * on Russian addresses. `i18n/__tests__/localeLinks.test.ts` keeps `next/link` to this file.
+ * on Russian addresses. ESLint keeps `next/link` to this file (`eslint.config.mjs`).
  */
 export function LocaleLink({ href, ...props }: LocaleLinkProps) {
   const { language } = useTranslation();
