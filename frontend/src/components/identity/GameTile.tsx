@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Icon } from '@/components/ui/icon';
 import type { GameCategory } from '@/lib/game';
 import { GAME_TONES, gameInitials } from '@/lib/gameTile';
@@ -8,11 +9,13 @@ interface GameTileProps {
   name: string | null;
   /** Without one the tile stays neutral. */
   category?: GameCategory | null;
+  /** What the tile holds instead: a count, on a tile that stands for several games. */
+  children?: ReactNode;
   className?: string;
 }
 
 /** A game's initials on its category's colour. The name sits beside it, so the tile is not read out. */
-export function GameTile({ name, category, className }: GameTileProps) {
+export function GameTile({ name, category, children, className }: GameTileProps) {
   return (
     <span
       aria-hidden="true"
@@ -23,7 +26,7 @@ export function GameTile({ name, category, className }: GameTileProps) {
         className
       )}
     >
-      {name === null ? <Icon name="gamepad" className="size-[45%]" /> : gameInitials(name)}
+      {children ?? (name === null ? <Icon name="gamepad" className="size-[45%]" /> : gameInitials(name))}
     </span>
   );
 }

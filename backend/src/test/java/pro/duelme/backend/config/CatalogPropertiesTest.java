@@ -38,14 +38,4 @@ class CatalogPropertiesTest {
         assertThatThrownBy(() -> new CatalogProperties(Map.of(GameCategory.CARD, withNull)))
             .isInstanceOf(IllegalStateException.class);
     }
-
-    @Test
-    void rejectsOneGameNamedTwice() {
-        // Different spellings, one slug: each boot would rename the game to the other.
-        var catalog = Map.of(GameCategory.FPS, List.of("CS2"), GameCategory.OTHER, List.of("cs2"));
-
-        assertThatThrownBy(() -> new CatalogProperties(catalog))
-            .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("twice");
-    }
 }

@@ -11,7 +11,6 @@ import pro.duelme.backend.model.Game;
 import pro.duelme.backend.model.GameCategory;
 import pro.duelme.backend.repository.DuelMetaRepository;
 import pro.duelme.backend.repository.GameRepository;
-import pro.duelme.backend.service.GameService;
 
 import java.util.List;
 
@@ -47,8 +46,9 @@ class GameCatalogConfigTest {
         assertThat(gameRepository.findBySlug("chess")).map(Game::category).contains(GameCategory.BOARD);
         assertThat(gameRepository.findBySlug("world-of-warcraft")).map(Game::category).contains(GameCategory.MMO);
         // Нарды, a game of its own beside Backgammon.
-        assertThat(gameRepository.findBySlug(GameService.toSlug("Нарды")))
-            .map(Game::category)
-            .contains(GameCategory.BOARD);
+        assertThat(gameRepository.findAll())
+            .filteredOn(game -> game.name().equals("Нарды"))
+            .extracting(Game::category)
+            .containsExactly(GameCategory.BOARD);
     }
 }

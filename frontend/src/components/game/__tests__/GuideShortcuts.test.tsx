@@ -33,10 +33,4 @@ describe('GuideShortcuts', () => {
 
     expect(allGames().textContent).toBe(`+${GAME_GUIDES.length - 3}${pageTranslations.ru['games.allGames']}`);
   });
-
-  it('does not count the game whose page it is on among the rest', async () => {
-    renderIn('ru', await GuideShortcuts({ guides: GAME_GUIDES.slice(1, 4), except: GAME_GUIDES[0].slug }));
-
-    expect(allGames().textContent).toBe(`+${GAME_GUIDES.length - 4}${pageTranslations.ru['games.allGames']}`);
-  });
 });

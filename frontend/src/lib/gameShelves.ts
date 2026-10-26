@@ -1,8 +1,4 @@
-import { byPopularity, GAME_CATEGORIES, uncataloguedGame, type Game, type GameCategory } from '@/lib/game';
-import { normalizeGameName } from '@/lib/gameSearch';
-
-/** What the catalog page needs of a guide: the game it stands for. The guides' words stay on the server. */
-export type ShelfGuide = Pick<Game, 'slug' | 'name' | 'category'>;
+import { byPopularity, GAME_CATEGORIES, normalizeGameName, type Game, type GameCategory } from '@/lib/game';
 
 /** One category's games on the catalog page, the most played first. */
 export interface Shelf {
@@ -11,20 +7,16 @@ export interface Shelf {
 }
 
 /**
- * The games the catalog page shows. Until the catalog answers (`read` undefined), the guides' games,
- * narrowed by the search here: the page the server draws holds every guide, so a search engine reads
- * them all. After, the catalog's, which searches by itself, with any guide's game it lacks beside
- * them as one nobody has played yet.
+ * The games the catalog page shows, those whose name holds the search however it is spelled: the
+ * catalog's, with any guide's game it lacks beside them. Until the catalog answers, the guides'
+ * games alone, which the server draws, so a search engine reads them all.
  */
-export function catalogGames(read: readonly Game[] | undefined, guides: readonly ShelfGuide[], search: string): Game[] {
-  if (read === undefined) {
-    const wanted = normalizeGameName(search);
-    return guides.map(uncataloguedGame).filter((game) => normalizeGameName(game.name).includes(wanted));
-  }
-  // A guide the search left out is not a game the catalog lacks.
-  if (search.trim() !== '') return [...read];
-  const known = new Set(read.map((game) => game.slug));
-  return [...read, ...guides.filter((guide) => !known.has(guide.slug)).map(uncataloguedGame)];
+export function catalogGames(catalog: readonly Game[], guides: readonly Game[], search: string): Game[] {
+  const known = new Set(catalog.map((game) => game.slug));
+  const wanted = normalizeGameName(search);
+  return [...catalog, ...guides.filter((guide) => !known.has(guide.slug))].filter((game) =>
+    normalizeGameName(game.name).includes(wanted)
+  );
 }
 
 /** The games by category, in the categories' order, each played most first; a category with none is left out. */

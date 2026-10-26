@@ -9,6 +9,7 @@ import {
   getCategoryShelfKey,
   GAME_CATEGORIES,
   isGame,
+  normalizeGameName,
   uncataloguedGame,
 } from '@/lib/game';
 
@@ -43,6 +44,16 @@ describe('GAME_CATEGORIES', () => {
     const keys = GAME_CATEGORIES.flatMap((category) => [getCategoryShelfKey(category), getCategoryNoteKey(category)]);
 
     expect(keys.filter((key) => !translations.en[key] || !translations.ru[key])).toEqual([]);
+  });
+});
+
+describe('normalizeGameName', () => {
+  it('ignores case, spaces and punctuation', () => {
+    expect(normalizeGameName(' CS: 2 ')).toBe('cs2');
+  });
+
+  it('keeps letters of any script', () => {
+    expect(normalizeGameName('Шахматы 960')).toBe('шахматы960');
   });
 });
 

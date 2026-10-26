@@ -184,6 +184,17 @@ class GameServiceTest {
     }
 
     @Test
+    void seedCatalogRejectsOneGameNamedTwiceBeforeWritingAny() {
+        // Different spellings, one slug: each boot would rename the game from one to the other.
+        var catalog = Map.of(GameCategory.FPS, List.of("CS2"), GameCategory.OTHER, List.of("cs2"));
+
+        assertThatThrownBy(() -> gameService.seedCatalog(catalog))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("twice");
+        assertThat(gameRepository.findAll()).isEmpty();
+    }
+
+    @Test
     void seedCatalogAgainChangesNothing() {
         var catalog = Map.of(GameCategory.CARD, List.of("Poker", "Durak"), GameCategory.MMO, List.of("Lineage 2"));
         gameService.seedCatalog(catalog);

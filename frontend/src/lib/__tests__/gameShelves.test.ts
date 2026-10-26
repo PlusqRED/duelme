@@ -7,29 +7,29 @@ function game(slug: string, name: string, duelCount: number, category: GameCateg
 }
 
 const guides = [
-  { slug: 'cs2', name: 'CS2', category: 'FPS' as const },
-  { slug: 'chess', name: 'Chess', category: 'BOARD' as const },
+  uncataloguedGame({ slug: 'cs2', name: 'CS2', category: 'FPS' }),
+  uncataloguedGame({ slug: 'chess', name: 'Chess', category: 'BOARD' }),
 ];
 
 describe('catalogGames', () => {
   it('shows the guides’ games before the catalog answers', () => {
-    expect(catalogGames(undefined, guides, '')).toEqual(guides.map(uncataloguedGame));
+    expect(catalogGames([], guides, '')).toEqual(guides);
   });
 
   it('narrows the guides’ games by the search, however it is spelled, before the catalog answers', () => {
-    expect(catalogGames(undefined, guides, ' cs 2 ').map(({ slug }) => slug)).toEqual(['cs2']);
+    expect(catalogGames([], guides, ' cs 2 ').map(({ slug }) => slug)).toEqual(['cs2']);
   });
 
-  it('adds a guide’s game the catalog lacks as one nobody has played', () => {
-    const read = [game('cs2', 'CS2', 4, 'FPS'), game('wow-midnight', 'Wow Midnight', 1, 'OTHER')];
+  it('adds a guide’s game the catalog lacks beside the catalog’s', () => {
+    const catalog = [game('cs2', 'CS2', 4, 'FPS'), game('wow-midnight', 'Wow Midnight', 1, 'OTHER')];
 
-    expect(catalogGames(read, guides, '')).toEqual([...read, uncataloguedGame(guides[1])]);
+    expect(catalogGames(catalog, guides, '')).toEqual([...catalog, guides[1]]);
   });
 
-  it('takes the catalog’s word on a search, which a guide left out did not match', () => {
-    const read = [game('cs2', 'CS2', 4, 'FPS')];
+  it('narrows the catalog’s games by the search, however it is spelled', () => {
+    const catalog = [game('cs2', 'CS2', 4, 'FPS'), game('mobile-legends-bang-bang', 'Mobile Legends: Bang Bang', 1, 'MOBA')];
 
-    expect(catalogGames(read, guides, 'cs')).toEqual(read);
+    expect(catalogGames(catalog, guides, 'mobile legends bang').map(({ slug }) => slug)).toEqual(['mobile-legends-bang-bang']);
   });
 });
 

@@ -6,7 +6,6 @@ import {
   findGameByName,
   gamesOnOffer,
   highlightRuns,
-  normalizeGameName,
 } from '../gameSearch';
 
 const VALORANT: Game = {
@@ -102,16 +101,6 @@ describe('highlightRuns', () => {
 
   it('leaves a name with no match as one run', () => {
     expect(highlightRuns('Chess', [])).toEqual([{ text: 'Chess', isMatch: false }]);
-  });
-});
-
-describe('normalizeGameName', () => {
-  it('ignores case, spaces and punctuation', () => {
-    expect(normalizeGameName(' CS: 2 ')).toBe('cs2');
-  });
-
-  it('keeps letters of any script', () => {
-    expect(normalizeGameName('Шахматы 960')).toBe('шахматы960');
   });
 });
 

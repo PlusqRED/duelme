@@ -1,18 +1,11 @@
 import type { TranslationKey } from '@/i18n/translations';
 import { isRecord } from '@/lib/parsing';
 
-export type GameCategory =
-  | 'FPS'
-  | 'MOBA'
-  | 'SPORT'
-  | 'STRATEGY'
-  | 'FIGHTING'
-  | 'RACING'
-  | 'CARD'
-  | 'BOARD'
-  | 'MMO'
-  | 'OFFLINE'
-  | 'OTHER';
+export const GAME_CATEGORIES = [
+  'FPS', 'MOBA', 'SPORT', 'STRATEGY', 'FIGHTING', 'RACING', 'CARD', 'BOARD', 'MMO', 'OFFLINE', 'OTHER',
+] as const;
+
+export type GameCategory = (typeof GAME_CATEGORIES)[number];
 
 /** A category's name as the screens write it. */
 export function getCategoryLabelKey(category: GameCategory): TranslationKey {
@@ -51,9 +44,10 @@ export interface DuelMeta {
   createdAt: string | null;
 }
 
-export const GAME_CATEGORIES: GameCategory[] = [
-  'FPS', 'MOBA', 'SPORT', 'STRATEGY', 'FIGHTING', 'RACING', 'CARD', 'BOARD', 'MMO', 'OFFLINE', 'OTHER',
-];
+/** A game's name as two spellings of one game compare: case, spaces and punctuation aside, so «CS 2» is «cs2». */
+export function normalizeGameName(name: string): string {
+  return name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+}
 
 /** The games played most first; of games played as often, by name. */
 export function byPopularity(a: Game, b: Game): number {

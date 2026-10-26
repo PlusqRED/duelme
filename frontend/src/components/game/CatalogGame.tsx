@@ -13,8 +13,6 @@ interface CatalogGameProps {
   game: Game;
   /** Its duels against the most any game on the page has, from 0 to 1: how long its bar is. */
   share: number;
-  /** Its place on its shelf, which staggers the bars as they grow. */
-  index: number;
   /** The game played most of all, marked with the trophy. */
   isTop: boolean;
 }
@@ -25,14 +23,14 @@ interface CatalogGameProps {
  * in it, how many duels with a bar of its share, so the games people play stand out from the quiet
  * ones. Pointing at it lifts it on an edge of its category's ink.
  */
-export function CatalogGame({ game, share, index, isTop }: CatalogGameProps) {
+export function CatalogGame({ game, share, isTop }: CatalogGameProps) {
   const { t, plural, language } = useTranslation();
   const isPlayed = game.duelCount > 0;
 
   return (
     <LocaleLink
       href={`/games/${game.slug}`}
-      style={{ '--tone': gameInk(game.category), '--share': share, '--i': index }}
+      style={{ '--tone': gameInk(game.category), '--share': share }}
       className="group/game relative flex h-full flex-col items-start gap-2.5 rounded-tile border-[1.5px] border-line bg-paper p-3 transition-[border-color,box-shadow,translate] duration-200 ease-press hover:-translate-y-0.5 hover:border-(--tone) hover:shadow-[0_3px_0_var(--tone)] active:translate-y-0.5 active:shadow-none xs:grid xs:grid-cols-[auto_minmax(0,1fr)] xs:items-center xs:gap-x-3.5 xs:gap-y-3 xs:p-3.5"
     >
       <GameTile
@@ -57,6 +55,7 @@ export function CatalogGame({ game, share, index, isTop }: CatalogGameProps) {
           <span className="max-xs:sr-only">{t('games.mostPlayed')}</span>
         </Chip>
       )}
+      {/* `--i`, the card's place on its shelf, comes down from the shelf's list item and staggers the bars. */}
       {isPlayed && (
         <span aria-hidden="true" className="mt-auto h-1.5 w-full overflow-hidden rounded-md bg-canvas xs:col-span-full xs:mt-0">
           <i className="block h-full w-[calc(var(--share)*100%)] origin-left rounded-[inherit] bg-(--tone) transition-[scale] delay-[calc(min(var(--i),8)*90ms)] duration-900 ease-sheet group-data-pending/shelf:scale-x-0" />

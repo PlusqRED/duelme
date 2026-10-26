@@ -1,6 +1,5 @@
 import { GameTile } from '@/components/identity/GameTile';
 import { PILL_FACE } from '@/components/lists/FilterPill';
-import { Icon } from '@/components/ui/icon';
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { getTranslation } from '@/i18n/serverTranslation';
 import { GAME_GUIDES } from '@/content/gameGuides';
@@ -11,8 +10,6 @@ import { cn } from '@/lib/utils';
 interface GuideShortcutsProps {
   /** The games to offer, in order: a few of the guides, never all of them. */
   guides: readonly GameGuide[];
-  /** The game whose page this is, which the last pill does not count among the rest. */
-  except?: string;
   className?: string;
 }
 
@@ -21,9 +18,9 @@ interface GuideShortcutsProps {
  * counting the guides the row leaves out: on the landing and under a game's page, drawn on the
  * server so search engines follow them.
  */
-export async function GuideShortcuts({ guides, except, className }: GuideShortcutsProps) {
+export async function GuideShortcuts({ guides, className }: GuideShortcutsProps) {
   const { t } = await getTranslation();
-  const rest = GAME_GUIDES.filter((guide) => guide.slug !== except && !guides.includes(guide)).length;
+  const rest = GAME_GUIDES.length - guides.length;
 
   return (
     // On a phone the list is one strip that scrolls inside the nav; sized by its content, the nav
@@ -44,13 +41,10 @@ export async function GuideShortcuts({ guides, except, className }: GuideShortcu
         ))}
         <li className="shrink-0">
           <LocaleLink href="/games" className={cn(PILL_FACE, 'py-1 pr-3.5 pl-1 hover:border-ink')}>
-            {/* Shaped like the games' tiles, so the rest reads as more of them. */}
-            <span
-              aria-hidden="true"
-              className="grid size-8 place-items-center rounded-full bg-canvas-deep text-micro font-extrabold text-ink tabular-nums"
-            >
-              {rest > 0 ? `+${rest}` : <Icon name="gamepad" className="size-4" />}
-            </span>
+            {/* A game's tile, so the rest reads as more of them. */}
+            <GameTile name={null} className="size-8 rounded-full text-micro tabular-nums">
+              {rest > 0 ? `+${rest}` : null}
+            </GameTile>
             {t('games.allGames')}
           </LocaleLink>
         </li>

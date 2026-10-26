@@ -36,9 +36,6 @@ export function gameGuide(slug: string): GameGuide | null {
   return GAME_GUIDES.find((guide) => guide.slug === slug) ?? null;
 }
 
-/** What a list of games needs of a guide: the catalog's game it stands for. */
-export type GuideGame = Pick<GameGuide, 'slug' | 'name' | 'category'>;
-
 /**
  * The guides a short row offers, the landing's: the most searched game of every category first, so
  * the row shows how far the catalog reaches beyond video games, then the most searched of the rest,

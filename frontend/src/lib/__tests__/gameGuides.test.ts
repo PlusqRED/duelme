@@ -3,7 +3,6 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { LANGUAGES } from '@/i18n/language';
 import { GAME_GUIDES } from '@/content/gameGuides';
-import { GAME_CATEGORIES } from '@/lib/game';
 import { featuredGuides, gameGuide, relatedGuides } from '@/lib/gameGuides';
 import { isFormal } from './helpers/russianVoice';
 import { RESULT_DESCRIPTION_LIMIT, RESULT_TITLE_LIMIT, resultTitle } from './helpers/searchResult';
@@ -21,7 +20,7 @@ function backendSlug(name: string): string {
 const APPLICATION_YML = readFileSync(join(__dirname, '../../../../backend/src/main/resources/application.yml'), 'utf8');
 
 /** `duelme.catalog.games` in the backend's application.yml: every game it writes into the catalog, with its category. */
-function backendCatalog(): Map<string, string> {
+function readBackendCatalog(): Map<string, string> {
   const block = /^ {2}catalog:\n {4}games:\n((?: {6}.*\n)+)/m.exec(APPLICATION_YML)?.[1] ?? '';
   const catalog = new Map<string, string>();
   let category = '';
@@ -33,6 +32,8 @@ function backendCatalog(): Map<string, string> {
   }
   return catalog;
 }
+
+const BACKEND_CATALOG = readBackendCatalog();
 
 const copies = GAME_GUIDES.flatMap((guide) => LANGUAGES.map((language) => ({ guide, language, copy: guide.copy[language] })));
 
@@ -71,13 +72,9 @@ describe('game guides', () => {
   it.each(GAME_GUIDES.map((guide) => [guide.name, guide.category]))(
     'has the backend put %s into the catalog under %s, so a player finds it before anyone has played it',
     (name, category) => {
-      expect(backendCatalog().get(name)).toBe(category);
+      expect(BACKEND_CATALOG.get(name)).toBe(category);
     }
   );
-
-  it('has the backend write only categories the site knows', () => {
-    expect([...new Set(backendCatalog().values())].filter((category) => !GAME_CATEGORIES.some((known) => known === category))).toEqual([]);
-  });
 
   it('finds a guide by its slug, and none for a game without one', () => {
     expect([gameGuide('cs2')?.name, gameGuide('lineage-2')]).toEqual(['CS2', null]);

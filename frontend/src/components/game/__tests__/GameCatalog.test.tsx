@@ -2,20 +2,11 @@
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { translations } from '@/i18n/translations';
-import type { Game, GameCategory } from '@/lib/game';
+import { uncataloguedGame, type Game, type GameCategory } from '@/lib/game';
 import { FakeIntersectionObserver } from '@/lib/__tests__/helpers/intersectionObserver';
 
-const catalog = vi.hoisted(() => ({
-  games: [] as Game[],
-  isRead: true,
-  askedFor: [] as [string | undefined, string | undefined][],
-}));
-vi.mock('@/hooks/useGames', () => ({
-  useGames: (category?: string, search?: string) => {
-    catalog.askedFor.push([category, search]);
-    return { games: catalog.games, isLoading: !catalog.isRead, isRead: catalog.isRead };
-  },
-}));
+const catalog = vi.hoisted(() => ({ games: [] as Game[] }));
+vi.mock('@/hooks/useGameCatalog', () => ({ useGameCatalog: () => ({ games: catalog.games, isLoading: false }) }));
 
 const { GameCatalog } = await import('@/components/game/GameCatalog');
 
@@ -24,8 +15,8 @@ function game(slug: string, name: string, duelCount: number, category: GameCateg
 }
 
 const guides = [
-  { slug: 'cs2', name: 'CS2', category: 'FPS' as const },
-  { slug: 'chess', name: 'Chess', category: 'BOARD' as const },
+  uncataloguedGame({ slug: 'cs2', name: 'CS2', category: 'FPS' }),
+  uncataloguedGame({ slug: 'chess', name: 'Chess', category: 'BOARD' }),
 ];
 
 const en = translations.en;
@@ -47,8 +38,6 @@ beforeEach(() => {
     game('cs-2', 'CS 2', 1, 'FPS'),
     game('cs2', 'CS2', 2, 'FPS'),
   ];
-  catalog.isRead = true;
-  catalog.askedFor = [];
 });
 
 afterEach(() => {
@@ -59,7 +48,6 @@ afterEach(() => {
 describe('GameCatalog', () => {
   it('shelves every guide’s game under its category before the catalog answers', () => {
     catalog.games = [];
-    catalog.isRead = false;
 
     render(<GameCatalog guides={guides} />);
 
@@ -97,12 +85,13 @@ describe('GameCatalog', () => {
     expect(shelfTitles()).toEqual([en['category.shelf.BOARD']]);
   });
 
-  it('asks the catalog for the name typed, trimmed', () => {
+  it('finds a game by the name typed, however it is spelled', () => {
     render(<GameCatalog guides={guides} />);
 
-    fireEvent.change(screen.getByRole('searchbox'), { target: { value: ' dota ' } });
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: ' cs 2 ' } });
 
-    expect(catalog.askedFor.at(-1)).toEqual([undefined, 'dota']);
+    expect(shelfTitles()).toEqual([en['category.shelf.FPS']]);
+    expect(shelf(en['category.shelf.FPS'])).toEqual(['/games/cs2', '/games/cs-2']);
   });
 
   it('gives no trophy while the page is narrowed', () => {
@@ -114,7 +103,6 @@ describe('GameCatalog', () => {
   });
 
   it('says when no game has the name typed, and how to add it', () => {
-    catalog.games = [];
     render(<GameCatalog guides={guides} />);
 
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'zork' } });

@@ -7,15 +7,15 @@ import { SectionHead } from '@/components/landing/SectionHead';
 import { PageColumn } from '@/components/layout/PageColumn';
 import { FilterPill } from '@/components/lists/FilterPill';
 import { SearchField } from '@/components/lists/SearchField';
-import { useGames } from '@/hooks/useGames';
+import { useGameCatalog } from '@/hooks/useGameCatalog';
 import { useTranslation } from '@/i18n/useTranslation';
-import { getCategoryLabelKey, type GameCategory } from '@/lib/game';
-import { catalogGames, mostPlayed, shelvesOf, type ShelfGuide } from '@/lib/gameShelves';
+import { getCategoryLabelKey, type Game, type GameCategory } from '@/lib/game';
+import { catalogGames, mostPlayed, shelvesOf } from '@/lib/gameShelves';
 import { gameInk } from '@/lib/gameTile';
 
 interface GameCatalogProps {
   /** The games with a guide, handed in by the server: the shelves it draws, before the catalog answers. */
-  guides: readonly ShelfGuide[];
+  guides: readonly Game[];
 }
 
 /**
@@ -31,14 +31,15 @@ export function GameCatalog({ guides }: GameCatalogProps) {
   const [category, setCategory] = useState<GameCategory | null>(null);
   const [query, setQuery] = useState('');
   const search = query.trim();
-  // The backend searches, so a game past the first page of the catalog is still found by name.
-  const { games: read, isRead } = useGames(undefined, search || undefined);
-  const games = useMemo(() => catalogGames(isRead ? read : undefined, guides, search), [isRead, read, guides, search]);
+  // The whole catalog, the create page's read, searched here: a name is found however it is spelled,
+  // the same before the catalog answers as after.
+  const { games: catalog } = useGameCatalog();
+  const games = useMemo(() => catalogGames(catalog, guides, search), [catalog, guides, search]);
   const shelves = useMemo(() => shelvesOf(games), [games]);
   const shown = category ? shelves.filter((shelf) => shelf.category === category) : shelves;
   const isNarrowed = category !== null || search !== '';
-  const top = isNarrowed ? null : mostPlayed(games);
-  const most = mostPlayed(games)?.duelCount || 1;
+  const leader = mostPlayed(games);
+  const most = leader?.duelCount || 1;
 
   return (
     <PageColumn>
@@ -65,7 +66,7 @@ export function GameCatalog({ guides }: GameCatalogProps) {
 
       <div className="grid gap-[clamp(40px,5vw,64px)]">
         {shown.map((shelf) => (
-          <CatalogShelf key={shelf.category} shelf={shelf} most={most} topSlug={top?.slug ?? null} />
+          <CatalogShelf key={shelf.category} shelf={shelf} most={most} topSlug={isNarrowed ? null : (leader?.slug ?? null)} />
         ))}
       </div>
 

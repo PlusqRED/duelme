@@ -13,11 +13,15 @@ import pro.duelme.backend.repository.GameRepository;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class GameService {
@@ -77,26 +81,35 @@ public class GameService {
     }
 
     /**
-     * Puts the games DuelMe knows into the catalog, each under its category, so a player finds them
-     * when creating a duel before anyone has played them. A game already there keeps its id and
-     * duels and takes the catalog's name and category: that is how a game moves to a new category.
+     * Puts the catalog's own games ({@code duelme.catalog.games}) in place, each under its category,
+     * with one read for them all. A game already there keeps its id and duels and takes the catalog's
+     * name and category: that is how a game moves to a new category.
      */
     public void seedCatalog(Map<GameCategory, List<String>> catalog) {
-        catalog.forEach((category, names) -> names.forEach(name -> seedGame(name.trim(), category)));
-    }
-
-    private void seedGame(String name, GameCategory category) {
-        String slug = toSlug(name);
-        Optional<Game> known = repository.findBySlug(slug);
-        if (known.isEmpty()) {
-            createGame(slug, name, null, category);
-            return;
+        Map<String, Game> wanted = new LinkedHashMap<>();
+        catalog.forEach((category, names) -> names.forEach(name -> {
+            Game game = new Game(null, toSlug(name), name.trim(), null, category, null, null);
+            Game earlier = wanted.putIfAbsent(game.slug(), game);
+            // Two spellings of one game would make every boot rename it from one to the other.
+            if (earlier != null) {
+                throw new IllegalStateException(
+                    "duelme.catalog.games names one game twice: " + earlier.name() + " and " + game.name());
+            }
+        }));
+        Map<String, Game> known = repository.findBySlugIn(wanted.keySet()).stream()
+            .collect(Collectors.toMap(Game::slug, Function.identity()));
+        List<Game> writes = new ArrayList<>();
+        for (Game game : wanted.values()) {
+            Game held = known.get(game.slug());
+            if (held == null) {
+                writes.add(game);
+            } else if (!held.name().equals(game.name()) || held.category() != game.category()) {
+                writes.add(new Game(
+                    held.id(), held.slug(), game.name(), held.iconUrl(), game.category(), held.createdAt(), held.updatedAt()
+                ));
+            }
         }
-        Game game = known.get();
-        if (game.name().equals(name) && game.category() == category) return;
-        repository.save(new Game(
-            game.id(), slug, name, game.iconUrl(), category, game.createdAt(), game.updatedAt()
-        ));
+        repository.saveAll(writes);
     }
 
     private GameResponse createGame(String slug, String name, String iconUrl, GameCategory category) {
@@ -116,7 +129,7 @@ public class GameService {
         }
     }
 
-    public static String toSlug(String name) {
+    static String toSlug(String name) {
         String slug = name.toLowerCase()
             .replaceAll("[^a-z0-9\\s-]", "")
             .replaceAll("\\s+", "-")

@@ -94,7 +94,6 @@ export default async function GamePage({ params }: GamePageProps) {
             {guide && <GameGuideBody guide={guide} />}
             <GuideShortcuts
               guides={relatedGuides(slug, named?.category, RELATED_SHOWN)}
-              except={slug}
               className="mt-[clamp(32px,4vw,48px)]"
             />
           </>
