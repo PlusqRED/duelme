@@ -2,6 +2,8 @@ dev.duelme.pro {
 	encode zstd gzip
 
 	header {
+		# The test network's copy of the site stays out of every search index.
+		X-Robots-Tag "noindex, nofollow"
 		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
