@@ -14,6 +14,9 @@ export interface BreadcrumbItem {
 
 const ORGANIZATION_ID = `${SITE_URL}#organization`;
 
+/** The brand as people also write it. */
+const ALTERNATE_NAMES: readonly string[] = ['Duel Me'];
+
 /** Who runs the site: the brand, its logo and the places it also lives under its own name. */
 export function organizationSchema(description: string): StructuredData {
   return {
@@ -33,7 +36,7 @@ export function webApplicationSchema(description: string): StructuredData {
     '@type': 'WebApplication',
     '@id': `${SITE_URL}#webapp`,
     name: SITE_NAME,
-    alternateName: ['Duel Me'],
+    alternateName: [...ALTERNATE_NAMES],
     url: SITE_URL,
     description,
     applicationCategory: 'GameApplication',
@@ -41,6 +44,21 @@ export function webApplicationSchema(description: string): StructuredData {
     browserRequirements: 'Requires JavaScript.',
     inLanguage: [...LANGUAGES],
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    publisher: { '@id': ORGANIZATION_ID },
+  };
+}
+
+/**
+ * The site itself, for the home page, the one place Google reads it: its `name` is the site name a
+ * search result shows above the address. Without it Google showed the bare domain.
+ */
+export function websiteSchema(): StructuredData {
+  return {
+    '@type': 'WebSite',
+    '@id': `${SITE_URL}#website`,
+    name: SITE_NAME,
+    alternateName: [...ALTERNATE_NAMES],
+    url: SITE_URL,
     publisher: { '@id': ORGANIZATION_ID },
   };
 }

@@ -238,7 +238,7 @@ test can check.
 | `frontend/src/components/game/GameGuideBody.tsx` | A guide's parts under a game's duels, drawn on the server |
 | `frontend/src/components/game/GuideShortcuts.tsx` | A row of games with a guide as links, and a last one to the catalog counting the rest, drawn on the server: on the landing's closing card and under a game's page |
 | `frontend/src/app/sitemap.ts` | `INDEXED_PAGES`, each in every language with its `hreflang` alternates; no change dates or priorities |
-| `frontend/src/lib/structuredData.ts` | The pages' JSON-LD (organization, web app, breadcrumbs) and its one serializer, which escapes `<`: a game's name comes from players and must not close the script tag. `components/seo/JsonLd.tsx` renders it |
+| `frontend/src/lib/structuredData.ts` | The pages' JSON-LD (organization, web app, breadcrumbs, and the home page's `WebSite`, the site's name in search results) and its one serializer, which escapes `<`: a game's name comes from players and must not close the script tag. `components/seo/JsonLd.tsx` renders it |
 | `frontend/src/components/identity/Avatar.tsx` | A player's face: the address's identicon (`lib/identicon.ts`) on their seat's colour |
 | `frontend/src/components/identity/ReputationPill.tsx` | A reputation level as a pill with its three-bar meter |
 | `frontend/src/i18n/intlLocales.ts` | The locale `Intl` formats each language's numbers and dates in |
