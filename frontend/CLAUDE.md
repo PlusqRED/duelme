@@ -230,7 +230,7 @@ test can check.
 | `frontend/src/components/header/Header.tsx` | The top bar on every page: the brand, the sections (`lib/navigation.ts`; on the landing its own, the one being read marked through `useSectionInView`, and a followed link's section held by `useHeadedSection` while the page glides there, one hold for the bar and the phone menu through `HeadedSectionProvider`) from 980px while their row fits (`useNavFit`), the language, the wallet menu or Sign in, and the navigation menu below 980px or when the row does not fit |
 | `frontend/src/components/header/WalletMenu.tsx` | The wallet button (the duel network's USDT, never a sum across networks, and a pip while money waits in the contract) and its menu: player card, the small safe (`SafeMini`), a balance tile per network, Top up, Send (the form, a last look in `SendReview`, then the transfer, its route drawn by `SendRoute`), the faucet flask, key export and sign out |
 | `frontend/src/hooks/useWalletBalances.ts` | The wallet's USDT and ETH on each network the build lists, read apart (USDT on `useUsdtBalance`'s query): the button's balance polled always, the rest while the menu is open, all again on the balance bus |
-| `frontend/src/hooks/useSendUsdt.ts` | Sends USDT on the network picked: moves the wallet there, then the day's relayed transfer (a signed authorization to `/api/relay/transfer`) or `writeWithGas`; its failure as a `SendFailure` |
+| `frontend/src/hooks/useSendUsdt.ts` | Sends USDT on the network picked: moves the wallet there, then the day's relayed transfer (a signed authorization to `/api/relay/transfer`) or `writeWithGas`; its failure as a `SendError` (`lib/sendError.ts`) |
 | `frontend/src/hooks/useRelayedTransfer.ts` | Whether the wallet's relayed transfer of the day is unspent, read off the token (`authorizationState`), and when the next UTC day opens |
 | `frontend/src/lib/relayedTransfer.ts` | The relayed transfer: the day's nonce, the EIP-3009 authorization to sign, its wire shape and the server's check of it |
 | `frontend/src/lib/sendError.ts` | A failed Send as a kind `SendProgress` words with what to do next: whether another go can help, whether ETH would |
@@ -518,10 +518,16 @@ test can check.
 - **USD₮0 validates permit through ERC-1271 whenever the owner address has code**, which an EIP-7702 delegation gives a plain EOA. Such a player's permit can fail (`"Permit failed"`). The contract still accepts the plain `createDuel` / `joinDuel` once an allowance exists, but the UI does not currently offer that route while relaying is on — the approve step is pinned off — and `approve` cannot be relayed anyway, since the token does not trust our forwarder. So this player is blocked in the signing window, which says so (`sign.err.permit`); reaching them needs a product decision, not just ETH. Their transfer authorization fails the same way (`TetherToken: invalid signature`), so their Send is self-paid: with ETH it falls back by itself, without it `send.err.signature` asks for some.
 - **The relayer's budget ledger, per-IP rate limit, repeat memory and signer holds are in-memory**, so they reset on redeploy and are not shared across replicas. Accurate for the current single-container-per-env deployment; more than one replica needs a shared store.
 - **The relayed Send's day is the UTC day, and its nonce names it.** The browser builds the nonce
-  from its own clock (`keccak256("duelme:relayed-transfer:<day>")`, day = ms / 86 400 000) and the
-  server takes only today's by its clock, so a browser clock wrong across midnight gets
-  `TRANSFER_WRONG_DAY`. The string is pinned by a golden vector in `relayedTransfer.test.ts`:
-  changing it, or the day's length, gives every wallet a second relayed transfer that day.
+  and the window (`keccak256("duelme:relayed-transfer:<day>")`, day = ms / 86 400 000) from the
+  latest block's time, never the device's clock: a device a couple of minutes off failed every
+  Send. The server takes only today's nonce, by its own clock, and a window with at least two
+  minutes left. The string is pinned by a golden vector in `relayedTransfer.test.ts`: changing it,
+  or the day's length, gives every wallet a second relayed transfer that day.
+- **A relayed Send falls back to the wallet's ETH only when nothing went out.** The relayer's
+  refusals before sending, and a failure before the post, hand the day's Send to the wallet;
+  `BROADCAST_UNCERTAIN` (a send that threw after the node may have taken it), a lost answer, and a
+  repost told the day's transfer is used are answers lost: the wallet paying itself after them
+  would send the money twice.
 - **The per-IP rate limit trusts the right-most `X-Forwarded-For` entry** because Caddy, with no `trusted_proxies`, overwrites the header with the address it saw, nothing sits in front of Caddy, and the container listens on `127.0.0.1` only. A CDN or another proxy in front of Caddy makes that entry the proxy's, and every player then shares one bucket: change the rule with it.
 - Use shared constants from `constants.ts` (`ZERO_ADDRESS`) and `contracts.ts` (`ACTIVE_STATES`, `balanceOfAbi`, `transferAbi`, `getUsdtAddress`) — never redefine locally.
 - **Next may send a rewrite through the proxy a second time.** When the rewrite's origin differs

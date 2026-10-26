@@ -139,7 +139,11 @@ describe('POST /api/relay — repeats and the signer hold', () => {
     setDailyBudgetWei(await worstCaseOfOneRelay());
     walletClient.writeContract.mockRejectedValueOnce(new Error('rpc down'));
 
-    expect((await postRequest(forwardRequest(1n))).status).toBe(502);
+    const failed = await postRequest(forwardRequest(1n));
+
+    expect(failed.status).toBe(502);
+    // The node may have taken it all the same, so the answer never says it was not sent.
+    await expect(failed.json()).resolves.toMatchObject({ code: 'BROADCAST_UNCERTAIN' });
 
     expect((await postRequest(forwardRequest(2n))).status).toBe(200);
   });

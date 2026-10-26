@@ -98,6 +98,7 @@ describe('POST /api/relay/transfer', () => {
   it.each([
     ['TetherToken: auth invalid', 409, 'TRANSFER_USED'],
     ['TetherToken: invalid signature', 400, 'INVALID_SIGNATURE'],
+    ['TetherToken: auth expired', 400, 'TRANSFER_EXPIRED'],
     ['TetherToken: from is blocked', 400, 'EXECUTION_REVERTED'],
   ])('answers the token refusing with "%s" as %s %s', async (reason, status, code) => {
     publicClient.estimateContractGas.mockRejectedValue(new Error(`execution reverted: ${reason}`));
@@ -107,6 +108,15 @@ describe('POST /api/relay/transfer', () => {
     expect(response.status).toBe(status);
     await expect(response.json()).resolves.toMatchObject({ code });
     expect(walletClient.writeContract).not.toHaveBeenCalled();
+  });
+
+  it('says a transfer whose broadcast threw may have gone out', async () => {
+    walletClient.writeContract.mockRejectedValueOnce(new Error('request timed out'));
+
+    const response = await postTransfer(await signedTransfer());
+
+    expect(response.status).toBe(502);
+    await expect(response.json()).resolves.toMatchObject({ code: 'BROADCAST_UNCERTAIN' });
   });
 
   it('says it could not price the transfer when the estimate fails without a revert', async () => {

@@ -157,7 +157,9 @@ export async function sendBudgeted(
   } catch (error) {
     releaseDailyBudget(from, worstCaseWei);
     console.error('[relay] broadcast failed', error);
-    return refusal('RELAYER_UNAVAILABLE', 'Could not broadcast the transaction.', 502);
+    // Not "nothing was sent": a send can time out after the sequencer took it, and a retry of it is
+    // then answered "already known". The player must look before signing anything again.
+    return refusal('BROADCAST_UNCERTAIN', 'The transaction may or may not have been broadcast.', 502);
   }
 
   holdSigner(from, hash);

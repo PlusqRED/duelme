@@ -53,7 +53,7 @@ function usedToday(): RelayRefusal {
  * The token's reason for refusing, in the refusal the client words for the player. USD₮0 and
  * MockUSDT revert with the same strings: "auth invalid" for a spent nonce, "invalid signature"
  * for a signature it will not take — which, for a wallet with code (an EIP-7702 delegation), it
- * checks through ERC-1271. An estimate that failed without a revert says nothing about the
+ * checks through ERC-1271 — and "auth expired" once the authorization ran out. An estimate that failed without a revert says nothing about the
  * transfer, so it is the relayer's failure, not the player's.
  */
 function describeRevert(error: unknown, from: string): RelayRefusal {
@@ -69,6 +69,9 @@ function describeRevert(error: unknown, from: string): RelayRefusal {
   }
   if (details.some((detail) => detail.includes('invalid signature'))) {
     return refusal('INVALID_SIGNATURE', 'USDT refused the signature on this transfer.', 400);
+  }
+  if (details.some((detail) => detail.includes('auth expired'))) {
+    return refusal('TRANSFER_EXPIRED', 'The authorization ran out before it could be sent.', 400);
   }
   const reason = bestErrorDetail(error);
   return refusal('EXECUTION_REVERTED', reason ? `The transfer would revert: ${reason}` : 'The transfer would revert.', 400);

@@ -122,7 +122,6 @@ describe('parseRelayTransferPayload', () => {
   it('refuses an authorization signed for another day', async () => {
     const transfer = await signedTransfer();
 
-    expect(parse(transfer, nextRelayedTransferAt(relayedTransferDay(NOW)) + 1_000)).toMatchObject({ ok: false, code: 'INVALID_REQUEST' });
     expect(parse({ ...transfer, nonce: relayedTransferNonce(relayedTransferDay(NOW) - 1) })).toMatchObject({
       ok: false,
       code: 'TRANSFER_WRONG_DAY',
@@ -136,7 +135,6 @@ describe('parseRelayTransferPayload', () => {
     ['a value of zero', { value: '0' }],
     ['a value past uint256', { value: (2n ** 256n).toString() }],
     ['a value written as hex', { value: '0x10' }],
-    ['an expiry already past', { validBefore: Math.floor(NOW / 1000) }],
     ['an expiry past the validity window', { validBefore: Math.floor(NOW / 1000) + RELAYED_TRANSFER_VALIDITY_SECONDS + 120 }],
     ['a short nonce', { nonce: '0x1234' }],
     ['a signature that is no signature', { signature: '0x1234' }],
@@ -144,6 +142,16 @@ describe('parseRelayTransferPayload', () => {
     const transfer = overrides === null ? null : { ...(await signedTransfer()), ...overrides };
 
     expect(parse(transfer)).toMatchObject({ ok: false, code: 'INVALID_REQUEST' });
+  });
+
+  it('refuses as expired an authorization with less than two minutes left, which would revert once mined', async () => {
+    const nowSeconds = Math.floor(NOW / 1000);
+    const transfer = await signedTransfer();
+
+    expect(parse({ ...transfer, validBefore: nowSeconds })).toMatchObject({ ok: false, code: 'TRANSFER_EXPIRED' });
+    expect(parse({ ...transfer, validBefore: nowSeconds + 119 })).toMatchObject({ ok: false, code: 'TRANSFER_EXPIRED' });
+    expect(parse({ ...transfer, validBefore: nowSeconds + 120 })).toMatchObject({ ok: true });
+    expect(parse(transfer, nextRelayedTransferAt(relayedTransferDay(NOW)) + 1_000)).toMatchObject({ ok: false, code: 'TRANSFER_EXPIRED' });
   });
 
   it('refuses a transfer to the wallet it leaves', async () => {

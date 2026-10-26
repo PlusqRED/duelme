@@ -269,4 +269,16 @@ describe('submitRelayTransfer', () => {
     expect(bodies).toHaveLength(2);
     expect(bodies[1]).toBe(bodies[0]);
   });
+
+  it('reads "today\'s is used" on a repost as an answer lost, since the first post may have spent it', async () => {
+    vi.mocked(fetch)
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockReturnValue(respond(409, { code: 'TRANSFER_USED', error: 'Already sent today.' }));
+
+    const submitted = submitRelayTransfer(42161, signedTransfer);
+    const settled = expect(submitted).rejects.toBeInstanceOf(RelayAnswerLostError);
+    await vi.runAllTimersAsync();
+
+    await settled;
+  });
 });

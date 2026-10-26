@@ -4,7 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SUPPORTED_CHAINS, USDT_ADDRESSES } from '@/lib/constants';
 import { transferAbi } from '@/lib/contracts';
 import { RelayAnswerLostError, RelayRequestError } from '@/lib/relayApi';
-import { relayedTransferDay, relayedTransferNonce, TRANSFER_AUTHORIZATION_TYPES } from '@/lib/relayedTransfer';
+import {
+  RELAYED_TRANSFER_VALIDITY_SECONDS,
+  relayedTransferDay,
+  relayedTransferNonce,
+  TRANSFER_AUTHORIZATION_TYPES,
+} from '@/lib/relayedTransfer';
+import { PermitDomainMismatchError } from '@/lib/writeErrors';
 import type { FreeTransferStatus, Transfer } from '@/lib/sendUsdt';
 import { usdtDomain } from '@/lib/__tests__/helpers/relayTransfer';
 
@@ -16,6 +22,8 @@ const SIGNATURE = `0x${'22'.repeat(65)}`;
 const HASH = `0x${'ab'.repeat(32)}`;
 const ETH = 10n ** 15n;
 const DOMAIN = usdtDomain(SEPOLIA, USDT_ADDRESSES[SEPOLIA]);
+// The chain's latest block, a minute before a UTC midnight the device's clock knows nothing of.
+const CHAIN_SECONDS = Date.UTC(2026, 9, 26, 23, 59) / 1000;
 
 const wallet = vi.hoisted(() => ({
   chainId: 0,
@@ -33,11 +41,13 @@ const wallet = vi.hoisted(() => ({
   refetchFree: vi.fn(async () => undefined),
   submitRelayTransfer: vi.fn(async () => `0x${'ab'.repeat(32)}`),
   readTokenDomain: vi.fn(),
+  getBlock: vi.fn(),
+  nextAt: 0,
 }));
 
 vi.mock('wagmi', () => ({
   useAccount: () => ({ address: '0x4bfa000000000000000000000000000000076a5a', chainId: wallet.chainId }),
-  usePublicClient: () => ({}),
+  usePublicClient: () => ({ getBlock: wallet.getBlock }),
   useSignTypedData: () => ({ signTypedDataAsync: wallet.signTypedDataAsync }),
   useSwitchChain: () => ({ switchChainAsync: wallet.switchChainAsync, error: wallet.switchError, reset: wallet.resetSwitch }),
 }));
@@ -62,7 +72,7 @@ vi.mock('@/hooks/useWriteWithGas', () => ({
 }));
 
 vi.mock('@/hooks/useRelayedTransfer', () => ({
-  useRelayedTransfer: () => ({ status: wallet.free, nextAt: 0, refetch: wallet.refetchFree }),
+  useRelayedTransfer: () => ({ status: wallet.free, nextAt: wallet.nextAt, refetch: wallet.refetchFree }),
 }));
 
 vi.mock('@/lib/relayApi', async (importOriginal) => ({
@@ -88,7 +98,9 @@ beforeEach(() => {
   wallet.switchError = null;
   wallet.writeError = null;
   wallet.relayError = null;
+  wallet.nextAt = 0;
   wallet.readTokenDomain.mockResolvedValue(DOMAIN);
+  wallet.getBlock.mockResolvedValue({ timestamp: BigInt(CHAIN_SECONDS) });
   wallet.submitRelayTransfer.mockResolvedValue(HASH);
 });
 
@@ -116,18 +128,25 @@ describe('useSendUsdt', () => {
 
   it('signs the day\'s transfer authorization in the token\'s domain and hands it to the relayer', async () => {
     const { result } = renderHook(() => useSendUsdt(SEPOLIA, 0n));
-    const before = Date.now();
 
     await act(() => result.current.send(transfer('relay')));
 
     expect(wallet.writeWithGas).not.toHaveBeenCalled();
     const signed = wallet.signTypedDataAsync.mock.calls[0] as unknown as [Record<string, unknown>];
+    // The window and the day are the chain's, which the relayer and the token share; the device's are not.
     expect(signed[0]).toMatchObject({
       account: FROM,
       domain: DOMAIN,
       types: TRANSFER_AUTHORIZATION_TYPES,
       primaryType: 'TransferWithAuthorization',
-      message: { from: FROM, to: TO, value: 5_000_000n, validAfter: 0n, nonce: relayedTransferNonce(relayedTransferDay(before)) },
+      message: {
+        from: FROM,
+        to: TO,
+        value: 5_000_000n,
+        validAfter: 0n,
+        validBefore: BigInt(CHAIN_SECONDS + RELAYED_TRANSFER_VALIDITY_SECONDS),
+        nonce: relayedTransferNonce(relayedTransferDay(CHAIN_SECONDS * 1000)),
+      },
     });
     expect(wallet.onSubmitted).toHaveBeenCalledOnce();
     expect(wallet.submitRelayTransfer).toHaveBeenCalledExactlyOnceWith(
@@ -157,11 +176,56 @@ describe('useSendUsdt', () => {
     expect(wallet.refetchFree).toHaveBeenCalled();
   });
 
-  it('keeps a transfer whose answer was lost with the relayer, which spends the day\'s nonce once', async () => {
-    wallet.submitRelayTransfer.mockRejectedValueOnce(new RelayAnswerLostError('no answer'));
+  it.each([
+    ['whose answer was lost', new RelayAnswerLostError('no answer')],
+    ['whose broadcast may have gone out', new RelayRequestError('BROADCAST_UNCERTAIN', 'maybe')],
+  ])('keeps a transfer %s with the relayer, which spends the day\'s nonce once', async (_case, error) => {
+    wallet.submitRelayTransfer.mockRejectedValueOnce(error);
     const { result } = renderHook(() => useSendUsdt(SEPOLIA, ETH));
 
     await act(() => result.current.send(transfer('relay')));
+
+    expect(result.current.route).toBe('relay');
+  });
+
+  it('has a wallet with ETH pay itself when the relayed way fails before anything is posted', async () => {
+    wallet.readTokenDomain.mockRejectedValueOnce(new PermitDomainMismatchError(USDT_ADDRESSES[SEPOLIA]));
+    const { result } = renderHook(() => useSendUsdt(SEPOLIA, ETH));
+
+    await act(() => result.current.send(transfer('relay')));
+
+    expect(wallet.submitRelayTransfer).not.toHaveBeenCalled();
+    expect(result.current.route).toBe('self');
+  });
+
+  it('keeps the relayer for a player who turned the signature down', async () => {
+    wallet.signTypedDataAsync.mockRejectedValueOnce(new Error('User rejected the request.'));
+    const { result } = renderHook(() => useSendUsdt(SEPOLIA, ETH));
+
+    await act(() => result.current.send(transfer('relay')));
+
+    expect(result.current.route).toBe('relay');
+  });
+
+  it('asks for no signature once the day\'s transfer reads as used, and says so', async () => {
+    const { result, rerender } = renderHook(() => useSendUsdt(SEPOLIA, ETH));
+    wallet.free = 'used';
+    rerender();
+
+    await act(() => result.current.send(transfer('relay')));
+
+    expect(wallet.signTypedDataAsync).not.toHaveBeenCalled();
+    expect(wallet.relayError).toMatchObject({ code: 'TRANSFER_USED' });
+  });
+
+  it('gets the relayer again once the day has turned', async () => {
+    wallet.submitRelayTransfer.mockRejectedValueOnce(new RelayRequestError('RELAYER_UNAVAILABLE', 'busy'));
+    const { result, rerender } = renderHook(() => useSendUsdt(SEPOLIA, ETH));
+    await act(() => result.current.send(transfer('relay')));
+    expect(result.current.route).toBe('self');
+
+    wallet.nextAt = 86_400_000;
+    rerender();
 
     expect(result.current.route).toBe('relay');
   });

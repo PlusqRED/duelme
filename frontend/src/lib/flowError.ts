@@ -59,9 +59,12 @@ const RELAY_KINDS: Record<Exclude<RelayErrorCode, 'EXECUTION_REVERTED'>, FlowErr
   INVALID_SIGNATURE: 'unavailable',
   NOT_RELAYABLE: 'unavailable',
   INVALID_REQUEST: 'error',
+  // The relayer could not tell whether the node took the transaction: it may have gone through.
+  BROADCAST_UNCERTAIN: 'lost',
   // The relayed transfer's own, which the wallet menu words (`sendError.ts`); no duel write gets them.
   TRANSFER_USED: 'error',
   TRANSFER_WRONG_DAY: 'error',
+  TRANSFER_EXPIRED: 'error',
   INSUFFICIENT_BALANCE: 'error',
 };
 

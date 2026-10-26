@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PublicClient } from 'viem';
 import { SUPPORTED_CHAINS } from '@/lib/constants';
-import { readTokenDomain, resetVerifiedTokenDomains } from '@/lib/tokenDomain';
+import { readTokenDomain, resetVerifiedTokenDomains, splitTokenSignature } from '@/lib/tokenDomain';
 import { PermitDomainMismatchError } from '@/lib/writeErrors';
 
 const ARBITRUM = SUPPORTED_CHAINS.arbitrum.id;
@@ -45,5 +45,16 @@ describe('readTokenDomain', () => {
     await readTokenDomain(client, USDT, ARBITRUM);
 
     expect(readContract).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('splitTokenSignature', () => {
+  it('gives v as 27 or 28 whichever form the wallet signed in', () => {
+    const r = `0x${'11'.repeat(32)}` as const;
+    const s = `0x${'22'.repeat(32)}` as const;
+
+    expect(splitTokenSignature(`${r}${s.slice(2)}1c`)).toEqual({ v: 28, r, s });
+    expect(splitTokenSignature(`${r}${s.slice(2)}01`)).toEqual({ v: 28, r, s });
+    expect(splitTokenSignature(`${r}${s.slice(2)}00`)).toEqual({ v: 27, r, s });
   });
 });

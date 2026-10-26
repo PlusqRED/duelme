@@ -1,6 +1,8 @@
-import { isAddress, isHash, isHex, keccak256, parseSignature, toHex, zeroAddress, type Hex } from 'viem';
+import { isAddress, isHash, isHex, keccak256, parseSignature, toHex, type Hex } from 'viem';
+import { ZERO_ADDRESS } from '@/lib/constants';
 import { parseUintString } from '@/lib/parsing';
-import { parseRelayEnvelope, type RelayPayloadFailure } from '@/lib/relayRequest';
+import { invalidPayload, parseRelayEnvelope, type RelayPayloadFailure } from '@/lib/relayRequest';
+import { splitTokenSignature } from '@/lib/tokenDomain';
 
 /**
  * The one USDT transfer a day DuelMe pays the fee for, from the wallet menu: an EIP-3009
@@ -16,11 +18,20 @@ import { parseRelayEnvelope, type RelayPayloadFailure } from '@/lib/relayRequest
 /** A day for the relayed transfer: a UTC day, the same as the relayer's gas budgets. */
 export const RELAYED_TRANSFER_DAY_MS = 86_400_000;
 
-/** How long the relayer has to send a signed authorization before the token refuses it. */
+/**
+ * How long a signed authorization stays good, from the chain's time when it is made: the wallet's
+ * prompt and the relayer's queue both come out of it.
+ */
 export const RELAYED_TRANSFER_VALIDITY_SECONDS = 10 * 60;
 
-/** Leeway for a device clock ahead of the server's, on the authorization's expiry. */
+/** Leeway for the chain's latest block running ahead of the server's clock, on the expiry. */
 const CLOCK_LEEWAY_SECONDS = 60;
+
+/**
+ * The least time an authorization must still have when it reaches the relayer. One about to run
+ * out would be mined after it did and revert, at the relayer's cost.
+ */
+const MIN_REMAINING_SECONDS = 2 * 60;
 
 /** EIP-3009's struct. It is signed in the token's permit domain: USD₮0 has one for both. */
 export const TRANSFER_AUTHORIZATION_TYPES = {
@@ -84,18 +95,8 @@ export function toRelayTransfer(authorization: TransferAuthorization, signature:
 
 /** The arguments of `transferWithAuthorization` a signed authorization is sent as. */
 export function transferAuthorizationArgs(transfer: RelayTransfer) {
-  const { r, s, v, yParity } = parseSignature(transfer.signature);
-  return [
-    transfer.from,
-    transfer.to,
-    BigInt(transfer.value),
-    0n,
-    BigInt(transfer.validBefore),
-    transfer.nonce,
-    Number(v ?? BigInt(yParity + 27)),
-    r,
-    s,
-  ] as const;
+  const { v, r, s } = splitTokenSignature(transfer.signature);
+  return [transfer.from, transfer.to, BigInt(transfer.value), 0n, BigInt(transfer.validBefore), transfer.nonce, v, r, s] as const;
 }
 
 export type RelayTransferPayloadResult = { ok: true; transfer: RelayTransfer } | RelayPayloadFailure;
@@ -118,35 +119,40 @@ export function parseRelayTransferPayload(payload: unknown, target: RelayTransfe
 
   const { from, to, value, validBefore, nonce, signature } = envelope.signed;
   if (typeof from !== 'string' || !isAddress(from)) {
-    return invalid('transfer.from must be an address.');
+    return invalidPayload('transfer.from must be an address.');
   }
-  if (typeof to !== 'string' || !isAddress(to) || to.toLowerCase() === zeroAddress) {
-    return invalid('transfer.to must be an address other than zero.');
+  if (typeof to !== 'string' || !isAddress(to) || to.toLowerCase() === ZERO_ADDRESS) {
+    return invalidPayload('transfer.to must be an address other than zero.');
   }
   if (to.toLowerCase() === from.toLowerCase()) {
-    return invalid('transfer.to must be another wallet than transfer.from.');
+    return invalidPayload('transfer.to must be another wallet than transfer.from.');
   }
 
   const parsedValue = parseUintString(value);
   if (parsedValue === null || parsedValue === 0n || parsedValue >= 2n ** 256n) {
-    return invalid('transfer.value must be a positive uint256.');
+    return invalidPayload('transfer.value must be a positive uint256.');
   }
 
   const nowSeconds = Math.floor(target.nowMs / 1000);
-  const latestExpiry = nowSeconds + RELAYED_TRANSFER_VALIDITY_SECONDS + CLOCK_LEEWAY_SECONDS;
-  if (typeof validBefore !== 'number' || !Number.isInteger(validBefore) || validBefore <= nowSeconds || validBefore > latestExpiry) {
-    return invalid(`transfer.validBefore must fall within the next ${RELAYED_TRANSFER_VALIDITY_SECONDS} seconds.`);
+  if (typeof validBefore !== 'number' || !Number.isInteger(validBefore)) {
+    return invalidPayload('transfer.validBefore must be a whole number of seconds.');
+  }
+  if (validBefore > nowSeconds + RELAYED_TRANSFER_VALIDITY_SECONDS + CLOCK_LEEWAY_SECONDS) {
+    return invalidPayload(`transfer.validBefore must fall within the next ${RELAYED_TRANSFER_VALIDITY_SECONDS} seconds.`);
+  }
+  if (validBefore < nowSeconds + MIN_REMAINING_SECONDS) {
+    return { ok: false, code: 'TRANSFER_EXPIRED', error: 'The authorization runs out too soon to be sent.' };
   }
 
   if (typeof nonce !== 'string' || !isHash(nonce)) {
-    return invalid('transfer.nonce must be 32 bytes of hex.');
+    return invalidPayload('transfer.nonce must be 32 bytes of hex.');
   }
   if (nonce.toLowerCase() !== relayedTransferNonce(relayedTransferDay(target.nowMs))) {
     return { ok: false, code: 'TRANSFER_WRONG_DAY', error: 'The authorization is not for today (UTC).' };
   }
 
   if (typeof signature !== 'string' || !isHex(signature) || !isSignature(signature)) {
-    return invalid('transfer.signature must be a 65-byte signature.');
+    return invalidPayload('transfer.signature must be a 65-byte signature.');
   }
 
   return {
@@ -162,8 +168,4 @@ function isSignature(signature: Hex): boolean {
   } catch {
     return false;
   }
-}
-
-function invalid(error: string): RelayPayloadFailure {
-  return { ok: false, code: 'INVALID_REQUEST', error };
 }

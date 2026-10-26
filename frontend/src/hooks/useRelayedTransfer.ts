@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback } from 'react';
 import { useReadContract } from 'wagmi';
 import { useClockValue } from '@/hooks/useNow';
 import { useRelayerStatus } from '@/hooks/useRelayerStatus';
@@ -16,15 +17,22 @@ import type { FreeTransferStatus } from '@/lib/sendUsdt';
 export function useRelayedTransfer(chainId: number, address: `0x${string}` | undefined) {
   const { isRelayEnabled } = useRelayerStatus(chainId);
   const day = useClockValue((nowSeconds) => relayedTransferDay(nowSeconds * 1000));
+  const isRead = isRelayEnabled && !!address;
   const { data: isUsed, refetch } = useReadContract({
     address: USDT_ADDRESSES[chainId],
     abi: transferWithAuthorizationAbi,
     functionName: 'authorizationState',
     args: address ? [address, relayedTransferNonce(day)] : undefined,
     chainId,
-    query: { enabled: isRelayEnabled && !!address, staleTime: 0 },
+    query: { enabled: isRead, staleTime: 0 },
   });
 
   const status: FreeTransferStatus = !isRelayEnabled ? 'off' : isUsed === undefined ? 'unknown' : isUsed ? 'used' : 'available';
-  return { status, nextAt: nextRelayedTransferAt(day), refetch };
+  // React Query's refetch runs even a disabled query; where nothing is read, nothing is read again.
+  const refetchStatus = useCallback(async () => {
+    if (isRead) {
+      await refetch();
+    }
+  }, [isRead, refetch]);
+  return { status, nextAt: nextRelayedTransferAt(day), refetch: refetchStatus };
 }

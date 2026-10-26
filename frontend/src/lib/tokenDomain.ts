@@ -1,4 +1,4 @@
-import { hashDomain, type PublicClient } from 'viem';
+import { hashDomain, parseSignature, type Hex, type PublicClient } from 'viem';
 import { erc20PermitAbi } from '@/lib/contracts';
 import { PermitDomainMismatchError } from '@/lib/writeErrors';
 
@@ -62,4 +62,10 @@ export async function readTokenDomain(publicClient: PublicClient, token: `0x${st
 /** Test seam — production code never clears the verified-domain cache. */
 export function resetVerifiedTokenDomains(): void {
   verifiedDomains.clear();
+}
+
+/** A signature in the token's domain as the token takes it: `v` (27 or 28), `r` and `s`. */
+export function splitTokenSignature(signature: Hex): { v: number; r: Hex; s: Hex } {
+  const { r, s, v, yParity } = parseSignature(signature);
+  return { v: Number(v ?? BigInt(yParity + 27)), r, s };
 }

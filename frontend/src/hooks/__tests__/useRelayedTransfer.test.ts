@@ -12,12 +12,13 @@ const reads = vi.hoisted(() => ({
   isRelayEnabled: true,
   data: undefined as boolean | undefined,
   useReadContract: vi.fn(),
+  refetch: vi.fn(async () => undefined),
 }));
 
 vi.mock('wagmi', () => ({
   useReadContract: (args: unknown) => {
     reads.useReadContract(args);
-    return { data: reads.data, refetch: vi.fn() };
+    return { data: reads.data, refetch: reads.refetch };
   },
 }));
 
@@ -74,6 +75,18 @@ describe('useRelayedTransfer', () => {
 
     expect(result.current.status).toBe('off');
     expect(reads.useReadContract).toHaveBeenLastCalledWith(expect.objectContaining({ query: expect.objectContaining({ enabled: false }) }));
+  });
+
+  it('reads the status again on request only where it reads it at all', async () => {
+    const { result, rerender } = renderHook(() => useRelayedTransfer(SEPOLIA, WALLET));
+    await result.current.refetch();
+    expect(reads.refetch).toHaveBeenCalledOnce();
+
+    reads.isRelayEnabled = false;
+    rerender();
+    await result.current.refetch();
+
+    expect(reads.refetch).toHaveBeenCalledOnce();
   });
 
   it('says the next one opens at the coming UTC midnight', () => {

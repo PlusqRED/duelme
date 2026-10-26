@@ -65,9 +65,17 @@ export async function submitRelayRequest(chainId: number, request: RelayForwardR
  * Hands the day's signed transfer authorization to the relayer, with the same answers and the same
  * reposts as a duel write. A repost is as safe here: the relayer answers every copy with the first
  * one's outcome, and the token spends the day's nonce once whatever happens.
+ *
+ * Only a relayer that restarted between the posts forgets the first one, and then finds the day's
+ * nonce spent, by that very post if it went out. So a repost told the day's transfer is used is an
+ * answer lost, never "nothing was sent": the wallet would pay for the same transfer again.
  */
 export async function submitRelayTransfer(chainId: number, transfer: RelayTransfer): Promise<Hex> {
-  return relayedHash(await postUntilAnswered(RELAY_TRANSFER_ENDPOINT, JSON.stringify({ chainId, transfer })));
+  const answer = await postUntilAnswered(RELAY_TRANSFER_ENDPOINT, JSON.stringify({ chainId, transfer }));
+  if (answer.isRepost && isRecord(answer.body) && answer.body.code === 'TRANSFER_USED') {
+    throw new RelayAnswerLostError('The first post may have spent the day\'s transfer.');
+  }
+  return relayedHash(answer);
 }
 
 /** The relayer's answer as the transaction hash, or the error it stands for. */
@@ -99,6 +107,8 @@ interface RelayAnswer {
   ok: boolean;
   status: number;
   body: unknown;
+  /** The answer came to a repost: an earlier post of the same body got none back. */
+  isRepost: boolean;
 }
 
 /** Posts the body until the relayer answers at all. Any answer, a refusal included, is final. */
@@ -107,7 +117,7 @@ async function postUntilAnswered(endpoint: string, body: string): Promise<RelayA
 
   for (let repost = 0; ; repost++) {
     try {
-      return await post(endpoint, body, deadline);
+      return { ...(await post(endpoint, body, deadline)), isRepost: repost > 0 };
     } catch (error) {
       if (deadline.aborted || repost === RELAY_REPOST_DELAYS_MS.length) {
         throw new RelayAnswerLostError(
@@ -122,7 +132,7 @@ async function postUntilAnswered(endpoint: string, body: string): Promise<RelayA
 }
 
 /** One post. Throws when no answer came back: no response at all, or a success without its body. */
-async function post(endpoint: string, body: string, deadline: AbortSignal): Promise<RelayAnswer> {
+async function post(endpoint: string, body: string, deadline: AbortSignal): Promise<Omit<RelayAnswer, 'isRepost'>> {
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

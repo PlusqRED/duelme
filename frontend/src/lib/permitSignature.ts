@@ -1,5 +1,4 @@
 import {
-  parseSignature,
   type Account,
   type Chain,
   type Hex,
@@ -8,7 +7,7 @@ import {
   type WalletClient,
 } from 'viem';
 import { erc20PermitAbi } from '@/lib/contracts';
-import { readTokenDomain } from '@/lib/tokenDomain';
+import { readTokenDomain, splitTokenSignature } from '@/lib/tokenDomain';
 
 /** Long enough to survive a slow wallet prompt, short enough that a leaked signature ages out. */
 const PERMIT_VALIDITY_SECONDS = 30 * 60;
@@ -69,7 +68,5 @@ export async function signErc2612Permit({
     message: { owner, spender, value, nonce, deadline },
   });
 
-  const { r, s, v, yParity } = parseSignature(signature);
-
-  return { deadline, r, s, v: Number(v ?? BigInt(yParity + 27)) };
+  return { deadline, ...splitTokenSignature(signature) };
 }

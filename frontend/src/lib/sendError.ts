@@ -9,11 +9,19 @@ import type { RelayErrorCode } from '@/lib/relayRequest';
  * (`flowError.ts`) a transfer can meet, and the transfer's own:
  * - `used`: today's relayed transfer has already gone out;
  * - `day`: the authorization was signed for another UTC day than the relayer's;
+ * - `expired`: the authorization ran out before it could be sent, most often a wallet prompt left open;
  * - `balance`: the wallet holds less USDT than it sends;
  * - `eth`: the wallet, paying the fee itself, holds too little ETH for it;
  * - `signature`: USDT would not take the wallet's signature (an EIP-7702 wallet, through ERC-1271).
  */
-export type SendErrorKind = Exclude<FlowErrorKind, 'permit' | 'ownDuel'> | 'used' | 'day' | 'balance' | 'eth' | 'signature';
+export type SendErrorKind =
+  | Exclude<FlowErrorKind, 'permit' | 'ownDuel'>
+  | 'used'
+  | 'day'
+  | 'expired'
+  | 'balance'
+  | 'eth'
+  | 'signature';
 
 export interface SendError {
   kind: SendErrorKind;
@@ -30,6 +38,7 @@ export interface SendError {
 const TRANSFER_RELAY_KINDS: Partial<Record<RelayErrorCode, SendErrorKind>> = {
   TRANSFER_USED: 'used',
   TRANSFER_WRONG_DAY: 'day',
+  TRANSFER_EXPIRED: 'expired',
   INSUFFICIENT_BALANCE: 'balance',
   INVALID_SIGNATURE: 'signature',
 };
@@ -113,6 +122,7 @@ export const SEND_ERROR_WORDS: Record<SendErrorKind, SendErrorWords> = {
   network: { title: 'send.err.network.title', text: 'send.err.network.text' },
   used: { title: 'send.err.used.title', text: 'send.err.used.text' },
   day: { title: 'send.err.day.title', text: 'send.err.day.text' },
+  expired: { title: 'send.err.expired.title', text: 'send.err.expired.text' },
   balance: { title: 'send.err.balance.title', text: 'send.err.balance.text' },
   eth: { title: 'send.err.eth.title', text: 'send.err.eth.text' },
   budget: { title: 'send.err.budget.title', text: 'send.err.budget.text' },

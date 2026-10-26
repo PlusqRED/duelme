@@ -16,6 +16,7 @@ describe('classifySendError', () => {
   it.each<[RelayErrorCode, SendErrorKind]>([
     ['TRANSFER_USED', 'used'],
     ['TRANSFER_WRONG_DAY', 'day'],
+    ['TRANSFER_EXPIRED', 'expired'],
     ['INSUFFICIENT_BALANCE', 'balance'],
     ['INVALID_SIGNATURE', 'signature'],
     ['BUDGET_EXCEEDED', 'budget'],
@@ -37,8 +38,12 @@ describe('classifySendError', () => {
     expect(failure.detail).toBe("This wallet's relayed transfer for today has already been sent.");
   });
 
-  it('never offers another go at a transfer whose answer was lost', () => {
+  it('never offers another go at a transfer whose answer was lost, or whose broadcast may have gone out', () => {
     expect(classifySendError(new RelayAnswerLostError('no answer'), { chainId: ONE })).toMatchObject({ kind: 'lost', canRetry: false });
+    expect(classifySendError(new RelayRequestError('BROADCAST_UNCERTAIN', 'maybe'), { chainId: ONE })).toMatchObject({
+      kind: 'lost',
+      canRetry: false,
+    });
   });
 
   it('tells a wallet that turned the request down', () => {
@@ -83,15 +88,16 @@ describe('isRelayDecline', () => {
     }
   );
 
-  it.each<RelayErrorCode>(['RATE_LIMITED', 'RELAY_PENDING', 'TRANSFER_WRONG_DAY', 'INSUFFICIENT_BALANCE'])(
+  it.each<RelayErrorCode>(['RATE_LIMITED', 'RELAY_PENDING', 'TRANSFER_WRONG_DAY', 'TRANSFER_EXPIRED', 'INSUFFICIENT_BALANCE'])(
     'keeps the transfer with the relayer after %s, which another go can fix',
     (code) => {
       expect(isRelayDecline(new RelayRequestError(code, 'no'))).toBe(false);
     }
   );
 
-  it('keeps a transfer whose answer was lost with the relayer, where it cannot go twice', () => {
+  it('keeps a transfer that may have gone out with the relayer, where it cannot go twice', () => {
     expect(isRelayDecline(new RelayAnswerLostError('no answer'))).toBe(false);
+    expect(isRelayDecline(new RelayRequestError('BROADCAST_UNCERTAIN', 'maybe'))).toBe(false);
   });
 });
 
