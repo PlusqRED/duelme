@@ -1,97 +1,91 @@
 'use client';
 
-import { useId, useMemo, useRef, useState, type ReactNode } from 'react';
-import { CatalogGame } from '@/components/game/CatalogGame';
+import { useId, useMemo, useState } from 'react';
+import { CatalogShelf } from '@/components/game/CatalogShelf';
 import { CreateDuelInvite } from '@/components/landing/CreateDuelInvite';
 import { SectionHead } from '@/components/landing/SectionHead';
 import { PageColumn } from '@/components/layout/PageColumn';
 import { FilterPill } from '@/components/lists/FilterPill';
 import { SearchField } from '@/components/lists/SearchField';
-import { useGames } from '@/hooks/useGames';
-import { useSeenOnce } from '@/hooks/useSeenOnce';
+import { useGameCatalog } from '@/hooks/useGameCatalog';
 import { useTranslation } from '@/i18n/useTranslation';
-import { byPopularity, GAME_CATEGORIES, getCategoryLabelKey, type GameCategory } from '@/lib/game';
+import { GAME_CATEGORIES, getCategoryLabelKey, type Game, type GameCategory } from '@/lib/game';
+import { catalogGames, mostPlayed, shelvesOf } from '@/lib/gameShelves';
 import { gameInk } from '@/lib/gameTile';
 
 interface GameCatalogProps {
-  /** Under the heading: the way to the games with a guide, drawn on the server. */
-  shortcuts?: ReactNode;
+  /** The games with a guide, handed in by the server: the shelves it draws, before the catalog answers. */
+  guides: readonly Game[];
 }
 
 /**
- * Every game players have duelled in, the most played first: a search, the categories as pills
- * each in its own ink, and the games as cartridges on a shelf whose bars grow to their share the
- * first time the shelf is seen. A game that is not here is added by naming it in a new duel.
+ * Every game, on a shelf per category: a search, the categories as pills each in its own ink with
+ * how many games it holds, and the shelves, each played most first. The server draws the guides'
+ * games, so the page search engines read lists them all under their categories; the catalog's own
+ * count of duels and the games players added come in after. A game that is not here is added by
+ * naming it in a new duel.
  */
-export function GameCatalog({ shortcuts }: GameCatalogProps) {
+export function GameCatalog({ guides }: GameCatalogProps) {
   const { t } = useTranslation();
   const titleId = useId();
   const [category, setCategory] = useState<GameCategory | null>(null);
   const [query, setQuery] = useState('');
   const search = query.trim();
-  // The backend filters, so a game past the first page of the catalog is still found by name.
-  const { games, isLoading } = useGames(category ?? undefined, search || undefined);
-  const shelf = useMemo(() => [...games].sort(byPopularity), [games]);
-  const shelfRef = useRef<HTMLUListElement>(null);
-  const isSeen = useSeenOnce(shelfRef, 0.3);
+  // The whole catalog, the create page's read, searched here: a name is found however it is spelled,
+  // the same before the catalog answers as after.
+  const { games: catalog } = useGameCatalog();
+  const games = useMemo(() => catalogGames(catalog, guides, search), [catalog, guides, search]);
+  const shelves = useMemo(() => shelvesOf(games), [games]);
+  const shown = category ? shelves.filter((shelf) => shelf.category === category) : shelves;
+  // The picked category keeps its pill when the search empties it, so the page shows why nothing is left.
+  const pills = GAME_CATEGORIES.filter((each) => each === category || shelves.some((shelf) => shelf.category === each));
   const isNarrowed = category !== null || search !== '';
-  const most = shelf[0]?.duelCount || 1;
+  const leader = mostPlayed(games);
+  const most = leader?.duelCount || 1;
 
   return (
     <PageColumn>
       <SectionHead isPageTitle titleId={titleId} title={t('games.title')} subtitle={t('games.subtitle')} />
-      {shortcuts}
-      <div className="mb-6 grid gap-3">
+      <div className="mb-[clamp(32px,4vw,48px)] grid gap-3">
         <SearchField value={query} onChange={setQuery} placeholder={t('games.searchPlaceholder')} />
         <div role="group" aria-label={t('games.categoryFilterLabel')} className="flex flex-wrap gap-2 max-xs:swipe-strip max-xs:flex-nowrap">
-          <FilterPill isPressed={category === null} onClick={() => setCategory(null)}>
+          <FilterPill isPressed={category === null} onClick={() => setCategory(null)} count={games.length}>
             {t('games.allCategories')}
           </FilterPill>
-          {GAME_CATEGORIES.map((option) => (
+          {pills.map((each) => (
             <FilterPill
-              key={option}
-              isPressed={category === option}
-              onClick={() => setCategory(category === option ? null : option)}
+              key={each}
+              isPressed={category === each}
+              onClick={() => setCategory(category === each ? null : each)}
+              count={shelves.find((shelf) => shelf.category === each)?.games.length ?? 0}
             >
-              <i aria-hidden="true" style={{ '--tone': gameInk(option) }} className="size-2.5 rounded-full bg-(--tone)" />
-              {t(getCategoryLabelKey(option))}
+              <i aria-hidden="true" style={{ '--tone': gameInk(each) }} className="size-2.5 rounded-full bg-(--tone)" />
+              {t(getCategoryLabelKey(each))}
             </FilterPill>
           ))}
         </div>
       </div>
 
-      {/* Always on the page, even while it loads: the bars grow once, when it is first seen. */}
-      <ul
-        ref={shelfRef}
-        aria-labelledby={titleId}
-        data-pending={isSeen ? undefined : ''}
-        className="group/catalog grid gap-3.5 xs:grid-cols-2 wide:grid-cols-3"
-      >
-        {isLoading && shelf.length === 0
-          ? [0, 1, 2].map((index) => (
-              <li key={index} aria-hidden="true" className="h-[118px] animate-pulse rounded-tile bg-paper max-xs:not-first:hidden" />
-            ))
-          : shelf.map((game, index) => (
-              // A game a new filter brings rises into place; one it keeps stays put.
-              <li key={game.slug} style={{ '--i': index }} className="animate-rise [animation-delay:calc(min(var(--i),8)*45ms)]">
-                <CatalogGame
-                  game={game}
-                  share={game.duelCount / most}
-                  index={index}
-                  isTop={index === 0 && !isNarrowed && game.duelCount > 0}
-                />
-              </li>
-            ))}
-      </ul>
+      <div className="grid gap-[clamp(40px,5vw,64px)]">
+        {shown.map((shelf) => (
+          <CatalogShelf key={shelf.category} shelf={shelf} most={most} topSlug={isNarrowed ? null : (leader?.slug ?? null)} />
+        ))}
+      </div>
 
-      {!isLoading && shelf.length === 0 ? (
+      {shown.length === 0 ? (
+        // The guides' games are always there, so only a search or a pick can leave the page empty.
         <CreateDuelInvite
           variant="card"
-          title={t(isNarrowed ? 'games.noMatches' : 'games.noGames')}
+          title={t('games.noMatches')}
           description={t('games.addByDuel')}
         />
       ) : (
-        <CreateDuelInvite variant="strip" title={t('games.missingTitle')} description={t('games.addByDuel')} />
+        <CreateDuelInvite
+          variant="strip"
+          title={t('games.missingTitle')}
+          description={t('games.addByDuel')}
+          className="mt-[clamp(40px,5vw,64px)]"
+        />
       )}
     </PageColumn>
   );

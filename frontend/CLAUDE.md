@@ -174,7 +174,7 @@ test can check.
   from the bottom of a phone), `Popover` (a menu: a panel under its button, a sheet on a phone),
   `Input`, `Note` (a line of small print after an icon), `Spinner`, `Toaster`. Who and what in `components/identity/`: `Avatar` (a player's identicon on
   their seat's colour; the pattern is `lib/identicon.ts`, the same for an address everywhere),
-  `GameTile` (initials on the category's colour), `PlayerLink` (a player's name, with their face where one is shown, under a faint underline, leading to their profile: every player's name on a card, a row or the duel page, the reader's own "You" there too), `ReputationPill` (a level), `LevelBadge` (a level as the badge a player earns, or still locked) and
+  `GameTile` (initials on the category's colour, or a count on a tile that stands for several games), `PlayerLink` (a player's name, with their face where one is shown, under a faint underline, leading to their profile: every player's name on a card, a row or the duel page, the reader's own "You" there too), `ReputationPill` (a level), `LevelBadge` (a level as the badge a player earns, or still locked) and
   `QuestLine` (the honored duels to the next level, from `levelQuest`), `Tally` (one side of a
   record: honored or abandoned), `BrandMark`, `BrandLink`.
 - **Motion** either explains something once or answers a click, and moves only transform and
@@ -233,10 +233,10 @@ test can check.
 | `frontend/src/lib/indexedPages.ts` | The one list of pages search engines should list: the sitemap maps it, `pageMetadata` sets `noindex` on every page it leaves out |
 | `frontend/src/lib/serverGame.ts` | One game read on the page server through `API_INTERNAL_URL`, once per request, with a timeout. A slug the catalog could never hold is `missing` unasked; without the variable, or when the read fails (logged), it is `unread` and the browser reads it |
 | `frontend/src/lib/browserStorage.ts` | `localStorage` or `sessionStorage`, or null where reading it throws (blocked site data) |
-| `frontend/src/lib/gameGuides.ts` | A game's guide: the types and the lookup by slug. A game page is indexed only with a guide |
-| `frontend/src/content/gameGuides/` | The guides, one file per game, in both languages; `index.ts` orders them. A guide's `slug` is the one the backend makes from its `name` (`lib/__tests__/gameGuides.test.ts` mirrors `GameService.toSlug`) |
+| `frontend/src/lib/gameGuides.ts` | A game's guide: the types, the lookup by slug, and which guides a row offers: the landing's (`featuredGuides`: every category's most searched first) and a game page's (`relatedGuides`: its category's first). A game page is indexed only with a guide |
+| `frontend/src/content/gameGuides/` | The guides, one file per game, in both languages; `index.ts` orders them, the most searched first. A guide's `slug` is the one the backend makes from its `name` (`lib/__tests__/gameGuides.test.ts` mirrors `GameService.toSlug`), and its game is in the backend's own catalog (`duelme.catalog.games` in `application.yml`) under the same category, which the same test checks: a new guide adds its game there too |
 | `frontend/src/components/game/GameGuideBody.tsx` | A guide's parts under a game's duels, drawn on the server |
-| `frontend/src/components/game/GuideShortcuts.tsx` | The games with a guide as links on top of the catalog, drawn on the server |
+| `frontend/src/components/game/GuideShortcuts.tsx` | A row of games with a guide as links, and a last one to the catalog counting the rest, drawn on the server: on the landing's closing card and under a game's page |
 | `frontend/src/app/sitemap.ts` | `INDEXED_PAGES`, each in every language with its `hreflang` alternates; no change dates or priorities |
 | `frontend/src/lib/structuredData.ts` | The pages' JSON-LD (organization, web app, breadcrumbs) and its one serializer, which escapes `<`: a game's name comes from players and must not close the script tag. `components/seo/JsonLd.tsx` renders it |
 | `frontend/src/components/identity/Avatar.tsx` | A player's face: the address's identicon (`lib/identicon.ts`) on their seat's colour |
@@ -350,7 +350,7 @@ test can check.
 | `frontend/src/components/feed/` | Duels someone joined as rows: `DuelFeed` (search, state filters with their counts, pages of 20) of `DuelRow`s, each opening into its `DuelReceipt`; the rules are `lib/duelFeed.ts` |
 | `frontend/src/components/lists/` | What every list shares, the dashboard's history too: `SearchField`, `FilterPill`, `Pager` (`lib/pages.ts`; the focus moves to the page shown after a turn) |
 | `frontend/src/components/duels/` | `/duels/public` (`OpenDuelsBoard`: search, game and stake-band filters, `OpenDuelGrid`) and `/duels/recent` (`RecentDuelsBoard`: the feed beside the popular games, its search kept in `?q=` by `useSearchQuery`) |
-| `frontend/src/components/game/GameCatalog.tsx` | `/games`: the guides' shortcuts (handed in from the server), search, category pills and the games as cards (`CatalogGame`), most played first |
+| `frontend/src/components/game/GameCatalog.tsx` | `/games`: search, category pills with their counts, and a shelf per category (`CatalogShelf`) of the games as cards (`CatalogGame`), most played first. The server hands in the guides' games, so the page it draws lists every guide under its category before the catalog answers; after, the whole catalog (`useGameCatalog`, the create page's read) is searched in the browser, one spelling rule before and after, and `lib/gameShelves.ts` merges, searches and shelves them |
 | `frontend/src/components/game/GameDetail.tsx` | `/games/[slug]`: `GameHead` with the guide's lead, the game's open duels (`GameOpenDuels`), its `DuelFeed`, then what the server hands in after them (the guide, the other guides). Takes the game the server settled; read in the browser only without one, where no such game or a failed read is a `LostPage` — unless a guide's game stands in (`KnownGame`'s `fallback`), shown while the read runs and when it finds nothing. On the server an unknown slug is a 404 and one in capitals moves to its lower-case address |
 | `frontend/src/components/layout/LostPage.tsx` | A page with nothing to show, drawn as the brand mark: `app/not-found.tsx`, `app/error.tsx`, a missing game |
 | `frontend/Dockerfile` | Frontend container (multi-stage, Node 22) |

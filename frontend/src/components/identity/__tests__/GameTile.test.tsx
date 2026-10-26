@@ -28,6 +28,18 @@ describe('GameTile', () => {
     expect(container.firstElementChild?.className.split(' ')).toContain('bg-canvas-deep');
   });
 
+  it('holds what it is given instead, a count on a tile that stands for several games', () => {
+    const { container } = render(
+      <GameTile name={null} category="BOARD">
+        {6}
+      </GameTile>
+    );
+    const tile = container.firstElementChild;
+
+    expect(tile?.textContent).toBe('6');
+    expect(tile?.className.split(' ')).toContain('bg-game-board');
+  });
+
   it('shows a gamepad instead of initials for a duel without a game', () => {
     const { container } = render(<GameTile name={null} />);
 

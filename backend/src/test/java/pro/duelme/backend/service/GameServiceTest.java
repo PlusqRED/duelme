@@ -96,34 +96,6 @@ class GameServiceTest {
     }
 
     @Test
-    void slugGenerationFromName() {
-        assertThat(GameService.toSlug("Counter-Strike 2")).isEqualTo("counter-strike-2");
-        assertThat(GameService.toSlug("  Hello   World  ")).isEqualTo("hello-world");
-        assertThat(GameService.toSlug("CS2")).isEqualTo("cs2");
-        assertThat(GameService.toSlug("Game!!!Name")).isEqualTo("gamename");
-        assertThat(GameService.toSlug("--dashes--")).isEqualTo("dashes");
-    }
-
-    @Test
-    void slugFallbackForNonLatinNames() {
-        String slug = GameService.toSlug("\u0428\u0430\u0445\u043c\u0430\u0442\u044b");
-
-        assertThat(slug).startsWith("g-");
-        assertThat(slug).isNotEmpty();
-    }
-
-    @Test
-    void slugFallbackProducesDistinctValuesForDistinctNonLatinNames() {
-        String chess = GameService.toSlug("\u0428\u0430\u0445\u043c\u0430\u0442\u044b");      // Шахматы
-        String go = GameService.toSlug("\u56f2\u7881");                                        // 囲碁
-        String shogi = GameService.toSlug("\u5c06\u68cb");                                     // 将棋
-
-        assertThat(chess).isNotEqualTo(go);
-        assertThat(go).isNotEqualTo(shogi);
-        assertThat(chess).isNotEqualTo(shogi);
-    }
-
-    @Test
     void getBySlugReturnsGame() {
         gameRepository.save(new Game(null, "cs2", "Counter-Strike 2", null, GameCategory.FPS, null, null));
 

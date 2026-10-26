@@ -13,11 +13,16 @@ import pro.duelme.backend.repository.GameRepository;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class GameService {
@@ -76,6 +81,38 @@ public class GameService {
             .orElseGet(() -> createGame(slug, name, iconUrl, category));
     }
 
+    /**
+     * Puts the catalog's own games ({@code duelme.catalog.games}) in place, each under its category,
+     * with one read for them all. A game already there keeps its id and duels and takes the catalog's
+     * name and category: that is how a game moves to a new category.
+     */
+    public void seedCatalog(Map<GameCategory, List<String>> catalog) {
+        Map<String, Game> wanted = new LinkedHashMap<>();
+        catalog.forEach((category, names) -> names.forEach(name -> {
+            Game game = new Game(null, toSlug(name), name.trim(), null, category, null, null);
+            Game earlier = wanted.putIfAbsent(game.slug(), game);
+            // Two spellings of one game would make every boot rename it from one to the other.
+            if (earlier != null) {
+                throw new IllegalStateException(
+                    "duelme.catalog.games names one game twice: " + earlier.name() + " and " + game.name());
+            }
+        }));
+        Map<String, Game> known = repository.findBySlugIn(wanted.keySet()).stream()
+            .collect(Collectors.toMap(Game::slug, Function.identity()));
+        List<Game> writes = new ArrayList<>();
+        for (Game game : wanted.values()) {
+            Game held = known.get(game.slug());
+            if (held == null) {
+                writes.add(game);
+            } else if (!held.name().equals(game.name()) || held.category() != game.category()) {
+                writes.add(new Game(
+                    held.id(), held.slug(), game.name(), held.iconUrl(), game.category(), held.createdAt(), held.updatedAt()
+                ));
+            }
+        }
+        repository.saveAll(writes);
+    }
+
     private GameResponse createGame(String slug, String name, String iconUrl, GameCategory category) {
         Game game = new Game(
             null, slug, name.trim(), iconUrl,
@@ -94,18 +131,32 @@ public class GameService {
     }
 
     static String toSlug(String name) {
-        String slug = name.toLowerCase()
+        // Locale.ROOT: a Turkish default would lower "III" to "ııı", which the rule below then drops.
+        String slug = name.toLowerCase(Locale.ROOT)
             .replaceAll("[^a-z0-9\\s-]", "")
             .replaceAll("\\s+", "-")
             .replaceAll("-+", "-")
             .replaceAll("^-|-$", "");
-        if (slug.isEmpty()) {
+        if (slug.isEmpty() || hasNonLatinLetter(name)) {
             // Fallback for non-Latin names: 12-hex-char SHA-256 prefix of the
             // normalized name. SHA-256 is collision-resistant where String.hashCode
-            // is not, so distinct Cyrillic / CJK names produce distinct slugs.
-            slug = "g-" + sha256Prefix(name.trim().toLowerCase(), 12);
+            // is not, so distinct Cyrillic / CJK names produce distinct slugs. A name
+            // that mixes scripts takes it too: the Latin rule keeps only what is left
+            // of it, and «Дота 2» and «КС 2» were both "2", one game. Spaces and
+            // punctuation count as little as in the Latin rule: «Дота-2» is «Дота 2».
+            String words = name.toLowerCase(Locale.ROOT)
+                .replaceAll("[^\\p{L}\\p{N}\\s-]", "")
+                .replaceAll("[\\s-]+", " ")
+                .trim();
+            // A name of symbols alone keeps them, or every such name would be one game.
+            slug = "g-" + sha256Prefix(words.isEmpty() ? name.trim().toLowerCase(Locale.ROOT) : words, 12);
         }
         return slug;
+    }
+
+    private static boolean hasNonLatinLetter(String name) {
+        return name.codePoints().anyMatch(codePoint ->
+            Character.isLetter(codePoint) && Character.UnicodeScript.of(codePoint) != Character.UnicodeScript.LATIN);
     }
 
     private static String sha256Prefix(String input, int hexChars) {
