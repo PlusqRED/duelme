@@ -14,7 +14,7 @@ export const faqTranslations = defineSection({
     'faq.games.q': 'Which games can I play a duel in?',
     'faq.games.a':
       'Any game where two players can both see who won: CS2, Dota 2, chess, EA SPORTS FC, fighting games and many more. If yours is not in the catalog, name it when you create a duel, and it joins.',
-    'faq.winner.q': 'Who decides who won?',
+    'faq.winner.q': 'Who decides how a duel ended?',
     'faq.winner.a':
       'The players. The winner claims the pot, the opponent confirms, and the contract pays out at once; the loser can also concede straight away. Every duel counts in both players’ reputation, which anyone can check before taking a challenge.',
     'faq.dispute.q': 'What if we disagree on the result?',
@@ -40,8 +40,8 @@ export const faqTranslations = defineSection({
       'Место, где играют дуэли 1 на 1 на USDT в любой игре. Оба игрока кладут одну и ту же сумму в смарт-контракт на Arbitrum, играют матч там, где привыкли, и победитель забирает весь банк.',
     'faq.games.q': 'В каких играх можно играть дуэли?',
     'faq.games.a':
-      'В любой игре, где оба видят, кто победил: CS2, Dota 2, шахматы, EA SPORTS FC, файтинги и многие другие. Если твоей игры нет в каталоге, назови её при создании дуэли, и она там появится.',
-    'faq.winner.q': 'Кто решает, кто победил?',
+      'В любой игре, где оба видят итог: CS2, Dota 2, шахматы, EA SPORTS FC, файтинги и многие другие. Если твоей игры нет в каталоге, назови её при создании дуэли, и она там появится.',
+    'faq.winner.q': 'Кто решает, чем кончилась дуэль?',
     'faq.winner.a':
       'Сами игроки. Победитель забирает банк, соперник подтверждает, и контракт сразу выплачивает деньги; проигравший может и сам признать поражение. Каждая дуэль идёт в репутацию обоих, а её видно любому перед тем, как принять вызов.',
     'faq.dispute.q': 'Что если мы не согласны с результатом?',

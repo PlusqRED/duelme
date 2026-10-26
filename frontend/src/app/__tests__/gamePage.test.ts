@@ -37,7 +37,7 @@ describe('a game page', () => {
 
     const metadata = await metadataOf('lineage-2');
 
-    expect([metadata.title, metadata.robots]).toEqual(['Lineage 2: 1v1 duels for USDT', { index: false, follow: true }]);
+    expect([metadata.title, metadata.robots]).toEqual(['Lineage 2 1v1 for money', { index: false, follow: true }]);
   });
 
   it('gives no 404 when there is no backend to ask', async () => {

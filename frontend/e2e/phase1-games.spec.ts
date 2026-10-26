@@ -21,7 +21,7 @@ async function serveGames(page: Page) {
 test.describe('Game catalog', () => {
   test('/games page loads with its title', async ({ page }) => {
     await page.goto('/games');
-    await expect(page.getByRole('heading', { level: 1 })).toContainText(/Games for 1v1 duels|Игры для дуэлей 1 на 1/);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(/Games to play 1v1 for money|Игры 1\s*на\s*1 на деньги/);
   });
 
   test('/games page has category filters', async ({ page }) => {
@@ -62,7 +62,7 @@ test.describe('Game catalog', () => {
     await expect(gamesLink).toBeVisible();
     await gamesLink.click();
     await expect(page).toHaveURL(/\/games/);
-    await expect(page.getByRole('heading', { level: 1 })).toContainText(/Games for 1v1 duels|Игры для дуэлей 1 на 1/);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(/Games to play 1v1 for money|Игры 1\s*на\s*1 на деньги/);
   });
 
   test('/duel/create has a game search that takes input', async ({ page }) => {
