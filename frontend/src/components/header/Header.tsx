@@ -8,7 +8,7 @@ import { BrandLink } from '@/components/identity/BrandLink';
 export function Header() {
   return (
     <TopBar>
-      <div className="mx-auto flex min-h-[72px] w-full max-w-page items-center gap-4 px-gutter">
+      <div className="group/topbar mx-auto flex min-h-[72px] w-full max-w-page items-center gap-4 px-gutter">
         <BrandLink />
         <HeadedSectionProvider>
           <NavLinks />
