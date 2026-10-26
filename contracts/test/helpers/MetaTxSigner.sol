@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import "../../script/ForwarderConfig.sol";
 import "./DuelMeTestConstants.sol";
 
-/// @dev EIP-712 signing helpers shared by the ERC-2771 and EIP-2612 suites. Domains are
+/// @dev EIP-712 signing helpers shared by the ERC-2771, EIP-2612 and EIP-3009 suites. Domains are
 ///      always read back from the deployed contract rather than rebuilt from constants, so a
 ///      domain drift shows up as a failing signature instead of a test that quietly signs the
 ///      wrong thing. Forwarders go through ERC-5267; tokens cannot, because mainnet USDT does
@@ -24,6 +24,12 @@ abstract contract MetaTxSigner is Test {
 
     bytes32 internal constant PERMIT_TYPEHASH =
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+
+    /// @dev Spelled out here rather than read off the token, so the suites prove the token uses
+    ///      the struct the frontend signs (TRANSFER_AUTHORIZATION_TYPES in relayedTransfer.ts).
+    bytes32 internal constant TRANSFER_WITH_AUTHORIZATION_TYPEHASH = keccak256(
+        "TransferWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)"
+    );
 
     /// @dev Gas the relayer promises the forwarded call. Generous on purpose: every test
     ///      except the gas-accounting ones runs `execute` with an effectively unlimited
@@ -185,6 +191,26 @@ abstract contract MetaTxSigner is Test {
 
         bytes32 structHash =
             keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, value, IERC20Permit(token).nonces(owner), deadline));
+
+        (v, r, s) = vm.sign(signerKey, MessageHashUtils.toTypedDataHash(_tokenDomainSeparator(token), structHash));
+    }
+
+    /// @dev An EIP-3009 transfer authorization, in the permit's domain: the token has one domain
+    ///      for both, and the frontend builds it the same way for either.
+    function _signTransferAuthorization(
+        address token,
+        uint256 signerKey,
+        address to,
+        uint256 value,
+        uint256 validAfter,
+        uint256 validBefore,
+        bytes32 nonce
+    ) internal view returns (uint8 v, bytes32 r, bytes32 s) {
+        bytes32 structHash = keccak256(
+            abi.encode(
+                TRANSFER_WITH_AUTHORIZATION_TYPEHASH, vm.addr(signerKey), to, value, validAfter, validBefore, nonce
+            )
+        );
 
         (v, r, s) = vm.sign(signerKey, MessageHashUtils.toTypedDataHash(_tokenDomainSeparator(token), structHash));
     }

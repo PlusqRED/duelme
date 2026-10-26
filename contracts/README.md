@@ -13,7 +13,7 @@ Wager escrow and on-chain reputation tracking for P2P gaming duels.
 | Contract | Description |
 |---|---|
 | `DuelMe.sol` | Core contract — secure invite duels, claim-based payouts, mutual cancellation, timestamps, and PlayerStats reputation |
-| `MockUSDT.sol` | Testnet ERC20 with 6 decimals and public `faucet()` (mints 1000 USDT per call). Implements EIP-2612 `permit`, and deliberately mirrors mainnet USD₮0's quirks — the name `USD₮0` (U+20AE) and a reverting `eip712Domain()` — so a client that builds the permit domain wrongly fails on testnet rather than in production |
+| `MockUSDT.sol` | Testnet ERC20 with 6 decimals and public `faucet()` (mints 1000 USDT per call). Implements EIP-2612 `permit` and EIP-3009 `transferWithAuthorization` (the wallet menu's one relayed Send a day), and deliberately mirrors mainnet USD₮0's quirks — the name `USD₮0` (U+20AE), a reverting `eip712Domain()`, USD₮0's revert strings — so a client that builds the domain or the authorization wrongly fails on testnet rather than in production |
 | `ERC2771Forwarder` | OpenZeppelin, deployed unmodified. The single forwarder `DuelMe` trusts; its EIP-712 domain name lives in `script/ForwarderConfig.sol` |
 
 ## Prerequisites
@@ -48,7 +48,7 @@ forge test --match-test testCreateDuel
 forge test --match-test "testRefund*"
 ```
 
-### Current test coverage — 289 tests (plus 5 fork tests)
+### Current test coverage — 304 tests (plus 7 fork tests)
 
 | Suite | Focus | Count |
 |---|---|---|
@@ -59,10 +59,11 @@ forge test --match-test "testRefund*"
 | `test/DuelMePermit.t.sol` | EIP-2612 funding, permit front-running | 22 |
 | `test/DuelMeInvites.t.sol` | Open duels, address-bound duels, ids that name no duel, invite binding and its golden vector | 19 |
 | `test/DuelMePayouts.t.sol` | Claim payouts, claiming to another address, batch claims | 17 |
+| `test/MockUSDTAuthorization.t.sol` | The testnet token's EIP-3009 transfer authorization: one use per nonce, the time window, a signature bound to its recipient and amount | 15 |
 | `test/DuelMeViews.t.sol` | Batch reads, player record, derived payouts | 11 |
 | `test/DuelMeTokenSafety.t.sol` | The deploy-time fee-on-transfer probe, and what the contract does without it | 7 |
 | `test/DuelMeInvariant.t.sol` | Solvency under random sequences, nothing written past `duelCount`, plus the handler's own lifecycle smoke test | 4 |
-| `test/UsdtPermitFork.t.sol` | Real USD₮0 on Arbitrum One — skipped without `ARBITRUM_RPC_URL` | 5 |
+| `test/UsdtPermitFork.t.sol` | Real USD₮0 on Arbitrum One: its permit and its transfer authorization — skipped without `ARBITRUM_RPC_URL` | 7 |
 
 Suites share `test/helpers/`: `DuelMeFixture` (token + forwarder + contract, alice and bob funded
 and approved, and the common duel helpers), `MetaTxSigner` for the suites that need signing keys,

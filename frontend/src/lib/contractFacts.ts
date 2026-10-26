@@ -8,7 +8,7 @@ import { formatCount } from '@/lib/utils';
  * the coverage is DuelMe.sol's line coverage from `forge coverage --profile coverage`, measured
  * on the date beside it, and is measured again when the contract's tests change much.
  */
-export const CONTRACT_TESTS = 294;
+export const CONTRACT_TESTS = 311;
 
 export const contractCoverage = { percent: 94.9, measuredOn: '2026-10-19' } as const;
 
@@ -22,7 +22,7 @@ function counted(count: number, key: PluralKey, plural: Translator['plural'], la
   return `${formatCount(count, language)}\u00a0${plural(key, count)}`;
 }
 
-/** The test count in the reader's words, the number written their way: "294 tests", «294 теста». */
+/** The test count in the reader's words, the number written their way: "311 tests", «311 тестов». */
 export function contractTestsLabel(plural: Translator['plural'], language: Language): string {
   return counted(CONTRACT_TESTS, 'trust.tests', plural, language);
 }
