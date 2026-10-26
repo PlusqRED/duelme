@@ -13,7 +13,9 @@ import { useTranslation } from '@/i18n/useTranslation';
  * A name never breaks over two lines, and the bar lists the sections only while the whole row
  * fits: Russian names run a third longer than English ones and a signed-in player's wallet takes
  * room of its own, so no one breakpoint holds. Out of room, the row hides as `data-crowded` and the
- * menu's button, which reads that off the bar, takes the sections.
+ * menu's button, which reads that off the bar, takes the sections. Until the page's script has
+ * measured it, the row is cut at the bar's end rather than run over the language and the wallet;
+ * once it fits (`data-fits`) it is not, so the focus ring of the first and last name shows whole.
  */
 export function NavLinks() {
   const { t } = useTranslation();
@@ -27,7 +29,8 @@ export function NavLinks() {
       ref={room}
       aria-label={t('nav.main')}
       data-crowded={isCrowded || undefined}
-      className="ml-2 hidden min-w-0 flex-1 nav:block data-crowded:invisible data-crowded:overflow-x-clip"
+      data-fits={isCrowded === false || undefined}
+      className="ml-2 hidden min-w-0 flex-1 overflow-x-clip nav:block data-crowded:invisible data-fits:overflow-x-visible"
     >
       <div ref={row} className="flex w-max gap-0.5">
         {links.map((link) => (

@@ -96,17 +96,24 @@ describe('useCrowdedNav', () => {
     expect(watches.at(-1)?.targets).toEqual([room, list]);
   });
 
-  it('measures again when the room narrows and widens', () => {
+  it('measures again when the room narrows', () => {
     const roomWidth = { px: 702 };
     const { result } = renderCrowded(bar(roomWidth), row({ px: 681 }));
 
     roomWidth.px = 600;
     resize();
-    const narrowed = result.current;
+
+    expect(result.current).toBe(true);
+  });
+
+  it('measures again when the room widens', () => {
+    const roomWidth = { px: 600 };
+    const { result } = renderCrowded(bar(roomWidth), row({ px: 681 }));
+
     roomWidth.px = 702;
     resize();
 
-    expect([narrowed, result.current]).toEqual([true, false]);
+    expect(result.current).toBe(false);
   });
 
   it('measures again when the row grows', () => {
@@ -135,20 +142,28 @@ describe('useCrowdedNav', () => {
     expect([result.current, room.getAttribute('data-crowded')]).toEqual([true, 'true']);
   });
 
-  it('keeps the last answer while the room is not displayed', () => {
+  it('keeps the last answer while the bar is not displayed', () => {
     const roomWidth = { px: 600 };
-    const { result } = renderCrowded(bar(roomWidth), row({ px: 681 }));
+    const rowWidth = { px: 681 };
+    const { result } = renderCrowded(bar(roomWidth), row(rowWidth));
 
     roomWidth.px = 0;
+    rowWidth.px = 0;
     resize();
 
     expect(result.current).toBe(true);
   });
 
-  it('says the row fits until a displayed room is measured', () => {
+  it('crowds a displayed bar squeezed to no room at all', () => {
+    const { result } = renderCrowded(bar({ px: 0 }), row({ px: 681 }));
+
+    expect(result.current).toBe(true);
+  });
+
+  it('gives no answer until a displayed bar is measured', () => {
     const { result } = renderCrowded(bar({ px: 0 }), row({ px: 0 }));
 
-    expect(result.current).toBe(false);
+    expect(result.current).toBeNull();
   });
 
   it('stops watching once the bar is gone', () => {

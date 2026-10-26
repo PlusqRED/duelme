@@ -45,17 +45,29 @@ describe('NavLinks', () => {
     expect(screen.getByRole('link', { name: 'Games' }).getAttribute('aria-current')).toBe('page');
   });
 
-  it('leaves the bar unmarked while the row fits', () => {
+  it('marks the bar as fitting while the row fits', () => {
     layOut(702, 681);
     render(<NavLinks />);
 
-    expect(screen.getByRole('navigation', { name: 'Main' }).hasAttribute('data-crowded')).toBe(false);
+    expect(marks()).toEqual({ crowded: false, fits: true });
   });
 
   it('marks the bar crowded for the menu when the row does not fit', () => {
     layOut(680, 681);
     render(<NavLinks />);
 
-    expect(screen.getByRole('navigation', { name: 'Main' }).hasAttribute('data-crowded')).toBe(true);
+    expect(marks()).toEqual({ crowded: true, fits: false });
+  });
+
+  it('marks the bar neither way until it is laid out', () => {
+    layOut(0, 0);
+    render(<NavLinks />);
+
+    expect(marks()).toEqual({ crowded: false, fits: false });
   });
 });
+
+function marks() {
+  const bar = screen.getByRole('navigation', { name: 'Main' });
+  return { crowded: bar.hasAttribute('data-crowded'), fits: bar.hasAttribute('data-fits') };
+}
