@@ -7,17 +7,8 @@ function duelQuery(chainId: number, contractAddress: `0x${string}`): string {
   return `chainId=${chainId}&contractAddress=${contractAddress.toLowerCase()}`;
 }
 
-export async function fetchGames(
-  category?: GameCategory,
-  search?: string,
-  limit?: number,
-): Promise<Game[]> {
-  const params = new URLSearchParams();
-  if (category) params.set('category', category);
-  if (search) params.set('search', search);
-  if (limit && limit > 0) params.set('limit', String(limit));
-  const qs = params.toString();
-  const res = await fetch(`${API_BASE}/games${qs ? `?${qs}` : ''}`);
+export async function fetchGames(limit?: number): Promise<Game[]> {
+  const res = await fetch(`${API_BASE}/games${limit && limit > 0 ? `?limit=${limit}` : ''}`);
   if (!res.ok) throw new Error('Failed to fetch games');
   return res.json();
 }

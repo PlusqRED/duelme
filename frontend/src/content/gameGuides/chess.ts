@@ -3,7 +3,7 @@ import type { GameGuide } from '@/lib/gameGuides';
 export const chessGuide: GameGuide = {
   slug: 'chess',
   name: 'Chess',
-  category: 'STRATEGY',
+  category: 'BOARD',
   copy: {
     en: {
       title: 'Play chess for money online — USDT duels',

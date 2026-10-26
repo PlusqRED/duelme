@@ -7,8 +7,10 @@ import { OpenDuels } from '@/components/landing/OpenDuels';
 import { RecentDuels } from '@/components/landing/RecentDuels';
 import { ReputationLab } from '@/components/landing/ReputationLab';
 import { Safety } from '@/components/landing/Safety';
+import { JsonLd } from '@/components/seo/JsonLd';
 import { getTranslation } from '@/i18n/serverTranslation';
 import { pageMetadata } from '@/lib/pageMetadata';
+import { websiteSchema } from '@/lib/structuredData';
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getTranslation();
@@ -18,6 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function HomePage() {
   return (
     <>
+      <JsonLd data={websiteSchema()} />
       <Hero />
       <OpenDuels />
       <RecentDuels />

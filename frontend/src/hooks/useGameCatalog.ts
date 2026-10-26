@@ -8,7 +8,7 @@ export const GAME_CATALOG_QUERY_KEY = ['games', 'catalog', CATALOG_LIMIT] as con
 export function useGameCatalog() {
   const { data, isLoading } = useQuery<Game[]>({
     queryKey: GAME_CATALOG_QUERY_KEY,
-    queryFn: () => fetchGames(undefined, undefined, CATALOG_LIMIT),
+    queryFn: () => fetchGames(CATALOG_LIMIT),
     staleTime: 60_000,
     // Avoid rebuilding the Fuse.js index mid-typing when the user tabs away and back.
     refetchOnWindowFocus: false,

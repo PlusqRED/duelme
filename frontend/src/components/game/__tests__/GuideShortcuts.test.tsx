@@ -17,17 +17,20 @@ function links() {
   return within(nav).getAllByRole('link').map((link) => link.getAttribute('href'));
 }
 
-describe('GuideShortcuts', () => {
-  it('leads to every game with a guide, at its address in the page’s language', async () => {
-    renderIn('ru', await GuideShortcuts({}));
+const allGames = () => screen.getByRole('link', { name: pageTranslations.ru['games.allGames'] });
 
-    expect(links()).toEqual(GAME_GUIDES.map((guide) => `/ru/games/${guide.slug}`));
+describe('GuideShortcuts', () => {
+  it('leads to the games it is given, at their addresses in the page’s language, then to the whole catalog', async () => {
+    const guides = GAME_GUIDES.slice(0, 3);
+
+    renderIn('ru', await GuideShortcuts({ guides }));
+
+    expect(links()).toEqual([...guides.map((guide) => `/ru/games/${guide.slug}`), '/ru/games']);
   });
 
-  it('leaves out the game whose page it is on', async () => {
-    renderIn('ru', await GuideShortcuts({ except: 'cs2' }));
+  it('counts the guides it leaves out on the way to the catalog', async () => {
+    renderIn('ru', await GuideShortcuts({ guides: GAME_GUIDES.slice(0, 3) }));
 
-    expect(links()).not.toContain('/ru/games/cs2');
-    expect(links()).toHaveLength(GAME_GUIDES.length - 1);
+    expect(allGames().textContent).toBe(`+${GAME_GUIDES.length - 3}${pageTranslations.ru['games.allGames']}`);
   });
 });

@@ -1,5 +1,5 @@
 import Fuse, { type IFuseOptions } from 'fuse.js';
-import type { Game } from '@/lib/game';
+import { normalizeGameName, type Game } from '@/lib/game';
 
 export interface GameSearchResult {
   game: Game;
@@ -55,11 +55,6 @@ export function highlightRuns(
     else runs.push({ text: name[i], isMatch });
   }
   return runs;
-}
-
-/** A game's name as two spellings of one game compare: case, spaces and punctuation aside, so «CS 2» is «cs2». */
-export function normalizeGameName(name: string): string {
-  return name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
 }
 
 /** The game with this name, however it is spelled. */

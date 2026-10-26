@@ -1,5 +1,5 @@
-import { uncataloguedGame, type Game, type GameCategory } from '@/lib/game';
-import { findGameByName, normalizeGameName } from '@/lib/gameSearch';
+import { normalizeGameName, uncataloguedGame, type Game, type GameCategory } from '@/lib/game';
+import { findGameByName } from '@/lib/gameSearch';
 
 /**
  * The create page's setup, as the landing's quest: four steps, one open at a time. A step that has

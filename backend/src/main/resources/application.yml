@@ -21,6 +21,68 @@ duelme:
     duel-me:
       "421614": "0x588A54Fa8c00c8aC003e41BD8ee26FBC8994105f"
       "42161": "0x32b3c9aF55c7C784bdf9128a1f681A66A37Bd261"
+  # The games the catalog holds before anyone has duelled in them, by category: every game with a
+  # guide in frontend/src/content/gameGuides (gameGuides.test.ts fails on one missing or in another
+  # category), and the names Russian players know some of them by, each a game of its own for
+  # players to pick. Written at every boot, so moving a game here moves it in the catalog.
+  catalog:
+    games:
+      FPS:
+        - CS2
+        - Call of Duty
+        - Valorant
+        - Fortnite
+        - Standoff 2
+        - PUBG Mobile
+      MOBA:
+        - Dota 2
+        - League of Legends
+        - "Mobile Legends: Bang Bang"
+      SPORT:
+        - EA SPORTS FC
+        - Madden NFL
+        - NBA 2K
+        - Rocket League
+        - eFootball
+        - 8 Ball Pool
+      STRATEGY:
+        - StarCraft II
+        - Age of Empires II
+        - Heroes of Might and Magic III
+        - Герои Меча и Магии III
+        - Warcraft III
+        - Clash Royale
+      FIGHTING:
+        - Street Fighter 6
+        - Tekken 8
+        - Mortal Kombat 1
+        - Super Smash Bros. Ultimate
+        - Guilty Gear Strive
+        - Brawlhalla
+      CARD:
+        - Poker
+        - Покер
+        - Durak
+        - Дурак
+        - "Magic: The Gathering"
+        - Hearthstone
+      BOARD:
+        - Chess
+        - Шахматы
+        - Backgammon
+        - Нарды
+        - Checkers
+        - Шашки
+      MMO:
+        - World of Warcraft
+        - Lineage 2
+      OFFLINE:
+        - Billiards
+        - Бильярд
+        - Darts
+        - Дартс
+        - Table Tennis
+        - Настольный теннис
   # Dev-only MockUSDT + ETH faucet. Prod must keep `enabled=false` (the default).
   faucet:
     enabled: ${FAUCET_ENABLED:false}

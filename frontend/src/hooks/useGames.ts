@@ -1,14 +1,12 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { fetchGames } from '@/lib/gameApi';
-import type { Game, GameCategory } from '@/lib/game';
+import type { Game } from '@/lib/game';
 
-export function useGames(category?: GameCategory, search?: string) {
+export function useGames() {
   const { data, isLoading } = useQuery<Game[]>({
-    queryKey: ['games', category ?? null, search ?? null],
-    queryFn: () => fetchGames(category, search),
+    queryKey: ['games'],
+    queryFn: () => fetchGames(),
     staleTime: 60_000,
-    // A search typed letter by letter keeps the last list on screen until the next one arrives.
-    placeholderData: keepPreviousData,
   });
   return { games: data ?? [], isLoading };
 }

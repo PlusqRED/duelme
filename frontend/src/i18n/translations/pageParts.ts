@@ -9,6 +9,7 @@ export const pagePartsTranslations = defineSection({
     'hero.title': '1v1 duels for USDT in any game',
     'game.guideTitle': 'How a duel in {game} goes',
     'games.guidesLabel': 'Guides to duels in popular games',
+    'games.allGames': 'All games',
     'cta.anyGame':
       'Your game is not among these? When you create a duel, find it in the catalog or add it. It doesn’t have to be a video game: a match in real life or a friendly bet works too.',
   },
@@ -16,6 +17,7 @@ export const pagePartsTranslations = defineSection({
     'hero.title': 'Дуэли 1 на 1 на USDT в любой игре',
     'game.guideTitle': 'Как проходит дуэль в {game}',
     'games.guidesLabel': 'Как играть дуэли в популярных играх',
+    'games.allGames': 'Все игры',
     'cta.anyGame':
       'Твоей игры среди этих нет? При создании дуэли найди её в каталоге или добавь. И это не обязательно видеоигра: подойдёт матч вживую или спор с другом.',
   },

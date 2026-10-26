@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { DEVLOG_URL, SITE_URL } from '@/lib/constants';
+import { DEVLOG_URL, SITE_NAME, SITE_URL } from '@/lib/constants';
 import {
   breadcrumbSchema,
   organizationSchema,
   serializeStructuredData,
   webApplicationSchema,
+  websiteSchema,
 } from '@/lib/structuredData';
 
 describe('organizationSchema', () => {
@@ -31,6 +32,16 @@ describe('webApplicationSchema', () => {
 
   it('offers no site search action, which Google no longer shows', () => {
     expect(webApplicationSchema('About')).not.toHaveProperty('potentialAction');
+  });
+});
+
+describe('websiteSchema', () => {
+  it('names the site by the brand, not the domain, at the home page’s address', () => {
+    expect(websiteSchema()).toMatchObject({ '@type': 'WebSite', name: SITE_NAME, alternateName: ['Duel Me'], url: SITE_URL });
+  });
+
+  it('is published by the organization', () => {
+    expect(websiteSchema().publisher).toEqual({ '@id': organizationSchema('About')['@id'] });
   });
 });
 

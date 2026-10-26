@@ -4,12 +4,15 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import pro.duelme.backend.model.Game;
 import pro.duelme.backend.model.GameCategory;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 public interface GameRepository extends MongoRepository<Game, String> {
 
     Optional<Game> findBySlug(String slug);
+
+    List<Game> findBySlugIn(Collection<String> slugs);
 
     List<Game> findByCategory(GameCategory category);
 
