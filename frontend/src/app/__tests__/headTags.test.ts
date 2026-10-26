@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { sourceFiles } from '@/lib/__tests__/helpers/sourceFiles';
 
-const appFiles = sourceFiles(['.tsx']).filter((file) => file.path.startsWith('app/'));
+const tsxFiles = sourceFiles(['.tsx']);
+const appFiles = tsxFiles.filter((file) => file.path.startsWith('app/'));
 const pages = appFiles.filter((file) => file.path.endsWith('/page.tsx') || file.path === 'app/page.tsx');
 const layouts = appFiles.filter((file) => file.path.endsWith('/layout.tsx'));
 
@@ -21,6 +22,9 @@ describe('head tags', () => {
   });
 
   it('gives the home page the site’s name, which Google reads there only', () => {
-    expect(pages.find((file) => file.path === 'app/page.tsx')?.text).toContain('websiteSchema()');
+    // A second WebSite block on the home page, from a layout or a part, leaves Google two to choose from.
+    const naming = tsxFiles.filter((file) => file.text.includes('websiteSchema(')).map((file) => file.path);
+
+    expect(naming).toEqual(['app/page.tsx']);
   });
 });
