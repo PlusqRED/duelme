@@ -166,9 +166,8 @@ test can check.
   classes read it; a state with several looks is a data attribute with variants
   (`data-[tone=short]:bg-orange-wash`). Shared CSS lives only in `src/styles/`: the theme, element
   defaults with the `keycap`, `link` and `swipe-strip` utilities, and motion.
-- **Type:** Geologica only, in the demo's weights: 800 for headings and amounts, `font-strong`
-  (750) and `font-label` (650) for labels, 700 and 600 where the demo sets them on a name or a
-  field, 400 for text. Figures are `tabular-nums`; there is no monospace face.
+- **Type:** Geologica only: 800 for headings and amounts, `font-strong` (750) and `font-label`
+  (650) for labels, 700 and 600 on a name or a field, 400 for text. Figures are `tabular-nums`; there is no monospace face.
 - **Primitives** in `components/ui/`: keycap buttons (navy for every action, paper beside it, sun
   only to take a payout, ghost for what should not compete), `Chip`, `Icon` (the design's icons),
   `Dialog` (a card on a wide screen, a sheet
