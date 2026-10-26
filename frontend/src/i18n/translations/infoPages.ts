@@ -43,7 +43,7 @@ export const infoPagesTranslations = defineSection({
     'safety.contract.link': 'The contract on Arbiscan',
     'safety.limits.title': 'What DuelMe can and cannot do',
     'safety.limits.text':
-      'Nothing in the contract lets DuelMe pick a winner. It can move money only through one emergency exit, which reaches players’ stakes too: each use has to be announced on the blockchain first and can be carried out {days} later at the earliest, so everyone would see it coming.',
+      'Nothing in the contract lets DuelMe pick a winner. The one way it can move money is an emergency withdrawal, kept for a critical bug or the project moving to a new contract, so that players’ money can never get stuck and can be returned to its owners. Each use has to be announced on the blockchain first and can be carried out {days} later at the earliest, so everyone sees it coming.',
     'safety.payouts.title': 'Your winnings are yours to take',
     'safety.payouts.text':
       'A pot you won or a stake that came back waits in the contract under your address until you withdraw it, whenever you like. Nobody sends it for you, and nobody can hold it back.',
@@ -115,7 +115,7 @@ export const infoPagesTranslations = defineSection({
     'safety.contract.link': 'Контракт на Arbiscan',
     'safety.limits.title': 'Что DuelMe может, а что нет',
     'safety.limits.text':
-      'В контракте нет способа выбрать победителя. Двигать деньги DuelMe может только через единственный аварийный вывод, который достаёт и до сумм игроков: каждый вывод нужно сначала объявить в блокчейне, и выполнить его можно не раньше чем через {days}, так что это увидят все.',
+      'В контракте нет способа выбрать победителя. Двигать деньги DuelMe может только через аварийный вывод: он есть на случай критической ошибки или переезда проекта на новый контракт, чтобы деньги игроков не застряли навсегда и могли вернуться владельцам. Каждый вывод нужно сначала объявить в блокчейне, и выполнить его можно не раньше чем через {days}, так что это увидят все.',
     'safety.payouts.title': 'Выигрыш забираешь ты',
     'safety.payouts.text':
       'Выигранный банк или вернувшаяся сумма ждёт в контракте на твоём адресе, пока ты не выведешь её, когда захочешь. Никто не отправляет её за тебя и никто не может её задержать.',

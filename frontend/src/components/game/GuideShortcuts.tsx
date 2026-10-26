@@ -21,7 +21,9 @@ export async function GuideShortcuts({ except, className }: GuideShortcutsProps)
   const { t } = await getTranslation();
 
   return (
-    <nav aria-label={t('games.guidesLabel')} className={className}>
+    // On a phone the list is one strip that scrolls inside the nav; sized by its content, the nav
+    // would take the strip's whole length and push whatever holds it past the screen.
+    <nav aria-label={t('games.guidesLabel')} className={cn('w-full min-w-0', className)}>
       <ul className="flex flex-wrap gap-2 max-xs:swipe-strip max-xs:flex-nowrap">
         {GAME_GUIDES.filter((guide) => guide.slug !== except).map((guide) => (
           <li key={guide.slug} className="shrink-0">

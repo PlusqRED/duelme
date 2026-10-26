@@ -29,7 +29,7 @@ describe('Faq', () => {
   it('gives the emergency delay the contract enforces', async () => {
     const { container } = render(await Faq());
 
-    expect(container.textContent).toContain(`не раньше чем через ${emergencyDelayLabel(translator('ru').plural, 'ru')}.`);
+    expect(container.textContent).toContain(`минимум за ${emergencyDelayLabel(translator('ru').plural, 'ru')}.`);
   });
 
   it('opens an answer on a press of its question', async () => {

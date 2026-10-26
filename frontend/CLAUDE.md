@@ -403,6 +403,14 @@ test can check.
   `--dwell` does not exist, so the animation resolved to nothing and was silently dropped: the
   landing demo's step bars and its feed rows' exit never played. `landingMotion.css` keeps those
   two (`--dwell`, `--leave`) in its `@theme inline`.
+- **A box that wraps a `swipe-strip` must not take its width from the strip.** A strip that does
+  not wrap is as long as all its items. A wrapper that does not scroll itself, sized by its content
+  (a grid item under `justify-items-start`, an `auto` track, a flex child), grows to that length and
+  takes its siblings with it: on a phone the landing's closing card ran 1,400px past the screen, its
+  heading and text cut off, because `GuideShortcuts`' `<nav>` held the strip. That nav now has
+  `w-full min-w-0`. A strip that is itself a grid item is safe only while it stretches to its
+  column (the default); under `justify-items-start` it sizes to its full length too.
+  `e2e/landing.spec.ts` checks the landing at 360px once its lists have loaded.
 - `createConfig` from `wagmi` instead of `@privy-io/wagmi` silently breaks wallet routing.
 - `useSetActiveWallet` in `useEffect` is too late — use `setActiveWalletForWagmi` sync callback.
 - Invite-only duels rely on the full private link (URL fragment) — never fall back to plain `/duel/{id}`.

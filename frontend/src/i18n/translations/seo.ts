@@ -36,7 +36,7 @@ export const seoTranslations = defineSection({
       'Every step of a DuelMe duel: create it, play the match, settle the result. A smart contract holds both stakes, the winner takes the pot, 0% fee.',
     'seo.safety.title': 'Is DuelMe safe? How the money is kept',
     'seo.safety.description':
-      'The stakes sit in a public, verified smart contract. DuelMe cannot pick a winner, and its one emergency exit is announced on-chain at least {days} ahead.',
+      'The stakes sit in a public, verified smart contract. DuelMe cannot pick a winner, and its one emergency withdrawal is announced on-chain at least {days} ahead.',
     'seo.about.title': 'About DuelMe — 1v1 duels with no platform cut',
     'seo.about.description':
       'Who builds DuelMe, why it takes no fee, where it stands and how to reach its developer.',
