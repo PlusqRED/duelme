@@ -217,7 +217,7 @@ test can check.
 | `frontend/src/components/ui/iconPaths.ts` | The design's icons as shapes, drawn by `ui/icon.tsx` |
 | `frontend/src/components/ui/dialog.tsx` | The one window: a card from a fixed top on a wide screen, a sheet below 560px; `--dialog-width` widens it; `DialogFooter isPinned` keeps a long sheet's last action on screen on a phone |
 | `frontend/src/components/ui/popover.tsx` | The menus: a panel under its button on a wide screen, a modal sheet below 560px, with a title the sheet shows and a panel only reads out |
-| `frontend/src/components/header/Header.tsx` | The top bar on every page: the brand, the sections (`lib/navigation.ts`; on the landing its own, the one being read marked through `useSectionInView`, and a followed link's section held by `useHeadedSection` while the page glides there, one hold for the bar and the phone menu through `HeadedSectionProvider`) from 980px, the language, the wallet menu or Sign in, and the navigation menu below 980px |
+| `frontend/src/components/header/Header.tsx` | The top bar on every page: the brand, the sections (`lib/navigation.ts`; on the landing its own, the one being read marked through `useSectionInView`, and a followed link's section held by `useHeadedSection` while the page glides there, one hold for the bar and the phone menu through `HeadedSectionProvider`) from 980px while their row fits (`useNavFit`), the language, the wallet menu or Sign in, and the navigation menu below 980px or when the row does not fit |
 | `frontend/src/components/header/WalletMenu.tsx` | The wallet button (the duel network's USDT, never a sum across networks, and a pip while money waits in the contract) and its menu: player card, the small safe (`SafeMini`), a balance tile per network, Top up, Send (the form, a last look in `SendReview`, then the transfer, its route drawn by `SendRoute`), the faucet flask, key export and sign out |
 | `frontend/src/hooks/useWalletBalances.ts` | The wallet's USDT and ETH on each network the build lists, read apart (USDT on `useUsdtBalance`'s query): the button's balance polled always, the rest while the menu is open, all again on the balance bus |
 | `frontend/src/hooks/useSendUsdt.ts` | Sends USDT on the network picked: moves the wallet there, then `writeWithGas` |
@@ -410,6 +410,13 @@ test can check.
   `w-full min-w-0`. A strip that is itself a grid item is safe only while it stretches to its
   column (the default); under `justify-items-start` it sizes to its full length too.
   `e2e/landing.spec.ts` checks the landing at 360px once its lists have loaded.
+- **Whether the top bar lists its sections is measured, not a breakpoint.** Russian names run a
+  third longer than English ones, the landing has five sections for a signed-in player, and the
+  wallet button grows with the balance: at 1280px the Russian landing needed 1,165px of a 1,160px
+  row, so the links shrank, each name broke over two lines and the ink bar cut across them. A name
+  never wraps, and the bar shows the whole row or the menu's button, by the mark `useNavFit` gives
+  it (`data-nav-fit`, which `NavMenu` reads through `group-has-…/topbar`); how it measures, and why
+  it lifts the mark to do so, is in its comment. `nav:` (980px) is only the floor.
 - `createConfig` from `wagmi` instead of `@privy-io/wagmi` silently breaks wallet routing.
 - `useSetActiveWallet` in `useEffect` is too late — use `setActiveWalletForWagmi` sync callback.
 - Invite-only duels rely on the full private link (URL fragment) — never fall back to plain `/duel/{id}`.

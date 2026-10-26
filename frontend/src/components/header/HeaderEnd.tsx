@@ -22,7 +22,8 @@ const WalletMenu = dynamic(() => import('@/components/header/WalletMenu').then((
 
 /**
  * The bar's end: the language (in the navigation menu on a phone, to leave room for the balance),
- * the wallet or Sign in, and the navigation menu on a narrow screen.
+ * the wallet or Sign in, and the navigation menu on a narrow screen or a bar too crowded to list the
+ * sections.
  */
 export function HeaderEnd() {
   return (
