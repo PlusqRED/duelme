@@ -4,10 +4,11 @@ import { AnalyticsChoice } from '@/components/analytics/AnalyticsChoice';
 import { PageColumn } from '@/components/layout/PageColumn';
 import { getTranslation } from '@/i18n/serverTranslation';
 import { DEVELOPER_EMAIL } from '@/lib/constants';
+import { pageMetadata } from '@/lib/pageMetadata';
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getTranslation();
-  return { title: t('privacy.title'), alternates: { canonical: '/privacy' } };
+  return pageMetadata({ path: '/privacy', title: t('privacy.title'), description: t('seo.privacy.description') });
 }
 
 const PRIVY_POLICY_URL = 'https://www.privy.io/privacy-policy';

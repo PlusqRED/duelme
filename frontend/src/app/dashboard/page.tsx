@@ -1,8 +1,15 @@
+import type { Metadata } from 'next';
 import { Dashboard } from '@/components/dashboard/Dashboard';
 import { buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { getTranslation } from '@/i18n/serverTranslation';
+import { pageMetadata } from '@/lib/pageMetadata';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getTranslation();
+  return pageMetadata({ path: '/dashboard', title: t('nav.dashboard'), description: t('seo.site.description'), indexed: false });
+}
 
 export default async function DashboardPage() {
   const { t } = await getTranslation();

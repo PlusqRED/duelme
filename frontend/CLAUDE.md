@@ -109,7 +109,7 @@ write that may still land out of its sight), with the action, duel, contract, st
 7. Clean up: delete screenshots and stop temporary dev server unless user asked you to leave them.
 
 **Components:**
-- Functional + hooks only. `function` keyword (not arrow). Named exports only — the exception is the App Router files Next requires a default export from (`page.tsx`, `layout.tsx`, `sitemap.ts`, `robots.ts`, `icon.tsx`, `apple-icon.tsx`, `opengraph-image.tsx`, `twitter-image.tsx`), and those are the only default exports in `frontend/src`.
+- Functional + hooks only. `function` keyword (not arrow). Named exports only — the exception is the App Router files Next requires a default export from (`page.tsx`, `layout.tsx`, `not-found.tsx`, `error.tsx`, `sitemap.ts`, `robots.ts`, `icon.tsx`, `apple-icon.tsx`), and those are the only default exports in `frontend/src`.
 - TypeScript strict — no `any`, no unchecked `as`. Narrow unknown data with a hand-written type guard; there is no schema library in the frontend and adding one is a dependency decision, not a detail.
 - Props interface `{ComponentName}Props` directly above component.
 - One exported component per file (small internal helpers <30 lines are fine). Guard clauses first, happy path last.
@@ -229,7 +229,9 @@ test can check.
 | `frontend/src/components/ui/toaster.tsx` | Toasts as paper cards with the design's icons, and what sonner's `unstyled` drops put back |
 | `frontend/src/lib/brandColors.ts` | Theme colours as hex for what CSS cannot reach (theme colour, Privy's window, the images `ImageResponse` draws, the no-entry pointer in `lib/seatCursor.ts`) |
 | `frontend/src/lib/brandImage.tsx` | The brand mark for `ImageResponse`: the favicon, the home-screen icon and `/logo.png` |
-| `frontend/src/lib/ogImage.tsx` | The share image; carries Geologica as WOFF (`src/assets/fonts/`, OFL), since `ImageResponse` cannot read WOFF2 |
+| `frontend/src/lib/ogImage.tsx` | The share image in each language, drawn once per language at build by `app/og/[language]/route.ts` (`/og/en`, `/og/ru`); carries Geologica as WOFF (`src/assets/fonts/`, OFL), since `ImageResponse` cannot read WOFF2 |
+| `frontend/src/lib/pageMetadata.ts` | Every page's head tags in the language of its address: canonical, `hreflang` for each language and `x-default`, title, description, share preview, and whether search engines list it. Its words are in `i18n/translations/seo.ts`, sized for a search result |
+| `frontend/src/app/sitemap.ts` | The pages search engines should list, each in every language with its `hreflang` alternates; no change dates or priorities |
 | `frontend/src/lib/structuredData.ts` | The pages' JSON-LD (organization, web app, breadcrumbs) and its one serializer, which escapes `<`: a game's name comes from players and must not close the script tag. `components/seo/JsonLd.tsx` renders it |
 | `frontend/src/components/identity/Avatar.tsx` | A player's face: the address's identicon (`lib/identicon.ts`) on their seat's colour |
 | `frontend/src/components/identity/ReputationPill.tsx` | A reputation level as a pill with its three-bar meter |
@@ -478,6 +480,12 @@ test can check.
   the language back to English: every `/ru` page came out English while its links were Russian.
   `proxy.ts` marks the request it rewrote with a value made fresh in each process and passes a
   marked one through untouched; a browser cannot send the mark.
+- **A page's head tags come from `pageMetadata`, never from a layout.** Next.js hands a page the
+  `openGraph`, `alternates` and `robots` of the nearest layout that sets them, so when the root
+  layout set them every page shared the home page's title, description and `og:url`, and the 404
+  carried `index, follow` beside the `noindex` Next.js adds. The root layout sets only what every
+  page shares; each `page.tsx` calls `pageMetadata` in its `generateMetadata`. A layout that sets a
+  plain string `title` also drops the root's `%s | DuelMe` template for the pages under it.
 - **A move between languages loads the whole page.** `/games` and `/ru/games` are the same route,
   so a client-side move between them keeps the layouts, the top bar and the footer, in the old
   language. The switch uses `location.replace`; nothing else links across languages.

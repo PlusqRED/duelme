@@ -20,6 +20,7 @@ import { signingTranslations } from './translations/signing';
 import { browseTranslations } from './translations/browse';
 import { signingActionsTranslations } from './translations/signingActions';
 import { privacyTranslations } from './translations/privacy';
+import { seoTranslations } from './translations/seo';
 
 export const translations = {
   en: {
@@ -45,6 +46,7 @@ export const translations = {
     ...browseTranslations.en,
     ...signingActionsTranslations.en,
     ...privacyTranslations.en,
+    ...seoTranslations.en,
   },
   ru: {
     ...navigationTranslations.ru,
@@ -69,6 +71,7 @@ export const translations = {
     ...browseTranslations.ru,
     ...signingActionsTranslations.ru,
     ...privacyTranslations.ru,
+    ...seoTranslations.ru,
   },
 } as const;
 

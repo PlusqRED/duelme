@@ -6,17 +6,13 @@ import { OpenDuels } from '@/components/landing/OpenDuels';
 import { RecentDuels } from '@/components/landing/RecentDuels';
 import { ReputationLab } from '@/components/landing/ReputationLab';
 import { Safety } from '@/components/landing/Safety';
+import { getTranslation } from '@/i18n/serverTranslation';
+import { pageMetadata } from '@/lib/pageMetadata';
 
-export const metadata: Metadata = {
-  alternates: {
-    canonical: '/',
-    languages: {
-      'en-US': '/',
-      'ru-RU': '/',
-      'x-default': '/',
-    },
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getTranslation();
+  return pageMetadata({ path: '/', title: { absolute: t('seo.home.title') }, description: t('seo.site.description') });
+}
 
 export default function HomePage() {
   return (

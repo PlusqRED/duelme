@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { languageOfPath, localePath, stripLanguage } from '@/i18n/localePath';
+import { languageAddresses, languageOfPath, localePath, stripLanguage } from '@/i18n/localePath';
 
 describe('languageOfPath', () => {
   it.each([
@@ -61,4 +61,14 @@ describe('localePath', () => {
       expect(localePath(href, 'ru')).toBe(href);
     }
   );
+});
+
+describe('languageAddresses', () => {
+  it('names the page in every language, with English for a reader in none of them', () => {
+    expect(languageAddresses('/games')).toEqual({ en: '/games', ru: '/ru/games', 'x-default': '/games' });
+  });
+
+  it('names the home page in every language', () => {
+    expect(languageAddresses('/')).toEqual({ en: '/', ru: '/ru', 'x-default': '/' });
+  });
 });

@@ -48,7 +48,7 @@ describe('proxy', () => {
 });
 
 describe('proxy matcher', () => {
-  it.each(['/', '/games', '/ru', '/ru/duel/7', '/opengraph-image', '/ru/opengraph-image'])('runs for %s', (url) => {
+  it.each(['/', '/games', '/ru', '/ru/duel/7', '/og/en', '/ru/og/ru'])('runs for %s', (url) => {
     expect(unstable_doesMiddlewareMatch({ config, url })).toBe(true);
   });
 

@@ -36,3 +36,12 @@ export function localePath(href: string, language: Language): string {
   const prefix = prefixOf(language);
   return `${prefix && page === '/' ? prefix : `${prefix}${page}`}${rest}`;
 }
+
+/** A page's address in every language, and under `x-default` the one for a reader in none of them. */
+export function languageAddresses(path: string): Record<Language | 'x-default', string> {
+  const addresses = { 'x-default': localePath(path, DEFAULT_LANGUAGE) } as Record<Language | 'x-default', string>;
+  for (const language of LANGUAGES) {
+    addresses[language] = localePath(path, language);
+  }
+  return addresses;
+}

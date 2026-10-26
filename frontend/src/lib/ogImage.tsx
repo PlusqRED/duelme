@@ -1,16 +1,22 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ImageResponse } from 'next/og';
+import { translator } from '@/i18n/translate';
+import type { Language } from '@/i18n/translations';
 import { brandColors } from '@/lib/brandColors';
 import { BrandMarkImage } from '@/lib/brandImage';
 import { SITE_NAME, SITE_URL } from '@/lib/constants';
 
 export const OG_IMAGE_SIZE = { width: 1200, height: 630 };
-export const OG_IMAGE_ALT = 'DuelMe — 1v1 USDT duels on Arbitrum, 0% platform fee';
 export const OG_IMAGE_CONTENT_TYPE = 'image/png';
 
-const motto = ['Skill should pay you.', 'Not the platform.'];
-const facts = ['0% platform fee', 'Stakes held by a smart contract', 'Arbitrum'];
+/** The motto's size, as large as its longest line allows on one line of the image: Russian runs longer. */
+const MOTTO_SIZE: Record<Language, number> = { en: 92, ru: 72 };
+
+/** Where a page's share image is, in the page's language: `app/og/[language]/route.tsx` draws it. */
+export function shareImagePath(language: Language): string {
+  return `/og/${language}`;
+}
 
 // `ImageResponse` reads TTF, OTF and WOFF but not the WOFF2 `next/font` serves, so the share
 // images carry their own copy of Geologica (SIL Open Font License, next to the files).
@@ -19,8 +25,12 @@ async function geologica(weight: 400 | 700 | 800) {
   return { name: 'Geologica', data, weight, style: 'normal' as const };
 }
 
-/** The image a shared link shows: the mark, the motto, what a duel is, and the site. */
-export async function renderBrandOgImage() {
+/** The image a shared link shows, in the page's language: the mark, the motto, what a duel is, and the site. */
+export async function renderBrandOgImage(language: Language) {
+  const { t } = translator(language);
+  const motto = [t('motto.1'), t('motto.2')];
+  const facts = [t('seo.image.fee'), t('seo.image.escrow'), 'Arbitrum'];
+
   return new ImageResponse(
     (
       <div
@@ -46,12 +56,12 @@ export async function renderBrandOgImage() {
 
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {motto.map((line) => (
-            <div key={line} style={{ fontSize: 92, fontWeight: 800, lineHeight: 0.98, letterSpacing: '-0.04em' }}>
+            <div key={line} style={{ fontSize: MOTTO_SIZE[language], fontWeight: 800, lineHeight: 0.98, letterSpacing: '-0.04em' }}>
               {line}
             </div>
           ))}
           <div style={{ marginTop: 32, fontSize: 36, fontWeight: 400, color: brandColors.ink2 }}>
-            Play 1v1 for USDT. The winner takes the whole pot.
+            {t('seo.image.line')}
           </div>
         </div>
 
