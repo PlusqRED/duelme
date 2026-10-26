@@ -62,6 +62,11 @@ const relayErrorCodes = [
   'RELAY_PENDING',
   'RELAYER_UNAVAILABLE',
   'EXECUTION_REVERTED',
+  // The relayed transfer's own (/api/relay/transfer): the day's transfer is already spent, the
+  // authorization signs another day's, and the wallet holds less than it sends.
+  'TRANSFER_USED',
+  'TRANSFER_WRONG_DAY',
+  'INSUFFICIENT_BALANCE',
 ] as const;
 
 export type RelayErrorCode = (typeof relayErrorCodes)[number];

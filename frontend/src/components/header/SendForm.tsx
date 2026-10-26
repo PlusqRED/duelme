@@ -11,9 +11,10 @@ import type { TranslationKey } from '@/i18n/translations';
 import { useTranslation } from '@/i18n/useTranslation';
 import { USDT_DECIMALS } from '@/lib/constants';
 import type { FaucetOffer } from '@/lib/faucetApi';
-import { checkTransfer, type SendDraft, type SendProblems, type Transfer } from '@/lib/sendUsdt';
-import { formatEth, formatUSDT } from '@/lib/utils';
+import { checkTransfer, type FreeTransferStatus, type SendDraft, type SendProblems, type Transfer } from '@/lib/sendUsdt';
+import { formatEth, formatTime, formatUSDT } from '@/lib/utils';
 import { readingFigure, readingRaw } from '@/lib/walletBalances';
+import type { WriteRoute } from '@/lib/writeRoute';
 
 const TO_PROBLEM: Record<NonNullable<SendProblems['to']>, TranslationKey> = {
   address: 'send.err.address',
@@ -29,6 +30,10 @@ interface SendFormProps {
   address: string;
   network: NetworkBalances;
   faucetOffer: FaucetOffer;
+  /** Who pays the transfer's fee now: DuelMe's relayer, once a day, or the wallet in ETH. */
+  route: WriteRoute;
+  /** Whether today's relayed transfer is still there, and when the next one opens. */
+  freeTransfer: { status: FreeTransferStatus; nextAt: number };
   draft: SendDraft;
   onDraft: (draft: SendDraft) => void;
   onSubmit: (transfer: Transfer) => void;
@@ -38,7 +43,7 @@ interface SendFormProps {
  * Where to and how much. Its checks wait for the first try to go on, then follow every keystroke;
  * nothing is sent from here, the transfer is looked over first.
  */
-export function SendForm({ address, network, faucetOffer, draft, onDraft, onSubmit }: SendFormProps) {
+export function SendForm({ address, network, faucetOffer, route, freeTransfer, draft, onDraft, onSubmit }: SendFormProps) {
   const { t, language } = useTranslation();
   const ids = useId();
   const toId = `${ids}-to`;
@@ -47,7 +52,7 @@ export function SendForm({ address, network, faucetOffer, draft, onDraft, onSubm
   const amountInput = useRef<HTMLInputElement>(null);
   const [isTried, setIsTried] = useState(false);
   const usdtRaw = readingRaw(network.usdt);
-  const check = checkTransfer(draft, { address, usdtRaw, ethWei: readingRaw(network.eth) });
+  const check = checkTransfer(draft, { address, usdtRaw, ethWei: readingRaw(network.eth), route });
   const problems = isTried ? check.problems : {};
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -77,6 +82,12 @@ export function SendForm({ address, network, faucetOffer, draft, onDraft, onSubm
         ? t('send.err.amount', { amount: formatUSDT(usdtRaw, language) })
         : undefined;
   const offersEth = faucetOffer.kind === 'ready' && faucetOffer.ethAmountWei > 0n ? ` ${t('send.err.eth.faucet', { eth: formatEth(faucetOffer.ethAmountWei, language) })}` : '';
+  const ethError =
+    freeTransfer.status === 'used'
+      ? t('send.err.eth.used', { network: network.chain.name, time: formatTime(freeTransfer.nextAt, language) })
+      : t('send.err.eth', { network: network.chain.name });
+  const feeNote =
+    route === 'relay' ? t('send.fee.relayed') : t('send.fee', { eth: readingFigure(network.eth, (wei) => formatEth(wei, language)) });
 
   return (
     <form noValidate onSubmit={submit} className="grid gap-3">
@@ -121,9 +132,7 @@ export function SendForm({ address, network, faucetOffer, draft, onDraft, onSubm
         </div>
       </Field>
       <Note icon={problems.eth ? 'alert' : 'fuel'} tone={problems.eth ? 'bad' : 'quiet'}>
-        {problems.eth
-          ? t('send.err.eth', { network: network.chain.name }) + offersEth
-          : t('send.fee', { eth: readingFigure(network.eth, (wei) => formatEth(wei, language)) })}
+        {problems.eth ? ethError + offersEth : feeNote}
       </Note>
       <Button type="submit" size="lg" className="mt-1 w-full">
         {t('send.next')}

@@ -3,30 +3,55 @@ import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SUPPORTED_CHAINS, USDT_ADDRESSES } from '@/lib/constants';
 import { transferAbi } from '@/lib/contracts';
+import { RelayAnswerLostError, RelayRequestError } from '@/lib/relayApi';
+import { relayedTransferDay, relayedTransferNonce, TRANSFER_AUTHORIZATION_TYPES } from '@/lib/relayedTransfer';
+import type { FreeTransferStatus, Transfer } from '@/lib/sendUsdt';
 
 const SEPOLIA = SUPPORTED_CHAINS.arbitrumSepolia.id;
 const ONE = SUPPORTED_CHAINS.arbitrum.id;
+const FROM = '0x4bfa000000000000000000000000000000076a5a';
 const TO = '0x1111111111111111111111111111111111111111';
+const SIGNATURE = `0x${'22'.repeat(65)}`;
+const HASH = `0x${'ab'.repeat(32)}`;
+const ETH = 10n ** 15n;
+const DOMAIN = { name: 'USD₮0', version: '1', chainId: BigInt(SEPOLIA), verifyingContract: USDT_ADDRESSES[SEPOLIA] };
 
 const wallet = vi.hoisted(() => ({
   chainId: 0,
   isSuccess: false,
+  free: 'available' as FreeTransferStatus,
   switchError: null as Error | null,
   writeError: null as Error | null,
+  relayError: null as unknown,
   switchChainAsync: vi.fn(async () => undefined),
   resetSwitch: vi.fn(),
+  signTypedDataAsync: vi.fn(async () => `0x${'22'.repeat(65)}`),
   writeWithGas: vi.fn(async () => undefined),
+  onSubmitted: vi.fn(),
   reset: vi.fn(),
+  refetchFree: vi.fn(async () => undefined),
+  submitRelayTransfer: vi.fn(async () => `0x${'ab'.repeat(32)}`),
+  readTokenDomain: vi.fn(),
 }));
 
 vi.mock('wagmi', () => ({
-  useAccount: () => ({ chainId: wallet.chainId }),
+  useAccount: () => ({ address: '0x4bfa000000000000000000000000000000076a5a', chainId: wallet.chainId }),
+  usePublicClient: () => ({}),
+  useSignTypedData: () => ({ signTypedDataAsync: wallet.signTypedDataAsync }),
   useSwitchChain: () => ({ switchChainAsync: wallet.switchChainAsync, error: wallet.switchError, reset: wallet.resetSwitch }),
 }));
 
 vi.mock('@/hooks/useWriteWithGas', () => ({
   useWriteWithGas: () => ({
     writeWithGas: wallet.writeWithGas,
+    // Like the real one: the error a send throws ends up on the hook, never thrown at the caller.
+    relaySigned: async (send: (onSubmitted: () => void) => Promise<string>) => {
+      try {
+        await send(wallet.onSubmitted);
+      } catch (error) {
+        wallet.relayError = error;
+      }
+    },
     hash: undefined,
     isConfirming: false,
     isSuccess: wallet.isSuccess,
@@ -35,16 +60,35 @@ vi.mock('@/hooks/useWriteWithGas', () => ({
   }),
 }));
 
+vi.mock('@/hooks/useRelayedTransfer', () => ({
+  useRelayedTransfer: () => ({ status: wallet.free, nextAt: 0, refetch: wallet.refetchFree }),
+}));
+
+vi.mock('@/lib/relayApi', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/relayApi')>()),
+  submitRelayTransfer: wallet.submitRelayTransfer,
+}));
+
+vi.mock('@/lib/tokenDomain', () => ({ readTokenDomain: wallet.readTokenDomain }));
+
 const emitBalanceRefreshBurst = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/balanceRefresh', () => ({ emitBalanceRefreshBurst }));
 
 const { useSendUsdt } = await import('@/hooks/useSendUsdt');
 
+function transfer(route: Transfer['route'], raw = 5_000_000n): Transfer {
+  return { to: TO, raw, route };
+}
+
 beforeEach(() => {
   wallet.chainId = SEPOLIA;
   wallet.isSuccess = false;
+  wallet.free = 'available';
   wallet.switchError = null;
   wallet.writeError = null;
+  wallet.relayError = null;
+  wallet.readTokenDomain.mockResolvedValue(DOMAIN);
+  wallet.submitRelayTransfer.mockResolvedValue(HASH);
 });
 
 afterEach(() => {
@@ -53,10 +97,10 @@ afterEach(() => {
 });
 
 describe('useSendUsdt', () => {
-  it('sends a transfer of the network\'s USDT through the write path that fills in gas and nonce', async () => {
-    const { result } = renderHook(() => useSendUsdt(SEPOLIA));
+  it('sends a transfer the wallet pays for through the write path that fills in gas and nonce', async () => {
+    const { result } = renderHook(() => useSendUsdt(SEPOLIA, ETH));
 
-    await act(() => result.current.send(TO, 5_000_000n));
+    await act(() => result.current.send(transfer('self')));
 
     expect(wallet.switchChainAsync).not.toHaveBeenCalled();
     expect(wallet.writeWithGas).toHaveBeenCalledExactlyOnceWith({
@@ -66,41 +110,97 @@ describe('useSendUsdt', () => {
       args: [TO, 5_000_000n],
       chainId: SEPOLIA,
     });
+    expect(wallet.signTypedDataAsync).not.toHaveBeenCalled();
+  });
+
+  it('signs the day\'s transfer authorization in the token\'s domain and hands it to the relayer', async () => {
+    const { result } = renderHook(() => useSendUsdt(SEPOLIA, 0n));
+    const before = Date.now();
+
+    await act(() => result.current.send(transfer('relay')));
+
+    expect(wallet.writeWithGas).not.toHaveBeenCalled();
+    const signed = wallet.signTypedDataAsync.mock.calls[0] as unknown as [Record<string, unknown>];
+    expect(signed[0]).toMatchObject({
+      account: FROM,
+      domain: DOMAIN,
+      types: TRANSFER_AUTHORIZATION_TYPES,
+      primaryType: 'TransferWithAuthorization',
+      message: { from: FROM, to: TO, value: 5_000_000n, validAfter: 0n, nonce: relayedTransferNonce(relayedTransferDay(before)) },
+    });
+    expect(wallet.onSubmitted).toHaveBeenCalledOnce();
+    expect(wallet.submitRelayTransfer).toHaveBeenCalledExactlyOnceWith(
+      SEPOLIA,
+      expect.objectContaining({ from: FROM, to: TO, value: '5000000', signature: SIGNATURE })
+    );
+    expect(wallet.relayError).toBeNull();
+  });
+
+  it('has DuelMe pay for the day\'s first transfer and the wallet for the rest', () => {
+    const { result, rerender } = renderHook(() => useSendUsdt(SEPOLIA, ETH));
+    expect(result.current.route).toBe('relay');
+
+    wallet.free = 'used';
+    rerender();
+
+    expect(result.current.route).toBe('self');
+  });
+
+  it('has a wallet with ETH pay itself once the relayer turned its transfer down', async () => {
+    wallet.submitRelayTransfer.mockRejectedValueOnce(new RelayRequestError('BUDGET_EXCEEDED', 'spent'));
+    const { result } = renderHook(() => useSendUsdt(SEPOLIA, ETH));
+
+    await act(() => result.current.send(transfer('relay')));
+
+    expect(result.current.route).toBe('self');
+    expect(wallet.refetchFree).toHaveBeenCalled();
+  });
+
+  it('keeps a transfer whose answer was lost with the relayer, which spends the day\'s nonce once', async () => {
+    wallet.submitRelayTransfer.mockRejectedValueOnce(new RelayAnswerLostError('no answer'));
+    const { result } = renderHook(() => useSendUsdt(SEPOLIA, ETH));
+
+    await act(() => result.current.send(transfer('relay')));
+
+    expect(result.current.route).toBe('relay');
   });
 
   it('moves the wallet to the network the money is on, and sends once it is there', async () => {
-    const { result } = renderHook(() => useSendUsdt(ONE));
+    const { result } = renderHook(() => useSendUsdt(ONE, ETH));
 
-    await act(() => result.current.send(TO, 1n));
+    await act(() => result.current.send(transfer('self', 1n)));
 
     expect(wallet.switchChainAsync).toHaveBeenCalledWith({ chainId: ONE });
     expect(wallet.switchChainAsync.mock.invocationCallOrder[0]).toBeLessThan(wallet.writeWithGas.mock.invocationCallOrder[0]);
     expect(wallet.writeWithGas).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ chainId: ONE, address: USDT_ADDRESSES[ONE] }));
   });
 
-  it('sends nothing when the wallet will not change networks, and says so', async () => {
+  it('signs nothing when the wallet will not change networks, and says the network is why', async () => {
     wallet.switchChainAsync.mockRejectedValueOnce(new Error('User rejected the request.'));
-    const { result, rerender } = renderHook(() => useSendUsdt(ONE));
+    const { result, rerender } = renderHook(() => useSendUsdt(ONE, 0n));
 
-    await act(() => result.current.send(TO, 1n));
+    await act(() => result.current.send(transfer('relay', 1n)));
     wallet.switchError = new Error('User rejected the request.');
     rerender();
 
+    expect(wallet.signTypedDataAsync).not.toHaveBeenCalled();
     expect(wallet.writeWithGas).not.toHaveBeenCalled();
     expect(result.current.error?.message).toBe('User rejected the request.');
+    expect(result.current.failure?.kind).toBe('network');
   });
 
-  it('reports the write\'s own error when the wallet is already on the network', () => {
-    wallet.writeError = new Error('insufficient funds for gas');
-    const { result } = renderHook(() => useSendUsdt(SEPOLIA));
+  it('words the write\'s own error when the wallet is already on the network', () => {
+    wallet.writeError = new Error('insufficient funds for gas * price + value');
+    const { result } = renderHook(() => useSendUsdt(SEPOLIA, 1n));
 
-    expect(result.current.error?.message).toBe('insufficient funds for gas');
+    expect(result.current.error?.message).toBe('insufficient funds for gas * price + value');
+    expect(result.current.failure).toMatchObject({ kind: 'eth', canRetry: true });
   });
 
   it('clears the last transfer, its network switch included, before the next one and on reset', async () => {
-    const { result } = renderHook(() => useSendUsdt(SEPOLIA));
+    const { result } = renderHook(() => useSendUsdt(SEPOLIA, ETH));
 
-    await act(() => result.current.send(TO, 1n));
+    await act(() => result.current.send(transfer('self', 1n)));
     expect(wallet.resetSwitch).toHaveBeenCalledOnce();
     expect(wallet.reset).toHaveBeenCalledOnce();
 
@@ -109,13 +209,14 @@ describe('useSendUsdt', () => {
     expect(wallet.reset).toHaveBeenCalledTimes(2);
   });
 
-  it('has every balance read again once the transfer went through', () => {
-    const { rerender } = renderHook(() => useSendUsdt(SEPOLIA));
+  it('has every balance and the day\'s transfer read again once the transfer went through', () => {
+    const { rerender } = renderHook(() => useSendUsdt(SEPOLIA, ETH));
     expect(emitBalanceRefreshBurst).not.toHaveBeenCalled();
 
     wallet.isSuccess = true;
     rerender();
 
     expect(emitBalanceRefreshBurst).toHaveBeenCalledOnce();
+    expect(wallet.refetchFree).toHaveBeenCalledOnce();
   });
 });

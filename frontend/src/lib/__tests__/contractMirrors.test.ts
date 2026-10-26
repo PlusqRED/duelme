@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { duelMeAbi, DuelState } from '@/lib/contracts';
+import { duelMeAbi, DuelState, transferWithAuthorizationAbi } from '@/lib/contracts';
 
 /**
  * `duelMeAbi` and `DuelState` are hand-made mirrors of the contract, in the same sense
@@ -18,6 +18,31 @@ import { duelMeAbi, DuelState } from '@/lib/contracts';
  * on either side fails on the other.
  */
 const ARTIFACT = join(__dirname, '../../../..', 'contracts/out/DuelMe.sol/DuelMe.json');
+const MOCK_USDT_ARTIFACT = join(__dirname, '../../../..', 'contracts/out/MockUSDT.sol/MockUSDT.json');
+
+// Compared as deeply canonicalised JSON: key order and entry order must not make a real
+// difference pass, but nothing nested may be dropped either. Passing the entry's own keys to
+// `JSON.stringify` as a replacer array looks equivalent and is not — the filter applies at
+// every level of nesting, so tuple `components`, `internalType` and an event input's
+// `indexed` flag were never compared at all. Array order is preserved on purpose: `inputs`,
+// `outputs` and `components` are positional.
+function canonical(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(canonical);
+  }
+  if (value !== null && typeof value === 'object') {
+    const entry = value as Record<string, unknown>;
+    return Object.fromEntries(Object.keys(entry).sort().map((key) => [key, canonical(entry[key])]));
+  }
+  return value;
+}
+
+const normalise = (entries: readonly unknown[]) => entries.map((entry) => JSON.stringify(canonical(entry))).sort();
+
+/** The artifact's entries without what the compiler adds and a hand-written ABI leaves out. */
+function withoutInternalTypes(entries: readonly unknown[]): unknown[] {
+  return JSON.parse(JSON.stringify(entries, (key, value: unknown) => (key === 'internalType' ? undefined : value)));
+}
 
 describe('duelMeAbi mirrors the compiled contract', () => {
   const hasArtifact = existsSync(ARTIFACT);
@@ -25,31 +50,24 @@ describe('duelMeAbi mirrors the compiled contract', () => {
   it.skipIf(!hasArtifact)('matches contracts/out/DuelMe.sol/DuelMe.json entry for entry', () => {
     const artifact = JSON.parse(readFileSync(ARTIFACT, 'utf8')) as { abi: unknown[] };
 
-    // Compared as deeply canonicalised JSON: key order and entry order must not make a real
-    // difference pass, but nothing nested may be dropped either. Passing the entry's own keys to
-    // `JSON.stringify` as a replacer array looks equivalent and is not — the filter applies at
-    // every level of nesting, so tuple `components`, `internalType` and an event input's
-    // `indexed` flag were never compared at all. Array order is preserved on purpose: `inputs`,
-    // `outputs` and `components` are positional.
-    const canonical = (value: unknown): unknown => {
-      if (Array.isArray(value)) {
-        return value.map(canonical);
-      }
-      if (value !== null && typeof value === 'object') {
-        const entry = value as Record<string, unknown>;
-        return Object.fromEntries(Object.keys(entry).sort().map((key) => [key, canonical(entry[key])]));
-      }
-      return value;
-    };
-
-    const normalise = (entries: readonly unknown[]) =>
-      entries.map((entry) => JSON.stringify(canonical(entry))).sort();
-
     expect(normalise(duelMeAbi)).toEqual(normalise(artifact.abi));
   });
 
   it.runIf(process.env.CI)('is not skipped in CI, where a green suite must mean it compared', () => {
     expect(hasArtifact, `run \`forge build\` in contracts/ — ${ARTIFACT} is missing`).toBe(true);
+  });
+});
+
+describe('transferWithAuthorizationAbi mirrors MockUSDT', () => {
+  // The mainnet token's half is pinned by UsdtPermitFork.t.sol, which calls these same signatures
+  // on USD₮0; this half keeps the hand-written entries equal to the mock's compiled ones.
+  it.skipIf(!existsSync(MOCK_USDT_ARTIFACT))('finds every entry in contracts/out/MockUSDT.sol/MockUSDT.json', () => {
+    const artifact = JSON.parse(readFileSync(MOCK_USDT_ARTIFACT, 'utf8')) as { abi: unknown[] };
+    const compiled = new Set(normalise(withoutInternalTypes(artifact.abi)));
+
+    for (const entry of normalise(transferWithAuthorizationAbi)) {
+      expect(compiled.has(entry), entry).toBe(true);
+    }
   });
 });
 

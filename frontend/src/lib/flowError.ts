@@ -59,6 +59,10 @@ const RELAY_KINDS: Record<Exclude<RelayErrorCode, 'EXECUTION_REVERTED'>, FlowErr
   INVALID_SIGNATURE: 'unavailable',
   NOT_RELAYABLE: 'unavailable',
   INVALID_REQUEST: 'error',
+  // The relayed transfer's own, which the wallet menu words (`sendError.ts`); no duel write gets them.
+  TRANSFER_USED: 'error',
+  TRANSFER_WRONG_DAY: 'error',
+  INSUFFICIENT_BALANCE: 'error',
 };
 
 /** How a node words a fee or a gas limit it would not take. */

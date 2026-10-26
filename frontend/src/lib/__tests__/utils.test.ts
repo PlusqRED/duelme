@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addressGroups, cn, formatCount, formatDate, formatEth, formatPercent, formatUSDT, formatVolume } from '@/lib/utils';
+import { addressGroups, cn, formatCount, formatDate, formatEth, formatPercent, formatTime, formatUSDT, formatVolume } from '@/lib/utils';
 import { themeTokens } from '@/lib/__tests__/helpers/sourceFiles';
 
 describe('cn', () => {
@@ -151,5 +151,16 @@ describe('formatDate', () => {
 
   it('shows a dash rather than failing on a date that is none', () => {
     expect(formatDate('not a date', 'en')).toBe('—');
+  });
+});
+
+describe('formatTime', () => {
+  // Local time, so the clock reads the same in every time zone the tests run in.
+  const threeAm = new Date(2026, 9, 27, 3, 0).getTime();
+
+  it('writes a time as the language’s clock shows it', () => {
+    // ICU puts a narrow no-break space before AM in some releases and a plain one in others.
+    expect(formatTime(threeAm, 'en')).toMatch(/^3:00\sAM$/);
+    expect(formatTime(threeAm, 'ru')).toBe('03:00');
   });
 });

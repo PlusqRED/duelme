@@ -2,7 +2,7 @@ import { vi } from 'vitest';
 import { encodeFunctionData, type Hex } from 'viem';
 import { POST } from '@/app/api/relay/route';
 import { duelMeAbi } from '@/lib/contracts';
-import { DEFAULT_CHAIN_ID, DUELME_ADDRESSES } from '@/lib/constants';
+import { DEFAULT_CHAIN_ID, DUELME_ADDRESSES, USDT_ADDRESSES } from '@/lib/constants';
 import { getRelayerConfig, type RelayerConfig } from '@/lib/relayerConfig';
 import { resetDailyBudgets } from '@/lib/relayerBudget';
 import { resetRelayDedup } from '@/lib/relayerDedup';
@@ -12,7 +12,7 @@ import { resetSignerHolds } from '@/lib/relayerSignerHold';
 import type { RelayForwardRequest } from '@/lib/relayRequest';
 
 /**
- * Shared scaffolding for the POST /api/relay suites. Each suite must call
+ * Shared scaffolding for the POST /api/relay and /api/relay/transfer suites. Each suite must call
  * `vi.mock('@/lib/relayerConfig', () => ({ getRelayerConfig: vi.fn() }))` itself — the mock
  * is hoisted per file — and `resetRelayRoute()` from its `beforeEach`.
  */
@@ -73,6 +73,7 @@ const configFields = {
   chainId: DEFAULT_CHAIN_ID,
   duelMeAddress: DUELME_ADDRESSES[DEFAULT_CHAIN_ID],
   forwarderAddress: FORWARDER,
+  usdtAddress: USDT_ADDRESSES[DEFAULT_CHAIN_ID],
   dailyBudgetWei: BUDGET_WEI,
   globalDailyBudgetWei: BUDGET_WEI,
   publicClient,

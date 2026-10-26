@@ -166,6 +166,16 @@ export function useWriteWithGas(chainId: number) {
     [relayContext, runManagedSend, chainId]
   );
 
+  /**
+   * Follows a write the relayer sends outside the forwarder — the wallet menu's USDT transfer,
+   * which the token takes on the player's own signature — like any relayed write, receipt
+   * included. `send` signs, calls `onSubmitted` once signing is done, and returns the relayer's hash.
+   */
+  const relaySigned = useCallback(
+    (send: (onSubmitted: () => void) => Promise<Hex>) => runManagedSend(send),
+    [runManagedSend]
+  );
+
   // Writes pre-fill gas / fees / nonce so the wallet never auto-populates:
   //   - Privy embedded: auto-populate signs all-zero gas params (see
   //     https://docs.privy.io/basics/react/advanced/configuring-evm-networks),
@@ -259,6 +269,7 @@ export function useWriteWithGas(chainId: number) {
     () => ({
       writeWithGas,
       relayWrite,
+      relaySigned,
       isRelayEnabled,
       hash,
       isPending,
@@ -271,6 +282,7 @@ export function useWriteWithGas(chainId: number) {
     [
       writeWithGas,
       relayWrite,
+      relaySigned,
       isRelayEnabled,
       hash,
       isPending,

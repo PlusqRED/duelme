@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { hashDomain, parseSignature } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { resetVerifiedPermitDomains, signErc2612Permit } from '@/lib/permitSignature';
+import { signErc2612Permit } from '@/lib/permitSignature';
+import { resetVerifiedTokenDomains } from '@/lib/tokenDomain';
 import { DUELME_ADDRESSES, SUPPORTED_CHAINS } from '@/lib/constants';
 import { PermitDomainMismatchError } from '@/lib/writeErrors';
 
@@ -54,7 +55,7 @@ function args(publicClient: unknown, walletClient: unknown) {
 beforeEach(() => {
   // The verified-domain cache is per-token and lives for the session, so each case has to
   // start from a cold read — otherwise a good domain cached by one test hides a bad one.
-  resetVerifiedPermitDomains();
+  resetVerifiedTokenDomains();
 });
 
 describe('signErc2612Permit', () => {

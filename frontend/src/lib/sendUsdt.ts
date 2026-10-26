@@ -1,6 +1,7 @@
 import { isAddress, parseUnits } from 'viem';
 import { USDT_DECIMALS } from '@/lib/constants';
 import { isWalletRefusal } from '@/lib/errorDetails';
+import type { WriteRoute } from '@/lib/writeRoute';
 
 /** A positive or zero decimal as a person types it: a comma or a point, at most USDT's six decimals. */
 const TYPED_AMOUNT = /^(?:\d+(?:[.,]\d{1,6})?|[.,]\d{1,6})$/;
@@ -24,12 +25,36 @@ export interface SendWallet {
   /** The balances on the network the transfer goes out on; null while they are not known. */
   usdtRaw: bigint | null;
   ethWei: bigint | null;
+  /** Who would pay the transfer's fee now: DuelMe's relayer, or the wallet in ETH. */
+  route: WriteRoute;
 }
 
 export interface Transfer {
   to: `0x${string}`;
   /** In USDT's smallest unit. */
   raw: bigint;
+  /** Who pays its fee, fixed when the form was sent, so the transfer goes the way the form said. */
+  route: WriteRoute;
+}
+
+/**
+ * Whether the wallet's relayed transfer for today is still there: `off` on a network DuelMe does
+ * not relay on, `unknown` while it is being read.
+ */
+export type FreeTransferStatus = 'off' | 'unknown' | 'available' | 'used';
+
+/**
+ * Who sends a transfer. DuelMe's relayer pays the fee of one a day per wallet, the first of the
+ * day, and the wallet pays every other in ETH, as before. The wallet also takes over once the
+ * relayer has said no to it (its daily gas budget, the relayer down, a signature USDT will not
+ * take) and it has ETH to pay with: Send works whenever the wallet can pay. A status still being
+ * read goes to the relayer, which answers for itself.
+ */
+export function resolveSendRoute(free: FreeTransferStatus, isRelayDeclined: boolean, ethWei: bigint | null): WriteRoute {
+  if (free === 'off' || free === 'used') {
+    return 'self';
+  }
+  return isRelayDeclined && ethWei !== null && ethWei > 0n ? 'self' : 'relay';
 }
 
 /** What stops a transfer, by field. Nothing in it means it may go to the wallet. */
@@ -66,11 +91,11 @@ export function checkTransfer(draft: SendDraft, wallet: SendWallet): TransferChe
     problems.amount = 'tooMuch';
   }
 
-  if (wallet.ethWei === 0n) {
+  if (wallet.route === 'self' && wallet.ethWei === 0n) {
     problems.eth = 'none';
   }
   const isClear = Object.keys(problems).length === 0;
-  return { problems, transfer: isClear && to !== null && raw !== null ? { to, raw } : null };
+  return { problems, transfer: isClear && to !== null && raw !== null ? { to, raw, route: wallet.route } : null };
 }
 
 /**

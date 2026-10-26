@@ -74,6 +74,16 @@ false, so a refusal (spent daily budget, `"Permit failed"` on a delegated EOA) s
 error rather than reverting to the self-paid approve path. Relaying being *off* — no forwarder
 address, no relayer key — is the case the self-paid path still covers.
 
+The wallet menu's Send gets one relayed transfer a wallet per UTC day, unadvertised: the form's fee
+line only says this one's fee is covered. The token does not trust our forwarder, so the wallet
+signs an EIP-3009 `transferWithAuthorization` naming the recipient and the amount, and
+`/api/relay/transfer` sends it to the token itself. Its nonce is the day's
+(`lib/relayedTransfer.ts`), so the token refuses a second one that day, on-chain, across restarts
+and replicas; the server only refuses a nonce that is not today's. Its admission, lock, signer
+holds and budgets are `/api/relay`'s (`lib/relayerSend.ts`). Send goes relayed while the token
+reports the day's nonce unused (`useRelayedTransfer`) and self-paid otherwise; a wallet the relayer
+turned down pays itself when it holds ETH (`resolveSendRoute`).
+
 ### Analytics
 DuelMe's own Rybbit ("Analytics" in `ops/CLAUDE.md`), loaded from the site itself: `/t/script.js`,
 which Caddy routes to it, so the CSP stays `'self'`. `components/analytics/Analytics.tsx`, in
@@ -220,8 +230,11 @@ test can check.
 | `frontend/src/components/header/Header.tsx` | The top bar on every page: the brand, the sections (`lib/navigation.ts`; on the landing its own, the one being read marked through `useSectionInView`, and a followed link's section held by `useHeadedSection` while the page glides there, one hold for the bar and the phone menu through `HeadedSectionProvider`) from 980px while their row fits (`useNavFit`), the language, the wallet menu or Sign in, and the navigation menu below 980px or when the row does not fit |
 | `frontend/src/components/header/WalletMenu.tsx` | The wallet button (the duel network's USDT, never a sum across networks, and a pip while money waits in the contract) and its menu: player card, the small safe (`SafeMini`), a balance tile per network, Top up, Send (the form, a last look in `SendReview`, then the transfer, its route drawn by `SendRoute`), the faucet flask, key export and sign out |
 | `frontend/src/hooks/useWalletBalances.ts` | The wallet's USDT and ETH on each network the build lists, read apart (USDT on `useUsdtBalance`'s query): the button's balance polled always, the rest while the menu is open, all again on the balance bus |
-| `frontend/src/hooks/useSendUsdt.ts` | Sends USDT on the network picked: moves the wallet there, then `writeWithGas` |
-| `frontend/src/lib/sendUsdt.ts` | The send form's rules: the typed amount, the transfer it asks for, what stops it, and where a sent one is |
+| `frontend/src/hooks/useSendUsdt.ts` | Sends USDT on the network picked: moves the wallet there, then the day's relayed transfer (a signed authorization to `/api/relay/transfer`) or `writeWithGas`; its failure as a `SendFailure` |
+| `frontend/src/hooks/useRelayedTransfer.ts` | Whether the wallet's relayed transfer of the day is unspent, read off the token (`authorizationState`), and when the next UTC day opens |
+| `frontend/src/lib/relayedTransfer.ts` | The relayed transfer: the day's nonce, the EIP-3009 authorization to sign, its wire shape and the server's check of it |
+| `frontend/src/lib/sendError.ts` | A failed Send as a kind `SendProgress` words with what to do next: whether another go can help, whether ETH would |
+| `frontend/src/lib/sendUsdt.ts` | The send form's rules: the typed amount, the transfer it asks for and its route (`resolveSendRoute`), what stops it, and where a sent one is |
 | `frontend/src/lib/faucetApi.ts` | Faucet claim and status (`/faucet/status`), what it offers on a network, and what one claim gives, in the copy's words (`faucetGift`) |
 | `frontend/src/lib/faucetFlask.ts` | The wallet menu's faucet flask: its phase from the offer, the claim, and the balance a sent claim waits to land in |
 | `frontend/src/lib/parsing.ts` | `isRecord`, `parseUintString`: the checks a value read from outside (a response, storage, a request) passes before it is trusted |
@@ -320,8 +333,11 @@ test can check.
 | `frontend/src/lib/resilientBroadcast.ts` | Splits writes into sign + broadcast so wagmi fallback transport handles RPC retries; signs through Privy in Privy's own transaction shape (see Common Pitfalls); asks the network for a transaction whose broadcast failed |
 | `frontend/src/lib/errorDetails.ts` | Flattens an error graph into lowercase detail strings for failure classification; `bestErrorDetail` picks the one worth showing, `isWalletRefusal` tells a request turned down in the wallet |
 | `frontend/src/app/api/relay/route.ts` | Gas relayer: admits a signed ERC-2771 request, then signs and sends `ERC2771Forwarder.execute` under the lock (order: "Gasless Duel Actions") |
+| `frontend/src/app/api/relay/transfer/route.ts` | Relays the day's signed USDT transfer authorization to the token, admitted in `/api/relay`'s order (its comment) |
+| `frontend/src/lib/relayerSend.ts` | What both relay routes share: reading the POST, the send under the lock against the budgets, the relayer's fees, the answer |
+| `frontend/src/lib/transferSimulation.ts` | The relayed transfer's checks: the day's nonce unused, the balance, the token's own simulation, and its revert in the relay's codes |
 | `frontend/src/lib/relayRequest.ts` | Relay wire types and error codes, relayable-function allowlist, payload validation, outer gas-limit rule |
-| `frontend/src/lib/relayerConfig.ts` | Server-only relayer wiring (key, RPC, budget, viem clients) |
+| `frontend/src/lib/relayerConfig.ts` | Server-only relayer wiring (key, RPC, budget, the chain's USDT, viem clients) |
 | `frontend/src/lib/relayerBudget.ts` | In-memory per-address daily gas budget (reserve / settle / release) |
 | `frontend/src/lib/relayerQueue.ts` | Serializes relayed sends: one transaction is signed and sent at a time; receipts are awaited after the lock |
 | `frontend/src/lib/relaySimulation.ts` | `forwarder.verify` and the `execute` simulation, run before the lock and again under it; recovers the inner revert reason |
@@ -329,8 +345,9 @@ test can check.
 | `frontend/src/lib/relayerDedup.ts` | Collapses repeats of one signed request into a single relay |
 | `frontend/src/lib/relayerSignerHold.ts` | Holds a signer back until their last relayed transaction has a receipt |
 | `frontend/src/lib/forwardRequest.ts` | Signs the EIP-712 ForwardRequest (domain name, gas padding) |
-| `frontend/src/lib/permitSignature.ts` | Signs an EIP-2612 permit, rebuilding and verifying the token's EIP-712 domain |
-| `frontend/src/lib/relayApi.ts` | `/api/relay` client: posts the same signed request again when an answer is lost; `RelayRequestError` carries the server's code |
+| `frontend/src/lib/permitSignature.ts` | Signs an EIP-2612 permit in the token's verified domain |
+| `frontend/src/lib/tokenDomain.ts` | USDT's EIP-712 domain, rebuilt from `name()` and checked against `DOMAIN_SEPARATOR()`, once a session; permits and transfer authorizations share it |
+| `frontend/src/lib/relayApi.ts` | `/api/relay` and `/api/relay/transfer` client: posts the same signed request again when an answer is lost; `RelayRequestError` carries the server's code |
 | `frontend/src/hooks/useRelayerStatus.ts` | Whether duel writes on a chain can be relayed: the forwarder address and the server's relayer status, handed down with the page by the root layout |
 | `frontend/src/lib/testnetGas.ts` | Testnet vs mainnet gas/fee buffers; min-gas constants per duel action |
 | `frontend/src/i18n/translations.ts` | Merges the per-area section files into one EN/RU key map — **add keys in `frontend/src/i18n/translations/<section>.ts`**, not here |
@@ -391,7 +408,7 @@ test can check.
 - `NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL` — same for Arbitrum Sepolia. Optional; Tenderly public works for dev.
 - `RELAYER_PRIVATE_KEY` — hot wallet that pays gas for relayed duel actions (frontend container, **runtime** not build-time). Unset, or not a valid private key ⇒ `/api/relay` returns 503 and duel writes stay self-paid. Dedicated key; fund it with only what the daily budgets can spend.
 - `RELAYER_RPC_URL` — server-side RPC for the relayer. Optional; defaults to the default chain's public RPC. A browser-origin-locked `NEXT_PUBLIC_*` key will NOT work here — server requests send no `Origin`.
-- `RELAYER_DAILY_BUDGET_WEI` — per-address daily gas allowance in wei. Optional; defaults to 0.0005 ETH.
+- `RELAYER_DAILY_BUDGET_WEI` — per-address daily gas allowance in wei, the duel actions and the relayed Send together. Optional; defaults to 0.0005 ETH.
 - `RELAYER_GLOBAL_DAILY_BUDGET_WEI` — relayer-wide daily ceiling in wei. Optional; defaults to 0.01 ETH. Addresses are free to create, so this — not the per-address budget — is what bounds a sybil drain.
 - `NEXT_PUBLIC_RYBBIT_SITE_ID` — the Rybbit site this build reports to, **build-time**, from each environment's `RYBBIT_SITE_ID` variable. Unset or malformed ⇒ no tracker, no banner, and the privacy page says the copy runs without analytics.
 
@@ -477,7 +494,8 @@ test can check.
   does not change when the wallet moves, so the failure outlasts the switch; and a write called in
   the same callback as `switchChainAsync` holds the client of the render before it. So
   `writeWithGas` takes no client for the embedded wallet: Privy's `signTransaction` signs for the
-  transaction's own chain id. `useSendUsdt` switches and writes in one go. The relayer's signature
+  transaction's own chain id. `useSendUsdt` switches and writes in one go, and signs the relayed
+  transfer through `useSignTypedData`'s mutation, which finds the wallet's client when it is called. The relayer's signature
   (`relayWrite`) and the permit (`useDuelPermit`) still take the hook's client: the signing flows
   make the switch a step of its own for them.
 - **A link cannot sit inside a button or another link, so a row that presses as one is not one.**
@@ -496,9 +514,14 @@ test can check.
 - **`fundsViaPermit` has to gate every allowance check, not just the last one.** `handleContinueFlow`, `handleSwitchNetwork` and `handleCreateTransaction` / `handleJoinTransaction` all decide the approve step; a relayed flow that reads the allowance in any of them routes a zero-ETH player into a self-paid `approve`. They share `resolveNeedsApproval` from `lib/writeRoute.ts`.
 - **`FORWARDER_NAME` must match on both sides.** `frontend/src/lib/forwardRequest.ts` and `contracts/script/ForwarderConfig.sol` (which both deploy scripts read) both spell `"DuelMe Forwarder"`; it is the EIP-712 domain name, so a mismatch makes every signature fail `verify` with no other symptom.
 - **`ForwardRequestData` has no `nonce` field in OpenZeppelin 5.x** — the forwarder reads it from `Nonces` at execution time and folds it into the signed struct hash via the typehash. It must be signed but never sent. `deadline` is a `uint48`, not `uint256` (the EIP-2612 permit deadline is `uint256` — do not mix them up).
-- **Mainnet USDT (USD₮0, Arbitrum One) has no ERC-5267 `eip712Domain()`** and its `name()` is `USD₮0` with U+20AE, not an ASCII "T". Build the permit domain from `name()` + version `"1"` and verify it against the token's own `DOMAIN_SEPARATOR()`. `MockUSDT` deliberately mirrors both traits so a mistake fails on dev. Covered by `contracts/test/UsdtPermitFork.t.sol` (skipped without `ARBITRUM_RPC_URL`).
-- **USD₮0 validates permit through ERC-1271 whenever the owner address has code**, which an EIP-7702 delegation gives a plain EOA. Such a player's permit can fail (`"Permit failed"`). The contract still accepts the plain `createDuel` / `joinDuel` once an allowance exists, but the UI does not currently offer that route while relaying is on — the approve step is pinned off — and `approve` cannot be relayed anyway, since the token does not trust our forwarder. So this player is blocked in the signing window, which says so (`sign.err.permit`); reaching them needs a product decision, not just ETH.
+- **Mainnet USDT (USD₮0, Arbitrum One) has no ERC-5267 `eip712Domain()`** and its `name()` is `USD₮0` with U+20AE, not an ASCII "T". Build the permit domain from `name()` + version `"1"` and verify it against the token's own `DOMAIN_SEPARATOR()` (`lib/tokenDomain.ts`; the transfer authorization uses the same domain). `MockUSDT` deliberately mirrors both traits so a mistake fails on dev. Covered by `contracts/test/UsdtPermitFork.t.sol` (skipped without `ARBITRUM_RPC_URL`).
+- **USD₮0 validates permit through ERC-1271 whenever the owner address has code**, which an EIP-7702 delegation gives a plain EOA. Such a player's permit can fail (`"Permit failed"`). The contract still accepts the plain `createDuel` / `joinDuel` once an allowance exists, but the UI does not currently offer that route while relaying is on — the approve step is pinned off — and `approve` cannot be relayed anyway, since the token does not trust our forwarder. So this player is blocked in the signing window, which says so (`sign.err.permit`); reaching them needs a product decision, not just ETH. Their transfer authorization fails the same way (`TetherToken: invalid signature`), so their Send is self-paid: with ETH it falls back by itself, without it `send.err.signature` asks for some.
 - **The relayer's budget ledger, per-IP rate limit, repeat memory and signer holds are in-memory**, so they reset on redeploy and are not shared across replicas. Accurate for the current single-container-per-env deployment; more than one replica needs a shared store.
+- **The relayed Send's day is the UTC day, and its nonce names it.** The browser builds the nonce
+  from its own clock (`keccak256("duelme:relayed-transfer:<day>")`, day = ms / 86 400 000) and the
+  server takes only today's by its clock, so a browser clock wrong across midnight gets
+  `TRANSFER_WRONG_DAY`. The string is pinned by a golden vector in `relayedTransfer.test.ts`:
+  changing it, or the day's length, gives every wallet a second relayed transfer that day.
 - **The per-IP rate limit trusts the right-most `X-Forwarded-For` entry** because Caddy, with no `trusted_proxies`, overwrites the header with the address it saw, nothing sits in front of Caddy, and the container listens on `127.0.0.1` only. A CDN or another proxy in front of Caddy makes that entry the proxy's, and every player then shares one bucket: change the rule with it.
 - Use shared constants from `constants.ts` (`ZERO_ADDRESS`) and `contracts.ts` (`ACTIVE_STATES`, `balanceOfAbi`, `transferAbi`, `getUsdtAddress`) — never redefine locally.
 - **Next may send a rewrite through the proxy a second time.** When the rewrite's origin differs
