@@ -29,7 +29,6 @@ afterEach(() => {
 
 describe('NavLinks', () => {
   it('lists the sections as links', () => {
-    layOut(702, 681);
     render(<NavLinks />);
 
     expect(screen.getAllByRole('link').map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
@@ -39,7 +38,6 @@ describe('NavLinks', () => {
   });
 
   it('marks the page you are on', () => {
-    layOut(702, 681);
     render(<NavLinks />);
 
     expect(screen.getByRole('link', { name: 'Games' }).getAttribute('aria-current')).toBe('page');
@@ -49,25 +47,24 @@ describe('NavLinks', () => {
     layOut(702, 681);
     render(<NavLinks />);
 
-    expect(marks()).toEqual({ crowded: false, fits: true });
+    expect(fitMark()).toBe('fits');
   });
 
   it('marks the bar crowded for the menu when the row does not fit', () => {
     layOut(680, 681);
     render(<NavLinks />);
 
-    expect(marks()).toEqual({ crowded: true, fits: false });
+    expect(fitMark()).toBe('crowded');
   });
 
-  it('marks the bar neither way until it is laid out', () => {
+  it('leaves the bar unmarked until it is laid out', () => {
     layOut(0, 0);
     render(<NavLinks />);
 
-    expect(marks()).toEqual({ crowded: false, fits: false });
+    expect(fitMark()).toBeNull();
   });
 });
 
-function marks() {
-  const bar = screen.getByRole('navigation', { name: 'Main' });
-  return { crowded: bar.hasAttribute('data-crowded'), fits: bar.hasAttribute('data-fits') };
+function fitMark() {
+  return screen.getByRole('navigation', { name: 'Main' }).getAttribute('data-nav-fit');
 }

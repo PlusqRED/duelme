@@ -10,7 +10,8 @@ import { useTranslation } from '@/i18n/useTranslation';
 
 /**
  * The sections when the bar has no room to list them — a narrow screen, or a wide one whose row
- * of names does not fit (`NavLinks` marks its bar `data-crowded`) — and on a phone the language too.
+ * of names does not fit (`NavLinks` marks its bar `data-nav-fit="crowded"`) — and on a phone the
+ * language too.
  * Following a link closes it.
  */
 export function NavMenu() {
@@ -21,7 +22,7 @@ export function NavMenu() {
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger
         aria-label={t('nav.menu')}
-        className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full border border-line bg-paper text-ink transition-colors hover:border-line-strong data-popup-open:border-line-strong nav:hidden nav:group-has-[[data-crowded]]/topbar:grid"
+        className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full border border-line bg-paper text-ink transition-colors hover:border-line-strong data-popup-open:border-line-strong nav:hidden nav:group-has-[[data-nav-fit=crowded]]/topbar:grid"
       >
         <Icon name="menu" />
       </PopoverTrigger>

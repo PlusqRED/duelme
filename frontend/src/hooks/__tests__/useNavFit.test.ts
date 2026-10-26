@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useCrowdedNav } from '@/hooks/useCrowdedNav';
+import { useNavFit } from '@/hooks/useNavFit';
 
 /** What the menu's button takes from the room while it shows: its 44px and the gap before it. */
 const MENU_BUTTON_PX = 54;
@@ -37,7 +37,7 @@ class FakeResizeObserver {
 function bar(width: { px: number }) {
   const node = document.createElement('nav');
   node.getBoundingClientRect = () => {
-    const px = width.px === 0 || !node.hasAttribute('data-crowded') ? width.px : width.px - MENU_BUTTON_PX;
+    const px = node.getAttribute('data-nav-fit') === 'crowded' ? width.px - MENU_BUTTON_PX : width.px;
     return { width: px } as DOMRect;
   };
   return node;
@@ -49,10 +49,12 @@ function row(width: { px: number }) {
   return node;
 }
 
-function renderCrowded(room: HTMLElement, list: HTMLElement) {
+/** The hook over a bar and its row; `fit()` reads the mark it gives the bar now. */
+function renderFit(room: HTMLElement, list: HTMLElement) {
   const roomRef = { current: room };
   const rowRef = { current: list };
-  return renderHook(() => useCrowdedNav(roomRef, rowRef));
+  const { result, unmount } = renderHook(() => useNavFit(roomRef, rowRef));
+  return { fit: () => result.current['data-nav-fit'], unmount };
 }
 
 function resize() {
@@ -69,105 +71,105 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('useCrowdedNav', () => {
+describe('useNavFit', () => {
   it('leaves the row in the bar while it fits', () => {
-    const { result } = renderCrowded(bar({ px: 702 }), row({ px: 681 }));
+    const { fit } = renderFit(bar({ px: 702 }), row({ px: 681 }));
 
-    expect(result.current).toBe(false);
+    expect(fit()).toBe('fits');
   });
 
   it('crowds the bar when the row is wider than its room', () => {
-    const { result } = renderCrowded(bar({ px: 680 }), row({ px: 681 }));
+    const { fit } = renderFit(bar({ px: 680 }), row({ px: 681 }));
 
-    expect(result.current).toBe(true);
+    expect(fit()).toBe('crowded');
   });
 
   it('leaves a row exactly as wide as its room in the bar', () => {
-    const { result } = renderCrowded(bar({ px: 681 }), row({ px: 681 }));
+    const { fit } = renderFit(bar({ px: 681 }), row({ px: 681 }));
 
-    expect(result.current).toBe(false);
+    expect(fit()).toBe('fits');
   });
 
   it('watches both the room and the row', () => {
     const room = bar({ px: 702 });
     const list = row({ px: 681 });
-    renderCrowded(room, list);
+    renderFit(room, list);
 
     expect(watches.at(-1)?.targets).toEqual([room, list]);
   });
 
   it('measures again when the room narrows', () => {
     const roomWidth = { px: 702 };
-    const { result } = renderCrowded(bar(roomWidth), row({ px: 681 }));
+    const { fit } = renderFit(bar(roomWidth), row({ px: 681 }));
 
     roomWidth.px = 600;
     resize();
 
-    expect(result.current).toBe(true);
+    expect(fit()).toBe('crowded');
   });
 
   it('measures again when the room widens', () => {
     const roomWidth = { px: 600 };
-    const { result } = renderCrowded(bar(roomWidth), row({ px: 681 }));
+    const { fit } = renderFit(bar(roomWidth), row({ px: 681 }));
 
     roomWidth.px = 702;
     resize();
 
-    expect(result.current).toBe(false);
+    expect(fit()).toBe('fits');
   });
 
   it('measures again when the row grows', () => {
     const rowWidth = { px: 577 };
-    const { result } = renderCrowded(bar({ px: 600 }), row(rowWidth));
+    const { fit } = renderFit(bar({ px: 600 }), row(rowWidth));
 
     rowWidth.px = 681;
     resize();
 
-    expect(result.current).toBe(true);
+    expect(fit()).toBe('crowded');
   });
 
   it('brings the row back once it fits without the menu’s button', () => {
     const room = bar({ px: 702 });
-    room.setAttribute('data-crowded', 'true');
-    const { result } = renderCrowded(room, row({ px: 681 }));
+    room.setAttribute('data-nav-fit', 'crowded');
+    const { fit } = renderFit(room, row({ px: 681 }));
 
-    expect(result.current).toBe(false);
+    expect(fit()).toBe('fits');
   });
 
-  it('puts the crowded mark back after measuring', () => {
+  it('puts the bar’s mark back after measuring', () => {
     const room = bar({ px: 702 });
-    room.setAttribute('data-crowded', 'true');
-    const { result } = renderCrowded(room, row({ px: 720 }));
+    room.setAttribute('data-nav-fit', 'crowded');
+    renderFit(room, row({ px: 720 }));
 
-    expect([result.current, room.getAttribute('data-crowded')]).toEqual([true, 'true']);
+    expect(room.getAttribute('data-nav-fit')).toBe('crowded');
   });
 
-  it('keeps the last answer while the bar is not displayed', () => {
+  it('keeps the last mark while the bar is not displayed', () => {
     const roomWidth = { px: 600 };
     const rowWidth = { px: 681 };
-    const { result } = renderCrowded(bar(roomWidth), row(rowWidth));
+    const { fit } = renderFit(bar(roomWidth), row(rowWidth));
 
     roomWidth.px = 0;
     rowWidth.px = 0;
     resize();
 
-    expect(result.current).toBe(true);
+    expect(fit()).toBe('crowded');
   });
 
   it('crowds a displayed bar squeezed to no room at all', () => {
-    const { result } = renderCrowded(bar({ px: 0 }), row({ px: 681 }));
+    const { fit } = renderFit(bar({ px: 0 }), row({ px: 681 }));
 
-    expect(result.current).toBe(true);
+    expect(fit()).toBe('crowded');
   });
 
-  it('gives no answer until a displayed bar is measured', () => {
-    const { result } = renderCrowded(bar({ px: 0 }), row({ px: 0 }));
+  it('gives no mark until a displayed bar is measured', () => {
+    const { fit } = renderFit(bar({ px: 0 }), row({ px: 0 }));
 
-    expect(result.current).toBeNull();
+    expect(fit()).toBeUndefined();
   });
 
   it('stops watching once the bar is gone', () => {
-    const { unmount } = renderCrowded(bar({ px: 702 }), row({ px: 681 }));
+    const { unmount } = renderFit(bar({ px: 702 }), row({ px: 681 }));
 
     unmount();
 
@@ -176,8 +178,8 @@ describe('useCrowdedNav', () => {
 
   it('measures once where the browser cannot watch sizes', () => {
     vi.stubGlobal('ResizeObserver', undefined);
-    const { result } = renderCrowded(bar({ px: 600 }), row({ px: 681 }));
+    const { fit } = renderFit(bar({ px: 600 }), row({ px: 681 }));
 
-    expect(result.current).toBe(true);
+    expect(fit()).toBe('crowded');
   });
 });
