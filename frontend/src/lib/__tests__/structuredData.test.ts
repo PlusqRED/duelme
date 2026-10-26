@@ -37,11 +37,7 @@ describe('webApplicationSchema', () => {
 
 describe('websiteSchema', () => {
   it('names the site by the brand, not the domain, at the home page’s address', () => {
-    expect(websiteSchema()).toMatchObject({ '@type': 'WebSite', name: SITE_NAME, url: SITE_URL });
-  });
-
-  it('gives the same other names as the web app', () => {
-    expect(websiteSchema().alternateName).toEqual(webApplicationSchema('About').alternateName);
+    expect(websiteSchema()).toMatchObject({ '@type': 'WebSite', name: SITE_NAME, alternateName: ['Duel Me'], url: SITE_URL });
   });
 
   it('is published by the organization', () => {

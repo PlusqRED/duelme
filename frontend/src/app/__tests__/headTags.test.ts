@@ -23,8 +23,8 @@ describe('head tags', () => {
 
   it('gives the home page the site’s name, which Google reads there only', () => {
     // A second WebSite block on the home page, from a layout or a part, leaves Google two to choose from.
-    const naming = tsxFiles.filter((file) => file.text.includes('websiteSchema(')).map((file) => file.path);
+    const callers = tsxFiles.filter((file) => file.text.includes('websiteSchema(')).map((file) => file.path);
 
-    expect(naming).toEqual(['app/page.tsx']);
+    expect(callers).toEqual(['app/page.tsx']);
   });
 });
