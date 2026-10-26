@@ -54,6 +54,10 @@ describe('mostPlayed', () => {
     expect(mostPlayed([game('chess', 'Chess', 1, 'BOARD'), game('cs2', 'CS2', 3, 'FPS')])?.slug).toBe('cs2');
   });
 
+  it('picks, of games played as often, the one its shelf puts first', () => {
+    expect(mostPlayed([game('valorant', 'Valorant', 3, 'FPS'), game('cs2', 'CS2', 3, 'FPS')])?.slug).toBe('cs2');
+  });
+
   it('finds none before anyone has played', () => {
     expect(mostPlayed([game('chess', 'Chess', 0, 'BOARD')])).toBeNull();
   });

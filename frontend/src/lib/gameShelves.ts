@@ -27,7 +27,11 @@ export function shelvesOf(games: readonly Game[]): Shelf[] {
   })).filter((shelf) => shelf.games.length > 0);
 }
 
-/** The game played most of all, which wears the trophy; none before anyone has played. */
+/**
+ * The game played most of all, which wears the trophy; of games played as often, the one its shelf
+ * puts first. None before anyone has played.
+ */
 export function mostPlayed(games: readonly Game[]): Game | null {
-  return games.reduce<Game | null>((top, game) => (game.duelCount > (top?.duelCount ?? 0) ? game : top), null);
+  const top = games.reduce<Game | null>((best, game) => (best === null || byPopularity(game, best) < 0 ? game : best), null);
+  return top !== null && top.duelCount > 0 ? top : null;
 }

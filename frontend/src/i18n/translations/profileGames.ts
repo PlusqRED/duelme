@@ -43,7 +43,6 @@ export const profileGamesTranslations = defineSection({
     'games.title': 'Games to play 1v1 for money',
     'games.subtitle': 'Games by category, the most played first in each. Pick one to see its open duels and how the played ones ended.',
     'games.searchPlaceholder': 'Find a game',
-    'games.noGames': 'No games yet',
     'games.noMatches': 'No game by that name',
     'games.allCategories': 'All',
     // Keyed by Intl.PluralRules category, not hand-rolled: English selects between two
@@ -134,7 +133,6 @@ export const profileGamesTranslations = defineSection({
     'games.title': 'Игры 1 на 1 на деньги',
     'games.subtitle': 'Игры по категориям, в каждой сначала самые популярные. Выбери игру — увидишь её открытые дуэли и чем закончились сыгранные.',
     'games.searchPlaceholder': 'Найти игру',
-    'games.noGames': 'Игр пока нет',
     'games.noMatches': 'Такой игры нет',
     'games.allCategories': 'Все',
     'games.duelsCount.one': 'дуэль',

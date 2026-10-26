@@ -85,6 +85,16 @@ describe('GameCatalog', () => {
     expect(shelfTitles()).toEqual([en['category.shelf.BOARD']]);
   });
 
+  it('keeps the picked category’s pill, pressed and empty, when the search leaves it nothing', () => {
+    render(<GameCatalog guides={guides} />);
+
+    fireEvent.click(screen.getByRole('button', { name: `${en['category.BOARD']} 1` }));
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'cs' } });
+
+    expect(screen.getByRole('button', { name: `${en['category.BOARD']} 0` }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByText(en['games.noMatches'])).toBeTruthy();
+  });
+
   it('finds a game by the name typed, however it is spelled', () => {
     render(<GameCatalog guides={guides} />);
 

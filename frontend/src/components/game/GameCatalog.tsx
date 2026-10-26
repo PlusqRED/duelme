@@ -9,7 +9,7 @@ import { FilterPill } from '@/components/lists/FilterPill';
 import { SearchField } from '@/components/lists/SearchField';
 import { useGameCatalog } from '@/hooks/useGameCatalog';
 import { useTranslation } from '@/i18n/useTranslation';
-import { getCategoryLabelKey, type Game, type GameCategory } from '@/lib/game';
+import { GAME_CATEGORIES, getCategoryLabelKey, type Game, type GameCategory } from '@/lib/game';
 import { catalogGames, mostPlayed, shelvesOf } from '@/lib/gameShelves';
 import { gameInk } from '@/lib/gameTile';
 
@@ -37,6 +37,8 @@ export function GameCatalog({ guides }: GameCatalogProps) {
   const games = useMemo(() => catalogGames(catalog, guides, search), [catalog, guides, search]);
   const shelves = useMemo(() => shelvesOf(games), [games]);
   const shown = category ? shelves.filter((shelf) => shelf.category === category) : shelves;
+  // The picked category keeps its pill when the search empties it, so the page shows why nothing is left.
+  const pills = GAME_CATEGORIES.filter((each) => each === category || shelves.some((shelf) => shelf.category === each));
   const isNarrowed = category !== null || search !== '';
   const leader = mostPlayed(games);
   const most = leader?.duelCount || 1;
@@ -50,15 +52,15 @@ export function GameCatalog({ guides }: GameCatalogProps) {
           <FilterPill isPressed={category === null} onClick={() => setCategory(null)} count={games.length}>
             {t('games.allCategories')}
           </FilterPill>
-          {shelves.map((shelf) => (
+          {pills.map((each) => (
             <FilterPill
-              key={shelf.category}
-              isPressed={category === shelf.category}
-              onClick={() => setCategory(category === shelf.category ? null : shelf.category)}
-              count={shelf.games.length}
+              key={each}
+              isPressed={category === each}
+              onClick={() => setCategory(category === each ? null : each)}
+              count={shelves.find((shelf) => shelf.category === each)?.games.length ?? 0}
             >
-              <i aria-hidden="true" style={{ '--tone': gameInk(shelf.category) }} className="size-2.5 rounded-full bg-(--tone)" />
-              {t(getCategoryLabelKey(shelf.category))}
+              <i aria-hidden="true" style={{ '--tone': gameInk(each) }} className="size-2.5 rounded-full bg-(--tone)" />
+              {t(getCategoryLabelKey(each))}
             </FilterPill>
           ))}
         </div>
@@ -71,9 +73,10 @@ export function GameCatalog({ guides }: GameCatalogProps) {
       </div>
 
       {shown.length === 0 ? (
+        // The guides' games are always there, so only a search or a pick can leave the page empty.
         <CreateDuelInvite
           variant="card"
-          title={t(isNarrowed ? 'games.noMatches' : 'games.noGames')}
+          title={t('games.noMatches')}
           description={t('games.addByDuel')}
         />
       ) : (

@@ -18,6 +18,7 @@ import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -130,7 +131,8 @@ public class GameService {
     }
 
     static String toSlug(String name) {
-        String slug = name.toLowerCase()
+        // Locale.ROOT: a Turkish default would lower "III" to "ııı", which the rule below then drops.
+        String slug = name.toLowerCase(Locale.ROOT)
             .replaceAll("[^a-z0-9\\s-]", "")
             .replaceAll("\\s+", "-")
             .replaceAll("-+", "-")
@@ -140,8 +142,14 @@ public class GameService {
             // normalized name. SHA-256 is collision-resistant where String.hashCode
             // is not, so distinct Cyrillic / CJK names produce distinct slugs. A name
             // that mixes scripts takes it too: the Latin rule keeps only what is left
-            // of it, and «Дота 2» and «КС 2» were both "2", one game.
-            slug = "g-" + sha256Prefix(name.trim().toLowerCase(), 12);
+            // of it, and «Дота 2» and «КС 2» were both "2", one game. Spaces and
+            // punctuation count as little as in the Latin rule: «Дота-2» is «Дота 2».
+            String words = name.toLowerCase(Locale.ROOT)
+                .replaceAll("[^\\p{L}\\p{N}\\s-]", "")
+                .replaceAll("[\\s-]+", " ")
+                .trim();
+            // A name of symbols alone keeps them, or every such name would be one game.
+            slug = "g-" + sha256Prefix(words.isEmpty() ? name.trim().toLowerCase(Locale.ROOT) : words, 12);
         }
         return slug;
     }

@@ -1,5 +1,6 @@
 package pro.duelme.backend.config;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -34,11 +35,14 @@ class GameCatalogConfigTest {
     @Autowired
     private DuelMetaRepository duelMetaRepository;
 
-    @Test
-    void bootPutsTheShippedCatalogInPlace() throws Exception {
+    @BeforeEach
+    void setUp() {
         duelMetaRepository.deleteAll();
         gameRepository.deleteAll();
+    }
 
+    @Test
+    void bootPutsTheShippedCatalogInPlace() throws Exception {
         seedGameCatalog.run(new DefaultApplicationArguments());
 
         long named = catalog.games().values().stream().mapToLong(List::size).sum();

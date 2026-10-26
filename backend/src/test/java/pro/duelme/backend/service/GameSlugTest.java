@@ -3,6 +3,7 @@ package pro.duelme.backend.service;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -46,6 +47,32 @@ class GameSlugTest {
 
         assertThat(List.of(dota, cs, heroes)).allMatch(slug -> slug.startsWith("g-"));
         assertThat(dota).isNotEqualTo(cs);
+    }
+
+    @Test
+    void slugOfANonLatinNameIgnoresSpacingAndPunctuationAsTheLatinRuleDoes() {
+        String dota = GameService.toSlug("\u0414\u043e\u0442\u0430 2");                     // Дота 2
+
+        assertThat(GameService.toSlug("\u0414\u043e\u0442\u0430  2!")).isEqualTo(dota);    // Дота  2!
+        assertThat(GameService.toSlug("\u0414\u043e\u0442\u0430-2")).isEqualTo(dota);      // Дота-2
+        assertThat(GameService.toSlug("\u0414\u043e\u0442\u04302")).isNotEqualTo(dota);    // Дота2
+    }
+
+    @Test
+    void slugOfANameOfSymbolsAloneKeepsThem() {
+        assertThat(GameService.toSlug("\u2659")).isNotEqualTo(GameService.toSlug("\u2654")); // ♙, ♔
+    }
+
+    @Test
+    void slugIgnoresTheDefaultLocale() {
+        Locale before = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr"));
+
+            assertThat(GameService.toSlug("Warcraft III")).isEqualTo("warcraft-iii");
+        } finally {
+            Locale.setDefault(before);
+        }
     }
 
     @Test

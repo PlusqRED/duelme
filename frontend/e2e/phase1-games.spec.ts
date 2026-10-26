@@ -12,9 +12,8 @@ async function serveGames(page: Page) {
     createdAt: null,
     updatedAt: null,
   });
-  await page.route('**/api/v1/games?**', (route) => route.fulfill({ json: [game('chess', 'Chess', 'STRATEGY', 1)] }));
-  await page.route('**/api/v1/games', (route) =>
-    route.fulfill({ json: [game('dota-2', 'Dota 2', 'MOBA', 2), game('chess', 'Chess', 'STRATEGY', 1)] })
+  await page.route(/\/api\/v1\/games(\?.*)?$/, (route) =>
+    route.fulfill({ json: [game('cs2', 'CS2', 'FPS', 1), game('valorant', 'Valorant', 'FPS', 5)] })
   );
 }
 
@@ -38,12 +37,12 @@ test.describe('Game catalog', () => {
     await expect(search).toHaveValue('test');
   });
 
-  test('/games lists the games played most first, each opening its own page', async ({ page }) => {
+  test('/games lists a category’s games played most first, each opening its own page', async ({ page }) => {
     await serveGames(page);
     await page.goto('/games');
-    const games = page.getByRole('link', { name: /Dota 2|Chess/ });
-    await expect(games.first()).toHaveAttribute('href', '/games/dota-2');
-    await expect(games).toHaveCount(2);
+    // Valorant comes after CS2 among the guides and by name: only its duels can put it first.
+    const shooters = page.getByRole('list', { name: /^(Shooters|Шутеры)$/ });
+    await expect(shooters.getByRole('link').first()).toHaveAttribute('href', '/games/valorant');
   });
 
   // With no backend for the page server, the page reads the game in the browser; the server's own
