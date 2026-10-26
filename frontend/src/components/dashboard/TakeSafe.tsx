@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 import { CountedUsdt } from '@/components/arena/CountedUsdt';
 import { SafeLock } from '@/components/arena/SafeLock';
 import { Stake } from '@/components/arena/Stake';
 import { GainRing } from '@/components/header/GainRing';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import type { DuelGame } from '@/hooks/useDashboard';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useRelayerStatus } from '@/hooks/useRelayerStatus';
@@ -131,12 +131,12 @@ function OwedRow({ item, entry, game, nameOf, index, isDropping, isWaiting }: Ow
       <div className="grid min-w-0 gap-0.5">
         <p className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
           <b className="font-strong">{t(item.kind === 'win' ? 'dash.tray.win' : 'dash.tray.back')}</b>
-          <Link
+          <LocaleLink
             href={`/duel/${id}`}
             className="text-body-sm text-paper/86 underline decoration-paper/35 underline-offset-4 hover:text-paper hover:decoration-current"
           >
             {game ? t('dash.tray.duel', { game: game.name, id }) : t('duel.title', { id })}
-          </Link>
+          </LocaleLink>
         </p>
         {item.kind !== 'win' && reason && <p className="text-sm text-paper/66">{t(reason, { other: other ? nameOf(other) : '' })}</p>}
         {item.kind === 'late' && (

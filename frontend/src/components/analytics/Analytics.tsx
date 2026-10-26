@@ -5,11 +5,13 @@ import Script from 'next/script';
 import { ConsentBanner } from '@/components/analytics/ConsentBanner';
 import { useAnalyticsConsent } from '@/hooks/useAnalyticsConsent';
 import { useAnalyticsIdentity } from '@/hooks/useAnalyticsIdentity';
+import { LANGUAGES } from '@/i18n/language';
+import { localePath } from '@/i18n/localePath';
 import { ANALYTICS_SITE_ID, TRACKER_PATH, flushAnalytics, startReplay, stopReplay } from '@/lib/analytics';
 import type { ConsentState } from '@/lib/analyticsConsent';
 
-// A profile's address is its path: counted as one page, a profile names no wallet.
-const PROFILE_PATHS = JSON.stringify(['/profile/*']);
+// A profile's address is its path: counted as one page in each language, a profile names no wallet.
+const PROFILE_PATHS = JSON.stringify(LANGUAGES.map((language) => `${localePath('/profile', language)}/*`));
 
 /** Records while the answer is a yes: from the page's load, from a yes given later, in any tab. */
 function useReplayFollowsConsent(consent: ConsentState) {

@@ -1,13 +1,12 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { LANGUAGE_COOKIE } from '@/i18n/language';
+import { LanguageProvider } from '@/i18n/LanguageContext';
+import { LANGUAGE_HEADER } from '@/i18n/language';
 import { translations } from '@/i18n/translations';
 
 vi.mock('next/headers', () => ({
-  cookies: async () => ({
-    get: (name: string) => (name === LANGUAGE_COOKIE ? { name, value: 'ru' } : undefined),
-  }),
+  headers: async () => new Headers({ [LANGUAGE_HEADER]: 'ru' }),
 }));
 
 const { default: NotFound } = await import('@/app/not-found');
@@ -22,10 +21,10 @@ describe('NotFound', () => {
     expect(screen.getByRole('heading', { level: 1, name: translations.ru['notFound.title'] })).toBeTruthy();
   });
 
-  it('leads home and to the open duels', async () => {
-    render(await NotFound());
+  it('leads home and to the open duels, at the language’s addresses', async () => {
+    render(<LanguageProvider language="ru">{await NotFound()}</LanguageProvider>);
 
-    expect(screen.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual(['/', '/duels/public']);
+    expect(screen.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual(['/ru', '/ru/duels/public']);
   });
 });
 

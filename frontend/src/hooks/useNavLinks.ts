@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
 import { useHeadedSectionContext } from '@/hooks/useHeadedSection';
 import { useSectionInView } from '@/hooks/useSectionInView';
+import { stripLanguage } from '@/i18n/localePath';
 import { useTranslation } from '@/i18n/useTranslation';
 import { LANDING_SECTIONS, NAV_LINKS, isInSection, isPlainClick, type NavLink } from '@/lib/navigation';
 
@@ -26,7 +27,8 @@ export interface NavItem {
  * for a signed-in player either way.
  */
 export function useNavLinks(): NavItem[] {
-  const pathname = usePathname();
+  // The page as the routes name it, whichever language's address it was reached by.
+  const pathname = stripLanguage(usePathname());
   const { authenticated } = usePrivy();
   const { t } = useTranslation();
   const isLanding = pathname === '/';

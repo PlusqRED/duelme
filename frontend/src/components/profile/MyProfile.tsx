@@ -1,7 +1,6 @@
 'use client';
 
 import { usePrivy } from '@privy-io/react-auth';
-import Link from 'next/link';
 import { Suspense } from 'react';
 import { BackLink } from '@/components/duel/room/BackLink';
 import { PageColumn } from '@/components/layout/PageColumn';
@@ -15,6 +14,7 @@ import { ReputationCard } from '@/components/profile/ReputationCard';
 import { SignedOutProfile } from '@/components/profile/SignedOutProfile';
 import { SocialLinksSection } from '@/components/profile/SocialLinksSection';
 import { buttonVariants } from '@/components/ui/button';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useMyProfile } from '@/hooks/useMyProfile';
 import { useReputation } from '@/hooks/useReputation';
@@ -51,9 +51,9 @@ export function MyProfile() {
       </Suspense>
       <BackLink href="/dashboard">{t('room.back.mine')}</BackLink>
       <ProfileHead address={shown} profile={profile} level={reputation.isLoading || reputation.isError ? null : reputation.level}>
-        <Link href={profilePath(walletAddress)} className={buttonVariants({ variant: 'paper', size: 'sm' })}>
+        <LocaleLink href={profilePath(walletAddress)} className={buttonVariants({ variant: 'paper', size: 'sm' })}>
           {t('profile.publicLink')}
-        </Link>
+        </LocaleLink>
       </ProfileHead>
       <div className="grid items-start gap-5 split:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="grid gap-5">

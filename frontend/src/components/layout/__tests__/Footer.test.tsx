@@ -1,13 +1,12 @@
 // @vitest-environment happy-dom
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { LANGUAGE_COOKIE } from '@/i18n/language';
+import { LanguageProvider } from '@/i18n/LanguageContext';
+import { LANGUAGE_HEADER } from '@/i18n/language';
 import { translations } from '@/i18n/translations';
 
 vi.mock('next/headers', () => ({
-  cookies: async () => ({
-    get: (name: string) => (name === LANGUAGE_COOKIE ? { name, value: 'ru' } : undefined),
-  }),
+  headers: async () => new Headers({ [LANGUAGE_HEADER]: 'ru' }),
 }));
 
 const { Footer } = await import('@/components/layout/Footer');
@@ -21,10 +20,10 @@ describe('Footer', () => {
     expect(screen.getByText(translations.ru['footer.tagline'])).toBeTruthy();
   });
 
-  it('links the privacy page', async () => {
-    render(await Footer());
+  it('links the privacy page in the reader’s language', async () => {
+    render(<LanguageProvider language="ru">{await Footer()}</LanguageProvider>);
 
-    expect(screen.getByRole('link', { name: translations.ru['footer.privacy'] }).getAttribute('href')).toBe('/privacy');
+    expect(screen.getByRole('link', { name: translations.ru['footer.privacy'] }).getAttribute('href')).toBe('/ru/privacy');
   });
 
   it('links both channels by name, opening them in a new tab', async () => {

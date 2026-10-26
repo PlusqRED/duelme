@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useId, useState } from 'react';
-import Link from 'next/link';
 import { SafeLock } from '@/components/arena/SafeLock';
 import { GainRing } from '@/components/header/GainRing';
 import { buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useCountUp } from '@/hooks/useCountUp';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -60,7 +60,7 @@ export function SafeMini({ owed, isEntering, onLeave }: SafeMiniProps) {
           <SafeBar key={bar.kind === 'duel' ? bar.item.duelId : 'more'} bar={bar} totalRaw={owed.totalRaw} index={index} isDropping={isEntering} />
         ))}
       </span>
-      <Link
+      <LocaleLink
         href="/dashboard#collect"
         onClick={onLeave}
         className={cn(
@@ -71,7 +71,7 @@ export function SafeMini({ owed, isEntering, onLeave }: SafeMiniProps) {
         <Icon name={owed.hasWin ? 'trophy' : 'wallet'} className="size-[18px]" />
         {t('wallet.waiting.take')}
         {isEntering && owed.hasWin && <GainRing className="-inset-1 rounded-full ring-sun/50 [animation-delay:850ms]" />}
-      </Link>
+      </LocaleLink>
     </div>
   );
 }

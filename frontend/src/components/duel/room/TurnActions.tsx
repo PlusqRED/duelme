@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import Link from 'next/link';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import type { IconName } from '@/components/ui/iconPaths';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import type { TurnMove } from '@/hooks/useDuelTurnActions';
 import type { TranslationKey, TranslationParams } from '@/i18n/translations';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -79,10 +79,10 @@ export function TurnActionButton({ action, vars, onMove, isBusy, isJoinArriving,
 
   if (action.id === 'browse' || action.id === 'newDuel') {
     return (
-      <Link href={links[action.id]} className={cn(buttonVariants({ variant: look.variant, size: 'lg' }), className)}>
+      <LocaleLink href={links[action.id]} className={cn(buttonVariants({ variant: look.variant, size: 'lg' }), className)}>
         {look.icon && <Icon name={look.icon} />}
         {label}
-      </Link>
+      </LocaleLink>
     );
   }
   const move = action.id;

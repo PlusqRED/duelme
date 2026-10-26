@@ -1,12 +1,12 @@
 'use client';
 
-import Link from 'next/link';
 import { useId, useMemo, useRef, useState } from 'react';
 import { PartialDataNotice } from '@/components/duel/PartialDataNotice';
 import { DuelRow } from '@/components/feed/DuelRow';
 import { PickedGameChip } from '@/components/feed/PickedGameChip';
 import { PopularGames } from '@/components/landing/PopularGames';
 import { SectionHead } from '@/components/landing/SectionHead';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { LEAVE_MS, useGameFilter } from '@/hooks/useGameFilter';
 import { useGames } from '@/hooks/useGames';
 import { useListReflow } from '@/hooks/useListReflow';
@@ -102,9 +102,9 @@ export function RecentDuels() {
               </li>
             )}
           </ol>
-          <Link href="/duels/recent" className="link mt-2 inline-flex min-h-11 items-center justify-self-start">
+          <LocaleLink href="/duels/recent" className="link mt-2 inline-flex min-h-11 items-center justify-self-start">
             {t('recent.viewAll')}
-          </Link>
+          </LocaleLink>
         </div>
       </div>
     </section>

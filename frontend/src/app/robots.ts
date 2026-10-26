@@ -1,5 +1,10 @@
 import type { MetadataRoute } from 'next';
+import { LANGUAGES } from '@/i18n/language';
+import { localePath } from '@/i18n/localePath';
 import { SITE_URL } from '@/lib/constants';
+
+/** A player's own pages: nothing in them is for a search engine. */
+const PRIVATE_PAGES = ['/dashboard'];
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -7,10 +12,9 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/', '/dashboard'],
+        disallow: ['/api/', ...LANGUAGES.flatMap((language) => PRIVATE_PAGES.map((page) => localePath(page, language)))],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
-    host: SITE_URL,
   };
 }

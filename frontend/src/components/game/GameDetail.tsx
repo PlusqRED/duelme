@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useId, useMemo, useState } from 'react';
 import { BackLink } from '@/components/duel/room/BackLink';
 import { PartialDataNotice } from '@/components/duel/PartialDataNotice';
@@ -11,6 +10,7 @@ import { SectionHead } from '@/components/landing/SectionHead';
 import { LostPage } from '@/components/layout/LostPage';
 import { PageColumn } from '@/components/layout/PageColumn';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useFeedDuels } from '@/hooks/useFeedDuels';
 import { useGame } from '@/hooks/useGame';
 import { useGameDuels } from '@/hooks/useGameDuels';
@@ -55,9 +55,9 @@ export function GameDetail({ slug }: { slug: string }) {
       </LostPage>
     ) : (
       <LostPage glyphs={['4', '0', '4']} title={t('game.notFound')} text={t('game.notFoundText')}>
-        <Link href="/games" className={buttonVariants({ variant: 'navy' })}>
+        <LocaleLink href="/games" className={buttonVariants({ variant: 'navy' })}>
           {t('popularGames.viewAll')}
-        </Link>
+        </LocaleLink>
       </LostPage>
     );
   }

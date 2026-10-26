@@ -1,6 +1,6 @@
-import Link from 'next/link';
 import { BrandLink } from '@/components/identity/BrandLink';
 import { PlatformIcon } from '@/components/profile/PlatformIcon';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { getTranslation } from '@/i18n/serverTranslation';
 import { DEVELOPER_EMAIL, INSTAGRAM_URL, SITE_NAME, TELEGRAM_URL } from '@/lib/constants';
 
@@ -47,9 +47,9 @@ export async function Footer() {
         </p>
         <p>
           © {new Date().getFullYear()} {SITE_NAME}. {t('footer.rights')}{' '}
-          <Link href="/privacy" className={FOOTER_LINK}>
+          <LocaleLink href="/privacy" className={FOOTER_LINK}>
             {t('footer.privacy')}
-          </Link>
+          </LocaleLink>
         </p>
       </div>
     </footer>

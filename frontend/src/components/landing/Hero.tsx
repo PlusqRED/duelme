@@ -1,8 +1,8 @@
-import Link from 'next/link';
 import { DemoDuel } from '@/components/landing/DemoDuel';
 import { DevNote } from '@/components/landing/DevNote';
 import { HeroFacts } from '@/components/landing/HeroFacts';
 import { buttonVariants } from '@/components/ui/button';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { getTranslation } from '@/i18n/serverTranslation';
 import { LANDING_SECTION_IDS } from '@/lib/navigation';
 
@@ -25,9 +25,9 @@ export async function Hero() {
           <b className="font-strong text-ink">{t('hero.lede1')}</b> {t('hero.lede2')}
         </p>
         <div className="mt-7 flex flex-wrap gap-3 max-xs:mt-6">
-          <Link href="/duel/create" className={buttonVariants({ size: 'lg', className: 'max-xs:basis-full' })}>
+          <LocaleLink href="/duel/create" className={buttonVariants({ size: 'lg', className: 'max-xs:basis-full' })}>
             {t('hero.cta')}
-          </Link>
+          </LocaleLink>
           <a href={`#${LANDING_SECTION_IDS.publicDuels}`} className={buttonVariants({ variant: 'paper', size: 'lg', className: 'max-xs:basis-full' })}>
             {t('hero.browse')}
           </a>

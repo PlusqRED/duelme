@@ -3,7 +3,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { translations } from '@/i18n/translations';
 
-vi.mock('next/headers', () => ({ cookies: async () => ({ get: () => undefined }) }));
+vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
 // The parts with a test of their own: the demo reads the contract, the note the build's time.
 vi.mock('@/components/landing/DemoDuel', () => ({ DemoDuel: () => <section id="demo" /> }));
 vi.mock('@/components/landing/DevNote', () => ({ DevNote: () => <aside /> }));

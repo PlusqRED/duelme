@@ -1,9 +1,9 @@
 'use client';
 
-import Link from 'next/link';
 import { GameTile } from '@/components/identity/GameTile';
 import { Chip } from '@/components/ui/chip';
 import { Icon } from '@/components/ui/icon';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useTranslation } from '@/i18n/useTranslation';
 import { getCategoryLabelKey, type Game } from '@/lib/game';
 import { gameInk } from '@/lib/gameTile';
@@ -28,7 +28,7 @@ export function CatalogGame({ game, share, index, isTop }: CatalogGameProps) {
   const { t, plural, language } = useTranslation();
 
   return (
-    <Link
+    <LocaleLink
       href={`/games/${game.slug}`}
       style={{ '--tone': gameInk(game.category), '--share': share, '--i': index }}
       className="group/game relative grid h-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3.5 gap-y-3.5 rounded-tile border-[1.5px] border-line bg-paper p-4 transition-[border-color,box-shadow,translate] duration-200 ease-press hover:-translate-y-0.5 hover:border-(--tone) hover:shadow-[0_3px_0_var(--tone)] active:translate-y-0.5 active:shadow-none"
@@ -56,6 +56,6 @@ export function CatalogGame({ game, share, index, isTop }: CatalogGameProps) {
       <span aria-hidden="true" className="col-span-full h-1.5 overflow-hidden rounded-md bg-canvas">
         <i className="block h-full w-[calc(var(--share)*100%)] origin-left rounded-[inherit] bg-(--tone) transition-[scale] delay-[calc(min(var(--i),8)*90ms)] duration-900 ease-sheet group-data-pending/catalog:scale-x-0" />
       </span>
-    </Link>
+    </LocaleLink>
   );
 }

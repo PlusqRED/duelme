@@ -5,23 +5,21 @@ const GAMES_HEADING = { en: 'Game catalog', ru: 'Каталог игр' };
 
 /**
  * A press does nothing until the page's script has loaded, so the press is repeated until the page
- * is Russian; pressing RU on a Russian page changes nothing. The wait allows for a dev server
- * compiling the route on its first post.
+ * is in the language; the wait allows for a dev server compiling the route on its first visit.
  */
-async function switchToRussian(page: Page) {
-  const button = page.getByRole('button', { name: 'RU', exact: true }).first();
+async function switchTo(page: Page, name: 'EN' | 'RU', lang: 'en' | 'ru') {
+  const button = page.getByRole('button', { name, exact: true }).first();
   await expect(async () => {
     await button.click();
-    await expect(page.locator('html')).toHaveAttribute('lang', 'ru', { timeout: 3_000 });
+    await expect(page.locator('html')).toHaveAttribute('lang', lang, { timeout: 3_000 });
   }).toPass({ timeout: 20_000 });
 }
 
 test.describe('Language', () => {
-  test('a page arrives from the server in the language its cookie names', async ({ page, context, baseURL }) => {
-    await context.addCookies([{ name: 'duelme-lang', value: 'ru', url: baseURL ?? '' }]);
+  test('a Russian address arrives from the server in Russian', async ({ page }) => {
     const pageErrors = collectPageErrors(page);
 
-    await page.goto('/games');
+    await page.goto('/ru/games');
 
     await expect(page.locator('html')).toHaveAttribute('lang', 'ru');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(GAMES_HEADING.ru);
@@ -29,31 +27,44 @@ test.describe('Language', () => {
     expect(pageErrors).toEqual([]);
   });
 
-  test('the switch reloads the same page in the language and keeps the choice', async ({ page }) => {
+  test('an address without a prefix is English, whatever the browser prefers', async ({ browser }) => {
+    const context = await browser.newContext({ locale: 'ru-RU' });
+    const page = await context.newPage();
+
+    await page.goto('/games');
+
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(GAMES_HEADING.en);
+    await context.close();
+  });
+
+  test('links on a Russian page stay on Russian addresses', async ({ page }) => {
+    const pageErrors = collectPageErrors(page);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('/ru/duels/public');
+
+    await page.getByRole('navigation', { name: 'Основное' }).getByRole('link', { name: 'Игры' }).click();
+
+    await expect(page).toHaveURL(/\/ru\/games$/);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(GAMES_HEADING.ru);
+    expect(pageErrors).toEqual([]);
+  });
+
+  test('the switch loads the same page at the other language’s address, keeping the query and the hash', async ({ page }) => {
     // The hash stands in for a private duel's invite secret, which has to survive the switch.
     await page.goto('/games?q=chess#0xabc');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(GAMES_HEADING.en);
     const entries = await page.evaluate(() => history.length);
 
-    await switchToRussian(page);
+    await switchTo(page, 'RU', 'ru');
 
-    await expect(page).toHaveURL(/\/games\?q=chess#0xabc$/);
+    await expect(page).toHaveURL(/\/ru\/games\?q=chess#0xabc$/);
     expect(await page.evaluate(() => history.length)).toBe(entries);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(GAMES_HEADING.ru);
-    await page.reload();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText(GAMES_HEADING.ru);
-  });
 
-  test('another open tab catches up when the reader comes back to it', async ({ page, context }) => {
-    const other = await context.newPage();
-    await other.goto('/games');
-    await page.goto('/games');
+    await switchTo(page, 'EN', 'en');
 
-    await switchToRussian(page);
-    // Headless Chromium shows every tab at once, so the return to this one is played as the event it fires.
-    await other.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
-
-    await expect(other.locator('html')).toHaveAttribute('lang', 'ru');
-    await expect(other.getByRole('heading', { level: 1 })).toHaveText(GAMES_HEADING.ru);
+    await expect(page).toHaveURL(/\/games\?q=chess#0xabc$/);
+    await expect(page).not.toHaveURL(/\/ru\//);
   });
 });
