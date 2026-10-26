@@ -1,4 +1,4 @@
-/** The name of the search in a list page's address, which the site's search action fills in too. */
+/** The name of the search in a list page's address, where it stays for the page to be shared searched. */
 export const SEARCH_PARAM = 'q';
 
 /** A search as the address gives it: the first `q`, or empty without one. */

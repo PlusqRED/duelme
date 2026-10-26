@@ -1,7 +1,6 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import Link from 'next/link';
 import { usePrivy } from '@privy-io/react-auth';
 import { DashboardInvite } from '@/components/dashboard/DashboardInvite';
 import { DashboardSkeleton, StandingSkeleton } from '@/components/dashboard/DashboardSkeleton';
@@ -14,6 +13,7 @@ import { TakeSafe } from '@/components/dashboard/TakeSafe';
 import { PartialDataNotice } from '@/components/duel/PartialDataNotice';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useDashboardTake } from '@/hooks/useDashboardTake';
@@ -81,10 +81,10 @@ function PlayerDesk({ address, walletAddress }: { address: string; walletAddress
                 title={t('dash.empty.title')}
                 text={t('dash.empty.text')}
                 action={
-                  <Link href="/duel/create" className={buttonVariants({ size: 'lg' })}>
+                  <LocaleLink href="/duel/create" className={buttonVariants({ size: 'lg' })}>
                     <Icon name="plus" />
                     {t('hero.cta')}
-                  </Link>
+                  </LocaleLink>
                 }
               />
             </>

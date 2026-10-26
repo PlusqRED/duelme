@@ -7,8 +7,8 @@ import {
   type TranslationParams,
 } from './translations';
 
-export interface Translator {
-  t: (key: TranslationKey, params?: TranslationParams) => string;
+export interface Translator<Key extends string = TranslationKey> {
+  t: (key: Key, params?: TranslationParams) => string;
   /**
    * The word that agrees with `count`, alone: the caller places the number, because where it goes
    * differs by language. Intl.PluralRules rather than `count === 1`, since Russian picks among three
@@ -18,9 +18,13 @@ export interface Translator {
   plural: (key: PluralKey, count: number) => string;
 }
 
-function createTranslator(language: Language): Translator {
-  const dictionary: Record<string, string> = translations[language];
-  const fallback: Record<string, string> = translations.en;
+/** A translator over a dictionary in every language: a word missing from one is the English one. */
+export function createTranslator<Key extends string>(
+  dictionaries: Record<Language, Record<Key, string>>,
+  language: Language
+): Translator<Key> {
+  const dictionary: Record<string, string> = dictionaries[language];
+  const fallback: Record<string, string> = dictionaries.en;
   const pluralRules = new Intl.PluralRules(intlLocales[language]);
 
   return {
@@ -39,8 +43,8 @@ function createTranslator(language: Language): Translator {
 }
 
 const translators: Record<Language, Translator> = {
-  en: createTranslator('en'),
-  ru: createTranslator('ru'),
+  en: createTranslator(translations, 'en'),
+  ru: createTranslator(translations, 'ru'),
 };
 
 /**

@@ -4,8 +4,8 @@ import { OG_IMAGE_CONTENT_TYPE, renderBrandOgImage } from '@/lib/ogImage';
 
 // Drawn for real, fonts included: a font path that broke would fail here rather than in a share.
 describe('brand images', () => {
-  it('draws the share image as a PNG, with the bundled fonts', async () => {
-    const image = await renderBrandOgImage();
+  it.each(['en', 'ru'] as const)('draws the share image in %s as a PNG, with the bundled fonts', async (language) => {
+    const image = await renderBrandOgImage(language);
     const png = new Uint8Array(await image.arrayBuffer());
 
     expect(image.headers.get('content-type')).toBe(OG_IMAGE_CONTENT_TYPE);

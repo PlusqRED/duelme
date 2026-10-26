@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { speechClassName } from '@/components/arena/Bubble';
 import { OpenSeat } from '@/components/arena/OpenSeat';
 import { Avatar } from '@/components/identity/Avatar';
@@ -9,6 +8,7 @@ import { PlayerLink } from '@/components/identity/PlayerLink';
 import { ReputationPill } from '@/components/identity/ReputationPill';
 import { buttonVariants } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useTimeAgo } from '@/hooks/useTimeAgo';
 import { useTranslation } from '@/i18n/useTranslation';
 import { truncateUnicode } from '@/lib/duel';
@@ -122,9 +122,9 @@ export function OpenDuelCard({ duel, isCompact, isOwn, className }: OpenDuelCard
         <Amount label={t('publicDuels.potentialPot')} amount={formatUSDT(duel.wagerAmount * 2n, language)} />
       </dl>
 
-      <Link href={`/duel/${duel.id}`} data-take-seat className={buttonVariants({ size: 'lg', className: 'w-full' })}>
+      <LocaleLink href={`/duel/${duel.id}`} data-take-seat className={buttonVariants({ size: 'lg', className: 'w-full' })}>
         {isOwn ? t('action.viewDuel') : t('publicDuels.joinFor', { amount: stake })}
-      </Link>
+      </LocaleLink>
     </article>
   );
 }

@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useId } from 'react';
 import { PartialDataNotice } from '@/components/duel/PartialDataNotice';
 import { OpenNowChip } from '@/components/duels/OpenNowChip';
@@ -8,6 +7,7 @@ import { CreateDuelInvite } from '@/components/landing/CreateDuelInvite';
 import { OpenDuelCard } from '@/components/landing/OpenDuelCard';
 import { OpenDuelsLobby } from '@/components/landing/OpenDuelsLobby';
 import { SectionHead } from '@/components/landing/SectionHead';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useIsOwnDuel } from '@/hooks/useIsOwnDuel';
 import { useOpenDuels } from '@/hooks/useOpenDuels';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -39,9 +39,9 @@ export function OpenDuels() {
         subtitle={t('publicDuels.subtitle')}
         badge={<OpenNowChip count={total} />}
       >
-        <Link href="/duels/public" className="link inline-flex min-h-11 items-center justify-self-start">
+        <LocaleLink href="/duels/public" className="link inline-flex min-h-11 items-center justify-self-start">
           {t('publicDuels.viewAll')}
-        </Link>
+        </LocaleLink>
       </SectionHead>
 
       <PartialDataNotice when={isError} onRetry={retry} />

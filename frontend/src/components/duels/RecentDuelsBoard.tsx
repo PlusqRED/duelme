@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useId, useMemo, useState } from 'react';
 import { PartialDataNotice } from '@/components/duel/PartialDataNotice';
 import { DuelFeed } from '@/components/feed/DuelFeed';
@@ -8,6 +7,7 @@ import { PickedGameChip } from '@/components/feed/PickedGameChip';
 import { PopularGames } from '@/components/landing/PopularGames';
 import { SectionHead } from '@/components/landing/SectionHead';
 import { PageColumn } from '@/components/layout/PageColumn';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useFeedDuels } from '@/hooks/useFeedDuels';
 import { useGames } from '@/hooks/useGames';
 import { useDuelMetas } from '@/hooks/useDuelMetas';
@@ -69,9 +69,9 @@ export function RecentDuelsBoard({ initialQuery }: RecentDuelsBoardProps) {
             empty={
               <div className="grid justify-items-start gap-1 rounded-3xl border-2 border-dashed border-line-strong p-[clamp(18px,2.4vw,26px)]">
                 <p className="text-ink-2">{t('recent.noActivity')}</p>
-                <Link href="/duels/public" className="link inline-flex min-h-11 items-center">
+                <LocaleLink href="/duels/public" className="link inline-flex min-h-11 items-center">
                   {t('recent.seeOpen')}
-                </Link>
+                </LocaleLink>
               </div>
             }
           />

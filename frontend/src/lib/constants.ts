@@ -93,10 +93,12 @@ export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as `0x$
 export const SITE_URL = 'https://duelme.pro';
 export const SITE_NAME = 'DuelMe';
 
-/** Where the developer can be reached. */
-export const DEVELOPER_EMAIL = 'rickes.oleg@gmail.com';
-export const TELEGRAM_URL = 'https://t.me/grapexel';
-export const INSTAGRAM_URL = 'https://www.instagram.com/rickes.oleg';
-/** The project's open devlog, and how its address is written out. */
+/** How every page's title reads in a tab and a search result: its own name, then the site's. */
+export const TITLE_TEMPLATE = `%s | ${SITE_NAME}`;
+
+/**
+ * The project's open devlog, and how its address is written out: the one place the site sends a
+ * reader to reach the developer, who stays unnamed.
+ */
 export const DEVLOG_HANDLE = 't.me/duelme_info';
 export const DEVLOG_URL = `https://${DEVLOG_HANDLE}`;

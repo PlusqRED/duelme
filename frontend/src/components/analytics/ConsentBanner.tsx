@@ -1,9 +1,9 @@
 'use client';
 
-import Link from 'next/link';
 import { useId } from 'react';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useTranslation } from '@/i18n/useTranslation';
 import { chooseAnalytics } from '@/lib/analyticsConsent';
 
@@ -32,9 +32,9 @@ export function ConsentBanner() {
             </p>
             <p className="text-body-sm text-pretty text-ink-2">
               {t('analytics.banner.text')}{' '}
-              <Link href="/privacy" className="link">
+              <LocaleLink href="/privacy" className="link">
                 {t('analytics.banner.more')}
-              </Link>
+              </LocaleLink>
             </p>
           </div>
         </div>

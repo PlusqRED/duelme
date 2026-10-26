@@ -1,10 +1,10 @@
 'use client';
 
-import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Stake } from '@/components/arena/Stake';
 import { Avatar } from '@/components/identity/Avatar';
 import { Icon } from '@/components/ui/icon';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { SeatSide } from '@/lib/duel';
 import type { FeedDuel, FeedMoney } from '@/lib/duelFeed';
@@ -56,9 +56,9 @@ export function DuelReceipt({ duel, money, winner }: DuelReceiptProps) {
       </div>
       <div className="flex flex-wrap items-center justify-between gap-x-4">
         <span className="text-sm text-ink-3">{t('recent.fee')}</span>
-        <Link href={`/duel/${duel.id}`} className="link inline-flex min-h-11 items-center">
+        <LocaleLink href={`/duel/${duel.id}`} className="link inline-flex min-h-11 items-center">
           {t('recent.open', { id: duel.id })}
-        </Link>
+        </LocaleLink>
       </div>
     </div>
   );

@@ -5,7 +5,6 @@ export const homeTranslations = defineSection({
   en: {
     'motto.1': 'Skill should pay you.',
     'motto.2': 'Not the platform.',
-    'hero.lede1': 'Play 1v1 for USDT.',
     'hero.lede2':
       'You and your opponent put in the same stake, a smart contract holds it, and the winner gets the whole pot. DuelMe takes 0% and can’t pick the winner.',
     'hero.cta': 'Create a duel',
@@ -37,9 +36,8 @@ export const homeTranslations = defineSection({
   ru: {
     'motto.1': 'Скилл должен платить тебе.',
     'motto.2': 'Не платформе.',
-    'hero.lede1': 'Дуэли 1 на 1 на USDT.',
     'hero.lede2':
-      'Ставка у тебя и соперника одна и та же, её хранит смарт-контракт, а победитель получает весь банк. DuelMe берёт 0% и не может выбрать победителя.',
+      'Оба игрока вносят одну и ту же сумму, её хранит смарт-контракт, а победитель получает весь банк. DuelMe берёт 0% и не может выбрать победителя.',
     'hero.cta': 'Создать дуэль',
     'hero.browse': 'Посмотреть дуэли',
     'hero.fees': 'комиссия платформы',
@@ -62,7 +60,7 @@ export const homeTranslations = defineSection({
       'Понравилась концепция? Веду блог разработки открыто — подкидывай идеи, влияй на то, что появится дальше, или просто следи за прогрессом:',
     'indie.more': 'Читать целиком',
     'indie.less': 'Свернуть',
-    'cta.title': 'Выбери игру, поставь сумму, отправь ссылку.',
+    'cta.title': 'Выбери игру и сумму, отправь ссылку.',
     'cta.subtitle': 'Первую дуэль можно создать за пару минут. Простой вход или подключи свой кошелёк.',
     'cta.note': '0% комиссии платформы. Вывод в любой момент.',
   },

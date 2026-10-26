@@ -15,7 +15,7 @@ import {
   type SetupStep,
 } from '@/lib/createSetup';
 import { isDuelMessageValid, normalizeDuelMessage } from '@/lib/duelMessage';
-import type { Game } from '@/lib/game';
+import { uncataloguedGame, type Game } from '@/lib/game';
 import { readWager } from '@/lib/wagerInput';
 
 /** A picked game shows as picked for a moment before the next step opens. */
@@ -38,11 +38,6 @@ function answersOf(form: CreateForm, limits: ContractConfig): SetupAnswers {
     access: true,
     message: isDuelMessageValid(normalizeDuelMessage(form.message), limits),
   };
-}
-
-/** A stored game as the finder holds one: its count of duels is the catalog's to say. */
-function gameOf(draft: NonNullable<CreateDuelDraft['game']>): Game {
-  return { ...draft, iconUrl: null, duelCount: 0, createdAt: null, updatedAt: null };
 }
 
 interface UseCreateSetupArgs {
@@ -80,7 +75,7 @@ export function useCreateSetup({ chainId, limits, isDraftClosed }: UseCreateSetu
   // Applied during render, once per restored draft, so the empty form is never shown on the way.
   if (restoredDraft && restoredDraft !== applied) {
     const restored: CreateForm = {
-      game: restoredDraft.game && gameOf(restoredDraft.game),
+      game: restoredDraft.game && uncataloguedGame(restoredDraft.game),
       stakeText: restoredDraft.amount,
       isPublic: restoredDraft.isPublic,
       message: restoredDraft.message,

@@ -85,7 +85,7 @@ session's recording; taking it back, here or in another tab, stops both. The ans
 `localStorage` (`lib/analyticsConsent.ts`), changed on the privacy page too (`AnalyticsChoice`).
 A player the tracker already knows only has their traits updated (`identifyPlayer`): each identify
 links the device to them again and rewrites its earlier events. Profile paths reach Rybbit as
-`/profile/*` (the tag's `data-mask-patterns`), so a page view names no wallet.
+`/profile/*` and `/ru/profile/*` (the tag's `data-mask-patterns`), so a page view names no wallet.
 The app's own events and what each carries are `AnalyticsEvents` in `lib/analytics.ts`, sent only
 through `trackEvent`; the signing window reports itself (`useSigningAnalytics`, on
 `lib/signingAnalytics.ts`): opened, failed, done, abandoned, or left while the chain confirmed (a
@@ -109,7 +109,7 @@ write that may still land out of its sight), with the action, duel, contract, st
 7. Clean up: delete screenshots and stop temporary dev server unless user asked you to leave them.
 
 **Components:**
-- Functional + hooks only. `function` keyword (not arrow). Named exports only — the exception is the App Router files Next requires a default export from (`page.tsx`, `layout.tsx`, `sitemap.ts`, `robots.ts`, `icon.tsx`, `apple-icon.tsx`, `opengraph-image.tsx`, `twitter-image.tsx`), and those are the only default exports in `frontend/src`.
+- Functional + hooks only. `function` keyword (not arrow). Named exports only — the exception is the App Router files Next requires a default export from (`page.tsx`, `layout.tsx`, `not-found.tsx`, `error.tsx`, `sitemap.ts`, `robots.ts`, `icon.tsx`, `apple-icon.tsx`), and those are the only default exports in `frontend/src`.
 - TypeScript strict — no `any`, no unchecked `as`. Narrow unknown data with a hand-written type guard; there is no schema library in the frontend and adding one is a dependency decision, not a detail.
 - Props interface `{ComponentName}Props` directly above component.
 - One exported component per file (small internal helpers <30 lines are fine). Guard clauses first, happy path last.
@@ -131,7 +131,7 @@ write that may still land out of its sight), with the action, duel, contract, st
 
 **Performance:** `next/dynamic` + `{ ssr: false }` for wallet-dependent UI. `useMemo` for derived lists. Don't create objects/arrays in render. `next/image` with explicit width/height + `loading="lazy"` for below-fold.
 
-**i18n:** All visible strings via `useTranslation()` in a client component, or `await getTranslation()` (`i18n/serverTranslation.ts`) in a server one. The language is the `duelme-lang` cookie: the root layout reads it, sets `<html lang>` and hands it to `LanguageProvider`, so the server renders the page in it. The switch (`components/header/LanguageSwitch.tsx`, in the top bar and in the phone menu) slides its pill at once, posts the choice as JSON to `/api/language`, which sets the cookie in its response (a cookie the server sets is one Safari keeps for the year; one written by `document.cookie` it drops after a week), and then reloads the page: a full load at the same address, so no part of the page is left in the old language, the hash with a private duel's invite secret never leaves the browser, and the history gains no entry. It was a Server Action with an optimistic switch first, then a form with a redirect back; five review rounds kept finding races and lost hashes, so keep it a post and a reload. The route takes only JSON, which another site's page cannot send without the browser asking first, so it needs no check of where a request came from beyond `Sec-Fetch-Site`. Until the page's script has loaded a press does nothing; a press while a post is still out cancels it, so the last press wins. Another open tab catches up from the cookie, once per language, when it is shown again or focused, comes back from the back/forward cache, or finished loading after the switch. A part that needs no browser API reads the language on the server and stays a server component. Add the key to the matching section file under `frontend/src/i18n/translations/` — with **both** `en` and `ru`; `defineSection` makes a missing `ru` a type error. `translations.ts` only merges the sections. Interpolation is `{token}` placeholders filled from the second argument (`t('dashboard.pageSummary', { current, total })`); there is no ICU, so an ICU `plural` block would render literally. A word that agrees with a number goes through `plural(key, count)` from `useTranslation()` (`i18n/translate.ts`): give the base key `.one`, `.few`, `.many` and `.other` in both languages: Russian picks among the first three for whole numbers, and `.other` is the fallback a key needs to count as a `PluralKey` at all. It returns the word alone and the caller places the number: `{game.duelCount} {plural('games.duelsCount', game.duelCount)}`.
+**i18n:** All visible strings via `useTranslation()` in a client component, or `await getTranslation()` (`i18n/serverTranslation.ts`, which also gives the `language`) in a server one. The address is the language, so a search engine, which sends no cookie and no language, finds every version: English at the root, Russian under `/ru` (`/ru/games`, the home page `/ru`). `src/proxy.ts` reads the prefix, serves `/ru/games` from the `/games` route (a rewrite) and sets the `x-duelme-language` request header on every page request (images and files keep one address and skip it), overwriting one a browser sent; `getLanguage()` reads that header, and the root layout sets `<html lang>` and hands the language to `LanguageProvider`. Every link to a page of the site is a `LocaleLink` (`components/ui/LocaleLink.tsx`), which adds the page's prefix, and every other address built in code goes through `localePath(path, language)` (`i18n/localePath.ts`); an import of `next/link` anywhere else is an ESLint error (`eslint.config.mjs`), and `i18n/__tests__/localeLinks.test.ts` fails on a router move or server redirect (permanent too) to a bare `/…` literal, on a plain `<a>` to a page, and on a full address built from `window.location.origin` by hand (`shareableAddress` builds one; `absoluteAddress` gives a search engine's). A page compares paths through `stripLanguage(usePathname())`, which gives the route's own path whichever address it was reached by. The switch (`components/header/LanguageSwitch.tsx`, in the top bar and in the phone menu) slides its pill at once and loads the page anew at the other language's address with `location.replace`, the query and the hash (a private duel's invite secret) kept and the history unchanged. It stays a pair of buttons: a link pressed before the page's script has loaded would leave without the hash. A part that needs no browser API reads the language on the server and stays a server component. Add the key to the matching section file under `frontend/src/i18n/translations/` — with **both** `en` and `ru`; `defineSection` makes a missing `ru` a type error. `translations.ts` only merges the sections, and every page's script carries the result whole, so a section only server components read — head tags (`seo.ts`), the FAQ, the explainer pages, the server-drawn parts of other pages (`pageParts.ts`) — merges into `pageTranslations.ts` instead: `getTranslation()` reads both, `useTranslation()` only the first, and `translationsGuard.test.ts` fails when anything but `serverTranslation.ts` imports the page dictionary. Interpolation is `{token}` placeholders filled from the second argument (`t('dashboard.pageSummary', { current, total })`); there is no ICU, so an ICU `plural` block would render literally. A word that agrees with a number goes through `plural(key, count)` from `useTranslation()` (`i18n/translate.ts`): give the base key `.one`, `.few`, `.many` and `.other` in both languages: Russian picks among the first three for whole numbers, and `.other` is the fallback a key needs to count as a `PluralKey` at all. It returns the word alone and the caller places the number: `{game.duelCount} {plural('games.duelsCount', game.duelCount)}`.
 
 **Naming:** Components `PascalCase.tsx`, hooks `camelCase.ts` prefixed `use`, utils `camelCase.ts`, primitive constants `UPPER_SNAKE_CASE`, object constants `camelCase`, types `PascalCase` (prefer `interface` for object shapes).
 
@@ -166,9 +166,8 @@ test can check.
   classes read it; a state with several looks is a data attribute with variants
   (`data-[tone=short]:bg-orange-wash`). Shared CSS lives only in `src/styles/`: the theme, element
   defaults with the `keycap`, `link` and `swipe-strip` utilities, and motion.
-- **Type:** Geologica only, in the demo's weights: 800 for headings and amounts, `font-strong`
-  (750) and `font-label` (650) for labels, 700 and 600 where the demo sets them on a name or a
-  field, 400 for text. Figures are `tabular-nums`; there is no monospace face.
+- **Type:** Geologica only: 800 for headings and amounts, `font-strong` (750) and `font-label`
+  (650) for labels, 700 and 600 on a name or a field, 400 for text. Figures are `tabular-nums`; there is no monospace face.
 - **Primitives** in `components/ui/`: keycap buttons (navy for every action, paper beside it, sun
   only to take a payout, ghost for what should not compete), `Chip`, `Icon` (the design's icons),
   `Dialog` (a card on a wide screen, a sheet
@@ -229,21 +228,36 @@ test can check.
 | `frontend/src/components/ui/toaster.tsx` | Toasts as paper cards with the design's icons, and what sonner's `unstyled` drops put back |
 | `frontend/src/lib/brandColors.ts` | Theme colours as hex for what CSS cannot reach (theme colour, Privy's window, the images `ImageResponse` draws, the no-entry pointer in `lib/seatCursor.ts`) |
 | `frontend/src/lib/brandImage.tsx` | The brand mark for `ImageResponse`: the favicon, the home-screen icon and `/logo.png` |
-| `frontend/src/lib/ogImage.tsx` | The share image; carries Geologica as WOFF (`src/assets/fonts/`, OFL), since `ImageResponse` cannot read WOFF2 |
+| `frontend/src/lib/ogImage.tsx` | The share image in each language, drawn once per language at build by `app/og/[language]/route.ts` (`/og/en`, `/og/ru`), its address in the pages carrying `?v=` and the release (`APP_RELEASE`) so cached link previews take up a new image; carries Geologica as WOFF (`src/assets/fonts/`, OFL), since `ImageResponse` cannot read WOFF2 |
+| `frontend/src/lib/pageMetadata.ts` | Every page's head tags in the language of its address: canonical, `hreflang` for each language and `x-default`, title, description, share preview, and whether search engines list it (`lib/indexedPages.ts`). Its words are in `i18n/translations/seo.ts`, sized for a search result |
+| `frontend/src/lib/indexedPages.ts` | The one list of pages search engines should list: the sitemap maps it, `pageMetadata` sets `noindex` on every page it leaves out |
+| `frontend/src/lib/serverGame.ts` | One game read on the page server through `API_INTERNAL_URL`, once per request, with a timeout. A slug the catalog could never hold is `missing` unasked; without the variable, or when the read fails (logged), it is `unread` and the browser reads it |
+| `frontend/src/lib/browserStorage.ts` | `localStorage` or `sessionStorage`, or null where reading it throws (blocked site data) |
+| `frontend/src/lib/gameGuides.ts` | A game's guide: the types and the lookup by slug. A game page is indexed only with a guide |
+| `frontend/src/content/gameGuides/` | The guides, one file per game, in both languages; `index.ts` orders them. A guide's `slug` is the one the backend makes from its `name` (`lib/__tests__/gameGuides.test.ts` mirrors `GameService.toSlug`) |
+| `frontend/src/components/game/GameGuideBody.tsx` | A guide's parts under a game's duels, drawn on the server |
+| `frontend/src/components/game/GuideShortcuts.tsx` | The games with a guide as links on top of the catalog, drawn on the server |
+| `frontend/src/app/sitemap.ts` | `INDEXED_PAGES`, each in every language with its `hreflang` alternates; no change dates or priorities |
+| `frontend/src/lib/structuredData.ts` | The pages' JSON-LD (organization, web app, breadcrumbs) and its one serializer, which escapes `<`: a game's name comes from players and must not close the script tag. `components/seo/JsonLd.tsx` renders it |
 | `frontend/src/components/identity/Avatar.tsx` | A player's face: the address's identicon (`lib/identicon.ts`) on their seat's colour |
 | `frontend/src/components/identity/ReputationPill.tsx` | A reputation level as a pill with its three-bar meter |
 | `frontend/src/i18n/intlLocales.ts` | The locale `Intl` formats each language's numbers and dates in |
-| `frontend/src/i18n/serverTranslation.ts` | The reader's language on the server, from the cookie, read once per request, and `getTranslation()` for server components |
-| `frontend/src/i18n/language.ts` | The language cookie: its name and settings, how it is read back and parsed (anything unknown is English), the site's languages and the switch's route |
+| `frontend/src/proxy.ts` | The address's language: serves `/ru/…` from the route of the same page and sets the language header on every page request (see i18n under Standards) |
+| `frontend/src/i18n/localePath.ts` | A page's address in a language (`localePath`), the language of an address, the route's path without its prefix (`stripLanguage`), and the full address for a search engine (`absoluteAddress`) or a player to send (`shareableAddress`) |
+| `frontend/src/components/ui/LocaleLink.tsx` | The site's one link to its pages: `next/link` with the page's language prefix |
+| `frontend/src/i18n/serverTranslation.ts` | The page's language on the server, from the header `proxy.ts` sets, read once per request, and `getTranslation()` for server components, with the page-only words |
+| `frontend/src/i18n/pageTranslations.ts` | The sections only server components say (head tags, FAQ, explainer pages, `pageParts.ts`: the landing's heading and the guides' words), kept out of the browser's dictionary |
+| `frontend/src/i18n/language.ts` | The site's languages, the default one, the header that carries a page's language and how a value is parsed (anything unknown is English) |
 | `frontend/src/i18n/translate.ts` | One cached `t` and `plural` per language, the same for server components and the browser's context |
-| `frontend/src/i18n/LanguageContext.tsx` | The language in the browser: the layout's, and a refresh when another tab chose another |
-| `frontend/src/app/api/language/route.ts` | Sets the language cookie from the switch's JSON post |
-| `frontend/src/components/header/LanguageSwitch.tsx` | The language switch: slides its pill, posts the choice, then reloads the page at the same address |
+| `frontend/src/i18n/LanguageContext.tsx` | The language in the browser: the one the layout read from the address |
+| `frontend/src/components/header/LanguageSwitch.tsx` | The language switch: slides its pill, then loads the page at the other language's address with its query and hash |
+| `frontend/src/lib/oauthReturn.ts` | The language a player left in to link Steam or Telegram, kept in the tab for the backend's return to `/profile`, which is always the English address |
 | `frontend/src/styles/__tests__/designGuard.test.ts` | Fails on palette classes and variables, colour values outside the theme, `dark:` and `font-mono` |
-| `frontend/src/i18n/__tests__/translationsGuard.test.ts` | Fails on a translation key nothing uses and on Russian «вы» |
+| `frontend/src/i18n/__tests__/translationsGuard.test.ts` | Fails on a translation key nothing uses, on Russian «вы», and on the page dictionary read anywhere but the server's translator |
 | `frontend/src/lib/__tests__/helpers/sourceFiles.ts` | What the guards read: the shipped source files and the theme's tokens |
 | `frontend/src/lib/constants.ts` | Chain configs, contract addresses, ZERO_ADDRESS |
 | `frontend/src/components/providers/Providers.tsx` | Privy + wagmi + QueryClient providers, the relayer status and the language the root layout read, the toasts and analytics |
+| `frontend/src/lib/queryClient.ts` | The query cache: a fresh one per page the server renders, one per tab in the browser. A module-level client on the server would carry one request's reads into another's page |
 | `frontend/src/hooks/useDuel.ts` | Read single duel, polled until it is over and paid out; a failed poll keeps the last duel |
 | `frontend/src/hooks/useDuelReads.ts` | Paged `getDuels` / `getDuelsByIds` readers shared by every listing screen |
 | `frontend/src/lib/duel.ts` | `DuelRecord`, seats (`seatOf`), the arena's shared types, claimable-amount and timeout helpers, `canJoinWaitingDuel` |
@@ -262,11 +276,12 @@ test can check.
 | `frontend/src/lib/dashboardHistory.ts` | The history's search (spaces ignored), filters with their counts, and pages of 20 |
 | `frontend/src/hooks/useDuelMetas.ts` | Duel metadata (the game) by id, read in the backend's batches of 200 and keyed with the contract address |
 | `frontend/src/lib/owed.ts` | What the contract keeps for a player — wins, stakes coming back, timed-out claims — and the safe's bars; `useOwed` reads it from the shared `useDuelRange` history and looks again when a claim runs out of time |
-| `frontend/src/components/landing/Hero.tsx` | The landing's first screen: the motto, the two ways in, the developer's note (`DevNote`; its last update is the build's time, which `next.config.ts` writes in as `DUELME_BUILT_AT`), the platform's figures and the demo duel |
+| `frontend/src/components/landing/Hero.tsx` | The landing's first screen: the motto (the largest line, but a `<p>`: the `h1` under it in the same `hgroup` says what the site is, in the words people search for), the two ways in, the developer's note (`DevNote`; its last update is the build's time, which `next.config.ts` writes in as `DUELME_BUILT_AT`), the platform's figures and the demo duel |
 | `frontend/src/components/landing/DemoDuel.tsx` | The demo duel: stills of a 10 USDT duel from `lib/demoDuel.ts`, moved between by `useDemoDuel` (steps, three endings, a pause that holds the step and its bar) and played by itself once in view by `useDemoAutoplay`, stakes flown by `useStakeFlights` |
 | `frontend/src/components/landing/OpenDuels.tsx` | The landing's open public duels (`useOpenDuels`): one as a wide card, two or more as a lobby that is a strip to swipe below the `wide:` breakpoint, none as the invitation to make one; the count is every open duel |
 | `frontend/src/components/landing/GettingStarted.tsx` | The landing's first-duel quest (`useQuest`): the steps written down (`QuestLog`) beside a phone that acts each out (`QuestPhone`, its screens `QuestScreens` built from `QuestScreenParts`), and what a made wallet leaves in the player's hands (`ControlFacts`); step 3 and the gas line follow `useRelayerStatus` |
 | `frontend/src/components/landing/Safety.tsx` | The landing's navy band: the escrow contract to check (`EscrowCard`: its address settling out of noise via `useScrambleReveal`, copy, three explorer tabs) and the four guarantees as badges that unlock (`Guarantees`; the test count and coverage are `lib/contractFacts.ts`) |
+| `frontend/src/components/landing/Faq.tsx` | The questions people ask before a first duel, each a `<details>` whose answer is in the HTML before it opens; no FAQPage structured data, which Google stopped showing |
 | `frontend/src/components/landing/ReputationLab.tsx` | How reputation works, by hand: a sample player (`useReputationSample`) marked honored or abandoned walks the scale (`ReputationGauge`; where on it from `lib/reputationGauge.ts`), with the level reached and what it tells an opponent |
 | `frontend/src/lib/contractFacts.ts` | The contract's test count, which a test keeps equal to the `test*`/`invariant*` functions in `contracts/test`, and its measured line coverage with the date: measure again (`forge coverage --profile coverage`) when the tests change much |
 | `frontend/src/components/landing/RecentDuels.tsx` | The landing's finished duels (`useWonDuels`, won duels only) beside the popular games that filter them (`useGameFilter`: rows step out, then `useListReflow` slides the rest; a picked game's duels come from that game's own, `useDuelsByGame`); a row is the feed's `DuelRow`, opening into its `DuelReceipt`. The sizes and the pure rules are `lib/landingDuels.ts` |
@@ -335,8 +350,8 @@ test can check.
 | `frontend/src/components/feed/` | Duels someone joined as rows: `DuelFeed` (search, state filters with their counts, pages of 20) of `DuelRow`s, each opening into its `DuelReceipt`; the rules are `lib/duelFeed.ts` |
 | `frontend/src/components/lists/` | What every list shares, the dashboard's history too: `SearchField`, `FilterPill`, `Pager` (`lib/pages.ts`; the focus moves to the page shown after a turn) |
 | `frontend/src/components/duels/` | `/duels/public` (`OpenDuelsBoard`: search, game and stake-band filters, `OpenDuelGrid`) and `/duels/recent` (`RecentDuelsBoard`: the feed beside the popular games, its search kept in `?q=` by `useSearchQuery`) |
-| `frontend/src/components/game/GameCatalog.tsx` | `/games`: search, category pills and the games as cards (`CatalogGame`), most played first |
-| `frontend/src/components/game/GameDetail.tsx` | `/games/[slug]`: `GameHead`, the game's open duels (`GameOpenDuels`) and its `DuelFeed`; no such game, or a failed read, as a `LostPage` |
+| `frontend/src/components/game/GameCatalog.tsx` | `/games`: the guides' shortcuts (handed in from the server), search, category pills and the games as cards (`CatalogGame`), most played first |
+| `frontend/src/components/game/GameDetail.tsx` | `/games/[slug]`: `GameHead` with the guide's lead, the game's open duels (`GameOpenDuels`), its `DuelFeed`, then what the server hands in after them (the guide, the other guides). Takes the game the server settled; read in the browser only without one, where no such game or a failed read is a `LostPage` — unless a guide's game stands in (`KnownGame`'s `fallback`), shown while the read runs and when it finds nothing. On the server an unknown slug is a 404 and one in capitals moves to its lower-case address |
 | `frontend/src/components/layout/LostPage.tsx` | A page with nothing to show, drawn as the brand mark: `app/not-found.tsx`, `app/error.tsx`, a missing game |
 | `frontend/Dockerfile` | Frontend container (multi-stage, Node 22) |
 | `frontend/src/app/duel/create/page.tsx` | The create page: `CreateDuelRoom` |
@@ -364,11 +379,14 @@ test can check.
 | `frontend/src/hooks/useAnalyticsIdentity.ts` | Sign-ins and sign-outs as events, and the player's Privy id and wallet given to analytics only after a yes |
 | `frontend/src/hooks/useSigningAnalytics.ts` | The signing window's events, each sent once from the change between two renders (`lib/signingAnalytics.ts`) |
 | `frontend/src/app/privacy/page.tsx` | What DuelMe keeps and where, and the answer on analytics to change |
+| `frontend/src/app/how-it-works/page.tsx`, `safety/page.tsx`, `about/page.tsx` | The pages that explain DuelMe — a duel step by step, where the money sits and what the contract cannot do, who runs it — linked from the footer on every page. The figures that change with the code — the test count, coverage, emergency delay and the contract's address — come from it (`lib/contractFacts.ts`, pinned by its test to the contract, and `DUELME_ADDRESSES`), never typed into the copy |
+| `frontend/src/components/layout/ProsePage.tsx`, `ProseSection.tsx` | The frame of a page of plain text and its parts, shared by the privacy page and the explainers |
 
 ## Environment
 
 - `NEXT_PUBLIC_PRIVY_APP_ID` — Privy app ID (frontend)
 - `NEXT_PUBLIC_API_URL` — Backend API base URL (default `/api/v1`)
+- `API_INTERNAL_URL` — the backend as the page server reaches it, **runtime**: `http://backend:8080/api/v1`, a literal in each compose file, like `APP_ENV`, since it is no secret (`lib/__tests__/composeServerApi.test.ts` pins it). Game pages read their game on the server through it. Unset (a local dev server, the browser tests), or the read fails ⇒ they read it in the browser, and a game nobody knows shows its not-found card with a 200 instead of a 404; a game with a guide shows its guide's game meanwhile.
 - `NEXT_PUBLIC_ARBITRUM_RPC_URL` — authenticated RPC for Arbitrum One. **Unset since 2026-09-20**, so both environments run on Tenderly Gateway public; the previous provider was disabled upstream and took withdrawals down with it (see the RPC gotcha below). Used as Privy embedded-wallet override + first wagmi fallback. If you set it: check the endpoint answers `eth_chainId`, add its host to `connect-src`, and lock the URL via the provider's "Allowed Origins" — `NEXT_PUBLIC_*` are inlined into the JS bundle.
 - `NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL` — same for Arbitrum Sepolia. Optional; Tenderly public works for dev.
 - `RELAYER_PRIVATE_KEY` — hot wallet that pays gas for relayed duel actions (frontend container, **runtime** not build-time). Unset, or not a valid private key ⇒ `/api/relay` returns 503 and duel writes stay self-paid. Dedicated key; fund it with only what the daily budgets can spend.
@@ -384,6 +402,14 @@ test can check.
   `--dwell` does not exist, so the animation resolved to nothing and was silently dropped: the
   landing demo's step bars and its feed rows' exit never played. `landingMotion.css` keeps those
   two (`--dwell`, `--leave`) in its `@theme inline`.
+- **A box that wraps a `swipe-strip` must not take its width from the strip.** A strip that does
+  not wrap is as long as all its items. A wrapper that does not scroll itself, sized by its content
+  (a grid item under `justify-items-start`, an `auto` track, a flex child), grows to that length and
+  takes its siblings with it: on a phone the landing's closing card ran 1,400px past the screen, its
+  heading and text cut off, because `GuideShortcuts`' `<nav>` held the strip. That nav now has
+  `w-full min-w-0`. A strip that is itself a grid item is safe only while it stretches to its
+  column (the default); under `justify-items-start` it sizes to its full length too.
+  `e2e/landing.spec.ts` checks the landing at 360px once its lists have loaded.
 - `createConfig` from `wagmi` instead of `@privy-io/wagmi` silently breaks wallet routing.
 - `useSetActiveWallet` in `useEffect` is too late — use `setActiveWalletForWagmi` sync callback.
 - Invite-only duels rely on the full private link (URL fragment) — never fall back to plain `/duel/{id}`.
@@ -425,7 +451,7 @@ test can check.
   included, for a player the relayer would carry, and every fix for that (gates, retries,
   timeouts, writes waiting for the answer) added a failure of its own.
 - **Nothing in the browser may pick the language before hydration.** A first render that reads
-  `localStorage` or `navigator.language` draws other words than the server did from the cookie
+  `localStorage` or `navigator.language` draws other words than the server did from the address
   ("i18n" under Standards), and React reports a hydration mismatch on every page; that is why the
   language left `localStorage`. The analytics answer does live there, so `useAnalyticsConsent`
   reports `unknown` on the server and in the first render, and nothing analytics draws or sends
@@ -468,6 +494,26 @@ test can check.
 - **The relayer's budget ledger, per-IP rate limit, repeat memory and signer holds are in-memory**, so they reset on redeploy and are not shared across replicas. Accurate for the current single-container-per-env deployment; more than one replica needs a shared store.
 - **The per-IP rate limit trusts the right-most `X-Forwarded-For` entry** because Caddy, with no `trusted_proxies`, overwrites the header with the address it saw, nothing sits in front of Caddy, and the container listens on `127.0.0.1` only. A CDN or another proxy in front of Caddy makes that entry the proxy's, and every player then shares one bucket: change the rule with it.
 - Use shared constants from `constants.ts` (`ZERO_ADDRESS`) and `contracts.ts` (`ACTIVE_STATES`, `balanceOfAbi`, `transferAbi`, `getUsdtAddress`) — never redefine locally.
+- **Next may send a rewrite through the proxy a second time.** When the rewrite's origin differs
+  from the one the server builds for the request (a dev server on `127.0.0.1`, which Next's URLs
+  call `localhost`), Next proxies it as a new request, and the proxy saw the bare `/games` and set
+  the language back to English: every `/ru` page came out English while its links were Russian.
+  `proxy.ts` marks the request it rewrote with a value made fresh in each process and passes a
+  marked one through untouched; a browser cannot send the mark.
+- **A page's head tags come from `pageMetadata`, never from a layout.** Next.js hands a page the
+  `openGraph`, `alternates` and `robots` of the nearest layout that sets them, so when the root
+  layout set them every page shared the home page's title, description and `og:url`, and the 404
+  carried `index, follow` beside the `noindex` Next.js adds. The root layout sets only what every
+  page shares; each `page.tsx` calls `pageMetadata` in its `generateMetadata`. A layout that sets a
+  plain string `title` also drops the root's `%s | DuelMe` template for the pages under it.
+- **A game page is a search result only with a guide.** Players add games by naming them in a
+  duel, so the catalog grows by whatever anyone types; a page with only a name and empty lists is
+  thin content. `INDEXED_PAGES` (`lib/indexedPages.ts`) holds only guided games, so the rest get
+  `noindex` and stay out of the sitemap. A guide whose `slug` differs from the backend's for its `name` would stand beside the
+  catalog's game rather than on it, with its duels missing.
+- **A move between languages loads the whole page.** `/games` and `/ru/games` are the same route,
+  so a client-side move between them keeps the layouts, the top bar and the footer, in the old
+  language. The switch uses `location.replace`; nothing else links across languages.
 - **The CI `next build` has no Privy app id.** The `frontend` job builds without secrets, so `NEXT_PUBLIC_PRIVY_APP_ID` is undefined there, and that works only because the root layout is `force-dynamic` and nothing under it is prerendered. Remove `force-dynamic` and the job fails with `Cannot initialize the Privy provider with an invalid Privy app ID`, while the image build, which gets the real id, passes.
 - Frontend npm pinned to `^11.12.1` via `frontend/package.json` `engines` + `frontend/.npmrc` `engine-strict=true`. CI and `frontend/Dockerfile` both pin it with `corepack enable npm && corepack prepare npm@11.12.1 --activate` — `corepack enable` alone does **not** shim npm (npm ships with Node), so npm has to be named explicitly or the `packageManager` field is ignored. A mismatch caused `EUSAGE` / `EBADENGINE` in `npm ci`.
 - `overrides.eslint-plugin-react-hooks: 7.0.1` is a temporary pin — `7.1.x` adds `react-hooks/set-state-in-effect`, which flags existing patterns in `useCreateDuelFlow.ts`, `useJoinDuelFlow.ts`. Lift only after refactoring those files.

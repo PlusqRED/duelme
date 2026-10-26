@@ -1,57 +1,18 @@
 import type { MetadataRoute } from 'next';
-import { SITE_URL } from '@/lib/constants';
+import { LANGUAGES } from '@/i18n/language';
+import { absoluteAddress, languageAddresses } from '@/i18n/localePath';
+import { INDEXED_PAGES } from '@/lib/indexedPages';
 
+/**
+ * Every listed page in every language, each with its versions in the others. No change dates and no
+ * priorities: the pages change with the duels played on them, and Google ignores a date it cannot
+ * trust and priorities altogether.
+ */
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date();
-
-  return [
-    {
-      url: SITE_URL,
-      lastModified: now,
-      changeFrequency: 'daily',
-      priority: 1.0,
-      alternates: {
-        languages: {
-          en: SITE_URL,
-          ru: SITE_URL,
-        },
-      },
-    },
-    {
-      url: `${SITE_URL}/duel/create`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.9,
-    },
-    {
-      url: `${SITE_URL}/duels/public`,
-      lastModified: now,
-      changeFrequency: 'always',
-      priority: 0.9,
-    },
-    {
-      url: `${SITE_URL}/duels/recent`,
-      lastModified: now,
-      changeFrequency: 'hourly',
-      priority: 0.85,
-    },
-    {
-      url: `${SITE_URL}/games`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    },
-    {
-      url: `${SITE_URL}/dashboard`,
-      lastModified: now,
-      changeFrequency: 'daily',
-      priority: 0.3,
-    },
-    {
-      url: `${SITE_URL}/privacy`,
-      lastModified: now,
-      changeFrequency: 'monthly',
-      priority: 0.2,
-    },
-  ];
+  return INDEXED_PAGES.flatMap((path) => {
+    const languages = Object.fromEntries(
+      Object.entries(languageAddresses(path)).map(([language, address]) => [language, absoluteAddress(address)])
+    );
+    return LANGUAGES.map((language) => ({ url: languages[language], alternates: { languages } }));
+  });
 }

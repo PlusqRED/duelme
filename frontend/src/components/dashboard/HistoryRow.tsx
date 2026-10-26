@@ -1,11 +1,11 @@
 'use client';
 
-import Link from 'next/link';
 import { Avatar } from '@/components/identity/Avatar';
 import { GameTile } from '@/components/identity/GameTile';
 import { PlayerLink } from '@/components/identity/PlayerLink';
 import { Icon } from '@/components/ui/icon';
 import type { IconName } from '@/components/ui/iconPaths';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import type { DuelGame } from '@/hooks/useDashboard';
 import { useTimeAgo } from '@/hooks/useTimeAgo';
 import type { TranslationKey } from '@/i18n/translations';
@@ -62,13 +62,13 @@ export function HistoryRow({ entry, game, nameOf, owed, isStamped }: HistoryRowP
       <span className={'grid min-w-0 gap-1 @max-[600px]/desk:contents'}>
         <span className={'flex min-w-0 items-center gap-2 @max-[600px]/desk:col-[2/-1] @max-[600px]/desk:row-start-1'}>
           <GameTile name={game?.name ?? null} category={game?.category} className="size-6 rounded-[7px] text-[0.5625rem]" />
-          <Link
+          <LocaleLink
             href={`/duel/${duel.id}`}
             className="flex min-w-0 items-center gap-2 after:absolute after:inset-0 after:z-1 after:rounded-[20px] focus-visible:outline-hidden focus-visible:after:outline-3 focus-visible:after:outline-offset-3 focus-visible:after:outline-blue"
           >
             <b className="truncate font-strong">{game?.name ?? t('duel.title', { id: duel.id })}</b>
             {game && <span className="text-sm/[1.55] font-label text-ink-3 tabular-nums">#{duel.id}</span>}
-          </Link>
+          </LocaleLink>
         </span>
         <span className={'flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm/[1.55] text-ink-3 @max-[600px]/desk:col-[2/-1] @max-[600px]/desk:row-start-3 @max-[600px]/desk:min-w-0'}>
           {other ? (

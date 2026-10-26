@@ -35,3 +35,8 @@ duelme.pro {
 		reverse_proxy 127.0.0.1:3002
 	}
 }
+
+# The site lives on the bare domain; the www name only sends people and search engines there.
+www.duelme.pro {
+	redir https://duelme.pro{uri} 308
+}

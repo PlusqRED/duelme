@@ -1,12 +1,12 @@
 'use client';
 
 import { useId, useRef } from 'react';
-import Link from 'next/link';
 import { CopyInviteButton } from '@/components/dashboard/CopyInviteButton';
 import { MiniArena } from '@/components/dashboard/MiniArena';
 import { GameTile } from '@/components/identity/GameTile';
 import { buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import type { DuelGame } from '@/hooks/useDashboard';
 import { useSeenOnce } from '@/hooks/useSeenOnce';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -71,14 +71,14 @@ export function MiniDuelCard({ entry, game, nameOf, claimTimeout, order, isWide 
         <GameTile name={game?.name ?? null} category={game?.category} className="size-10 rounded-xl text-note" />
         <div className="min-w-0">
           <h3 className="text-[1.0625rem]/[1.25] tracking-[-0.01em]">
-            <Link
+            <LocaleLink
               id={titleId}
               href={`/duel/${duel.id}`}
               aria-label={game ? t('dash.card.title', { id: duel.id, game: game.name }) : undefined}
               className="text-ink no-underline decoration-2 underline-offset-4 hover:underline"
             >
               {game?.name ?? t('duel.title', { id: duel.id })}
-            </Link>
+            </LocaleLink>
           </h3>
           <p className="flex flex-wrap gap-x-3 text-note text-ink-3 tabular-nums">
             {game && <span>{t('duel.title', { id: duel.id })}</span>}
@@ -100,10 +100,10 @@ export function MiniDuelCard({ entry, game, nameOf, claimTimeout, order, isWide 
         </p>
         <div className="flex flex-wrap gap-2">
           {phase === 'created' && !isPublicDuel(duel.inviteHash) && <CopyInviteButton duelId={duel.id} />}
-          <Link href={`/duel/${duel.id}`} className={buttonVariants({ variant: isYourMove ? 'navy' : 'paper', size: 'sm', className: 'px-3.5' })}>
+          <LocaleLink href={`/duel/${duel.id}`} className={buttonVariants({ variant: isYourMove ? 'navy' : 'paper', size: 'sm', className: 'px-3.5' })}>
             {t(goKey(entry))}
             <Icon name="chevron-right" className="size-[18px]" />
-          </Link>
+          </LocaleLink>
         </div>
       </div>
     </article>
