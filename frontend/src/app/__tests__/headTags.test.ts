@@ -19,4 +19,8 @@ describe('head tags', () => {
 
     expect(layouts.filter((file) => naming.test(file.text)).map((file) => file.path)).toEqual([]);
   });
+
+  it('gives the home page the site’s name, which Google reads there only', () => {
+    expect(pages.find((file) => file.path === 'app/page.tsx')?.text).toContain('websiteSchema()');
+  });
 });
