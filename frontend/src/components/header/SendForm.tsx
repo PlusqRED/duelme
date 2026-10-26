@@ -10,7 +10,7 @@ import type { NetworkBalances } from '@/hooks/useWalletBalances';
 import type { TranslationKey } from '@/i18n/translations';
 import { useTranslation } from '@/i18n/useTranslation';
 import { USDT_DECIMALS } from '@/lib/constants';
-import type { FaucetOffer } from '@/lib/faucetApi';
+import { faucetEthNote, type FaucetOffer } from '@/lib/faucetApi';
 import { checkTransfer, type FreeTransferStatus, type SendDraft, type SendProblems, type Transfer } from '@/lib/sendUsdt';
 import { formatEth, formatTime, formatUSDT } from '@/lib/utils';
 import { readingFigure, readingRaw } from '@/lib/walletBalances';
@@ -81,7 +81,6 @@ export function SendForm({ address, network, faucetOffer, route, freeTransfer, d
       : problems.amount === 'tooMuch' && usdtRaw !== null
         ? t('send.err.amount', { amount: formatUSDT(usdtRaw, language) })
         : undefined;
-  const offersEth = faucetOffer.kind === 'ready' && faucetOffer.ethAmountWei > 0n ? ` ${t('send.err.eth.faucet', { eth: formatEth(faucetOffer.ethAmountWei, language) })}` : '';
   const ethError =
     freeTransfer.status === 'used'
       ? t('send.err.eth.used', { network: network.chain.name, time: formatTime(freeTransfer.nextAt, language) })
@@ -132,7 +131,7 @@ export function SendForm({ address, network, faucetOffer, route, freeTransfer, d
         </div>
       </Field>
       <Note icon={problems.eth ? 'alert' : 'fuel'} tone={problems.eth ? 'bad' : 'quiet'}>
-        {problems.eth ? ethError + offersEth : feeNote}
+        {problems.eth ? ethError + faucetEthNote(faucetOffer, language, t) : feeNote}
       </Note>
       <Button type="submit" size="lg" className="mt-1 w-full">
         {t('send.next')}

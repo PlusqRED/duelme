@@ -90,7 +90,7 @@ describe('SendProgress', () => {
   });
 
   it('says nothing was sent when the wallet turned it down, and offers to try again', () => {
-    const { onRetry } = renderProgress('rejected', { failure: failed('rejected') });
+    const { onRetry } = renderProgress('failed', { failure: failed('rejected') });
 
     expect(screen.getByText('Nothing was sent')).toBeTruthy();
     expect(screen.getByText(/You turned the request down in your wallet/)).toBeTruthy();

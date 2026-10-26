@@ -6,6 +6,7 @@ import { transferAbi } from '@/lib/contracts';
 import { RelayAnswerLostError, RelayRequestError } from '@/lib/relayApi';
 import { relayedTransferDay, relayedTransferNonce, TRANSFER_AUTHORIZATION_TYPES } from '@/lib/relayedTransfer';
 import type { FreeTransferStatus, Transfer } from '@/lib/sendUsdt';
+import { usdtDomain } from '@/lib/__tests__/helpers/relayTransfer';
 
 const SEPOLIA = SUPPORTED_CHAINS.arbitrumSepolia.id;
 const ONE = SUPPORTED_CHAINS.arbitrum.id;
@@ -14,7 +15,7 @@ const TO = '0x1111111111111111111111111111111111111111';
 const SIGNATURE = `0x${'22'.repeat(65)}`;
 const HASH = `0x${'ab'.repeat(32)}`;
 const ETH = 10n ** 15n;
-const DOMAIN = { name: 'USD₮0', version: '1', chainId: BigInt(SEPOLIA), verifyingContract: USDT_ADDRESSES[SEPOLIA] };
+const DOMAIN = usdtDomain(SEPOLIA, USDT_ADDRESSES[SEPOLIA]);
 
 const wallet = vi.hoisted(() => ({
   chainId: 0,
@@ -185,16 +186,14 @@ describe('useSendUsdt', () => {
 
     expect(wallet.signTypedDataAsync).not.toHaveBeenCalled();
     expect(wallet.writeWithGas).not.toHaveBeenCalled();
-    expect(result.current.error?.message).toBe('User rejected the request.');
-    expect(result.current.failure?.kind).toBe('network');
+    expect(result.current.failure).toMatchObject({ kind: 'network', detail: 'User rejected the request.' });
   });
 
   it('words the write\'s own error when the wallet is already on the network', () => {
     wallet.writeError = new Error('insufficient funds for gas * price + value');
     const { result } = renderHook(() => useSendUsdt(SEPOLIA, 1n));
 
-    expect(result.current.error?.message).toBe('insufficient funds for gas * price + value');
-    expect(result.current.failure).toMatchObject({ kind: 'eth', canRetry: true });
+    expect(result.current.failure).toMatchObject({ kind: 'eth', detail: 'insufficient funds for gas * price + value', canRetry: true });
   });
 
   it('clears the last transfer, its network switch included, before the next one and on reset', async () => {

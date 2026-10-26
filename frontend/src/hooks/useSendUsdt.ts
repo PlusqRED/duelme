@@ -8,7 +8,7 @@ import { emitBalanceRefreshBurst } from '@/lib/balanceRefresh';
 import { USDT_ADDRESSES } from '@/lib/constants';
 import { transferAbi } from '@/lib/contracts';
 import { submitRelayTransfer } from '@/lib/relayApi';
-import { TRANSFER_AUTHORIZATION_TYPES, transferAuthorization } from '@/lib/relayedTransfer';
+import { toRelayTransfer, TRANSFER_AUTHORIZATION_TYPES, transferAuthorization } from '@/lib/relayedTransfer';
 import { classifySendError, isRelayDecline } from '@/lib/sendError';
 import { resolveSendRoute, type Transfer } from '@/lib/sendUsdt';
 import { readTokenDomain } from '@/lib/tokenDomain';
@@ -56,14 +56,7 @@ export function useSendUsdt(chainId: number, ethWei: bigint | null) {
         // Signing is done; from here the relayer owns it.
         onSubmitted();
         try {
-          return await submitRelayTransfer(chainId, {
-            from: address,
-            to,
-            value: raw.toString(),
-            validBefore: Number(authorization.validBefore),
-            nonce: authorization.nonce,
-            signature,
-          });
+          return await submitRelayTransfer(chainId, toRelayTransfer(authorization, signature));
         } catch (relayError) {
           if (isRelayDecline(relayError)) {
             setIsRelayDeclined(true);
@@ -134,10 +127,9 @@ export function useSendUsdt(chainId: number, ethWei: bigint | null) {
       hash,
       isConfirming,
       isSuccess,
-      error: switchError ?? error,
       failure,
       reset: resetSend,
     }),
-    [send, route, freeTransfer.status, freeTransfer.nextAt, hash, isConfirming, isSuccess, switchError, error, failure, resetSend]
+    [send, route, freeTransfer.status, freeTransfer.nextAt, hash, isConfirming, isSuccess, failure, resetSend]
   );
 }

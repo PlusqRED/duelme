@@ -1,22 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { privateKeyToAccount } from 'viem/accounts';
 import { POST } from '@/app/api/relay/transfer/route';
 import { DEFAULT_CHAIN_ID, USDT_ADDRESSES } from '@/lib/constants';
 import { getRelayerConfig } from '@/lib/relayerConfig';
-import {
-  relayedTransferDay,
-  relayedTransferNonce,
-  TRANSFER_AUTHORIZATION_TYPES,
-  transferAuthorization,
-  type RelayTransfer,
-} from '@/lib/relayedTransfer';
-import { TX_HASH, deferred, minedReceipt, publicClient, resetRelayRoute, setDailyBudgetWei, walletClient } from './routeFixture';
+import { relayedTransferDay, relayedTransferNonce, type RelayTransfer } from '@/lib/relayedTransfer';
+import { signTransfer, TRANSFER_TO, transferSigner } from '@/lib/__tests__/helpers/relayTransfer';
+import { TX_HASH, deferred, minedReceipt, postTo, publicClient, resetRelayRoute, setDailyBudgetWei, walletClient } from './routeFixture';
 
 vi.mock('@/lib/relayerConfig', () => ({ getRelayerConfig: vi.fn() }));
 
 const NOW = Date.UTC(2026, 9, 26, 12);
-const account = privateKeyToAccount(`0x${'11'.repeat(32)}`);
-const TO = '0x32a3FE56F4FeE248E4f19ca3D4374a018ac9AA23';
 const BALANCE = 50_000_000n;
 
 interface TokenState {
@@ -35,25 +27,12 @@ function answerTokenReads() {
   });
 }
 
-async function signedTransfer(value = 5_000_000n, nowMs = NOW): Promise<RelayTransfer> {
-  const message = transferAuthorization(account.address, TO, value, nowMs);
-  const signature = await account.signTypedData({
-    domain: { name: 'USD₮0', version: '1', chainId: BigInt(DEFAULT_CHAIN_ID), verifyingContract: USDT_ADDRESSES[DEFAULT_CHAIN_ID] },
-    types: TRANSFER_AUTHORIZATION_TYPES,
-    primaryType: 'TransferWithAuthorization',
-    message,
-  });
-  return { from: account.address, to: TO, value: value.toString(), validBefore: Number(message.validBefore), nonce: message.nonce, signature };
+function signedTransfer(value?: bigint): Promise<RelayTransfer> {
+  return signTransfer({ chainId: DEFAULT_CHAIN_ID, token: USDT_ADDRESSES[DEFAULT_CHAIN_ID], nowMs: NOW, value });
 }
 
-function postTransfer(transfer: RelayTransfer, client = '203.0.113.7') {
-  return POST(
-    new Request('http://127.0.0.1/api/relay/transfer', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-forwarded-for': client },
-      body: JSON.stringify({ chainId: DEFAULT_CHAIN_ID, transfer }),
-    })
-  );
+function postTransfer(transfer: RelayTransfer, client?: string) {
+  return postTo(POST, '/api/relay/transfer', { chainId: DEFAULT_CHAIN_ID, transfer }, client);
 }
 
 beforeEach(() => {
@@ -83,7 +62,7 @@ describe('POST /api/relay/transfer', () => {
       functionName: 'transferWithAuthorization',
       nonce: 7,
     });
-    expect(sent.args.slice(0, 6)).toEqual([account.address, TO, 5_000_000n, 0n, BigInt(transfer.validBefore), transfer.nonce]);
+    expect(sent.args.slice(0, 6)).toEqual([transferSigner.address, TRANSFER_TO, 5_000_000n, 0n, BigInt(transfer.validBefore), transfer.nonce]);
   });
 
   it('refuses the day\'s second transfer before pricing or sending it', async () => {

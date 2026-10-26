@@ -9,6 +9,21 @@ import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import "../../script/ForwarderConfig.sol";
 import "./DuelMeTestConstants.sol";
 
+/// @dev EIP-3009's entry point, as mainnet USD₮0 and MockUSDT both have it.
+interface ITransferWithAuthorization {
+    function transferWithAuthorization(
+        address from,
+        address to,
+        uint256 value,
+        uint256 validAfter,
+        uint256 validBefore,
+        bytes32 nonce,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
+}
+
 /// @dev EIP-712 signing helpers shared by the ERC-2771, EIP-2612 and EIP-3009 suites. Domains are
 ///      always read back from the deployed contract rather than rebuilt from constants, so a
 ///      domain drift shows up as a failing signature instead of a test that quietly signs the
@@ -213,5 +228,27 @@ abstract contract MetaTxSigner is Test {
         );
 
         (v, r, s) = vm.sign(signerKey, MessageHashUtils.toTypedDataHash(_tokenDomainSeparator(token), structHash));
+    }
+
+    /// @dev Signs a transfer authorization and sends it to the token as `relayer`, the way the
+    ///      relayer sends the wallet menu's transfer. Only for transfers that should go through:
+    ///      signing reads the token's domain, which would take a pending `expectRevert`.
+    function _relayTransferAuthorization(
+        address token,
+        address relayer,
+        uint256 signerKey,
+        address to,
+        uint256 value,
+        uint256 validAfter,
+        uint256 validBefore,
+        bytes32 nonce
+    ) internal {
+        (uint8 v, bytes32 r, bytes32 s) =
+            _signTransferAuthorization(token, signerKey, to, value, validAfter, validBefore, nonce);
+
+        vm.prank(relayer);
+        ITransferWithAuthorization(token).transferWithAuthorization(
+            vm.addr(signerKey), to, value, validAfter, validBefore, nonce, v, r, s
+        );
     }
 }

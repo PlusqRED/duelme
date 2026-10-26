@@ -8,7 +8,6 @@ import {
   recoverTypedDataAddress,
   toHex,
 } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
 import {
   nextRelayedTransferAt,
   parseRelayTransferPayload,
@@ -21,30 +20,16 @@ import {
   type RelayTransfer,
 } from '@/lib/relayedTransfer';
 import { SUPPORTED_CHAINS } from '@/lib/constants';
+import { signTransfer, TRANSFER_TO, transferSigner, usdtDomain } from '@/lib/__tests__/helpers/relayTransfer';
 
 const CHAIN = SUPPORTED_CHAINS.arbitrumSepolia.id;
 const NOW = Date.UTC(2026, 9, 26, 21, 30);
-const account = privateKeyToAccount(`0x${'11'.repeat(32)}`);
-const TO = '0x32a3FE56F4FeE248E4f19ca3D4374a018ac9AA23';
-const DOMAIN = { name: 'USD₮0', version: '1', chainId: BigInt(CHAIN), verifyingContract: SUPPORTED_CHAINS.arbitrumSepolia.usdt };
+const account = transferSigner;
+const TO = TRANSFER_TO;
+const DOMAIN = usdtDomain(CHAIN, SUPPORTED_CHAINS.arbitrumSepolia.usdt);
 
 async function signedTransfer(overrides: Partial<RelayTransfer> = {}): Promise<RelayTransfer> {
-  const message = transferAuthorization(account.address, TO, 5_000_000n, NOW);
-  const signature = await account.signTypedData({
-    domain: DOMAIN,
-    types: TRANSFER_AUTHORIZATION_TYPES,
-    primaryType: 'TransferWithAuthorization',
-    message,
-  });
-  return {
-    from: account.address,
-    to: TO,
-    value: '5000000',
-    validBefore: Number(message.validBefore),
-    nonce: message.nonce,
-    signature,
-    ...overrides,
-  };
+  return { ...(await signTransfer({ chainId: CHAIN, token: SUPPORTED_CHAINS.arbitrumSepolia.usdt, nowMs: NOW })), ...overrides };
 }
 
 function parse(transfer: unknown, nowMs = NOW) {
@@ -57,7 +42,7 @@ describe('the relayed transfer\'s day', () => {
 
     expect(relayedTransferDay(lastMoment)).toBe(relayedTransferDay(Date.UTC(2026, 9, 26)));
     expect(relayedTransferDay(lastMoment + 1)).toBe(relayedTransferDay(lastMoment) + 1);
-    expect(nextRelayedTransferAt(NOW)).toBe(Date.UTC(2026, 9, 27));
+    expect(nextRelayedTransferAt(relayedTransferDay(NOW))).toBe(Date.UTC(2026, 9, 27));
   });
 
   it('gives every day a nonce of its own, the same for every wallet that day', () => {
@@ -137,7 +122,7 @@ describe('parseRelayTransferPayload', () => {
   it('refuses an authorization signed for another day', async () => {
     const transfer = await signedTransfer();
 
-    expect(parse(transfer, nextRelayedTransferAt(NOW) + 1_000)).toMatchObject({ ok: false, code: 'INVALID_REQUEST' });
+    expect(parse(transfer, nextRelayedTransferAt(relayedTransferDay(NOW)) + 1_000)).toMatchObject({ ok: false, code: 'INVALID_REQUEST' });
     expect(parse({ ...transfer, nonce: relayedTransferNonce(relayedTransferDay(NOW) - 1) })).toMatchObject({
       ok: false,
       code: 'TRANSFER_WRONG_DAY',

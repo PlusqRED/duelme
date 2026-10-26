@@ -331,10 +331,10 @@ test can check.
 | `frontend/src/hooks/useFaucetClaim.ts` | Testnet faucet claim where the backend's status (`useFaucetStatus`) offers one, shared by the wallet menu (`useFaucetFlask`) and the top-up window |
 | `frontend/src/lib/buildTransactionParams.ts` | Builds explicit `gas`/`maxFeePerGas`/`maxPriorityFeePerGas`/`nonce` to bypass Privy auto-populate (see Common Pitfalls) |
 | `frontend/src/lib/resilientBroadcast.ts` | Splits writes into sign + broadcast so wagmi fallback transport handles RPC retries; signs through Privy in Privy's own transaction shape (see Common Pitfalls); asks the network for a transaction whose broadcast failed |
-| `frontend/src/lib/errorDetails.ts` | Flattens an error graph into lowercase detail strings for failure classification; `bestErrorDetail` picks the one worth showing, `isWalletRefusal` tells a request turned down in the wallet |
+| `frontend/src/lib/errorDetails.ts` | Flattens an error graph into lowercase detail strings for failure classification; `bestErrorDetail` picks the one worth showing, `isWalletRefusal` tells a request turned down in the wallet, `isContractRevert` a call the contract itself refused |
 | `frontend/src/app/api/relay/route.ts` | Gas relayer: admits a signed ERC-2771 request, then signs and sends `ERC2771Forwarder.execute` under the lock (order: "Gasless Duel Actions") |
 | `frontend/src/app/api/relay/transfer/route.ts` | Relays the day's signed USDT transfer authorization to the token, admitted in `/api/relay`'s order (its comment) |
-| `frontend/src/lib/relayerSend.ts` | What both relay routes share: reading the POST, the send under the lock against the budgets, the relayer's fees, the answer |
+| `frontend/src/lib/relayerSend.ts` | What both relay routes share: reading the POST, the answer to a repeat, the send under the lock (the signer's hold checked again there) against the budgets, the relayer's fees and nonce |
 | `frontend/src/lib/transferSimulation.ts` | The relayed transfer's checks: the day's nonce unused, the balance, the token's own simulation, and its revert in the relay's codes |
 | `frontend/src/lib/relayRequest.ts` | Relay wire types and error codes, relayable-function allowlist, payload validation, outer gas-limit rule |
 | `frontend/src/lib/relayerConfig.ts` | Server-only relayer wiring (key, RPC, budget, the chain's USDT, viem clients) |
@@ -349,7 +349,7 @@ test can check.
 | `frontend/src/lib/tokenDomain.ts` | USDT's EIP-712 domain, rebuilt from `name()` and checked against `DOMAIN_SEPARATOR()`, once a session; permits and transfer authorizations share it |
 | `frontend/src/lib/relayApi.ts` | `/api/relay` and `/api/relay/transfer` client: posts the same signed request again when an answer is lost; `RelayRequestError` carries the server's code |
 | `frontend/src/hooks/useRelayerStatus.ts` | Whether duel writes on a chain can be relayed: the forwarder address and the server's relayer status, handed down with the page by the root layout |
-| `frontend/src/lib/testnetGas.ts` | Testnet vs mainnet gas/fee buffers; min-gas constants per duel action |
+| `frontend/src/lib/testnetGas.ts` | Testnet vs mainnet gas/fee buffers, picked by chain (`bufferedGasLimit`, `feeParamsFor`); min-gas constants per duel action |
 | `frontend/src/i18n/translations.ts` | Merges the per-area section files into one EN/RU key map — **add keys in `frontend/src/i18n/translations/<section>.ts`**, not here |
 | `frontend/src/lib/__tests__/deployedAddresses.test.ts` | Fails the build when `constants.ts` or a backend `application.yml` address (faucet token, `duelme.contracts.duel-me`) drifts from the broadcast artifact |
 | `frontend/src/lib/__tests__/contractAddresses.test.ts` | Fails the build when an in-app address map stops agreeing with `constants.ts` |

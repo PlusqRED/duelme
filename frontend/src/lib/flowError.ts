@@ -1,7 +1,7 @@
-import { BaseError, ContractFunctionRevertedError, ExecutionRevertedError } from 'viem';
+import { BaseError } from 'viem';
 import { SUPPORTED_CHAINS } from '@/lib/constants';
 import { nameCustomErrors, quotesCustomError } from '@/lib/customErrors';
-import { collectErrorDetails, isWalletRefusal } from '@/lib/errorDetails';
+import { collectErrorDetails, isContractRevert, isWalletRefusal } from '@/lib/errorDetails';
 import { RelayAnswerLostError, RelayRequestError } from '@/lib/relayApi';
 import type { RelayErrorCode } from '@/lib/relayRequest';
 import { PermitDomainMismatchError, TransactionReplacedError, TransactionRevertedError, WalletNotReadyError } from '@/lib/writeErrors';
@@ -72,10 +72,6 @@ const GAS_REFUSALS = [
   'gas too low',
   'max fee per gas less than block base fee',
 ];
-
-// viem's "Execution reverted for an unknown reason." wraps what a node said about the send, such as
-// a nonce it would not take, which is no word from the contract.
-const REVERT_WORDS = /execution reverted(?! for an unknown reason)|reverted with the following (?:reason|signature)/;
 
 /** viem's lines that repeat the call: its arguments and its calldata. */
 const CALL_LINES = ['args:', 'data:'];
@@ -149,13 +145,6 @@ export function classifyFlowError(error: unknown, { chainId, isNetworkSwitch = f
 
 function isTestnet(chainId: number): boolean {
   return Object.values(SUPPORTED_CHAINS).some((chain) => chain.id === chainId && chain.testnet);
-}
-
-function isContractRevert(error: unknown, details: readonly string[]): boolean {
-  const revert =
-    error instanceof BaseError &&
-    error.walk((cause) => cause instanceof ContractFunctionRevertedError || cause instanceof ExecutionRevertedError);
-  return !!revert || details.some((line) => REVERT_WORDS.test(line) || quotesCustomError(line));
 }
 
 /**

@@ -21,7 +21,7 @@ contract MockUSDTAuthorizationTest is MetaTxSigner {
 
     uint256 internal constant BALANCE = 100_000_000;
     uint256 internal constant AMOUNT = 25_000_000;
-    bytes32 internal constant NONCE = keccak256("duelme:relayed-transfer:20000");
+    bytes32 internal constant NONCE = DuelMeTestConstants.RELAYED_TRANSFER_NONCE;
 
     event AuthorizationUsed(address indexed authorizer, bytes32 indexed nonce);
     event Transfer(address indexed from, address indexed to, uint256 value);
@@ -177,7 +177,7 @@ contract MockUSDTAuthorizationTest is MetaTxSigner {
     // ─── helpers ───
 
     function _validBefore() internal view returns (uint256) {
-        return block.timestamp + 10 minutes;
+        return block.timestamp + DuelMeTestConstants.RELAYED_TRANSFER_VALIDITY;
     }
 
     function _submit(
@@ -188,10 +188,6 @@ contract MockUSDTAuthorizationTest is MetaTxSigner {
         uint256 validBefore,
         bytes32 nonce
     ) internal {
-        (uint8 v, bytes32 r, bytes32 s) =
-            _signTransferAuthorization(address(usdt), signerKey, to, value, validAfter, validBefore, nonce);
-
-        vm.prank(relayer);
-        usdt.transferWithAuthorization(vm.addr(signerKey), to, value, validAfter, validBefore, nonce, v, r, s);
+        _relayTransferAuthorization(address(usdt), relayer, signerKey, to, value, validAfter, validBefore, nonce);
     }
 }

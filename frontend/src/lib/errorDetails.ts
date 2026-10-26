@@ -1,3 +1,6 @@
+import { BaseError, ContractFunctionRevertedError, ExecutionRevertedError } from 'viem';
+import { quotesCustomError } from '@/lib/customErrors';
+
 /**
  * Collects every human-readable detail from an error graph (message /
  * shortMessage / details / reason, walking cause / error / data recursively),
@@ -53,6 +56,18 @@ const REFUSAL_WORDS = ['reject', 'denied', 'cancelled', 'canceled'];
 /** Whether the wallet's owner turned the request down, so nothing was signed or sent. */
 export function isWalletRefusal(error: unknown): boolean {
   return collectErrorDetails(error).some((detail) => REFUSAL_WORDS.some((word) => detail.includes(word)));
+}
+
+// viem's "Execution reverted for an unknown reason." wraps what a node said about the send, such as
+// a nonce it would not take, which is no word from the contract.
+const REVERT_WORDS = /execution reverted(?! for an unknown reason)|reverted with the following (?:reason|signature)/;
+
+/** Whether the contract itself refused the call, rather than the node, the wallet or the network. */
+export function isContractRevert(error: unknown, details: readonly string[] = collectErrorDetails(error)): boolean {
+  const revert =
+    error instanceof BaseError &&
+    error.walk((cause) => cause instanceof ContractFunctionRevertedError || cause instanceof ExecutionRevertedError);
+  return !!revert || details.some((line) => REVERT_WORDS.test(line) || quotesCustomError(line));
 }
 
 /**

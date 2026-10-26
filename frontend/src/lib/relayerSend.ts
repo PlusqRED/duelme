@@ -1,20 +1,21 @@
 import { NextResponse } from 'next/server';
 import type { Hex } from 'viem';
-import { SUPPORTED_CHAINS } from '@/lib/constants';
 import {
   refusal,
   type RelayErrorCode,
   type RelayErrorResponse,
   type RelayOutcome,
+  type RelayPayloadFailure,
   type RelayRefusal,
   type RelaySuccessResponse,
 } from '@/lib/relayRequest';
 import { getRelayerConfig, type RelayerConfig } from '@/lib/relayerConfig';
 import { releaseDailyBudget, reserveDailyBudget, settleDailyBudget } from '@/lib/relayerBudget';
+import { relayOnce } from '@/lib/relayerDedup';
 import { RelayerBusyError, withRelayerLock } from '@/lib/relayerQueue';
 import { relayClientAddress, takeRelayRateLimit } from '@/lib/relayerRateLimit';
-import { holdSigner, releaseSigner, SIGNER_HOLD_MS } from '@/lib/relayerSignerHold';
-import { getBufferedTestnetFeeParams, getMainnetFeeParams } from '@/lib/testnetGas';
+import { holdSigner, refuseWhileHeld, releaseSigner, SIGNER_HOLD_MS } from '@/lib/relayerSignerHold';
+import { feeParamsFor } from '@/lib/testnetGas';
 
 /**
  * What both relay routes share around their own admission: the first gates a post passes, and
@@ -57,12 +58,33 @@ export async function readRelayPost(httpRequest: Request): Promise<RelayPost> {
   }
 }
 
+/** A body that failed its parse: a call this relayer will not make is forbidden, anything else malformed. */
+export function refuseRelayPayload({ code, error }: RelayPayloadFailure): NextResponse {
+  return relayFailure(code, error, code === 'NOT_RELAYABLE' ? 403 : 400);
+}
+
+/**
+ * Relays a parsed request once, however often it is posted (`relayOnce`), and answers with the
+ * outcome. A throw nothing expected is the relayer's failure, logged under `label`.
+ */
+export async function answerOnce(key: Hex, relay: () => Promise<RelayOutcome>, label: string): Promise<NextResponse> {
+  try {
+    return relayAnswer(await relayOnce(key, relay));
+  } catch (error) {
+    console.error(`[relay] unexpected ${label} failure`, error);
+    return relayFailure('RELAYER_UNAVAILABLE', 'Relaying failed unexpectedly.', 502);
+  }
+}
+
 export type BroadcastOutcome = RelayRefusal | { ok: true; hash: Hex; worstCaseWei: bigint };
 
 /**
  * Runs `broadcast` under the relayer lock, then waits for its receipt outside it. The nonce is
  * consumed by the broadcast, so the next request can read `pending` and get a fresh one; waiting
  * for the receipt in the lock would hold the relayer idle for up to RECEIPT_TIMEOUT_MS each time.
+ *
+ * The signer's hold is checked again first, where it cannot race: only this lock sends, so no
+ * hold can appear between that check and the send.
  */
 export async function sendUnderRelayerLock(
   config: RelayerConfig,
@@ -72,7 +94,7 @@ export async function sendUnderRelayerLock(
 ): Promise<RelayOutcome> {
   let sent: BroadcastOutcome;
   try {
-    sent = await withRelayerLock(broadcast);
+    sent = await withRelayerLock(async () => refuseWhileHeld(from) ?? (await broadcast()));
   } catch (error) {
     if (error instanceof RelayerBusyError) {
       return refusal('RELAYER_UNAVAILABLE', error.message, 503);
@@ -87,18 +109,20 @@ export async function sendUnderRelayerLock(
 }
 
 /**
- * The fees the relayer offers, by the policy the self-paid path uses: Arbitrum One legitimately
- * reports a zero priority fee, which some serializers reject, and a base-fee spike between
- * estimate and submission is what "max fee per gas less than block base fee" looks like.
+ * The relayer's fees and next nonce, read under the lock. The fees follow the policy the self-paid
+ * path uses: Arbitrum One legitimately reports a zero priority fee, which some serializers reject,
+ * and a base-fee spike between estimate and submission is what "max fee per gas less than block
+ * base fee" looks like. Only the lock sends, and it is handed on only after the previous
+ * eth_sendRawTransaction returned, so `pending` already counts it.
  */
-export function relayerFeeParams(
-  config: RelayerConfig,
-  feeEstimate: Parameters<typeof getMainnetFeeParams>[0],
-  baseFeePerGas: bigint | null | undefined
-) {
-  return config.chainId === SUPPORTED_CHAINS.arbitrumSepolia.id
-    ? getBufferedTestnetFeeParams(feeEstimate, baseFeePerGas)
-    : getMainnetFeeParams(feeEstimate, baseFeePerGas);
+export async function readSendTerms(config: RelayerConfig) {
+  const { publicClient } = config;
+  const [feeEstimate, block, nonce] = await Promise.all([
+    publicClient.estimateFeesPerGas(),
+    publicClient.getBlock(),
+    publicClient.getTransactionCount({ address: config.relayerAddress, blockTag: 'pending' }),
+  ]);
+  return { ...feeParamsFor(config.chainId, feeEstimate, block.baseFeePerGas), nonce };
 }
 
 /**

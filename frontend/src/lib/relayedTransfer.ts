@@ -1,6 +1,6 @@
-import { isAddress, isHex, keccak256, parseSignature, toHex, zeroAddress, type Hex } from 'viem';
-import { isRecord, parseUintString } from '@/lib/parsing';
-import type { RelayErrorCode } from '@/lib/relayRequest';
+import { isAddress, isHash, isHex, keccak256, parseSignature, toHex, zeroAddress, type Hex } from 'viem';
+import { parseUintString } from '@/lib/parsing';
+import { parseRelayEnvelope, type RelayPayloadFailure } from '@/lib/relayRequest';
 
 /**
  * The one USDT transfer a day DuelMe pays the fee for, from the wallet menu: an EIP-3009
@@ -44,10 +44,12 @@ export function relayedTransferNonce(day: number): Hex {
   return keccak256(toHex(`duelme:relayed-transfer:${day}`));
 }
 
-/** When the next day's relayed transfer opens: the coming UTC midnight, in milliseconds. */
-export function nextRelayedTransferAt(nowMs: number): number {
-  return (relayedTransferDay(nowMs) + 1) * RELAYED_TRANSFER_DAY_MS;
+/** When the relayed transfer after `day`'s opens: the UTC midnight that ends it, in milliseconds. */
+export function nextRelayedTransferAt(day: number): number {
+  return (day + 1) * RELAYED_TRANSFER_DAY_MS;
 }
+
+export type TransferAuthorization = ReturnType<typeof transferAuthorization>;
 
 /** The authorization a player signs to send `value` to `to` now; `validAfter` is always 0. */
 export function transferAuthorization(from: `0x${string}`, to: `0x${string}`, value: bigint, nowMs: number) {
@@ -74,9 +76,10 @@ export interface RelayTransfer {
   signature: Hex;
 }
 
-export interface RelayTransferBody {
-  chainId: number;
-  transfer: RelayTransfer;
+/** A signed authorization as it travels to the relayer. */
+export function toRelayTransfer(authorization: TransferAuthorization, signature: Hex): RelayTransfer {
+  const { from, to, value, validBefore, nonce } = authorization;
+  return { from, to, value: value.toString(), validBefore: Number(validBefore), nonce, signature };
 }
 
 /** The arguments of `transferWithAuthorization` a signed authorization is sent as. */
@@ -95,9 +98,7 @@ export function transferAuthorizationArgs(transfer: RelayTransfer) {
   ] as const;
 }
 
-export type RelayTransferPayloadResult =
-  | { ok: true; transfer: RelayTransfer }
-  | { ok: false; code: RelayErrorCode; error: string };
+export type RelayTransferPayloadResult = { ok: true; transfer: RelayTransfer } | RelayPayloadFailure;
 
 export interface RelayTransferTarget {
   chainId: number;
@@ -110,23 +111,12 @@ export interface RelayTransferTarget {
  * and cheap, like `parseRelayPayload`: nothing here costs the relayer a round trip.
  */
 export function parseRelayTransferPayload(payload: unknown, target: RelayTransferTarget): RelayTransferPayloadResult {
-  if (!isRecord(payload)) {
-    return invalid('Request body must be a JSON object.');
+  const envelope = parseRelayEnvelope(payload, target.chainId, 'transfer');
+  if (!envelope.ok) {
+    return envelope;
   }
 
-  const { chainId, transfer } = payload;
-  if (typeof chainId !== 'number' || !Number.isInteger(chainId) || chainId <= 0) {
-    return invalid('chainId must be a positive integer.');
-  }
-  // A signature for another chain's token would fail on this one anyway; this says why at once.
-  if (chainId !== target.chainId) {
-    return { ok: false, code: 'NOT_RELAYABLE', error: `This relayer only serves chain ${target.chainId}.` };
-  }
-  if (!isRecord(transfer)) {
-    return invalid('transfer must be an object.');
-  }
-
-  const { from, to, value, validBefore, nonce, signature } = transfer;
+  const { from, to, value, validBefore, nonce, signature } = envelope.signed;
   if (typeof from !== 'string' || !isAddress(from)) {
     return invalid('transfer.from must be an address.');
   }
@@ -148,7 +138,7 @@ export function parseRelayTransferPayload(payload: unknown, target: RelayTransfe
     return invalid(`transfer.validBefore must fall within the next ${RELAYED_TRANSFER_VALIDITY_SECONDS} seconds.`);
   }
 
-  if (typeof nonce !== 'string' || !isHex(nonce) || nonce.length !== 66) {
+  if (typeof nonce !== 'string' || !isHash(nonce)) {
     return invalid('transfer.nonce must be 32 bytes of hex.');
   }
   if (nonce.toLowerCase() !== relayedTransferNonce(relayedTransferDay(target.nowMs))) {
@@ -174,6 +164,6 @@ function isSignature(signature: Hex): boolean {
   }
 }
 
-function invalid(error: string): RelayTransferPayloadResult {
+function invalid(error: string): RelayPayloadFailure {
   return { ok: false, code: 'INVALID_REQUEST', error };
 }

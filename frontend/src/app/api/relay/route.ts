@@ -7,12 +7,12 @@ import {
   type RelayOutcome,
 } from '@/lib/relayRequest';
 import type { RelayerConfig } from '@/lib/relayerConfig';
-import { relayOnce, relayRequestKey } from '@/lib/relayerDedup';
+import { relayRequestKey } from '@/lib/relayerDedup';
 import {
+  answerOnce,
   readRelayPost,
-  relayAnswer,
-  relayerFeeParams,
-  relayFailure,
+  readSendTerms,
+  refuseRelayPayload,
   sendBudgeted,
   sendUnderRelayerLock,
   type BroadcastOutcome,
@@ -55,19 +55,11 @@ export async function POST(httpRequest: Request) {
     duelMeAddress: config.duelMeAddress,
   });
   if (!parsed.ok) {
-    return relayFailure(parsed.code, parsed.error, parsed.code === 'NOT_RELAYABLE' ? 403 : 400);
+    return refuseRelayPayload(parsed);
   }
 
   const { request } = parsed.body;
-  let outcome: RelayOutcome;
-  try {
-    outcome = await relayOnce(relayRequestKey(request), () => relay(config, request, parsed.functionName));
-  } catch (error) {
-    console.error('[relay] unexpected failure', error);
-    return relayFailure('RELAYER_UNAVAILABLE', 'Relaying failed unexpectedly.', 502);
-  }
-
-  return relayAnswer(outcome);
+  return answerOnce(relayRequestKey(request), () => relay(config, request, parsed.functionName), 'duel action');
 }
 
 async function relay(
@@ -89,24 +81,16 @@ async function relay(
 }
 
 /**
- * Runs inside the relayer lock, which signs and sends one transaction at a time: nothing
- * else is reading the relayer's nonce while this does, and the lock is only handed on after
- * the previous request's eth_sendRawTransaction returned, so `pending` already counts it.
+ * Runs inside the relayer lock, which signs and sends one transaction at a time, once the
+ * signer's hold has been checked again there (`sendUnderRelayerLock`).
  */
 async function broadcast(
   config: RelayerConfig,
   request: RelayForwardRequest,
   functionName: string
 ): Promise<BroadcastOutcome> {
-  // Checked again here, where it cannot race: only this lock sends, so no hold can appear
-  // between this check and the send below.
-  const held = refuseWhileHeld(request.from);
-  if (held) {
-    return held;
-  }
-
   const args = toForwardRequestArgs(request);
-  const { publicClient, walletClient, forwarderAddress } = config;
+  const { walletClient, forwarderAddress } = config;
 
   // Nothing here depends on anything else here, and every one of them is a round trip the
   // player waits through while the lock is held — so they go out together. Admission
@@ -114,12 +98,10 @@ async function broadcast(
   // waits: a transaction sent before it can take the duel it wanted, its deadline can pass,
   // or someone can execute the same signed request elsewhere. Only admitted requests get
   // here, so running both alongside costs junk nothing.
-  const [rejected, simulation, feeEstimate, block, nonce] = await Promise.all([
+  const [rejected, simulation, { maxFeePerGas, maxPriorityFeePerGas, nonce }] = await Promise.all([
     verifyForwardRequest(config, request),
     simulateExecute(config, request, functionName),
-    publicClient.estimateFeesPerGas(),
-    publicClient.getBlock(),
-    publicClient.getTransactionCount({ address: config.relayerAddress, blockTag: 'pending' }),
+    readSendTerms(config),
   ]);
 
   if (rejected) {
@@ -130,7 +112,6 @@ async function broadcast(
   }
 
   // The gas limit is the relayer's own call (relayGasLimit); the fees are the shared policy.
-  const { maxFeePerGas, maxPriorityFeePerGas } = relayerFeeParams(config, feeEstimate, block.baseFeePerGas);
   const gasLimit = relayGasLimit(args.gas, simulation.executeEstimate);
 
   return sendBudgeted(config, request.from, gasLimit * maxFeePerGas, () =>

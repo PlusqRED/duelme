@@ -15,22 +15,10 @@ contract RefusingSigner {
 }
 
 /// @dev The EIP-3009 half of USD₮0 the relayer sends the wallet menu's transfer through.
-interface IUsdtAuthorization {
+interface IUsdtAuthorization is ITransferWithAuthorization {
     function TRANSFER_WITH_AUTHORIZATION_TYPEHASH() external view returns (bytes32);
 
     function authorizationState(address authorizer, bytes32 nonce) external view returns (bool);
-
-    function transferWithAuthorization(
-        address from,
-        address to,
-        uint256 value,
-        uint256 validAfter,
-        uint256 validBefore,
-        bytes32 nonce,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external;
 }
 
 /// @dev Runs the gasless funding path against the REAL Arbitrum One USDT (USD₮0), which is
@@ -171,18 +159,18 @@ contract UsdtPermitForkTest is MetaTxSigner {
     function testRelayedTransferAuthorizationOnMainnetUsdtWorksOncePerNonce() public onlyForked {
         IUsdtAuthorization token = IUsdtAuthorization(ARBITRUM_USDT);
         assertEq(token.TRANSFER_WITH_AUTHORIZATION_TYPEHASH(), TRANSFER_WITH_AUTHORIZATION_TYPEHASH);
-        bytes32 nonce = keccak256("duelme:relayed-transfer:20000");
+        bytes32 nonce = DuelMeTestConstants.RELAYED_TRANSFER_NONCE;
+        uint256 validBefore = block.timestamp + DuelMeTestConstants.RELAYED_TRANSFER_VALIDITY;
         uint256 aliceBefore = usdt.balanceOf(alice);
         uint256 bobBefore = usdt.balanceOf(bob);
 
-        _relayTransferAuthorization(aliceKey, bob, WAGER, nonce);
+        _relayTransferAuthorization(ARBITRUM_USDT, relayer, aliceKey, bob, WAGER, 0, validBefore, nonce);
 
         assertEq(usdt.balanceOf(alice), aliceBefore - WAGER);
         assertEq(usdt.balanceOf(bob), bobBefore + WAGER);
         assertTrue(token.authorizationState(alice, nonce));
         assertEq(alice.balance, 0, "the player paid no gas");
 
-        uint256 validBefore = block.timestamp + 10 minutes;
         (uint8 v, bytes32 r, bytes32 s) =
             _signTransferAuthorization(ARBITRUM_USDT, aliceKey, relayer, 1, 0, validBefore, nonce);
         vm.prank(relayer);
@@ -195,8 +183,8 @@ contract UsdtPermitForkTest is MetaTxSigner {
     ///      the relayed transfer. The wallet menu words that refusal for the player.
     function testDelegatedEoaCannotAuthorizeATransfer() public onlyForked {
         vm.etch(alice, address(new RefusingSigner()).code);
-        uint256 validBefore = block.timestamp + 10 minutes;
-        bytes32 nonce = keccak256("duelme:relayed-transfer:20000");
+        uint256 validBefore = block.timestamp + DuelMeTestConstants.RELAYED_TRANSFER_VALIDITY;
+        bytes32 nonce = DuelMeTestConstants.RELAYED_TRANSFER_NONCE;
         (uint8 v, bytes32 r, bytes32 s) =
             _signTransferAuthorization(ARBITRUM_USDT, aliceKey, bob, WAGER, 0, validBefore, nonce);
 
@@ -206,17 +194,6 @@ contract UsdtPermitForkTest is MetaTxSigner {
     }
 
     // ─── helpers ───
-
-    function _relayTransferAuthorization(uint256 signerKey, address to, uint256 value, bytes32 nonce) internal {
-        uint256 validBefore = block.timestamp + 10 minutes;
-        (uint8 v, bytes32 r, bytes32 s) =
-            _signTransferAuthorization(ARBITRUM_USDT, signerKey, to, value, 0, validBefore, nonce);
-
-        vm.prank(relayer);
-        IUsdtAuthorization(ARBITRUM_USDT).transferWithAuthorization(
-            vm.addr(signerKey), to, value, 0, validBefore, nonce, v, r, s
-        );
-    }
 
     function _createWithPermitData(uint256 signerKey, uint256 amount) internal view returns (bytes memory) {
         uint256 deadline = block.timestamp + 1 hours;

@@ -7,10 +7,10 @@ import { Icon } from '@/components/ui/icon';
 import { Spinner } from '@/components/ui/spinner';
 import type { WalletNetwork } from '@/hooks/useWalletBalances';
 import { useTranslation } from '@/i18n/useTranslation';
-import type { FaucetOffer } from '@/lib/faucetApi';
+import { faucetEthNote, type FaucetOffer } from '@/lib/faucetApi';
 import { SEND_ERROR_WORDS, suggestsEth, type SendError } from '@/lib/sendError';
 import type { SendStage, Transfer } from '@/lib/sendUsdt';
-import { cn, formatEth, formatTime, formatUSDT, truncateAddress } from '@/lib/utils';
+import { cn, formatTime, formatUSDT, truncateAddress } from '@/lib/utils';
 
 interface SendProgressProps {
   stage: SendStage;
@@ -39,13 +39,10 @@ interface SendProgressProps {
 export function SendProgress({ stage, from, transfer, network, hash, failure, nextFreeAt, faucetOffer, isInAppWallet, onDone, onRetry }: SendProgressProps) {
   const { t, language } = useTranslation();
   const isDone = stage === 'done';
-  const isOver = isDone || stage === 'rejected' || stage === 'failed';
+  const isOver = isDone || stage === 'failed';
   const words = SEND_ERROR_WORDS[failure?.kind ?? 'error'];
   const canRetry = failure?.canRetry ?? true;
-  const offersEth =
-    failure && suggestsEth(failure.kind) && faucetOffer.kind === 'ready' && faucetOffer.ethAmountWei > 0n
-      ? ` ${t('send.err.eth.faucet', { eth: formatEth(faucetOffer.ethAmountWei, language) })}`
-      : '';
+  const offersEth = failure && suggestsEth(failure.kind) ? faucetEthNote(faucetOffer, language, t) : '';
 
   return (
     <>

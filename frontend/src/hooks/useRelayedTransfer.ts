@@ -5,7 +5,7 @@ import { useClockValue } from '@/hooks/useNow';
 import { useRelayerStatus } from '@/hooks/useRelayerStatus';
 import { USDT_ADDRESSES } from '@/lib/constants';
 import { transferWithAuthorizationAbi } from '@/lib/contracts';
-import { relayedTransferDay, relayedTransferNonce, RELAYED_TRANSFER_DAY_MS } from '@/lib/relayedTransfer';
+import { nextRelayedTransferAt, relayedTransferDay, relayedTransferNonce } from '@/lib/relayedTransfer';
 import type { FreeTransferStatus } from '@/lib/sendUsdt';
 
 /**
@@ -26,5 +26,5 @@ export function useRelayedTransfer(chainId: number, address: `0x${string}` | und
   });
 
   const status: FreeTransferStatus = !isRelayEnabled ? 'off' : isUsed === undefined ? 'unknown' : isUsed ? 'used' : 'available';
-  return { status, nextAt: (day + 1) * RELAYED_TRANSFER_DAY_MS, refetch };
+  return { status, nextAt: nextRelayedTransferAt(day), refetch };
 }

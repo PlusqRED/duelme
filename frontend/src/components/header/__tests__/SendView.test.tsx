@@ -22,7 +22,6 @@ vi.mock('@/hooks/useSendUsdt', () => ({
     hash: undefined,
     isConfirming: false,
     isSuccess: false,
-    error: null,
     failure: null,
   }),
 }));

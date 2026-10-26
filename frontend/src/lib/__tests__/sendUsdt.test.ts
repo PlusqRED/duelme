@@ -110,7 +110,7 @@ describe('resolveSendRoute', () => {
 });
 
 describe('sendStage', () => {
-  const idle = { isConfirming: false, isSuccess: false, error: null };
+  const idle = { isConfirming: false, isSuccess: false, failure: null };
 
   it('waits for the wallet to confirm before there is a transaction', () => {
     expect(sendStage(idle)).toBe('confirm');
@@ -128,8 +128,7 @@ describe('sendStage', () => {
     expect(sendStage({ ...idle, hash: '0xabc', isSuccess: true })).toBe('done');
   });
 
-  it('tells a transfer turned down in the wallet from one that failed', () => {
-    expect(sendStage({ ...idle, error: new Error('User rejected the request.') })).toBe('rejected');
-    expect(sendStage({ ...idle, error: new Error('insufficient funds for gas') })).toBe('failed');
+  it('stops once the transfer has a failure, whatever its kind', () => {
+    expect(sendStage({ ...idle, hash: '0xabc', failure: { kind: 'reverted', detail: null, canRetry: true } })).toBe('failed');
   });
 });

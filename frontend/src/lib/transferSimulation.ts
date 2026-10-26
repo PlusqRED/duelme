@@ -1,6 +1,5 @@
-import { BaseError, ContractFunctionRevertedError } from 'viem';
 import { balanceOfAbi, transferWithAuthorizationAbi } from '@/lib/contracts';
-import { bestErrorDetail, collectErrorDetails } from '@/lib/errorDetails';
+import { bestErrorDetail, collectErrorDetails, isContractRevert } from '@/lib/errorDetails';
 import { transferAuthorizationArgs, type RelayTransfer } from '@/lib/relayedTransfer';
 import { refusal, type RelayRefusal } from '@/lib/relayRequest';
 import type { RelayerConfig } from '@/lib/relayerConfig';
@@ -59,11 +58,7 @@ function usedToday(): RelayRefusal {
  */
 function describeRevert(error: unknown, from: string): RelayRefusal {
   const details = collectErrorDetails(error);
-  const isRevert =
-    (error instanceof BaseError && !!error.walk((cause) => cause instanceof ContractFunctionRevertedError)) ||
-    details.some((detail) => detail.includes('revert'));
-
-  if (!isRevert) {
+  if (!isContractRevert(error, details)) {
     console.error('[relay] transfer estimate failed without a revert', error);
     return refusal('RELAYER_UNAVAILABLE', 'Could not price this transaction right now.', 502);
   }

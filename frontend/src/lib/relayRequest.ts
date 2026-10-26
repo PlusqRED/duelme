@@ -163,9 +163,46 @@ export function relayGasLimit(requestGas: bigint, executeEstimate: bigint): bigi
   return executeEstimate + (requestGas * 64n) / 63n + FORWARDER_EXECUTE_OVERHEAD;
 }
 
-export type RelayPayloadResult =
-  | { ok: true; body: RelayRequestBody; functionName: string }
-  | { ok: false; code: RelayErrorCode; error: string };
+export type RelayPayloadFailure = { ok: false; code: RelayErrorCode; error: string };
+
+export type RelayPayloadResult = { ok: true; body: RelayRequestBody; functionName: string } | RelayPayloadFailure;
+
+/**
+ * What every relayed body is checked for first, whatever it carries: a JSON object for this
+ * relayer's chain, holding the signed object under `field`.
+ */
+export function parseRelayEnvelope(
+  payload: unknown,
+  servedChainId: number,
+  field: string
+): { ok: true; chainId: number; signed: Record<string, unknown> } | RelayPayloadFailure {
+  if (!isRecord(payload)) {
+    return invalid('Request body must be a JSON object.');
+  }
+
+  const { chainId } = payload;
+  const signed = payload[field];
+
+  if (typeof chainId !== 'number' || !Number.isInteger(chainId) || chainId <= 0) {
+    return invalid('chainId must be a positive integer.');
+  }
+
+  // The chain check belongs with the other admission rules, not in the route: it is the one
+  // that stops a signature valid on another deployment from being replayed here, and it is
+  // covered by the same test suite as its siblings.
+  if (chainId !== servedChainId) {
+    return {
+      ok: false,
+      code: 'NOT_RELAYABLE',
+      error: `This relayer only serves chain ${servedChainId}.`,
+    };
+  }
+
+  if (!isRecord(signed)) {
+    return invalid(`${field} must be an object.`);
+  }
+  return { ok: true, chainId, signed };
+}
 
 /**
  * Validates an untrusted request body down to the duel function it would call. Everything
@@ -178,31 +215,12 @@ export interface RelayTarget {
 }
 
 export function parseRelayPayload(payload: unknown, target: RelayTarget): RelayPayloadResult {
-  if (!isRecord(payload)) {
-    return invalid('Request body must be a JSON object.');
+  const envelope = parseRelayEnvelope(payload, target.chainId, 'request');
+  if (!envelope.ok) {
+    return envelope;
   }
 
-  const { chainId, request } = payload;
-
-  if (typeof chainId !== 'number' || !Number.isInteger(chainId) || chainId <= 0) {
-    return invalid('chainId must be a positive integer.');
-  }
-
-  // The chain check belongs with the other admission rules, not in the route: it is the one
-  // that stops a signature valid on another deployment from being replayed here, and it is
-  // covered by the same test suite as its siblings.
-  if (chainId !== target.chainId) {
-    return {
-      ok: false,
-      code: 'NOT_RELAYABLE',
-      error: `This relayer only serves chain ${target.chainId}.`,
-    };
-  }
-
-  if (!isRecord(request)) {
-    return invalid('request must be an object.');
-  }
-
+  const { chainId, signed: request } = envelope;
   const { from, to, value, gas, deadline, data, signature } = request;
 
   if (typeof from !== 'string' || !isAddress(from)) {
@@ -274,6 +292,6 @@ export function toForwardRequestArgs(request: RelayForwardRequest) {
   } as const;
 }
 
-function invalid(error: string): RelayPayloadResult {
+function invalid(error: string): RelayPayloadFailure {
   return { ok: false, code: 'INVALID_REQUEST', error };
 }

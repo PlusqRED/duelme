@@ -34,14 +34,19 @@ export function forwardRequest(duelId: bigint): RelayForwardRequest {
   };
 }
 
-export function post(body: unknown, client = '203.0.113.7') {
-  return POST(
-    new Request('http://127.0.0.1/api/relay', {
+/** Posts `body` to a relay route's handler at `path`, from the client address given. */
+export function postTo(handler: (request: Request) => Promise<Response>, path: string, body: unknown, client = '203.0.113.7') {
+  return handler(
+    new Request(`http://127.0.0.1${path}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-forwarded-for': client },
       body: typeof body === 'string' ? body : JSON.stringify(body),
     })
   );
+}
+
+export function post(body: unknown, client?: string) {
+  return postTo(POST, '/api/relay', body, client);
 }
 
 export function postRequest(request: RelayForwardRequest, client?: string) {

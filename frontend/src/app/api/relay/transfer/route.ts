@@ -3,19 +3,17 @@ import { transferWithAuthorizationAbi } from '@/lib/contracts';
 import { parseRelayTransferPayload, transferAuthorizationArgs, type RelayTransfer } from '@/lib/relayedTransfer';
 import type { RelayOutcome } from '@/lib/relayRequest';
 import type { RelayerConfig } from '@/lib/relayerConfig';
-import { relayOnce } from '@/lib/relayerDedup';
 import {
+  answerOnce,
   readRelayPost,
-  relayAnswer,
-  relayerFeeParams,
-  relayFailure,
+  readSendTerms,
+  refuseRelayPayload,
   sendBudgeted,
   sendUnderRelayerLock,
   type BroadcastOutcome,
 } from '@/lib/relayerSend';
 import { refuseWhileHeld } from '@/lib/relayerSignerHold';
-import { ARBITRUM_SEPOLIA_DEFAULT_MIN_GAS, getBufferedMainnetGasLimit, getBufferedTestnetGasLimit } from '@/lib/testnetGas';
-import { SUPPORTED_CHAINS } from '@/lib/constants';
+import { ARBITRUM_SEPOLIA_DEFAULT_MIN_GAS, bufferedGasLimit } from '@/lib/testnetGas';
 import { simulateTransfer } from '@/lib/transferSimulation';
 
 export const runtime = 'nodejs';
@@ -45,19 +43,11 @@ export async function POST(httpRequest: Request) {
 
   const parsed = parseRelayTransferPayload(payload, { chainId: config.chainId, nowMs: Date.now() });
   if (!parsed.ok) {
-    return relayFailure(parsed.code, parsed.error, parsed.code === 'NOT_RELAYABLE' ? 403 : 400);
+    return refuseRelayPayload(parsed);
   }
 
   const { transfer } = parsed;
-  let outcome: RelayOutcome;
-  try {
-    outcome = await relayOnce(relayTransferKey(transfer), () => relayTransfer(config, transfer));
-  } catch (error) {
-    console.error('[relay] unexpected transfer failure', error);
-    return relayFailure('RELAYER_UNAVAILABLE', 'Relaying failed unexpectedly.', 502);
-  }
-
-  return relayAnswer(outcome);
+  return answerOnce(relayTransferKey(transfer), () => relayTransfer(config, transfer), 'transfer');
 }
 
 /** The whole signed authorization, as the calldata it is sent as, blind to letter case. */
@@ -91,28 +81,17 @@ async function relayTransfer(config: RelayerConfig, transfer: RelayTransfer): Pr
 
 /** Runs inside the relayer lock, like `/api/relay`'s broadcast, and for the same reasons. */
 async function broadcastTransfer(config: RelayerConfig, transfer: RelayTransfer): Promise<BroadcastOutcome> {
-  const held = refuseWhileHeld(transfer.from);
-  if (held) {
-    return held;
-  }
-
-  const { publicClient, walletClient } = config;
-  const [simulation, feeEstimate, block, nonce] = await Promise.all([
+  const [simulation, { maxFeePerGas, maxPriorityFeePerGas, nonce }] = await Promise.all([
     simulateTransfer(config, transfer),
-    publicClient.estimateFeesPerGas(),
-    publicClient.getBlock(),
-    publicClient.getTransactionCount({ address: config.relayerAddress, blockTag: 'pending' }),
+    readSendTerms(config),
   ]);
   if (!simulation.ok) {
     return simulation;
   }
 
-  const { maxFeePerGas, maxPriorityFeePerGas } = relayerFeeParams(config, feeEstimate, block.baseFeePerGas);
-  // The self-paid path's buffers, and on the test network its floor: its estimates under-report.
-  const gasLimit =
-    config.chainId === SUPPORTED_CHAINS.arbitrumSepolia.id
-      ? getBufferedTestnetGasLimit(simulation.estimate, ARBITRUM_SEPOLIA_DEFAULT_MIN_GAS)
-      : getBufferedMainnetGasLimit(simulation.estimate);
+  // The self-paid path's buffers, and on the test network its floor.
+  const gasLimit = bufferedGasLimit(config.chainId, simulation.estimate, ARBITRUM_SEPOLIA_DEFAULT_MIN_GAS);
+  const { walletClient } = config;
 
   return sendBudgeted(config, transfer.from, gasLimit * maxFeePerGas, () =>
     walletClient.writeContract({

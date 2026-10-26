@@ -1,6 +1,5 @@
 import { isAddress, parseUnits } from 'viem';
 import { USDT_DECIMALS } from '@/lib/constants';
-import { isWalletRefusal } from '@/lib/errorDetails';
 import type { WriteRoute } from '@/lib/writeRoute';
 
 /** A positive or zero decimal as a person types it: a comma or a point, at most USDT's six decimals. */
@@ -99,21 +98,21 @@ export function checkTransfer(draft: SendDraft, wallet: SendWallet): TransferChe
 }
 
 /**
- * Where a sent transfer is: waiting for the wallet to confirm it; on the network; through; turned
- * down in the wallet; or failed some other way.
+ * Where a sent transfer is: waiting for the wallet to confirm it; on the network; through; or
+ * stopped, for whatever reason its failure gives.
  */
-export type SendStage = 'confirm' | 'sending' | 'done' | 'rejected' | 'failed';
+export type SendStage = 'confirm' | 'sending' | 'done' | 'failed';
 
 interface TransferState {
   hash?: string;
   isConfirming: boolean;
   isSuccess: boolean;
-  error: Error | null;
+  failure: unknown;
 }
 
 export function sendStage(transfer: TransferState): SendStage {
-  if (transfer.error) {
-    return isWalletRefusal(transfer.error) ? 'rejected' : 'failed';
+  if (transfer.failure) {
+    return 'failed';
   }
   if (transfer.isSuccess) {
     return 'done';
