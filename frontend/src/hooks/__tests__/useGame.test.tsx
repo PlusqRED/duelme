@@ -23,7 +23,7 @@ describe('useGame', () => {
   it('uses the game the page server read, with no second read', () => {
     const fetchMock = mockFetch();
 
-    const { result } = renderHook(() => useGame('chess', CHESS), { wrapper: withQueries });
+    const { result } = renderHook(() => useGame('chess', { status: 'settled', game: CHESS }), { wrapper: withQueries });
 
     expect([result.current.game, result.current.isLoading]).toEqual([CHESS, false]);
     expect(fetchMock).not.toHaveBeenCalled();
@@ -33,7 +33,7 @@ describe('useGame', () => {
     mockFetch();
     const client = new QueryClient();
 
-    renderHook(() => useGame('chess', CHESS), {
+    renderHook(() => useGame('chess', { status: 'settled', game: CHESS }), {
       wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,
     });
 
@@ -52,7 +52,7 @@ describe('useGame', () => {
     const guides = { ...CHESS, duelCount: 0 };
     mockFetch({ json: async () => CHESS });
 
-    const { result } = renderHook(() => useGame('chess', undefined, guides), { wrapper: withQueries });
+    const { result } = renderHook(() => useGame('chess', { status: 'unsettled', fallback: guides }), { wrapper: withQueries });
 
     expect(result.current.game).toEqual(guides);
     await waitFor(() => expect(result.current.game).toEqual(CHESS));
@@ -62,7 +62,7 @@ describe('useGame', () => {
     const guides = { ...CHESS, duelCount: 0 };
     mockFetch({ ok: false, status: 503 });
 
-    const { result } = renderHook(() => useGame('chess', undefined, guides), { wrapper: withQueries });
+    const { result } = renderHook(() => useGame('chess', { status: 'unsettled', fallback: guides }), { wrapper: withQueries });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.game).toEqual(guides);

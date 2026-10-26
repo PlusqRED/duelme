@@ -52,14 +52,15 @@ describe('safety', () => {
   it('says how many tests the contract has, with the word that agrees', async () => {
     renderIn('ru', await SafetyPage());
 
-    const tests = contractTestsLabel(translator('ru').plural, 'ru');
+    // Testing Library reads a no-break space as a plain one.
+    const tests = contractTestsLabel(translator('ru').plural, 'ru').replace(/\s/g, ' ');
 
     expect(screen.getByText((text) => text.startsWith(tests))).toBeTruthy();
   });
 
   it('says how long the emergency exit waits, as the contract has it', async () => {
     renderIn('ru', await SafetyPage());
-    const days = emergencyDelayLabel(translator('ru').plural, 'ru');
+    const days = emergencyDelayLabel(translator('ru').plural, 'ru').replace(/\s/g, ' ');
 
     expect(screen.getByText((text) => text.includes(`не раньше чем через ${days},`))).toBeTruthy();
   });

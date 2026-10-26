@@ -31,6 +31,10 @@ describe('stripLanguage', () => {
 });
 
 describe('localePath', () => {
+  it('never makes an address another site would claim out of a doubled slash', () => {
+    expect([localePath('/ru//evil.com/x', 'en'), localePath('/ru//evil.com/x', 'ru')]).toEqual(['/evil.com/x', '/ru/evil.com/x']);
+  });
+
   it('keeps an English page at its route’s own address', () => {
     expect(localePath('/games', 'en')).toBe('/games');
   });

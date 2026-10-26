@@ -30,7 +30,7 @@ export async function GuideShortcuts({ except, className }: GuideShortcutsProps)
               style={{ '--tone': gameInk(guide.category) }}
               className={cn(PILL_FACE, 'py-1 pr-3.5 pl-1 hover:border-(--tone)')}
             >
-              <GameTile name={guide.name} category={guide.category} className="size-8 rounded-full text-[0.6875rem]" />
+              <GameTile name={guide.name} category={guide.category} className="size-8 rounded-full text-micro" />
               {guide.name}
             </LocaleLink>
           </li>

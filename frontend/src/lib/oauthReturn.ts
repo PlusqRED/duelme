@@ -14,8 +14,9 @@ type ReturnStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 export function rememberOAuthReturn(language: Language, storage: ReturnStorage | null = browserStorage('session')): void {
   try {
     storage?.setItem(OAUTH_RETURN_KEY, language);
-  } catch {
+  } catch (error) {
     // A full or blocked storage only costs the return its language.
+    console.warn('[oauth return] the language could not be kept', error);
   }
 }
 
@@ -25,7 +26,8 @@ export function takeOAuthReturn(storage: ReturnStorage | null = browserStorage('
     const kept = storage?.getItem(OAUTH_RETURN_KEY) ?? null;
     storage?.removeItem(OAUTH_RETURN_KEY);
     return isLanguage(kept) ? kept : null;
-  } catch {
+  } catch (error) {
+    console.warn('[oauth return] the kept language could not be read', error);
     return null;
   }
 }

@@ -6,7 +6,7 @@ import { GuideShortcuts } from '@/components/game/GuideShortcuts';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { localePath } from '@/i18n/localePath';
 import { getTranslation } from '@/i18n/serverTranslation';
-import { uncataloguedGame, type Game } from '@/lib/game';
+import { uncataloguedGame, type Game, type KnownGame } from '@/lib/game';
 import { gameGuide, type GameGuide } from '@/lib/gameGuides';
 import { pageMetadata } from '@/lib/pageMetadata';
 import { readGame } from '@/lib/serverGame';
@@ -17,11 +17,13 @@ interface GamePageProps {
 }
 
 interface PageGame {
-  /** The game as the page server settled it: the catalog's, or a guide's the catalog does not have. */
-  game?: Game;
-  /** A guide's game, shown while the browser reads the catalog the server could not. */
-  fallbackGame?: Game;
+  known: KnownGame;
   guide: GameGuide | null;
+}
+
+/** The game the page names: the settled one, or the one shown while the browser reads it. */
+function namedGame(known: KnownGame): Game | undefined {
+  return known.status === 'settled' ? known.game : known.fallback;
 }
 
 /**
@@ -38,21 +40,21 @@ async function pageGame(slug: string): Promise<PageGame> {
   }
   const guide = gameGuide(slug);
   const read = await readGame(slug);
-  if (read.status === 'found') return { game: read.game, guide };
+  if (read.status === 'found') return { known: { status: 'settled', game: read.game }, guide };
   if (read.status === 'missing') {
     if (!guide) notFound();
-    return { game: uncataloguedGame(guide), guide };
+    return { known: { status: 'settled', game: uncataloguedGame(guide) }, guide };
   }
-  return { fallbackGame: guide ? uncataloguedGame(guide) : undefined, guide };
+  return { known: { status: 'unsettled', fallback: guide ? uncataloguedGame(guide) : undefined }, guide };
 }
 
 export async function generateMetadata({ params }: GamePageProps): Promise<Metadata> {
   const { slug } = await params;
-  const { game, fallbackGame, guide } = await pageGame(slug);
+  const { known, guide } = await pageGame(slug);
   const { t, language } = await getTranslation();
   const copy = guide?.copy[language];
   // With no game read, the address names it: the page is about that game, not the catalog.
-  const name = (game ?? fallbackGame)?.name ?? slug;
+  const name = namedGame(known)?.name ?? slug;
   return pageMetadata({
     path: `/games/${slug}`,
     title: copy?.title ?? t('seo.game.title', { game: name }),
@@ -62,9 +64,9 @@ export async function generateMetadata({ params }: GamePageProps): Promise<Metad
 
 export default async function GamePage({ params }: GamePageProps) {
   const { slug } = await params;
-  const { game, fallbackGame, guide } = await pageGame(slug);
+  const { known, guide } = await pageGame(slug);
   const { t, language } = await getTranslation();
-  const named = game ?? fallbackGame;
+  const named = namedGame(known);
 
   return (
     <>
@@ -82,8 +84,7 @@ export default async function GamePage({ params }: GamePageProps) {
       )}
       <GameDetail
         slug={slug}
-        initialGame={game}
-        fallbackGame={fallbackGame}
+        knownGame={known}
         lead={guide?.copy[language].lead}
         after={
           <>

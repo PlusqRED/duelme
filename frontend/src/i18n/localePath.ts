@@ -16,11 +16,14 @@ export function languageOfPath(pathname: string): Language {
   return LANGUAGES.find((language) => language !== DEFAULT_LANGUAGE && language === segment) ?? DEFAULT_LANGUAGE;
 }
 
-/** The address without its language's prefix: the page as the app's routes name it. */
+/**
+ * The address without its language's prefix: the page as the app's routes name it. Never `//…`,
+ * which a browser reads as another site: `/ru//evil.com` is the page `/evil.com`.
+ */
 export function stripLanguage(pathname: string): string {
   const prefix = prefixOf(languageOfPath(pathname));
   if (prefix === '') return pathname;
-  return pathname.slice(prefix.length) || '/';
+  return (pathname.slice(prefix.length) || '/').replace(/^\/{2,}/, '/');
 }
 
 /**

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppToast } from '@/hooks/useAppToast';
@@ -22,14 +22,19 @@ export function OAuthCallbackHandler() {
   const toast = useAppToast();
   const queryClient = useQueryClient();
   const { t, language } = useTranslation();
+  // Set once the page is on its way to the player's language: a second run of the effect (Strict
+  // Mode runs it twice) finds the kept language gone and must not toast or move in this one.
+  const isLeaving = useRef(false);
 
   useEffect(() => {
+    if (isLeaving.current) return;
     const steam = params.get('steam');
     const telegram = params.get('telegram');
     const platformStatus = steam ? { key: 'steam', status: steam } : telegram ? { key: 'telegram', status: telegram } : null;
     if (!platformStatus) return;
     const returnTo = takeOAuthReturn();
     if (returnTo !== null && returnTo !== language) {
+      isLeaving.current = true;
       window.location.replace(localePath(`/profile${window.location.search}`, returnTo));
       return;
     }

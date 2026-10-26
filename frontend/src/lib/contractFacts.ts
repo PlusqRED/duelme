@@ -19,7 +19,7 @@ export const contractCoverage = { percent: 94.9, measuredOn: '2026-10-19' } as c
 export const EMERGENCY_DELAY_DAYS = 30;
 
 function counted(count: number, key: PluralKey, plural: Translator['plural'], language: Language): string {
-  return `${formatCount(count, language)} ${plural(key, count)}`;
+  return `${formatCount(count, language)}\u00a0${plural(key, count)}`;
 }
 
 /** The test count in the reader's words, the number written their way: "294 tests", «294 теста». */
@@ -27,7 +27,7 @@ export function contractTestsLabel(plural: Translator['plural'], language: Langu
   return counted(CONTRACT_TESTS, 'trust.tests', plural, language);
 }
 
-/** The emergency delay in the reader's words: "30 days", «30 дней». */
+/** The emergency delay in the reader's words, kept on one line: "30 days", «30 дней». */
 export function emergencyDelayLabel(plural: Translator['plural'], language: Language): string {
   return counted(EMERGENCY_DELAY_DAYS, 'time.days', plural, language);
 }

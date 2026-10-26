@@ -28,7 +28,7 @@ export async function GameGuideBody({ guide }: GameGuideBodyProps) {
           >
             <span
               aria-hidden="true"
-              className="grid size-10 place-items-center rounded-xl bg-(--tone) font-label text-paper shadow-[0_3px_0_var(--color-ink)] -rotate-3"
+              className="grid size-10 place-items-center rounded-xl bg-(--tone) font-label text-paper shadow-badge -rotate-3"
             >
               {index + 1}
             </span>

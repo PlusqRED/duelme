@@ -45,14 +45,29 @@ describe('proxy', () => {
   it('gives the API no Russian address', () => {
     expect(isRewrite(visit('/ru/api/health'))).toBe(false);
   });
+
+  it('gives the share images and icons no Russian address', () => {
+    expect(['/ru/og/ru', '/ru/icon/32', '/ru/apple-icon'].map((path) => isRewrite(visit(path)))).toEqual([false, false, false]);
+  });
 });
 
 describe('proxy matcher', () => {
-  it.each(['/', '/games', '/ru', '/ru/duel/7', '/og/en', '/ru/og/ru'])('runs for %s', (url) => {
+  it.each(['/', '/games', '/ru', '/ru/duel/7', '/ru/games/cs2', '/profile/0xabc'])('runs for %s', (url) => {
     expect(unstable_doesMiddlewareMatch({ config, url })).toBe(true);
   });
 
-  it.each(['/api/relay', '/_next/static/chunks/app.js', '/t/script.js', '/robots.txt', '/sitemap.xml'])(
+  it.each([
+    '/api/relay',
+    '/_next/static/chunks/app.js',
+    '/t/script.js',
+    '/robots.txt',
+    '/sitemap.xml',
+    '/og/en',
+    '/icon/32',
+    '/apple-icon',
+    '/logo.png',
+    '/favicon.ico',
+  ])(
     'leaves %s alone',
     (url) => {
       expect(unstable_doesMiddlewareMatch({ config, url })).toBe(false);

@@ -12,6 +12,12 @@ const ROUTED_HEADER = 'x-duelme-routed';
 const ROUTED_MARK = crypto.randomUUID();
 
 /**
+ * What has one address in every language: the API and the images made for the pages. The matcher
+ * below skips them at the root; under `/ru` they reach the proxy and are left unrewritten, a 404.
+ */
+const SINGLE_ADDRESS = ['/api/', '/og/', '/icon/', '/apple-icon'];
+
+/**
  * The address names the language. `/ru/games` is served by the `/games` route with the language
  * header set to Russian; an address without a prefix is English. The header is set on every request,
  * so one a browser sent itself never reaches the page.
@@ -27,8 +33,7 @@ export function proxy(request: NextRequest) {
   headers.delete(ROUTED_HEADER);
 
   const page = stripLanguage(pathname);
-  // The API and the files beside the pages have one address, without a language.
-  if (language === DEFAULT_LANGUAGE || page.startsWith('/api/')) {
+  if (language === DEFAULT_LANGUAGE || SINGLE_ADDRESS.some((prefix) => page.startsWith(prefix))) {
     return NextResponse.next({ request: { headers } });
   }
   headers.set(ROUTED_HEADER, ROUTED_MARK);
@@ -38,6 +43,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Pages and the images made for them; never the API, the build's files or the analytics tracker.
-  matcher: ['/((?!api/|_next/|t/|favicon\\.ico$|robots\\.txt$|sitemap\\.xml$).*)'],
+  // Pages only: never the API, the build's files, the analytics tracker, the images made for the
+  // pages (`/og/…`, `/icon/…`, `/apple-icon`) or a file by its name (`/logo.png`, `/robots.txt`).
+  matcher: ['/((?!api/|_next/|t/|og/|icon/|apple-icon|.*\\.[a-z0-9]+$).*)'],
 };

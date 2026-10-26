@@ -33,16 +33,16 @@ export function LanguageSwitch({ className }: LanguageSwitchProps) {
     return () => window.removeEventListener('pageshow', onShow);
   }, []);
 
-  // A second press before the page has left wins. Back to the page's own language, it stops the move
-  // the first press started: going to the same address with a hash would only scroll to it.
+  // A second press before the page has left wins. Back to the page's own language, the page loads
+  // anew, which replaces the move the first press started: going to the same address with a hash
+  // would only scroll to it, and stopping the move would cut the page's own reads too.
   function choose(next: Language) {
     if (next === shown) return;
+    setPicked(next);
     if (next === language) {
-      setPicked(null);
-      window.stop();
+      window.location.reload();
       return;
     }
-    setPicked(next);
     const { pathname, search, hash } = window.location;
     window.location.replace(localePath(`${pathname}${search}${hash}`, next));
   }
