@@ -8,8 +8,8 @@ import { defineSection } from './defineSection';
 export const seoTranslations = defineSection({
   en: {
     'seo.site.description':
-      'Play 1v1 duels for USDT in any game: CS2, Dota 2, chess and more. A smart contract holds both stakes and the winner takes the whole pot. 0% fee.',
-    'seo.home.title': 'DuelMe — 1v1 duels for USDT in any game, 0% fee',
+      'Play 1v1 for money in any game — CS2, Dota 2, chess and more — with a friend or anyone. A smart contract holds both USDT stakes; the winner takes all. 0% fee.',
+    'seo.home.title': 'DuelMe — play 1v1 for money in any game, 0% fee',
     'seo.games.title': 'Games for 1v1 duels for USDT',
     'seo.games.description':
       'Pick a game and play a 1v1 duel for USDT: CS2, Dota 2, Valorant, FIFA, chess and more. A smart contract holds the stakes, the winner takes the pot.',
@@ -50,8 +50,8 @@ export const seoTranslations = defineSection({
   },
   ru: {
     'seo.site.description':
-      'Дуэли 1 на 1 на USDT в любой игре: CS2, Dota 2, шахматы и другие. USDT обоих игроков держит смарт-контракт, победитель забирает всё. Комиссия 0%.',
-    'seo.home.title': 'DuelMe — дуэли 1 на 1 на USDT в любой игре',
+      'Играй 1 на 1 на деньги в любой игре — CS2, Dota 2, шахматы — с другом или с кем угодно. USDT обоих держит смарт-контракт, победитель забирает всё.',
+    'seo.home.title': 'DuelMe — играй 1 на 1 на деньги в любой игре',
     'seo.games.title': 'Игры для дуэлей 1 на 1 на USDT',
     'seo.games.description':
       'Выбери игру и сыграй дуэль 1 на 1 на USDT: CS2, Dota 2, Valorant, FIFA, шахматы и другие. USDT обоих держит смарт-контракт, победитель забирает всё.',

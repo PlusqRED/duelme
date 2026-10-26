@@ -11,6 +11,7 @@ const QUESTIONS: readonly (readonly [TranslationKey, TranslationKey])[] = [
   ['faq.games.q', 'faq.games.a'],
   ['faq.winner.q', 'faq.winner.a'],
   ['faq.dispute.q', 'faq.dispute.a'],
+  ['faq.middleman.q', 'faq.middleman.a'],
   ['faq.fee.q', 'faq.fee.a'],
   ['faq.custody.q', 'faq.custody.a'],
   ['faq.wallet.q', 'faq.wallet.a'],

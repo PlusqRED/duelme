@@ -6,7 +6,7 @@ export const tekken8Guide: GameGuide = {
   category: 'FIGHTING',
   copy: {
     en: {
-      title: 'Tekken 8 for money — FT5 duels for USDT',
+      title: 'Tekken 8 money matches — FT5 duels for USDT',
       description:
         'Play a Tekken 8 first-to-five for USDT against a real opponent: a smart contract holds both stakes, and the winner of the set takes the whole pot.',
       lead:

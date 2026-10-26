@@ -6,7 +6,7 @@ export const streetFighter6Guide: GameGuide = {
   category: 'FIGHTING',
   copy: {
     en: {
-      title: 'Street Fighter 6 for money — USDT duels',
+      title: 'Street Fighter 6 money matches for USDT',
       description:
         'Play a Street Fighter 6 set for USDT against a real opponent: agree on the length and controls, a smart contract holds both stakes, the winner takes it all.',
       lead:
