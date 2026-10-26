@@ -153,7 +153,7 @@ const FORWARDER_EXECUTE_OVERHEAD = 80_000n;
 /**
  * Gas limit for the relayer's outer transaction.
  *
- * `ERC2771Forwarder._checkForwardedGas` triggers `invalidPayload()` — consuming the entire limit,
+ * `ERC2771Forwarder._checkForwardedGas` triggers `invalid()` — consuming the entire limit,
  * not just the unused part — when the inner call did not get the gas the request promised.
  * EIP-150 leaves only 63/64 of the available gas to a subcall, so `request.gas * 64 / 63`
  * of *computational* gas has to still be available when `execute` reaches the CALL.
@@ -196,11 +196,7 @@ export function parseRelayEnvelope(
   // that stops a signature valid on another deployment from being replayed here, and it is
   // covered by the same test suite as its siblings.
   if (chainId !== servedChainId) {
-    return {
-      ok: false,
-      code: 'NOT_RELAYABLE',
-      error: `This relayer only serves chain ${servedChainId}.`,
-    };
+    return { ok: false, code: 'NOT_RELAYABLE', error: `This relayer only serves chain ${servedChainId}.` };
   }
 
   if (!isRecord(signed)) {

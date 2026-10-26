@@ -20,7 +20,6 @@ const FROM = '0x4bfa000000000000000000000000000000076a5a';
 const TO = '0x1111111111111111111111111111111111111111';
 const SIGNATURE = `0x${'22'.repeat(65)}`;
 const HASH = `0x${'ab'.repeat(32)}`;
-const ETH = 10n ** 15n;
 const DOMAIN = usdtDomain(SEPOLIA, USDT_ADDRESSES[SEPOLIA]);
 // The chain's latest block, a minute before a UTC midnight the device's clock knows nothing of.
 const CHAIN_SECONDS = Date.UTC(2026, 9, 26, 23, 59) / 1000;
@@ -111,7 +110,7 @@ afterEach(() => {
 
 describe('useSendUsdt', () => {
   it('sends a transfer the wallet pays for through the write path that fills in gas and nonce', async () => {
-    const { result } = renderHook(() => useSendUsdt(SEPOLIA, ETH));
+    const { result } = renderHook(() => useSendUsdt(SEPOLIA));
 
     await act(() => result.current.send(transfer('self')));
 
@@ -127,7 +126,7 @@ describe('useSendUsdt', () => {
   });
 
   it('signs the day\'s transfer authorization in the token\'s domain and hands it to the relayer', async () => {
-    const { result } = renderHook(() => useSendUsdt(SEPOLIA, 0n));
+    const { result } = renderHook(() => useSendUsdt(SEPOLIA));
 
     await act(() => result.current.send(transfer('relay')));
 
@@ -157,7 +156,7 @@ describe('useSendUsdt', () => {
   });
 
   it('has DuelMe pay for the day\'s first transfer and the wallet for the rest', () => {
-    const { result, rerender } = renderHook(() => useSendUsdt(SEPOLIA, ETH));
+    const { result, rerender } = renderHook(() => useSendUsdt(SEPOLIA));
     expect(result.current.route).toBe('relay');
 
     wallet.free = 'used';
@@ -166,9 +165,9 @@ describe('useSendUsdt', () => {
     expect(result.current.route).toBe('self');
   });
 
-  it('has a wallet with ETH pay itself once the relayer turned its transfer down', async () => {
+  it('has the wallet pay itself once the relayer turned its transfer down', async () => {
     wallet.submitRelayTransfer.mockRejectedValueOnce(new RelayRequestError('BUDGET_EXCEEDED', 'spent'));
-    const { result } = renderHook(() => useSendUsdt(SEPOLIA, ETH));
+    const { result } = renderHook(() => useSendUsdt(SEPOLIA));
 
     await act(() => result.current.send(transfer('relay')));
 
@@ -181,16 +180,16 @@ describe('useSendUsdt', () => {
     ['whose broadcast may have gone out', new RelayRequestError('BROADCAST_UNCERTAIN', 'maybe')],
   ])('keeps a transfer %s with the relayer, which spends the day\'s nonce once', async (_case, error) => {
     wallet.submitRelayTransfer.mockRejectedValueOnce(error);
-    const { result } = renderHook(() => useSendUsdt(SEPOLIA, ETH));
+    const { result } = renderHook(() => useSendUsdt(SEPOLIA));
 
     await act(() => result.current.send(transfer('relay')));
 
     expect(result.current.route).toBe('relay');
   });
 
-  it('has a wallet with ETH pay itself when the relayed way fails before anything is posted', async () => {
+  it('has the wallet pay itself when the relayed way fails before anything is posted', async () => {
     wallet.readTokenDomain.mockRejectedValueOnce(new PermitDomainMismatchError(USDT_ADDRESSES[SEPOLIA]));
-    const { result } = renderHook(() => useSendUsdt(SEPOLIA, ETH));
+    const { result } = renderHook(() => useSendUsdt(SEPOLIA));
 
     await act(() => result.current.send(transfer('relay')));
 
@@ -198,9 +197,12 @@ describe('useSendUsdt', () => {
     expect(result.current.route).toBe('self');
   });
 
-  it('keeps the relayer for a player who turned the signature down', async () => {
-    wallet.signTypedDataAsync.mockRejectedValueOnce(new Error('User rejected the request.'));
-    const { result } = renderHook(() => useSendUsdt(SEPOLIA, ETH));
+  it.each([
+    ['a player who turned the signature down', 'signTypedDataAsync', new Error('User rejected the request.')],
+    ['a network that did not answer', 'getBlock', new Error('HTTP request failed. Status: 503')],
+  ] as const)('keeps the relayer after %s, which another go can get past', async (_case, step, error) => {
+    wallet[step].mockRejectedValueOnce(error);
+    const { result } = renderHook(() => useSendUsdt(SEPOLIA));
 
     await act(() => result.current.send(transfer('relay')));
 
@@ -208,7 +210,7 @@ describe('useSendUsdt', () => {
   });
 
   it('asks for no signature once the day\'s transfer reads as used, and says so', async () => {
-    const { result, rerender } = renderHook(() => useSendUsdt(SEPOLIA, ETH));
+    const { result, rerender } = renderHook(() => useSendUsdt(SEPOLIA));
     wallet.free = 'used';
     rerender();
 
@@ -220,7 +222,7 @@ describe('useSendUsdt', () => {
 
   it('gets the relayer again once the day has turned', async () => {
     wallet.submitRelayTransfer.mockRejectedValueOnce(new RelayRequestError('RELAYER_UNAVAILABLE', 'busy'));
-    const { result, rerender } = renderHook(() => useSendUsdt(SEPOLIA, ETH));
+    const { result, rerender } = renderHook(() => useSendUsdt(SEPOLIA));
     await act(() => result.current.send(transfer('relay')));
     expect(result.current.route).toBe('self');
 
@@ -231,7 +233,7 @@ describe('useSendUsdt', () => {
   });
 
   it('moves the wallet to the network the money is on, and sends once it is there', async () => {
-    const { result } = renderHook(() => useSendUsdt(ONE, ETH));
+    const { result } = renderHook(() => useSendUsdt(ONE));
 
     await act(() => result.current.send(transfer('self', 1n)));
 
@@ -242,7 +244,7 @@ describe('useSendUsdt', () => {
 
   it('signs nothing when the wallet will not change networks, and says the network is why', async () => {
     wallet.switchChainAsync.mockRejectedValueOnce(new Error('User rejected the request.'));
-    const { result, rerender } = renderHook(() => useSendUsdt(ONE, 0n));
+    const { result, rerender } = renderHook(() => useSendUsdt(ONE));
 
     await act(() => result.current.send(transfer('relay', 1n)));
     wallet.switchError = new Error('User rejected the request.');
@@ -255,13 +257,13 @@ describe('useSendUsdt', () => {
 
   it('words the write\'s own error when the wallet is already on the network', () => {
     wallet.writeError = new Error('insufficient funds for gas * price + value');
-    const { result } = renderHook(() => useSendUsdt(SEPOLIA, 1n));
+    const { result } = renderHook(() => useSendUsdt(SEPOLIA));
 
     expect(result.current.failure).toMatchObject({ kind: 'eth', detail: 'insufficient funds for gas * price + value', canRetry: true });
   });
 
   it('clears the last transfer, its network switch included, before the next one and on reset', async () => {
-    const { result } = renderHook(() => useSendUsdt(SEPOLIA, ETH));
+    const { result } = renderHook(() => useSendUsdt(SEPOLIA));
 
     await act(() => result.current.send(transfer('self', 1n)));
     expect(wallet.resetSwitch).toHaveBeenCalledOnce();
@@ -273,7 +275,7 @@ describe('useSendUsdt', () => {
   });
 
   it('has every balance and the day\'s transfer read again once the transfer went through', () => {
-    const { rerender } = renderHook(() => useSendUsdt(SEPOLIA, ETH));
+    const { rerender } = renderHook(() => useSendUsdt(SEPOLIA));
     expect(emitBalanceRefreshBurst).not.toHaveBeenCalled();
 
     wallet.isSuccess = true;

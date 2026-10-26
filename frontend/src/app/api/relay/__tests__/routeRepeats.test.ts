@@ -1,3 +1,4 @@
+import { BaseError } from 'viem';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { isRecord } from '@/lib/parsing';
 import {
@@ -135,8 +136,7 @@ describe('POST /api/relay — repeats and the signer hold', () => {
     expect((await postRequest(forwardRequest(2n))).status).toBe(200);
   });
 
-  it('holds nobody and hands the reservation back when the broadcast fails', async () => {
-    setDailyBudgetWei(await worstCaseOfOneRelay());
+  it('holds the signer when a broadcast threw without saying whether the node took it', async () => {
     walletClient.writeContract.mockRejectedValueOnce(new Error('rpc down'));
 
     const failed = await postRequest(forwardRequest(1n));
@@ -144,6 +144,22 @@ describe('POST /api/relay — repeats and the signer hold', () => {
     expect(failed.status).toBe(502);
     // The node may have taken it all the same, so the answer never says it was not sent.
     await expect(failed.json()).resolves.toMatchObject({ code: 'BROADCAST_UNCERTAIN' });
+
+    const next = await postRequest(forwardRequest(2n));
+    expect(next.status).toBe(409);
+    await expect(next.json()).resolves.toMatchObject({ code: 'RELAY_PENDING' });
+  });
+
+  it('holds nobody and hands the reservation back when the node refused the transaction outright', async () => {
+    setDailyBudgetWei(await worstCaseOfOneRelay());
+    walletClient.writeContract.mockRejectedValueOnce(
+      new BaseError('Transaction failed.', { details: 'insufficient funds for gas * price + value' })
+    );
+
+    const failed = await postRequest(forwardRequest(1n));
+
+    expect(failed.status).toBe(502);
+    await expect(failed.json()).resolves.toMatchObject({ code: 'RELAYER_UNAVAILABLE' });
 
     expect((await postRequest(forwardRequest(2n))).status).toBe(200);
   });

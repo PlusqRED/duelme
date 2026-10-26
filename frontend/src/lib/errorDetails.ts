@@ -1,4 +1,16 @@
-import { BaseError, ContractFunctionRevertedError, ExecutionRevertedError } from 'viem';
+import {
+  BaseError,
+  ContractFunctionRevertedError,
+  ExecutionRevertedError,
+  FeeCapTooHighError,
+  InsufficientFundsError,
+  IntrinsicGasTooHighError,
+  IntrinsicGasTooLowError,
+  NonceMaxValueError,
+  TipAboveFeeCapError,
+  TransactionTypeNotSupportedError,
+} from 'viem';
+import { getNodeError } from 'viem/utils';
 import { quotesCustomError } from '@/lib/customErrors';
 
 /**
@@ -98,4 +110,30 @@ function addDetail(details: Set<string>, value: unknown) {
   if (normalized) {
     details.add(normalized);
   }
+}
+
+/**
+ * Refusals that never answer a copy the network already took. Gas, fee caps, type and nonce range
+ * are read off the signed bytes, the same in every copy, so a node that took one would have
+ * refused it too. Funds are checked after the nonce, so a copy already taken reads as "already
+ * known" or "nonce too low" first. A fee cap under the base fee is not among them: the base fee
+ * moves, so a copy may have gone in before it rose.
+ */
+const OUTRIGHT_REFUSALS = [
+  InsufficientFundsError,
+  IntrinsicGasTooHighError,
+  IntrinsicGasTooLowError,
+  FeeCapTooHighError,
+  TipAboveFeeCapError,
+  TransactionTypeNotSupportedError,
+  NonceMaxValueError,
+];
+
+export function isRefusedOutright(broadcastError: unknown): boolean {
+  if (!(broadcastError instanceof BaseError)) {
+    return false;
+  }
+
+  const nodeError = getNodeError(broadcastError, {});
+  return OUTRIGHT_REFUSALS.some((refusal) => nodeError instanceof refusal);
 }

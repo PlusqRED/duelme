@@ -66,14 +66,16 @@ export async function submitRelayRequest(chainId: number, request: RelayForwardR
  * reposts as a duel write. A repost is as safe here: the relayer answers every copy with the first
  * one's outcome, and the token spends the day's nonce once whatever happens.
  *
- * Only a relayer that restarted between the posts forgets the first one, and then finds the day's
- * nonce spent, by that very post if it went out. So a repost told the day's transfer is used is an
- * answer lost, never "nothing was sent": the wallet would pay for the same transfer again.
+ * But a refusal of a repost says nothing about the post before it, whose answer never came: the
+ * rate limit runs before the repeat check, a relayer that restarted forgot the first post and finds
+ * the day's nonce spent, by that very post, and the day or the window may have run out meanwhile.
+ * So any refusal of a repost is an answer lost, never "nothing was sent": the wallet would pay for
+ * the same transfer again.
  */
 export async function submitRelayTransfer(chainId: number, transfer: RelayTransfer): Promise<Hex> {
   const answer = await postUntilAnswered(RELAY_TRANSFER_ENDPOINT, JSON.stringify({ chainId, transfer }));
-  if (answer.isRepost && isRecord(answer.body) && answer.body.code === 'TRANSFER_USED') {
-    throw new RelayAnswerLostError('The first post may have spent the day\'s transfer.');
+  if (answer.isRepost && !answer.ok) {
+    throw new RelayAnswerLostError('An earlier post of this transfer may have gone out.');
   }
   return relayedHash(answer);
 }

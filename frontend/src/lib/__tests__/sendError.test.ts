@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { SUPPORTED_CHAINS } from '@/lib/constants';
 import { RelayAnswerLostError, RelayRequestError } from '@/lib/relayApi';
 import type { RelayErrorCode } from '@/lib/relayRequest';
-import { classifySendError, isRelayDecline, suggestsEth, type SendErrorKind } from '@/lib/sendError';
-import { TransactionReplacedError, TransactionRevertedError, WalletNotReadyError } from '@/lib/writeErrors';
+import { classifySendError, isLastingSignFailure, isRelayDecline, suggestsEth, type SendErrorKind } from '@/lib/sendError';
+import { PermitDomainMismatchError, TransactionReplacedError, TransactionRevertedError, WalletNotReadyError } from '@/lib/writeErrors';
 
 const SEPOLIA = SUPPORTED_CHAINS.arbitrumSepolia.id;
 const ONE = SUPPORTED_CHAINS.arbitrum.id;
@@ -60,7 +60,11 @@ describe('classifySendError', () => {
 
   it.each([
     ['USD₮0', 'execution reverted: ERC20: transfer amount exceeds balance'],
-    ['MockUSDT', 'The contract function "transfer" reverted with the following signature: ERC20InsufficientBalance(address,uint256,uint256)'],
+    // viem quotes the custom error by its selector and revert data when the ABI does not carry it.
+    [
+      'MockUSDT',
+      `The contract function "transfer" reverted with the following signature:\n0xe450d38c${'0'.repeat(192)}`,
+    ],
   ])('tells a balance too small for the transfer on %s', (_token, message) => {
     expect(kindOf(new Error(message))).toBe('balance');
   });
@@ -98,6 +102,20 @@ describe('isRelayDecline', () => {
   it('keeps a transfer that may have gone out with the relayer, where it cannot go twice', () => {
     expect(isRelayDecline(new RelayAnswerLostError('no answer'))).toBe(false);
     expect(isRelayDecline(new RelayRequestError('BROADCAST_UNCERTAIN', 'maybe'))).toBe(false);
+  });
+});
+
+describe('isLastingSignFailure', () => {
+  it('hands the transfer to the wallet when another go would fail the same way', () => {
+    expect(isLastingSignFailure(new PermitDomainMismatchError('USDT'))).toBe(true);
+    expect(isLastingSignFailure(new Error('Method eth_signTypedData_v4 is not supported.'))).toBe(true);
+  });
+
+  it.each([
+    ['a request the owner turned down', new Error('User rejected the request.')],
+    ['a network that did not answer', new Error('HTTP request failed. Status: 503')],
+  ])('keeps the transfer relayed after %s', (_case, error) => {
+    expect(isLastingSignFailure(error)).toBe(false);
   });
 });
 

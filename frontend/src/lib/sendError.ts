@@ -1,8 +1,10 @@
 import type { TranslationKey } from '@/i18n/translations';
+import { nameCustomErrors } from '@/lib/customErrors';
 import { collectErrorDetails } from '@/lib/errorDetails';
 import { classifyFlowError, type FlowErrorKind } from '@/lib/flowError';
 import { RelayRequestError } from '@/lib/relayApi';
 import type { RelayErrorCode } from '@/lib/relayRequest';
+import { PermitDomainMismatchError } from '@/lib/writeErrors';
 
 /**
  * Why a transfer from the wallet menu stopped, as the menu words it: the signing window's kinds
@@ -46,8 +48,14 @@ const TRANSFER_RELAY_KINDS: Partial<Record<RelayErrorCode, SendErrorKind>> = {
 /** How a node refuses a transaction whose sender cannot pay its gas. */
 const NO_ETH_WORDS = ['insufficient funds'];
 
-/** How USD₮0 (a string) and MockUSDT (OpenZeppelin's custom error) refuse more than the balance. */
+/**
+ * How USD₮0 (a string) and MockUSDT (OpenZeppelin's custom error, which viem quotes by its selector
+ * and the details name) refuse more than the balance.
+ */
 const NO_USDT_WORDS = ['exceeds balance', 'erc20insufficientbalance'];
+
+/** How a wallet says it cannot do what it was asked, such as sign typed data. */
+const UNSUPPORTED_WORDS = ['not supported', 'unsupported', 'does not support'];
 
 /**
  * The relayer's refusals after which the wallet pays itself, if it can: the relayer will not carry
@@ -89,6 +97,18 @@ export function isRelayDecline(error: unknown): boolean {
   return error instanceof RelayRequestError && RELAY_DECLINES.has(error.code);
 }
 
+/**
+ * Whether a failure before anything was posted would meet another go the same way, so its own ETH
+ * should pay: a token domain that does not check out, a wallet that cannot sign typed data. A
+ * network that did not answer is not one of them.
+ */
+export function isLastingSignFailure(error: unknown): boolean {
+  return (
+    error instanceof PermitDomainMismatchError ||
+    collectErrorDetails(error).some((line) => UNSUPPORTED_WORDS.some((words) => line.includes(words)))
+  );
+}
+
 function sendErrorKind(error: unknown, flowKind: FlowErrorKind): SendErrorKind {
   const transferKind = error instanceof RelayRequestError ? TRANSFER_RELAY_KINDS[error.code] : undefined;
   if (transferKind) {
@@ -101,7 +121,7 @@ function sendErrorKind(error: unknown, flowKind: FlowErrorKind): SendErrorKind {
   if (flowKind !== 'error' && flowKind !== 'reverted') {
     return flowKind;
   }
-  const details = collectErrorDetails(error);
+  const details = collectErrorDetails(error).map((line) => nameCustomErrors(line).toLowerCase());
   if (details.some((line) => NO_ETH_WORDS.some((words) => line.includes(words)))) {
     return 'eth';
   }

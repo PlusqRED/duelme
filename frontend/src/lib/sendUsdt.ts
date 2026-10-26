@@ -45,15 +45,13 @@ export type FreeTransferStatus = 'off' | 'unknown' | 'available' | 'used';
 /**
  * Who sends a transfer. DuelMe's relayer pays the fee of one a day per wallet, the first of the
  * day, and the wallet pays every other in ETH, as before. The wallet also takes over once the
- * relayer has said no to it (its daily gas budget, the relayer down, a signature USDT will not
- * take) and it has ETH to pay with: Send works whenever the wallet can pay. A status still being
- * read goes to the relayer, which answers for itself.
+ * relayed way has failed for it with nothing sent (its daily gas budget, the relayer down, a
+ * signature USDT will not take), so the form asks for the ETH that fee needs rather than promise
+ * one the relayer will not pay. A status still being read goes to the relayer, which answers for
+ * itself.
  */
-export function resolveSendRoute(free: FreeTransferStatus, isRelayDeclined: boolean, ethWei: bigint | null): WriteRoute {
-  if (free === 'off' || free === 'used') {
-    return 'self';
-  }
-  return isRelayDeclined && ethWei !== null && ethWei > 0n ? 'self' : 'relay';
+export function resolveSendRoute(free: FreeTransferStatus, isRelayDeclined: boolean): WriteRoute {
+  return free === 'off' || free === 'used' || isRelayDeclined ? 'self' : 'relay';
 }
 
 /** What stops a transfer, by field. Nothing in it means it may go to the wallet. */

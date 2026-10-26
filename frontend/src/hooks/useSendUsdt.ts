@@ -8,7 +8,6 @@ import { useWriteWithGas } from '@/hooks/useWriteWithGas';
 import { emitBalanceRefreshBurst } from '@/lib/balanceRefresh';
 import { USDT_ADDRESSES } from '@/lib/constants';
 import { transferAbi } from '@/lib/contracts';
-import { isWalletRefusal } from '@/lib/errorDetails';
 import { RelayRequestError, submitRelayTransfer } from '@/lib/relayApi';
 import {
   toRelayTransfer,
@@ -16,7 +15,7 @@ import {
   transferAuthorization,
   type TransferAuthorization,
 } from '@/lib/relayedTransfer';
-import { classifySendError, isRelayDecline } from '@/lib/sendError';
+import { classifySendError, isLastingSignFailure, isRelayDecline } from '@/lib/sendError';
 import { resolveSendRoute, type Transfer } from '@/lib/sendUsdt';
 import { readTokenDomain } from '@/lib/tokenDomain';
 import { WalletNotReadyError } from '@/lib/writeErrors';
@@ -28,14 +27,14 @@ import { WalletNotReadyError } from '@/lib/writeErrors';
  * path, so its gas and nonce are filled in (Privy signs all-zero gas otherwise) and the wallet pays
  * in ETH. Either way the receipt decides whether it went through.
  *
- * `ethWei` is the wallet's ETH on that network: once the relayed way has failed for this wallet
- * today with nothing sent, a wallet that holds ETH pays itself (`resolveSendRoute`). A failure that
- * may have sent the transfer never counts: the wallet would pay for it a second time.
+ * Once the relayed way has failed for this wallet today with nothing sent, the wallet pays itself
+ * (`resolveSendRoute`). A failure that may have sent the transfer never counts: the wallet would pay
+ * for it a second time, and so would a network that did not answer, which another go can get past.
  *
  * The authorization's time window and its day come from the chain's latest block, not the device's
  * clock, which the relayer and the token would not share.
  */
-export function useSendUsdt(chainId: number, ethWei: bigint | null) {
+export function useSendUsdt(chainId: number) {
   const { address, chainId: walletChainId } = useAccount();
   const publicClient = usePublicClient({ chainId });
   const { switchChainAsync, error: switchError, reset: resetSwitch } = useSwitchChain();
@@ -48,7 +47,7 @@ export function useSendUsdt(chainId: number, ethWei: bigint | null) {
   // The wallet, the network and the day it holds for: another of any of them gets the relayer again.
   const declineKey = `${chainId}:${address}:${freeTransfer.nextAt}`;
   const [declinedFor, setDeclinedFor] = useState<string | null>(null);
-  const route = resolveSendRoute(freeStatus, declinedFor === declineKey, ethWei);
+  const route = resolveSendRoute(freeStatus, declinedFor === declineKey);
 
   const sendRelayed = useCallback(
     (to: `0x${string}`, raw: bigint) =>
@@ -81,9 +80,9 @@ export function useSendUsdt(chainId: number, ethWei: bigint | null) {
             message: authorization,
           });
         } catch (signError) {
-          // Nothing has gone out. Anything but the player's own no — a token domain that does not
-          // check out, a wallet that cannot sign typed data — leaves the relayed way shut for now.
-          if (!isWalletRefusal(signError)) {
+          // Nothing has gone out. A failure another go would meet the same way leaves the relayed
+          // way shut for now; the player's own no, or a network that did not answer, does not.
+          if (isRelayDecline(signError) || isLastingSignFailure(signError)) {
             decline();
           }
           throw signError;

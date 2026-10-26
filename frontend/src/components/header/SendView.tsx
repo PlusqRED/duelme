@@ -11,7 +11,7 @@ import { useTranslation } from '@/i18n/useTranslation';
 import type { FaucetOffer } from '@/lib/faucetApi';
 import { sendStage, type SendDraft, type Transfer } from '@/lib/sendUsdt';
 import { formatUSDT } from '@/lib/utils';
-import { readingFigure, readingRaw } from '@/lib/walletBalances';
+import { readingFigure } from '@/lib/walletBalances';
 
 interface SendViewProps {
   /** Checksummed: the wallet the money leaves. */
@@ -34,7 +34,7 @@ export function SendView({ address, network, faucetOffer, isInAppWallet, onBack 
   const [draft, setDraft] = useState<SendDraft>({ to: '', amount: '' });
   const [transfer, setTransfer] = useState<Transfer | null>(null);
   const [isSent, setIsSent] = useState(false);
-  const sending = useSendUsdt(network.chain.id, readingRaw(network.eth));
+  const sending = useSendUsdt(network.chain.id);
 
   function send(next: Transfer) {
     setIsSent(true);

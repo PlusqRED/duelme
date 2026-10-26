@@ -270,10 +270,14 @@ describe('submitRelayTransfer', () => {
     expect(bodies[1]).toBe(bodies[0]);
   });
 
-  it('reads "today\'s is used" on a repost as an answer lost, since the first post may have spent it', async () => {
+  it.each([
+    ['TRANSFER_USED', 409],
+    ['RATE_LIMITED', 429],
+    ['TRANSFER_EXPIRED', 400],
+  ])('reads %s on a repost as an answer lost, since the first post may have gone out', async (code, status) => {
     vi.mocked(fetch)
       .mockRejectedValueOnce(new TypeError('Failed to fetch'))
-      .mockReturnValue(respond(409, { code: 'TRANSFER_USED', error: 'Already sent today.' }));
+      .mockReturnValue(respond(status, { code, error: 'refused' }));
 
     const submitted = submitRelayTransfer(42161, signedTransfer);
     const settled = expect(submitted).rejects.toBeInstanceOf(RelayAnswerLostError);

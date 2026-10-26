@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { Hex } from 'viem';
+import { isRefusedOutright } from '@/lib/errorDetails';
 import {
   refusal,
   type RelayErrorCode,
@@ -155,10 +156,17 @@ export async function sendBudgeted(
   try {
     hash = await write();
   } catch (error) {
-    releaseDailyBudget(from, worstCaseWei);
     console.error('[relay] broadcast failed', error);
-    // Not "nothing was sent": a send can time out after the sequencer took it, and a retry of it is
-    // then answered "already known". The player must look before signing anything again.
+    // The node refused the transaction's own funds, gas or fee fields: nothing went out. The
+    // relayer's own wallet running dry ends here.
+    if (isRefusedOutright(error)) {
+      releaseDailyBudget(from, worstCaseWei);
+      return refusal('RELAYER_UNAVAILABLE', 'Could not broadcast the transaction.', 502);
+    }
+    // Anything else may have gone out: a send times out after the sequencer took it, and a retry is
+    // answered "already known". So it is booked and held as if sent, and the player is told to
+    // look before signing anything again.
+    holdSigner(from, null);
     return refusal('BROADCAST_UNCERTAIN', 'The transaction may or may not have been broadcast.', 502);
   }
 

@@ -82,7 +82,8 @@ signs an EIP-3009 `transferWithAuthorization` naming the recipient and the amoun
 and replicas; the server only refuses a nonce that is not today's. Its admission, lock, signer
 holds and budgets are `/api/relay`'s (`lib/relayerSend.ts`). Send goes relayed while the token
 reports the day's nonce unused (`useRelayedTransfer`) and self-paid otherwise; a wallet the relayer
-turned down pays itself when it holds ETH (`resolveSendRoute`).
+turned down pays itself on its next go, and the error asks for ETH if it has none
+(`resolveSendRoute`).
 
 ### Analytics
 DuelMe's own Rybbit ("Analytics" in `ops/CLAUDE.md`), loaded from the site itself: `/t/script.js`,
@@ -524,10 +525,12 @@ test can check.
   minutes left. The string is pinned by a golden vector in `relayedTransfer.test.ts`: changing it,
   or the day's length, gives every wallet a second relayed transfer that day.
 - **A relayed Send falls back to the wallet's ETH only when nothing went out.** The relayer's
-  refusals before sending, and a failure before the post, hand the day's Send to the wallet;
-  `BROADCAST_UNCERTAIN` (a send that threw after the node may have taken it), a lost answer, and a
-  repost told the day's transfer is used are answers lost: the wallet paying itself after them
-  would send the money twice.
+  refusals before sending (a node refusing its transaction's own funds, gas or fee fields,
+  `isRefusedOutright`, among them), and a failure before the post that another go would meet
+  too (`isLastingSignFailure`), hand the day's Send to the wallet. Any other broadcast that threw
+  is `BROADCAST_UNCERTAIN`: the node may have taken it, so the relayer keeps the reservation and
+  holds the signer with no hash until the hold runs out. That, a lost answer, and any refusal of a
+  repost are answers lost: the wallet paying itself after them would send the money twice.
 - **The per-IP rate limit trusts the right-most `X-Forwarded-For` entry** because Caddy, with no `trusted_proxies`, overwrites the header with the address it saw, nothing sits in front of Caddy, and the container listens on `127.0.0.1` only. A CDN or another proxy in front of Caddy makes that entry the proxy's, and every player then shares one bucket: change the rule with it.
 - Use shared constants from `constants.ts` (`ZERO_ADDRESS`) and `contracts.ts` (`ACTIVE_STATES`, `balanceOfAbi`, `transferAbi`, `getUsdtAddress`) — never redefine locally.
 - **Next may send a rewrite through the proxy a second time.** When the rewrite's origin differs

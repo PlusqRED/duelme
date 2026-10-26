@@ -82,30 +82,22 @@ describe('checkTransfer', () => {
 });
 
 describe('resolveSendRoute', () => {
-  const ETH = 10n ** 15n;
-
-  it('has DuelMe pay for the day\'s first transfer, with ETH in the wallet or without', () => {
-    expect(resolveSendRoute('available', false, 0n)).toBe('relay');
-    expect(resolveSendRoute('available', false, ETH)).toBe('relay');
+  it('has DuelMe pay for the day\'s first transfer', () => {
+    expect(resolveSendRoute('available', false)).toBe('relay');
   });
 
   it('has the wallet pay once the day\'s transfer is used, and where DuelMe does not relay', () => {
-    expect(resolveSendRoute('used', false, ETH)).toBe('self');
-    expect(resolveSendRoute('used', false, 0n)).toBe('self');
-    expect(resolveSendRoute('off', false, ETH)).toBe('self');
+    expect(resolveSendRoute('used', false)).toBe('self');
+    expect(resolveSendRoute('off', false)).toBe('self');
   });
 
   it('leaves a status still being read to the relayer', () => {
-    expect(resolveSendRoute('unknown', false, null)).toBe('relay');
+    expect(resolveSendRoute('unknown', false)).toBe('relay');
   });
 
-  it('has a wallet with ETH pay itself once the relayer said no, so Send still works', () => {
-    expect(resolveSendRoute('available', true, ETH)).toBe('self');
-  });
-
-  it('keeps asking the relayer for a wallet that said no but has no ETH to pay with', () => {
-    expect(resolveSendRoute('available', true, 0n)).toBe('relay');
-    expect(resolveSendRoute('unknown', true, null)).toBe('relay');
+  it('has the wallet pay once the relayed way failed with nothing sent, so the form asks for its ETH', () => {
+    expect(resolveSendRoute('available', true)).toBe('self');
+    expect(resolveSendRoute('unknown', true)).toBe('self');
   });
 });
 
