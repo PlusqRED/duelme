@@ -17,7 +17,7 @@ export const privacyTranslations = defineSection({
     'analytics.choice.off': 'This copy of the site runs without analytics.',
 
     'privacy.title': 'Privacy',
-    'privacy.updated': 'Last updated: 22 October 2026',
+    'privacy.updated': 'Last updated: 26 October 2026',
     'privacy.intro':
       'What DuelMe keeps about you, where it is kept, and how to change it. DuelMe has no company behind it yet: its developer runs it and answers for it.',
     'privacy.chain.title': 'On the blockchain',
@@ -37,7 +37,7 @@ export const privacyTranslations = defineSection({
       'If you allow it, it is also tied to your Privy id and wallet address, along with what this browser sent earlier that day (UTC), and your sessions are recorded: what the screen showed and where you pressed, with what you type into fields hidden. Recordings are deleted after 30 days. Taking the yes back ties nothing more to you, though until the end of that day (UTC) analytics can still match this browser with your account; what was tied before stays until you ask us to delete it.',
     'privacy.browser.title': 'In your browser',
     'privacy.browser.text':
-      'The site keeps in your browser your language (a cookie), your answer about analytics, the invite secrets of the private duels you create, and the create form while the tab is open. Privy keeps your session there, and the wallet library the wallet you connected. Rybbit’s script keeps a random number of its own there for every visitor, and your Privy id once you allow analytics.',
+      'The site keeps in your browser your answer about analytics, the invite secrets of the private duels you create, the create form while the tab is open, and, while you link an account, the language to bring you back in. The language itself is in the page’s address, not in a cookie. Privy keeps your session there, and the wallet library the wallet you connected. Rybbit’s script keeps a random number of its own there for every visitor, and your Privy id once you allow analytics.',
     'privacy.choice.title': 'Your answer on analytics',
     'privacy.choice.text': 'You can change it at any time; it applies in this browser.',
     'privacy.rights.title': 'Your rights',
@@ -61,7 +61,7 @@ export const privacyTranslations = defineSection({
     'analytics.choice.off': 'Эта копия сайта работает без аналитики.',
 
     'privacy.title': 'Конфиденциальность',
-    'privacy.updated': 'Обновлено 22 октября 2026',
+    'privacy.updated': 'Обновлено 26 октября 2026',
     'privacy.intro':
       'Что DuelMe хранит о тебе, где и как это изменить. Компании за DuelMe пока нет: сайт ведёт и отвечает за него разработчик.',
     'privacy.chain.title': 'В блокчейне',
@@ -81,7 +81,7 @@ export const privacyTranslations = defineSection({
       'С твоего разрешения это ещё связывается с идентификатором в Privy и адресом кошелька, вместе с тем, что этот браузер отправил раньше в тот же день (по UTC), а сессии записываются: что было на экране и куда было нажатие, без того, что вводится в поля. Записи удаляются через 30 дней. Если отозвать разрешение, к тебе больше ничего не привязывается, но до конца того дня (по UTC) аналитика ещё может сопоставить этот браузер с аккаунтом; то, что было привязано раньше, остаётся, пока ты не попросишь это удалить.',
     'privacy.browser.title': 'В браузере',
     'privacy.browser.text':
-      'Сайт хранит в браузере язык (в cookie), ответ про аналитику, секреты приглашений твоих приватных дуэлей и форму создания дуэли, пока открыта вкладка. Privy хранит там твою сессию, а библиотека кошельков — какой кошелёк подключён. Скрипт Rybbit хранит там своё случайное число у каждого посетителя, а после разрешения аналитики ещё и твой идентификатор в Privy.',
+      'Сайт хранит в браузере ответ про аналитику, секреты приглашений твоих приватных дуэлей, форму создания дуэли, пока открыта вкладка, и, пока ты привязываешь аккаунт, язык, на который потом вернуть. Сам язык задаёт адрес страницы, а не cookie. Privy хранит там твою сессию, а библиотека кошельков — какой кошелёк подключён. Скрипт Rybbit хранит там своё случайное число у каждого посетителя, а после разрешения аналитики ещё и твой идентификатор в Privy.',
     'privacy.choice.title': 'Ответ про аналитику',
     'privacy.choice.text': 'Его можно поменять в любой момент; он действует в этом браузере.',
     'privacy.rights.title': 'Твои права',
