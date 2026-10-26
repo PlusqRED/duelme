@@ -40,6 +40,7 @@ export function GameHead({ game, lead, totalVolume, duelsPlayed, isUnknown }: Ga
       <div className="grid min-w-0 justify-items-start gap-2.5">
         <h1 className="text-h1 hyphens-auto [overflow-wrap:anywhere]">
           {game.name}
+          {' '}
           <span className="mt-1.5 block text-lead font-normal tracking-normal text-ink-2">{t('game.headline')}</span>
         </h1>
         <Chip className="h-7 gap-2 bg-paper px-3 text-sm text-ink before:size-2 before:rounded-full before:bg-(--tone)">

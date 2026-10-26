@@ -29,17 +29,17 @@ describe('NotFound', () => {
 });
 
 describe('ErrorPage', () => {
-  it('tries the screen again on request', () => {
-    const reset = vi.fn();
-    render(<ErrorPage error={new Error('boom')} reset={reset} />);
+  it('fetches the screen again on request', () => {
+    const retry = vi.fn();
+    render(<ErrorPage error={new Error('boom')} retry={retry} />);
 
     fireEvent.click(screen.getByRole('button', { name: translations.en['action.tryAgain'] }));
 
-    expect(reset).toHaveBeenCalledOnce();
+    expect(retry).toHaveBeenCalledOnce();
   });
 
   it('says the page did not load and leads home', () => {
-    render(<ErrorPage error={new Error('boom')} reset={vi.fn()} />);
+    render(<ErrorPage error={new Error('boom')} retry={vi.fn()} />);
 
     expect(screen.getByRole('heading', { level: 1, name: translations.en['error.title'] })).toBeTruthy();
     expect(screen.getByRole('link', { name: translations.en['notFound.home'] }).getAttribute('href')).toBe('/');

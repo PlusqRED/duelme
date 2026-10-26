@@ -73,6 +73,28 @@ describe('LanguageSwitch', () => {
     expect(screen.getByRole('button', { name: 'RU' }).getAttribute('aria-pressed')).toBe('true');
   });
 
+  it('lets a second press before the page leaves win', async () => {
+    renderAt('/games', 'en');
+
+    await press('RU');
+    await press('EN');
+
+    expect(replace.mock.calls.map(([address]) => address)).toEqual(['/ru/games', '/games']);
+  });
+
+  it('shows the page’s own language again when the browser brings the page back from its cache', async () => {
+    renderAt('/games', 'en');
+    await press('RU');
+
+    const restored = new Event('pageshow');
+    Object.defineProperty(restored, 'persisted', { value: true });
+    await act(async () => {
+      window.dispatchEvent(restored);
+    });
+
+    expect(screen.getByRole('button', { name: 'EN' }).getAttribute('aria-pressed')).toBe('true');
+  });
+
   it('stays put when the page’s own language is pressed', async () => {
     renderAt('/ru/games', 'ru');
 

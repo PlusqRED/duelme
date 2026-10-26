@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { LANGUAGES } from '@/i18n/language';
 import { localePath } from '@/i18n/localePath';
 import type { Language } from '@/i18n/translations';
@@ -24,8 +24,18 @@ export function LanguageSwitch({ className }: LanguageSwitchProps) {
   const [picked, setPicked] = useState<Language | null>(null);
   const shown = picked ?? language;
 
+  // A page the browser brings back from its back-forward cache shows its own language again.
+  useEffect(() => {
+    const onShow = (event: PageTransitionEvent) => {
+      if (event.persisted) setPicked(null);
+    };
+    window.addEventListener('pageshow', onShow);
+    return () => window.removeEventListener('pageshow', onShow);
+  }, []);
+
+  // A second press before the page has left wins: the move it starts replaces the first one.
   function choose(next: Language) {
-    if (next === language) return;
+    if (next === shown) return;
     setPicked(next);
     const { pathname, search, hash } = window.location;
     window.location.replace(localePath(`${pathname}${search}${hash}`, next));

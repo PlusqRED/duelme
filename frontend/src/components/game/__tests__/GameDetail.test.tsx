@@ -105,6 +105,20 @@ describe('GameDetail', () => {
     expect(screen.getByRole('link', { name: translations.en['popularGames.viewAll'] }).getAttribute('href')).toBe('/games');
   });
 
+  it('shows the game it has while the read runs: a guide’s, drawn on the server', () => {
+    page.isGameLoading = true;
+    render(<GameDetail slug="chess" />);
+
+    expect(screen.getByRole('heading', { level: 1, name: /^Chess/ })).toBeTruthy();
+  });
+
+  it('holds the page’s place while the read runs with no game to show', () => {
+    Object.assign(page, { game: null, isGameLoading: true });
+    render(<GameDetail slug="chess" />);
+
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
+  });
+
   it('tells a failed read from a missing game, and reads it again on request', () => {
     Object.assign(page, { game: null, isGameError: true });
     render(<GameDetail slug="chess" />);

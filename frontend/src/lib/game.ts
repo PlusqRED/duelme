@@ -1,4 +1,5 @@
 import type { TranslationKey } from '@/i18n/translations';
+import { isRecord } from '@/lib/parsing';
 
 export type GameCategory = 'FPS' | 'MOBA' | 'SPORT' | 'STRATEGY' | 'FIGHTING' | 'RACING' | 'CARD' | 'OTHER';
 
@@ -41,4 +42,22 @@ export function byPopularity(a: Game, b: Game): number {
 /** A game the catalog does not have yet, so nobody has duelled in it: one a guide names, or a player adds. */
 export function uncataloguedGame({ slug, name, category }: Pick<Game, 'slug' | 'name' | 'category'>): Game {
   return { slug, name, iconUrl: null, category, duelCount: 0, createdAt: null, updatedAt: null };
+}
+
+function isNullableString(value: unknown): value is string | null {
+  return value === null || typeof value === 'string';
+}
+
+/** A game as the API sends one: what a response holds is checked before a page renders it. */
+export function isGame(value: unknown): value is Game {
+  return (
+    isRecord(value) &&
+    typeof value.slug === 'string' &&
+    typeof value.name === 'string' &&
+    isNullableString(value.iconUrl) &&
+    GAME_CATEGORIES.some((category) => category === value.category) &&
+    typeof value.duelCount === 'number' &&
+    isNullableString(value.createdAt) &&
+    isNullableString(value.updatedAt)
+  );
 }

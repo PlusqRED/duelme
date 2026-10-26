@@ -11,6 +11,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
+  vi.restoreAllMocks();
 });
 
 describe('readGame', () => {
@@ -34,10 +35,26 @@ describe('readGame', () => {
     await expect(readGame('nope')).resolves.toEqual({ status: 'missing' });
   });
 
-  it('fails when the backend does, rather than call the game missing', async () => {
+  it('leaves a game the backend failed on to the browser, rather than call it missing, and logs it', async () => {
     mockFetch({ ok: false, status: 503 });
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await expect(readGame('chess')).rejects.toThrow();
+    await expect(readGame('chess')).resolves.toEqual({ status: 'unread' });
+    expect(log).toHaveBeenCalledOnce();
+  });
+
+  it('takes nothing for a game that is not one', async () => {
+    mockFetch({ json: async () => ({ error: 'Bad gateway' }) });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(readGame('chess')).resolves.toEqual({ status: 'unread' });
+  });
+
+  it.each(['50%', 'cs2;drop', 'CS2'])('calls %s missing without asking: no catalog slug looks like it', async (slug) => {
+    const fetchMock = mockFetch();
+
+    await expect(readGame(slug)).resolves.toEqual({ status: 'missing' });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('reads nothing where no backend runs', async () => {

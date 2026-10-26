@@ -37,6 +37,26 @@ describe('useGame', () => {
     await waitFor(() => expect(result.current.game).toEqual(CHESS));
   });
 
+  it('shows the fallback while it reads, then the catalog’s game', async () => {
+    const guides = { ...CHESS, duelCount: 0 };
+    mockFetch({ json: async () => CHESS });
+
+    const { result } = renderHook(() => useGame('chess', undefined, guides), { wrapper: withQueries });
+
+    expect(result.current.game).toEqual(guides);
+    await waitFor(() => expect(result.current.game).toEqual(CHESS));
+  });
+
+  it('keeps the fallback when the catalog lacks the game or cannot be read', async () => {
+    const guides = { ...CHESS, duelCount: 0 };
+    mockFetch({ ok: false, status: 503 });
+
+    const { result } = renderHook(() => useGame('chess', undefined, guides), { wrapper: withQueries });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.game).toEqual(guides);
+  });
+
   it('calls a game the catalog lacks null, and not an error', async () => {
     mockFetch({ ok: false, status: 404 });
 

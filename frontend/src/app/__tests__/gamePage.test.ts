@@ -1,15 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ServerGameRead } from '@/lib/serverGame';
 
-/** What the catalog answers, or the error a failing backend throws. */
-const server = vi.hoisted(() => ({ read: { status: 'unread' } as ServerGameRead | Error }));
+const server = vi.hoisted(() => ({ read: { status: 'unread' } as ServerGameRead }));
 vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
-vi.mock('@/lib/serverGame', () => ({
-  readGame: async () => {
-    if (server.read instanceof Error) throw server.read;
-    return server.read;
-  },
-}));
+vi.mock('@/lib/serverGame', () => ({ readGame: async () => server.read }));
 
 const { generateMetadata } = await import('@/app/games/[slug]/page');
 
@@ -21,7 +15,6 @@ function metadataOf(slug: string) {
 
 afterEach(() => {
   server.read = { status: 'unread' };
-  vi.restoreAllMocks();
 });
 
 describe('a game page', () => {
@@ -47,20 +40,14 @@ describe('a game page', () => {
     expect([metadata.title, metadata.robots]).toEqual(['Lineage 2 1v1 for money', { index: false, follow: true }]);
   });
 
-  it('stays up on its guide when the backend fails, and says so in the log', async () => {
-    server.read = new Error('backend 503');
-    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
-
+  it('names a game with a guide from it while the browser reads the catalog, and is listed', async () => {
     const metadata = await metadataOf('valorant');
 
     expect([metadata.title, metadata.robots]).toEqual(['Valorant 1v1 for money — USDT duels', expect.objectContaining({ index: true })]);
-    expect(log).toHaveBeenCalledOnce();
   });
 
-  it('fails with the backend for a game without a guide, rather than call it missing', async () => {
-    server.read = new Error('backend 503');
-
-    await expect(metadataOf('lineage-2')).rejects.toThrow('backend 503');
+  it('moves an address in capitals to the catalog’s own', async () => {
+    await expect(metadataOf('CS2')).rejects.toMatchObject({ digest: expect.stringContaining(';/games/cs2;308;') });
   });
 
   it('gives no 404 when there is no backend to ask', async () => {

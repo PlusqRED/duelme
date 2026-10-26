@@ -1,5 +1,6 @@
 import { forgetPlayer, stopReplay, trackEvent } from '@/lib/analytics';
 import { isRecord } from '@/lib/parsing';
+import { browserStorage } from '@/lib/browserStorage';
 
 /**
  * The visitor's answer on analytics. Without one, or with `denied`, the tracker counts visits,
@@ -53,18 +54,9 @@ const listeners = new Set<() => void>();
 // An answer storage would not keep, so the banner does not come back on every render of this page.
 let unsavedChoice: ConsentChoice | null = null;
 
-/** Even reading `localStorage` throws where the browser blocks site data. */
-function browserStorage(): Storage | null {
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
-
 /** The answer in this browser, for `useSyncExternalStore`. */
 export function currentConsent(): ConsentChoice | null {
-  const storage = browserStorage();
+  const storage = browserStorage('local');
   return unsavedChoice ?? (storage ? readConsent(storage) : null);
 }
 
@@ -89,7 +81,7 @@ export function subscribeToConsent(onChange: () => void): () => void {
  * now, and in another through the storage event.
  */
 export function chooseAnalytics(choice: ConsentChoice) {
-  const storage = browserStorage();
+  const storage = browserStorage('local');
   unsavedChoice = storage && saveConsent(storage, choice) ? null : choice;
   // A no takes effect before it is counted, or its own event would still carry the player's id.
   if (choice === 'denied') {

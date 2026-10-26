@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { translations } from '@/i18n/translations';
-import { byPopularity, getCategoryLabelKey, GAME_CATEGORIES, uncataloguedGame } from '@/lib/game';
+import { byPopularity, getCategoryLabelKey, GAME_CATEGORIES, isGame, uncataloguedGame } from '@/lib/game';
 
 describe('getCategoryLabelKey', () => {
   it('names the category’s translation key', () => {
@@ -45,5 +45,23 @@ describe('uncataloguedGame', () => {
       createdAt: null,
       updatedAt: null,
     });
+  });
+});
+
+describe('isGame', () => {
+  const chess = { slug: 'chess', name: 'Chess', iconUrl: null, category: 'STRATEGY', duelCount: 2, createdAt: null, updatedAt: '2026-10-26' };
+
+  it('takes a game as the API sends one', () => {
+    expect(isGame(chess)).toBe(true);
+  });
+
+  it.each([
+    ['an error body', { error: 'Bad gateway' }],
+    ['a game with no name', { ...chess, name: undefined }],
+    ['a game of a category the site does not know', { ...chess, category: 'PUZZLE' }],
+    ['a count that is not a number', { ...chess, duelCount: '2' }],
+    ['nothing', null],
+  ])('refuses %s', (_, value) => {
+    expect(isGame(value)).toBe(false);
   });
 });

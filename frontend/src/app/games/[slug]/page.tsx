@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { GameDetail } from '@/components/game/GameDetail';
 import { GameGuideBody } from '@/components/game/GameGuideBody';
 import { GuideShortcuts } from '@/components/game/GuideShortcuts';
 import { JsonLd } from '@/components/seo/JsonLd';
+import { localePath } from '@/i18n/localePath';
 import { getTranslation } from '@/i18n/serverTranslation';
 import { uncataloguedGame, type Game } from '@/lib/game';
 import { gameGuide, type GameGuide } from '@/lib/gameGuides';
@@ -15,56 +16,64 @@ interface GamePageProps {
   params: Promise<{ slug: string }>;
 }
 
-/**
- * A game with a guide is drawn whatever the backend says: the catalog's game when it can be read,
- * otherwise the guide's, so a page search engines list never fails with the backend. A failed read
- * is still logged. Without a guide the catalog decides: a slug it does not know is a 404, a backend
- * that fails is an error, and with no backend to ask the page reads the game in the browser.
- */
-async function readGuided(slug: string, guide: GameGuide): Promise<Game> {
-  try {
-    const read = await readGame(slug);
-    return read.status === 'found' ? read.game : uncataloguedGame(guide);
-  } catch (error) {
-    console.error(`[game page] ${slug}: the catalog could not be read, drawing the game from its guide`, error);
-    return uncataloguedGame(guide);
-  }
+interface PageGame {
+  /** The game as the page server settled it: the catalog's, or a guide's the catalog does not have. */
+  game?: Game;
+  /** A guide's game, shown while the browser reads the catalog the server could not. */
+  fallbackGame?: Game;
+  guide: GameGuide | null;
 }
 
-async function pageGame(slug: string): Promise<{ game: Game | undefined; guide: GameGuide | null }> {
+/**
+ * The game the page is about. The catalog lower-cases slugs, so `/games/CS2` moves to `/games/cs2`
+ * rather than stand beside it. A slug neither the catalog nor a guide knows is a 404, not a page
+ * saying so; one the server could not ask about is read in the browser, a guide's game shown
+ * meanwhile, so a page search engines list never waits on the backend.
+ */
+async function pageGame(slug: string): Promise<PageGame> {
+  const catalogSlug = slug.toLowerCase();
+  if (slug !== catalogSlug) {
+    const { language } = await getTranslation();
+    permanentRedirect(localePath(`/games/${encodeURIComponent(catalogSlug)}`, language));
+  }
   const guide = gameGuide(slug);
-  if (guide) return { game: await readGuided(slug, guide), guide };
   const read = await readGame(slug);
-  if (read.status === 'missing') notFound();
-  return { game: read.status === 'found' ? read.game : undefined, guide };
+  if (read.status === 'found') return { game: read.game, guide };
+  if (read.status === 'missing') {
+    if (!guide) notFound();
+    return { game: uncataloguedGame(guide), guide };
+  }
+  return { fallbackGame: guide ? uncataloguedGame(guide) : undefined, guide };
 }
 
 export async function generateMetadata({ params }: GamePageProps): Promise<Metadata> {
   const { slug } = await params;
-  const { game, guide } = await pageGame(slug);
+  const { game, fallbackGame, guide } = await pageGame(slug);
   const { t, language } = await getTranslation();
   const copy = guide?.copy[language];
+  const named = game ?? fallbackGame;
   return pageMetadata({
     path: `/games/${slug}`,
-    title: copy?.title ?? (game ? t('seo.game.title', { game: game.name }) : t('seo.games.title')),
-    description: copy?.description ?? (game ? t('seo.game.description', { game: game.name }) : t('seo.games.description')),
+    title: copy?.title ?? (named ? t('seo.game.title', { game: named.name }) : t('seo.games.title')),
+    description: copy?.description ?? (named ? t('seo.game.description', { game: named.name }) : t('seo.games.description')),
   });
 }
 
 export default async function GamePage({ params }: GamePageProps) {
   const { slug } = await params;
-  const { game, guide } = await pageGame(slug);
+  const { game, fallbackGame, guide } = await pageGame(slug);
   const { t, language } = await getTranslation();
+  const named = game ?? fallbackGame;
 
   return (
     <>
-      {game && (
+      {named && (
         <JsonLd
           data={breadcrumbSchema(
             [
               { name: t('seo.crumb.home'), path: '/' },
               { name: t('nav.games'), path: '/games' },
-              { name: game.name, path: `/games/${game.slug}` },
+              { name: named.name, path: `/games/${named.slug}` },
             ],
             language
           )}
@@ -73,6 +82,7 @@ export default async function GamePage({ params }: GamePageProps) {
       <GameDetail
         slug={slug}
         initialGame={game}
+        fallbackGame={fallbackGame}
         lead={guide?.copy[language].lead}
         after={
           <>

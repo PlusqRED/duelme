@@ -24,6 +24,8 @@ interface GameDetailProps {
   slug: string;
   /** The game as the page server read it; without one the page reads it here. */
   initialGame?: Game;
+  /** Shown while that read runs, and when it finds nothing or fails: a guide's game. */
+  fallbackGame?: Game;
   /** The guide's word on what a duel in this game is, under the heading. */
   lead?: string;
   /** Drawn on the server, after the duels: the game's guide and the way to the other guides. */
@@ -35,10 +37,10 @@ interface GameDetailProps {
  * second player, then every duel someone joined in it, searchable and in pages, and the game's
  * guide when it has one, with the way to the others.
  */
-export function GameDetail({ slug, initialGame, lead, after }: GameDetailProps) {
+export function GameDetail({ slug, initialGame, fallbackGame, lead, after }: GameDetailProps) {
   const { t } = useTranslation();
   const feedTitleId = useId();
-  const { game, isLoading: isGameLoading, isError: isGameError, refetch } = useGame(slug, initialGame);
+  const { game, isLoading: isGameLoading, isError: isGameError, refetch } = useGame(slug, initialGame, fallbackGame);
   const { duels, metaByDuelId, totalVolume, duelsPlayed, isLoading, isError, retry } = useGameDuels(
     game?.slug,
     DEFAULT_CHAIN_ID
@@ -48,7 +50,7 @@ export function GameDetail({ slug, initialGame, lead, after }: GameDetailProps) 
   const feed = useFeedDuels(joined, metaByDuelId);
   const [query, setQuery] = useState('');
 
-  if (isGameLoading) {
+  if (isGameLoading && !game) {
     return (
       <PageColumn>
         <div aria-hidden="true" className="flex items-center gap-6">
