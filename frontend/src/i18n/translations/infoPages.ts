@@ -8,7 +8,7 @@ export const infoPagesTranslations = defineSection({
 
     'howItWorks.title': 'How a duel on DuelMe works',
     'howItWorks.intro':
-      'A duel is a 1v1 match in any game, on a screen or in real life, played for USDT. Both players put in the same amount, a smart contract on Arbitrum holds it while they play, and the winner takes the whole pot. Here is every step, and what happens when something goes wrong.',
+      'A duel is a 1v1 match in any game, played for USDT. Both players put in the same amount, a smart contract on Arbitrum holds it while they play, and the winner takes the whole pot. Here is every step, and what happens when something goes wrong.',
     'howItWorks.stepsTitle': 'Step by step',
     'howItWorks.step1.title': 'Sign in and add USDT',
     'howItWorks.step1.text':
@@ -80,7 +80,7 @@ export const infoPagesTranslations = defineSection({
 
     'howItWorks.title': 'Как проходит дуэль в DuelMe',
     'howItWorks.intro':
-      'Дуэль — это матч 1 на 1 на USDT в любой игре, на экране или вживую. Оба игрока вносят одну и ту же сумму, смарт-контракт в сети Arbitrum держит её, пока идёт игра, и победитель забирает весь банк. Здесь каждый шаг и что бывает, если что-то пошло не так.',
+      'Дуэль — это матч 1 на 1 в любой игре на USDT. Оба игрока вносят одну и ту же сумму, смарт-контракт в сети Arbitrum держит её, пока идёт игра, и победитель забирает весь банк. Здесь каждый шаг и что бывает, если что-то пошло не так.',
     'howItWorks.stepsTitle': 'Шаг за шагом',
     'howItWorks.step1.title': 'Войди и пополни USDT',
     'howItWorks.step1.text':
@@ -115,7 +115,7 @@ export const infoPagesTranslations = defineSection({
     'safety.contract.link': 'Контракт на Arbiscan',
     'safety.limits.title': 'Что DuelMe может, а что нет',
     'safety.limits.text':
-      'В контракте нет способа выбрать победителя. Двигать деньги DuelMe может только через аварийный вывод: он есть на случай критической ошибки или переезда проекта на новый контракт, чтобы деньги игроков не застряли навсегда и вернулись владельцам. Каждый вывод нужно сначала объявить в блокчейне, и выполнить его можно не раньше чем через {days}, так что это увидят все.',
+      'В контракте нет способа выбрать победителя. Двигать деньги DuelMe может только через аварийный вывод: он есть на случай критической ошибки или переезда проекта на новый контракт, чтобы деньги игроков не застряли навсегда и могли вернуться владельцам. Каждый вывод нужно сначала объявить в блокчейне, и выполнить его можно не раньше чем через {days}, так что это увидят все.',
     'safety.payouts.title': 'Выигрыш забираешь ты',
     'safety.payouts.text':
       'Выигранный банк или вернувшаяся сумма ждёт в контракте на твоём адресе, пока ты не выведешь её, когда захочешь. Никто не отправляет её за тебя и никто не может её задержать.',

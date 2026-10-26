@@ -159,9 +159,15 @@ test.describe('Landing', () => {
     await page.setViewportSize({ width: 360, height: 780 });
     // The hero's note tilts in from just past the edge; what has to fit is the page at rest.
     await page.emulateMedia({ reducedMotion: 'reduce' });
+    await serveGames(page);
 
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: 'Pick a game, set a stake, send the link.' })).toBeAttached();
+    // Measured once the lists the browser draws are in: the popular games and the open duels.
+    await expect(page.locator('#recent-duels').getByRole('button', { name: /^Chess Strategy/ })).toBeVisible({ timeout: 30_000 });
+    const open = page.locator('#public-duels');
+    await expect(
+      open.getByRole('link', { name: /^Join for|^View Duel$/ }).or(open.getByRole('heading', { name: /No public duels/ })).first()
+    ).toBeAttached({ timeout: 30_000 });
 
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBe(0);

@@ -22,7 +22,7 @@ export async function Closing() {
         <GuideShortcuts className="mt-1" />
         <div className="max-w-[60ch]">
           <Note icon="plus" tone="plain">
-            {t('games.missingTitle')} {t('games.addByDuel')}
+            {t('cta.anyGame')}
           </Note>
         </div>
         <LocaleLink href="/duel/create" className={buttonVariants({ size: 'lg', className: 'mt-2' })}>
