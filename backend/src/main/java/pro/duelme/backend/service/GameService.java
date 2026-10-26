@@ -76,6 +76,29 @@ public class GameService {
             .orElseGet(() -> createGame(slug, name, iconUrl, category));
     }
 
+    /**
+     * Puts the games DuelMe knows into the catalog, each under its category, so a player finds them
+     * when creating a duel before anyone has played them. A game already there keeps its id and
+     * duels and takes the catalog's name and category: that is how a game moves to a new category.
+     */
+    public void seedCatalog(Map<GameCategory, List<String>> catalog) {
+        catalog.forEach((category, names) -> names.forEach(name -> seedGame(name.trim(), category)));
+    }
+
+    private void seedGame(String name, GameCategory category) {
+        String slug = toSlug(name);
+        Optional<Game> known = repository.findBySlug(slug);
+        if (known.isEmpty()) {
+            createGame(slug, name, null, category);
+            return;
+        }
+        Game game = known.get();
+        if (game.name().equals(name) && game.category() == category) return;
+        repository.save(new Game(
+            game.id(), slug, name, game.iconUrl(), category, game.createdAt(), game.updatedAt()
+        ));
+    }
+
     private GameResponse createGame(String slug, String name, String iconUrl, GameCategory category) {
         Game game = new Game(
             null, slug, name.trim(), iconUrl,
@@ -93,19 +116,26 @@ public class GameService {
         }
     }
 
-    static String toSlug(String name) {
+    public static String toSlug(String name) {
         String slug = name.toLowerCase()
             .replaceAll("[^a-z0-9\\s-]", "")
             .replaceAll("\\s+", "-")
             .replaceAll("-+", "-")
             .replaceAll("^-|-$", "");
-        if (slug.isEmpty()) {
+        if (slug.isEmpty() || hasNonLatinLetter(name)) {
             // Fallback for non-Latin names: 12-hex-char SHA-256 prefix of the
             // normalized name. SHA-256 is collision-resistant where String.hashCode
-            // is not, so distinct Cyrillic / CJK names produce distinct slugs.
+            // is not, so distinct Cyrillic / CJK names produce distinct slugs. A name
+            // that mixes scripts takes it too: the Latin rule keeps only what is left
+            // of it, and «Дота 2» and «КС 2» were both "2", one game.
             slug = "g-" + sha256Prefix(name.trim().toLowerCase(), 12);
         }
         return slug;
+    }
+
+    private static boolean hasNonLatinLetter(String name) {
+        return name.codePoints().anyMatch(codePoint ->
+            Character.isLetter(codePoint) && Character.UnicodeScript.of(codePoint) != Character.UnicodeScript.LATIN);
     }
 
     private static String sha256Prefix(String input, int hexChars) {

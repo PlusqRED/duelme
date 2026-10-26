@@ -14,6 +14,7 @@ import pro.duelme.backend.repository.DuelMetaRepository;
 import pro.duelme.backend.repository.GameRepository;
 
 import java.util.List;
+import java.util.Map;
 
 import static pro.duelme.backend.support.TestContracts.CHAIN_ID;
 import static pro.duelme.backend.support.TestContracts.CONTRACT;
@@ -21,6 +22,7 @@ import static pro.duelme.backend.support.TestContracts.OTHER_CHAIN_ID;
 import static pro.duelme.backend.support.TestContracts.REDEPLOYED_CONTRACT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -121,6 +123,75 @@ class GameServiceTest {
         assertThat(chess).isNotEqualTo(go);
         assertThat(go).isNotEqualTo(shogi);
         assertThat(chess).isNotEqualTo(shogi);
+    }
+
+    @Test
+    void slugOfANameMixingScriptsKeepsItsNonLatinWords() {
+        // Only the Latin remnant used to survive: «Дота 2» and «КС 2» both became "2", one game.
+        String dota = GameService.toSlug("\u0414\u043e\u0442\u0430 2");                   // Дота 2
+        String cs = GameService.toSlug("\u041a\u0421 2");                                     // КС 2
+        String heroes = GameService.toSlug("\u0413\u0435\u0440\u043e\u0438 III");          // Герои III
+
+        assertThat(List.of(dota, cs, heroes)).allMatch(slug -> slug.startsWith("g-"));
+        assertThat(dota).isNotEqualTo(cs);
+    }
+
+    @Test
+    void slugOfAnAccentedLatinNameStaysReadable() {
+        assertThat(GameService.toSlug("Pok\u00e9mon Unite")).isEqualTo("pokmon-unite");
+    }
+
+    @Test
+    void seedCatalogAddsTheGamesItLacks() {
+        String nardy = "\u041d\u0430\u0440\u0434\u044b";                                      // Нарды
+
+        gameService.seedCatalog(Map.of(GameCategory.BOARD, List.of("Backgammon", nardy)));
+
+        assertThat(gameRepository.findAll())
+            .extracting(Game::slug, Game::name, Game::category)
+            .containsExactlyInAnyOrder(
+                tuple("backgammon", "Backgammon", GameCategory.BOARD),
+                tuple(GameService.toSlug(nardy), nardy, GameCategory.BOARD)
+            );
+    }
+
+    @Test
+    void seedCatalogMovesAKnownGameToItsCategoryAndKeepsItsDuels() {
+        gameRepository.save(new Game(null, "chess", "chess", null, GameCategory.STRATEGY, null, null));
+        duelMetaRepository.save(new DuelMeta(null, CONTRACT, 1, CHAIN_ID, "chess", "0xaaa", null));
+        Game before = gameRepository.findBySlug("chess").orElseThrow();
+
+        gameService.seedCatalog(Map.of(GameCategory.BOARD, List.of("Chess")));
+
+        Game after = gameRepository.findBySlug("chess").orElseThrow();
+        assertThat(after.id()).isEqualTo(before.id());
+        assertThat(after.createdAt()).isEqualTo(before.createdAt());
+        assertThat(after.name()).isEqualTo("Chess");
+        assertThat(after.category()).isEqualTo(GameCategory.BOARD);
+        assertThat(gameService.getBySlug("chess").duelCount()).isEqualTo(1);
+        assertThat(gameRepository.findAll()).hasSize(1);
+    }
+
+    @Test
+    void seedCatalogLeavesTheGamesPlayersAddedAsTheyAre() {
+        gameRepository.save(new Game(null, "my-game", "My Game", null, GameCategory.OTHER, null, null));
+        Game before = gameRepository.findBySlug("my-game").orElseThrow();
+
+        gameService.seedCatalog(Map.of(GameCategory.BOARD, List.of("Chess")));
+
+        assertThat(gameRepository.findBySlug("my-game")).contains(before);
+        assertThat(gameRepository.findAll()).hasSize(2);
+    }
+
+    @Test
+    void seedCatalogAgainChangesNothing() {
+        var catalog = Map.of(GameCategory.CARD, List.of("Poker", "Durak"), GameCategory.MMO, List.of("Lineage 2"));
+        gameService.seedCatalog(catalog);
+        List<Game> first = gameRepository.findAll();
+
+        gameService.seedCatalog(catalog);
+
+        assertThat(gameRepository.findAll()).containsExactlyInAnyOrderElementsOf(first);
     }
 
     @Test

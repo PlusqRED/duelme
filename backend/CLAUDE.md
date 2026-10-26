@@ -85,6 +85,7 @@ OpenAPI config: `backend/src/.../config/OpenApiConfig.java`. Swagger UI at `/api
 | `backend/src/.../service/DuelMetaService.java` | Owns the creator check and normalises both addresses; every lookup is scoped to one deployment, and writes are accepted only for the live one |
 | `backend/src/.../config/MongoConfig.java` | **Creates every index explicitly.** Spring Boot does not auto-create `@Indexed` / `@CompoundIndex` — see Common Pitfalls |
 | `backend/src/.../config/ContractProperties.java` | `duelme.contracts.duel-me` — the live DuelMe per chain, the backend's mirror of `constants.ts` |
+| `backend/src/.../config/CatalogProperties.java` | `duelme.catalog.games` — the games DuelMe puts into the catalog itself, by category: every frontend guide's game (pinned by `gameGuides.test.ts`) and the Russian names of some, each a game of its own. `GameCatalogConfig` has `GameService.seedCatalog` write them at every boot, which is also how a known game moves to another category |
 | `backend/src/.../validation/EvmAddress.java` | The one address regex, shared by the `@Pattern` annotations and the runtime checks |
 | `backend/Dockerfile` | Backend container: two runtime-only targets, `jvm` (dev) and `native` (prod); Gradle runs on the host (Deployment in `ops/CLAUDE.md`) |
 
