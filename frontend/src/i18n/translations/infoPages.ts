@@ -5,6 +5,7 @@ export const infoPagesTranslations = defineSection({
   en: {
     'footer.about': 'About',
     'footer.pages': 'About DuelMe',
+    'footer.devlog': 'Devlog',
 
     'howItWorks.title': 'How a duel on DuelMe works',
     'howItWorks.intro':
@@ -75,6 +76,7 @@ export const infoPagesTranslations = defineSection({
   ru: {
     'footer.about': 'О проекте',
     'footer.pages': 'О DuelMe',
+    'footer.devlog': 'Девлог',
 
     'howItWorks.title': 'Как проходит дуэль в DuelMe',
     'howItWorks.intro':
