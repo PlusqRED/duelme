@@ -22,8 +22,14 @@ export async function fetchGames(
   return res.json();
 }
 
-export async function fetchGameBySlug(slug: string): Promise<Game | null> {
-  const res = await fetch(`${API_BASE}/games/${encodeURIComponent(slug)}`);
+interface GameReadOptions {
+  /** The API's address; the page server reaches the backend by its own (`lib/serverGame.ts`). */
+  base?: string;
+  signal?: AbortSignal;
+}
+
+export async function fetchGameBySlug(slug: string, { base = API_BASE, signal }: GameReadOptions = {}): Promise<Game | null> {
+  const res = await fetch(`${base}/games/${encodeURIComponent(slug)}`, { signal });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error('Failed to fetch game');
   return res.json();

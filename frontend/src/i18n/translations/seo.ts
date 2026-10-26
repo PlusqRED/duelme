@@ -13,9 +13,9 @@ export const seoTranslations = defineSection({
     'seo.games.title': 'Games for 1v1 duels for USDT',
     'seo.games.description':
       'Pick a game and play a 1v1 duel for USDT: CS2, Dota 2, Valorant, FIFA, chess and more. A smart contract holds the stakes, the winner takes the pot.',
-    'seo.game.title': '1v1 duels for USDT in this game',
+    'seo.game.title': '{game}: 1v1 duels for USDT',
     'seo.game.description':
-      'Open and recent 1v1 duels for USDT in this game. Find an opponent, set the stake and play: the winner takes the whole pot, 0% platform fee.',
+      'Open and recent 1v1 duels for USDT in {game}. Find an opponent, set the stake and play: the winner takes the whole pot, 0% platform fee.',
     'seo.create.title': 'Create a 1v1 duel for USDT',
     'seo.create.description':
       'Pick a game, set the stake and send your opponent the link. A smart contract holds both stakes and pays the winner the whole pot. 0% platform fee.',
@@ -46,9 +46,9 @@ export const seoTranslations = defineSection({
     'seo.games.title': 'Игры для дуэлей 1 на 1 на USDT',
     'seo.games.description':
       'Выбери игру и сыграй дуэль 1 на 1 на USDT: CS2, Dota 2, Valorant, FIFA, шахматы и другие. USDT обоих держит смарт-контракт, победитель забирает всё.',
-    'seo.game.title': 'Дуэли 1 на 1 на USDT в этой игре',
+    'seo.game.title': '{game}: дуэли 1 на 1 на USDT',
     'seo.game.description':
-      'Открытые и недавние дуэли 1 на 1 на USDT в этой игре. Найди соперника, выбери сумму и играй: победитель забирает весь банк, комиссия 0%.',
+      'Открытые и недавние дуэли 1 на 1 на USDT в {game}. Найди соперника, выбери сумму и играй: победитель забирает весь банк, комиссия 0%.',
     'seo.create.title': 'Создать дуэль 1 на 1 на USDT',
     'seo.create.description':
       'Выбери игру и сумму и отправь сопернику ссылку. USDT обоих держит смарт-контракт и отдаёт победителю весь банк. Комиссия платформы 0%.',

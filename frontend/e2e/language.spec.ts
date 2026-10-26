@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { collectPageErrors } from './helpers/pageErrors';
 
-const GAMES_HEADING = { en: 'Game catalog', ru: 'Каталог игр' };
+const GAMES_HEADING = { en: 'Games for 1v1 duels', ru: 'Игры для дуэлей 1 на 1' };
 
 /**
  * A press does nothing until the page's script has loaded, so the press is repeated until the page

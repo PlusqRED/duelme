@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import sitemap from '@/app/sitemap';
+import { GAME_GUIDES } from '@/lib/gameGuides';
 
 const entries = sitemap();
 
@@ -20,6 +21,12 @@ describe('sitemap', () => {
       ru: 'https://duelme.pro/ru/duels/public',
       'x-default': 'https://duelme.pro/duels/public',
     });
+  });
+
+  it('lists the games with a guide, and only them', () => {
+    const games = entries.map((candidate) => candidate.url).filter((url) => url.startsWith('https://duelme.pro/games/'));
+
+    expect(games).toEqual(GAME_GUIDES.map((guide) => `https://duelme.pro/games/${guide.slug}`));
   });
 
   it('leaves out a player’s own pages', () => {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { translations, type TranslationKey } from '@/i18n/translations';
+import { isFormal } from '@/lib/__tests__/helpers/russianVoice';
 import { sourceFiles } from '@/lib/__tests__/helpers/sourceFiles';
 
 const keys = Object.keys(translations.en) as TranslationKey[];
@@ -23,25 +24,6 @@ function isUsed(key: string): boolean {
     return true;
   }
   return isQuoted(key) || (PLURAL_FORM.test(key) && isQuoted(key.replace(PLURAL_FORM, '')));
-}
-
-/** «Вы» and its forms. */
-const FORMAL_PRONOUN = /(?<![а-яё])(?:вы|вас|вам|вами|ваш[а-яё]*)(?![а-яё])/iu;
-
-/** A verb that agrees with «вы» even where it is left out: «попробуйте», «проверьте», «можете», «поделитесь». */
-const FORMAL_VERB = /(?<![а-яё])[а-яё]+(?:ите|йте|ьте|ете|ёте)(?:сь)?(?![а-яё])/giu;
-
-/**
- * A noun in the case after «в», «на», «о» or «при» ends like such a verb («в тестнете», «на сайте»,
- * «в личном кабинете»), so a word right after one of them, or after one and an adjective, is no verb.
- */
-const AFTER_PREPOSITION = /(?<![а-яё])(?:в|во|на|о|об|обо|при)\s+(?:[а-яё]+(?:ом|ем|ём|ой|ей)\s+)?$/iu;
-
-function isFormal(text: string): boolean {
-  return (
-    FORMAL_PRONOUN.test(text) ||
-    [...text.matchAll(FORMAL_VERB)].some((verb) => !AFTER_PREPOSITION.test(text.slice(0, verb.index)))
-  );
 }
 
 const FORMAL_EXAMPLES = ['Попробуйте ещё раз', 'Проверьте сеть', 'Вы можете отменить', 'На кнопку нажмите'];

@@ -21,7 +21,7 @@ async function serveGames(page: Page) {
 test.describe('Game catalog', () => {
   test('/games page loads with its title', async ({ page }) => {
     await page.goto('/games');
-    await expect(page.getByRole('heading', { level: 1 })).toContainText(/Game catalog|Каталог игр/);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(/Games for 1v1 duels|Игры для дуэлей 1 на 1/);
   });
 
   test('/games page has category filters', async ({ page }) => {
@@ -46,6 +46,8 @@ test.describe('Game catalog', () => {
     await expect(games).toHaveCount(2);
   });
 
+  // With no backend for the page server, the page reads the game in the browser; the server's own
+  // 404 for an unknown game is pinned in `src/app/__tests__/gamePage.test.ts`.
   test('/games/nonexistent says the catalog has no such game', async ({ page }) => {
     await page.route('**/api/v1/games/nonexistent-game-slug', (route) => route.fulfill({ status: 404 }));
     await page.goto('/games/nonexistent-game-slug');
@@ -60,7 +62,7 @@ test.describe('Game catalog', () => {
     await expect(gamesLink).toBeVisible();
     await gamesLink.click();
     await expect(page).toHaveURL(/\/games/);
-    await expect(page.getByRole('heading', { level: 1 })).toContainText(/Game catalog|Каталог игр/);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(/Games for 1v1 duels|Игры для дуэлей 1 на 1/);
   });
 
   test('/duel/create has a game search that takes input', async ({ page }) => {

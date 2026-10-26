@@ -231,6 +231,11 @@ test can check.
 | `frontend/src/lib/brandImage.tsx` | The brand mark for `ImageResponse`: the favicon, the home-screen icon and `/logo.png` |
 | `frontend/src/lib/ogImage.tsx` | The share image in each language, drawn once per language at build by `app/og/[language]/route.ts` (`/og/en`, `/og/ru`); carries Geologica as WOFF (`src/assets/fonts/`, OFL), since `ImageResponse` cannot read WOFF2 |
 | `frontend/src/lib/pageMetadata.ts` | Every page's head tags in the language of its address: canonical, `hreflang` for each language and `x-default`, title, description, share preview, and whether search engines list it. Its words are in `i18n/translations/seo.ts`, sized for a search result |
+| `frontend/src/lib/serverGame.ts` | One game read on the page server through `API_INTERNAL_URL`, once per request, with a timeout; `unread` without the variable |
+| `frontend/src/lib/gameGuides.ts` | A game's guide: the types, the lookup by slug, and the game a guide stands for before anyone has duelled in it. A game page is indexed only with a guide |
+| `frontend/src/content/gameGuides/` | The guides, one file per game, in both languages; `index.ts` orders them. A guide's `slug` is the one the backend makes from its `name` (`lib/__tests__/gameGuides.test.ts` mirrors `GameService.toSlug`) |
+| `frontend/src/components/game/GameGuideBody.tsx` | A guide's parts under a game's duels, drawn on the server |
+| `frontend/src/components/game/GuideShortcuts.tsx` | The games with a guide as links on top of the catalog, drawn on the server |
 | `frontend/src/app/sitemap.ts` | The pages search engines should list, each in every language with its `hreflang` alternates; no change dates or priorities |
 | `frontend/src/lib/structuredData.ts` | The pages' JSON-LD (organization, web app, breadcrumbs) and its one serializer, which escapes `<`: a game's name comes from players and must not close the script tag. `components/seo/JsonLd.tsx` renders it |
 | `frontend/src/components/identity/Avatar.tsx` | A player's face: the address's identicon (`lib/identicon.ts`) on their seat's colour |
@@ -375,6 +380,7 @@ test can check.
 
 - `NEXT_PUBLIC_PRIVY_APP_ID` — Privy app ID (frontend)
 - `NEXT_PUBLIC_API_URL` — Backend API base URL (default `/api/v1`)
+- `API_INTERNAL_URL` — the backend as the page server reaches it, **runtime**: `http://backend:8080/api/v1`, a literal in each compose file, like `APP_ENV`, since it is no secret (`lib/__tests__/composeServerApi.test.ts` pins it). Game pages read their game on the server through it. Unset (a local dev server, the browser tests) ⇒ they read it in the browser, and a game nobody knows shows its not-found card with a 200 instead of a 404.
 - `NEXT_PUBLIC_ARBITRUM_RPC_URL` — authenticated RPC for Arbitrum One. **Unset since 2026-09-20**, so both environments run on Tenderly Gateway public; the previous provider was disabled upstream and took withdrawals down with it (see the RPC gotcha below). Used as Privy embedded-wallet override + first wagmi fallback. If you set it: check the endpoint answers `eth_chainId`, add its host to `connect-src`, and lock the URL via the provider's "Allowed Origins" — `NEXT_PUBLIC_*` are inlined into the JS bundle.
 - `NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL` — same for Arbitrum Sepolia. Optional; Tenderly public works for dev.
 - `RELAYER_PRIVATE_KEY` — hot wallet that pays gas for relayed duel actions (frontend container, **runtime** not build-time). Unset, or not a valid private key ⇒ `/api/relay` returns 503 and duel writes stay self-paid. Dedicated key; fund it with only what the daily budgets can spend.
@@ -486,6 +492,11 @@ test can check.
   carried `index, follow` beside the `noindex` Next.js adds. The root layout sets only what every
   page shares; each `page.tsx` calls `pageMetadata` in its `generateMetadata`. A layout that sets a
   plain string `title` also drops the root's `%s | DuelMe` template for the pages under it.
+- **A game page is a search result only with a guide.** Players add games by naming them in a
+  duel, so the catalog grows by whatever anyone types; a page with only a name and empty lists is
+  thin content. `/games/[slug]` sets `noindex` without a guide, and the sitemap lists only guided
+  games. A guide whose `slug` differs from the backend's for its `name` would stand beside the
+  catalog's game rather than on it, with its duels missing.
 - **A move between languages loads the whole page.** `/games` and `/ru/games` are the same route,
   so a client-side move between them keeps the layouts, the top bar and the footer, in the old
   language. The switch uses `location.replace`; nothing else links across languages.

@@ -2,9 +2,18 @@ import type { MetadataRoute } from 'next';
 import { LANGUAGES } from '@/i18n/language';
 import { languageAddresses, localePath } from '@/i18n/localePath';
 import { SITE_URL } from '@/lib/constants';
+import { GAME_GUIDES } from '@/lib/gameGuides';
 
-/** The pages a search engine should list, by their English address. */
-const INDEXED_PAGES = ['/', '/games', '/duels/public', '/duels/recent', '/duel/create', '/privacy'] as const;
+/** The pages a search engine should list, by their English address: a game's only with its guide. */
+const INDEXED_PAGES = [
+  '/',
+  '/games',
+  ...GAME_GUIDES.map((guide) => `/games/${guide.slug}`),
+  '/duels/public',
+  '/duels/recent',
+  '/duel/create',
+  '/privacy',
+];
 
 /** An address on the site as a search engine reads it: whole, and the home page with no trailing slash. */
 function absolute(path: string): string {

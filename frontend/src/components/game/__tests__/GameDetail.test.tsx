@@ -56,9 +56,21 @@ describe('GameDetail', () => {
   it('heads the page with the game, its category and the money it has seen', () => {
     render(<GameDetail slug="chess" />);
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Chess' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: /^Chess\s*1v1 duels for USDT$/ })).toBeTruthy();
     expect(screen.getByText('Strategy')).toBeTruthy();
     expect(screen.getByText('10.00 USDT')).toBeTruthy();
+  });
+
+  it('says what a duel in the game is, under its heading, when it has a guide', () => {
+    render(<GameDetail slug="chess" lead="Two players, one board." />);
+
+    expect(screen.getByText('Two players, one board.')).toBeTruthy();
+  });
+
+  it('follows the duels with what the page server drew after them', () => {
+    render(<GameDetail slug="chess" after={<p>The guide</p>} />);
+
+    expect(screen.getByText('The guide')).toBeTruthy();
   });
 
   it('lists the game’s open duels and the duels someone joined in it', () => {
