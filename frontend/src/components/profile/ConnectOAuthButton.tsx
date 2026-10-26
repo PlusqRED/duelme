@@ -7,6 +7,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useAppToast } from '@/hooks/useAppToast';
 import { useSocialLinks } from '@/hooks/useSocialLinks';
 import { useTranslation } from '@/i18n/useTranslation';
+import { rememberOAuthReturn } from '@/lib/oauthReturn';
 import type { SocialLinkError } from '@/lib/profileApi';
 
 interface ConnectOAuthButtonProps {
@@ -20,7 +21,7 @@ interface ConnectOAuthButtonProps {
  * browsers (particularly iOS Safari, which blocks popups aggressively).
  */
 export function ConnectOAuthButton({ platform }: ConnectOAuthButtonProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const toast = useAppToast();
   const { startSteam, startTelegram } = useSocialLinks();
   const mutation = platform === 'steam' ? startSteam : startTelegram;
@@ -31,6 +32,7 @@ export function ConnectOAuthButton({ platform }: ConnectOAuthButtonProps) {
     try {
       const { redirectUrl } = await mutation.mutateAsync();
       setRedirecting(true);
+      rememberOAuthReturn(language);
       window.location.assign(redirectUrl);
     } catch (error) {
       const code = (error as SocialLinkError | undefined)?.code ?? 'network';

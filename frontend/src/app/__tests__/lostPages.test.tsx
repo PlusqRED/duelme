@@ -1,13 +1,12 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { LANGUAGE_COOKIE } from '@/i18n/language';
+import { LANGUAGE_HEADER } from '@/i18n/language';
 import { translations } from '@/i18n/translations';
+import { renderIn } from '@/lib/__tests__/helpers/renderIn';
 
 vi.mock('next/headers', () => ({
-  cookies: async () => ({
-    get: (name: string) => (name === LANGUAGE_COOKIE ? { name, value: 'ru' } : undefined),
-  }),
+  headers: async () => new Headers({ [LANGUAGE_HEADER]: 'ru' }),
 }));
 
 const { default: NotFound } = await import('@/app/not-found');
@@ -22,25 +21,25 @@ describe('NotFound', () => {
     expect(screen.getByRole('heading', { level: 1, name: translations.ru['notFound.title'] })).toBeTruthy();
   });
 
-  it('leads home and to the open duels', async () => {
-    render(await NotFound());
+  it('leads home and to the open duels, at the language’s addresses', async () => {
+    renderIn('ru', await NotFound());
 
-    expect(screen.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual(['/', '/duels/public']);
+    expect(screen.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual(['/ru', '/ru/duels/public']);
   });
 });
 
 describe('ErrorPage', () => {
-  it('tries the screen again on request', () => {
-    const reset = vi.fn();
-    render(<ErrorPage error={new Error('boom')} reset={reset} />);
+  it('fetches the screen again on request', () => {
+    const retry = vi.fn();
+    render(<ErrorPage error={new Error('boom')} retry={retry} />);
 
     fireEvent.click(screen.getByRole('button', { name: translations.en['action.tryAgain'] }));
 
-    expect(reset).toHaveBeenCalledOnce();
+    expect(retry).toHaveBeenCalledOnce();
   });
 
   it('says the page did not load and leads home', () => {
-    render(<ErrorPage error={new Error('boom')} reset={vi.fn()} />);
+    render(<ErrorPage error={new Error('boom')} retry={vi.fn()} />);
 
     expect(screen.getByRole('heading', { level: 1, name: translations.en['error.title'] })).toBeTruthy();
     expect(screen.getByRole('link', { name: translations.en['notFound.home'] }).getAttribute('href')).toBe('/');

@@ -1,9 +1,10 @@
 // @vitest-environment happy-dom
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { pageTranslations } from '@/i18n/pageTranslations';
 import { translations } from '@/i18n/translations';
 
-vi.mock('next/headers', () => ({ cookies: async () => ({ get: () => undefined }) }));
+vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
 // The parts with a test of their own: the demo reads the contract, the note the build's time.
 vi.mock('@/components/landing/DemoDuel', () => ({ DemoDuel: () => <section id="demo" /> }));
 vi.mock('@/components/landing/DevNote', () => ({ DevNote: () => <aside /> }));
@@ -14,11 +15,17 @@ const { Hero } = await import('@/components/landing/Hero');
 afterEach(cleanup);
 
 describe('Hero', () => {
-  it('opens the page with the motto as its one heading', async () => {
+  it('heads the page with what the site is, in the words people search for it by', async () => {
     render(await Hero());
 
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(
-      `${translations.en['motto.1']}${translations.en['motto.2']}`
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(pageTranslations.en['hero.title']);
+  });
+
+  it('keeps the motto above the heading, as its own line', async () => {
+    const { container } = render(await Hero());
+
+    expect(container.querySelector('hgroup')?.textContent).toBe(
+      `${translations.en['motto.1']}${translations.en['motto.2']}${pageTranslations.en['hero.title']}`
     );
   });
 

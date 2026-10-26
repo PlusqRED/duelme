@@ -78,7 +78,7 @@ export function DuelTurn({ duelId, duel, view, gameName, inviteSecret, walletAdd
   };
   const isPublic = isPublicDuel(duel.inviteHash);
   // A private duel's link is nothing without its key: never fall back to a bare `/duel/{id}`.
-  const link = !hasWindow ? null : isPublic ? buildDuelLink(duelId, duel.inviteHash) : inviteSecret ? buildInviteLink(duelId, inviteSecret) : null;
+  const link = !hasWindow ? null : isPublic ? buildDuelLink(duelId, duel.inviteHash, language) : inviteSecret ? buildInviteLink(duelId, inviteSecret, language) : null;
 
   return (
     <>

@@ -1,9 +1,9 @@
 'use client';
 
-import Link from 'next/link';
 import { StandingReputation } from '@/components/dashboard/StandingReputation';
 import { StandingTotals } from '@/components/dashboard/StandingTotals';
 import { Avatar } from '@/components/identity/Avatar';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useReputation } from '@/hooks/useReputation';
 import { useTranslation } from '@/i18n/useTranslation';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
@@ -37,9 +37,9 @@ export function StandingCard({ address, walletAddress, totals }: StandingCardPro
           <h2 id="standing-title" className="text-[1.1875rem] tracking-[-0.01em] tabular-nums">
             {truncateAddress(address)}
           </h2>
-          <Link href="/profile" className="link inline-flex min-h-11 items-center text-body-sm">
+          <LocaleLink href="/profile" className="link inline-flex min-h-11 items-center text-body-sm">
             {t('nav.myProfile')}
-          </Link>
+          </LocaleLink>
         </div>
       </div>
       {isKnown ? (

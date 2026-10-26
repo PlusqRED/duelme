@@ -16,8 +16,6 @@ export const dashboardWalletTranslations = defineSection({
     'toast.transactionFailed': 'Transaction failed',
     'toast.copyFailed': 'Failed to copy link',
     'toast.walletNotReady': 'Wallet not ready. Please try again.',
-    'toast.languageNotKept': 'Your browser blocks cookies for this site, so the language can’t be changed.',
-    'toast.languageNotSaved': 'The language didn’t change. Try again.',
     'toast.gameAttachFailed': 'Duel created, but the game tag could not be saved.',
   },
   ru: {
@@ -35,8 +33,6 @@ export const dashboardWalletTranslations = defineSection({
     'toast.transactionFailed': 'Транзакция не удалась',
     'toast.copyFailed': 'Не удалось скопировать ссылку',
     'toast.walletNotReady': 'Кошелёк ещё не готов. Попробуй снова.',
-    'toast.languageNotKept': 'Браузер блокирует cookie для этого сайта, поэтому язык не сменить.',
-    'toast.languageNotSaved': 'Язык не сменился. Попробуй ещё раз.',
     'toast.gameAttachFailed': 'Дуэль создана, но тег игры не удалось сохранить.',
   },
 });

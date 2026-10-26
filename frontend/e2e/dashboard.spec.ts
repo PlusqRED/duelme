@@ -15,10 +15,8 @@ test.describe('My duels, signed out', () => {
     expect(pageErrors).toEqual([]);
   });
 
-  test('speaks Russian to a reader who chose it', async ({ page, context, baseURL }) => {
-    await context.addCookies([{ name: 'duelme-lang', value: 'ru', url: baseURL ?? 'http://127.0.0.1:3001' }]);
-
-    await page.goto('/dashboard');
+  test('speaks Russian at its Russian address', async ({ page }) => {
+    await page.goto('/ru/dashboard');
 
     await expect(page.getByRole('heading', { level: 1, name: 'Мои дуэли' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Войди, чтобы увидеть свои дуэли' })).toBeVisible();

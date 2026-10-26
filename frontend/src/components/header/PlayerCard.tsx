@@ -1,10 +1,10 @@
 'use client';
 
-import Link from 'next/link';
 import { Avatar } from '@/components/identity/Avatar';
 import { LevelBadge } from '@/components/identity/LevelBadge';
 import { QuestLine } from '@/components/identity/QuestLine';
 import { Icon } from '@/components/ui/icon';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useCopyFeedback } from '@/hooks/useCopyFeedback';
 import { useReputation } from '@/hooks/useReputation';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -55,14 +55,14 @@ export function PlayerCard({ address, walletAddress, isEntering, onLeave }: Play
           ) : (
             <span aria-hidden="true" className="h-7 w-24 rounded-full bg-canvas-deep" />
           )}
-          <Link
+          <LocaleLink
             href="/profile"
             onClick={onLeave}
             className="group link inline-flex min-h-11 items-center gap-0.5 text-sm"
           >
             {t('nav.myProfile')}
             <Icon name="chevron-right" className="size-4 transition-[translate] duration-200 ease-press group-hover:translate-x-0.5" />
-          </Link>
+          </LocaleLink>
         </p>
       </div>
       {isKnown && (

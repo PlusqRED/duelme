@@ -1,40 +1,36 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { LANGUAGE_COOKIE } from '@/i18n/language';
+import { LANGUAGE_HEADER } from '@/i18n/language';
 import { translations } from '@/i18n/translations';
 
-const requestCookies = new Map<string, string>();
+const requestHeaders = new Headers();
 
-vi.mock('next/headers', () => ({
-  cookies: async () => ({
-    get: (name: string) => (requestCookies.has(name) ? { name, value: requestCookies.get(name) } : undefined),
-  }),
-}));
+vi.mock('next/headers', () => ({ headers: async () => requestHeaders }));
 
 const { getLanguage, getTranslation } = await import('@/i18n/serverTranslation');
 
-afterEach(() => requestCookies.clear());
+afterEach(() => requestHeaders.delete(LANGUAGE_HEADER));
 
 describe('getLanguage', () => {
-  it('reads the language from the cookie', async () => {
-    requestCookies.set(LANGUAGE_COOKIE, 'ru');
+  it('reads the language the proxy found in the address', () => {
+    requestHeaders.set(LANGUAGE_HEADER, 'ru');
 
-    expect(await getLanguage()).toBe('ru');
+    return expect(getLanguage()).resolves.toBe('ru');
   });
 
-  it('is English without the cookie', async () => {
-    expect(await getLanguage()).toBe('en');
+  it('is English without the header', () => {
+    return expect(getLanguage()).resolves.toBe('en');
   });
 
-  it('is English for a value it does not know', async () => {
-    requestCookies.set(LANGUAGE_COOKIE, 'xx');
+  it('is English for a value it does not know', () => {
+    requestHeaders.set(LANGUAGE_HEADER, 'xx');
 
-    expect(await getLanguage()).toBe('en');
+    return expect(getLanguage()).resolves.toBe('en');
   });
 });
 
 describe('getTranslation', () => {
-  it('speaks the cookie\'s language', async () => {
-    requestCookies.set(LANGUAGE_COOKIE, 'ru');
+  it('speaks the address’s language', async () => {
+    requestHeaders.set(LANGUAGE_HEADER, 'ru');
 
     const { t } = await getTranslation();
 

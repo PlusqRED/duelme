@@ -1,7 +1,6 @@
 'use client';
 
 import { usePrivy } from '@privy-io/react-auth';
-import Link from 'next/link';
 import { getAddress } from 'viem';
 import { BackLink } from '@/components/duel/room/BackLink';
 import { PageColumn } from '@/components/layout/PageColumn';
@@ -13,6 +12,7 @@ import { RecordCard } from '@/components/profile/RecordCard';
 import { ReputationCard } from '@/components/profile/ReputationCard';
 import { buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useActiveWallet } from '@/hooks/useActiveWallet';
 import { useProfile } from '@/hooks/useProfile';
 import { useReputation } from '@/hooks/useReputation';
@@ -45,10 +45,10 @@ export function PlayerProfile({ address }: { address: `0x${string}` }) {
       </BackLink>
       <ProfileHead address={shown} profile={profile} level={reputation.isLoading || reputation.isError ? null : reputation.level}>
         {walletAddress === address && (
-          <Link href="/profile" className={buttonVariants({ variant: 'paper', size: 'sm' })}>
+          <LocaleLink href="/profile" className={buttonVariants({ variant: 'paper', size: 'sm' })}>
             <Icon name="pen" className="size-4" />
             {t('profile.editYours')}
-          </Link>
+          </LocaleLink>
         )}
       </ProfileHead>
       <div className="grid items-start gap-5 split:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">

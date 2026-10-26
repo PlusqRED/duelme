@@ -1,14 +1,12 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LANGUAGE_COOKIE } from '@/i18n/language';
+import { LANGUAGE_HEADER } from '@/i18n/language';
 import { DEVLOG_URL } from '@/lib/constants';
 
 const reader = vi.hoisted(() => ({ language: 'en' }));
 vi.mock('next/headers', () => ({
-  cookies: async () => ({
-    get: (name: string) => (name === LANGUAGE_COOKIE ? { name, value: reader.language } : undefined),
-  }),
+  headers: async () => new Headers({ [LANGUAGE_HEADER]: reader.language }),
 }));
 
 const { DevNote } = await import('@/components/landing/DevNote');

@@ -1,9 +1,9 @@
 'use client';
 
-import Link from 'next/link';
 import { useState } from 'react';
 import { LanguageSwitch } from '@/components/header/LanguageSwitch';
 import { Icon } from '@/components/ui/icon';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useNavLinks } from '@/hooks/useNavLinks';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -43,7 +43,7 @@ function MenuLinks({ onFollow }: { onFollow: () => void }) {
   return (
     <nav aria-label={t('nav.main')} className="grid gap-0.5">
       {links.map((link) => (
-        <Link
+        <LocaleLink
           key={link.href}
           href={link.href}
           aria-current={link.current}
@@ -54,7 +54,7 @@ function MenuLinks({ onFollow }: { onFollow: () => void }) {
           className="flex min-h-12 items-center rounded-[14px] px-3 text-body font-label text-ink-2 transition-colors hover:bg-canvas hover:text-ink [&[aria-current]]:bg-canvas [&[aria-current]]:text-ink [&[aria-current]]:shadow-[inset_3px_0_0_var(--color-ink)]"
         >
           {link.label}
-        </Link>
+        </LocaleLink>
       ))}
     </nav>
   );

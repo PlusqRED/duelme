@@ -1,12 +1,12 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 import { BrandMark } from '@/components/identity/BrandMark';
 import { QuestScreen } from '@/components/landing/QuestScreens';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
 import { Icon } from '@/components/ui/icon';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { QUEST_STEPS, type Quest } from '@/hooks/useQuest';
 import { useSeenOnce } from '@/hooks/useSeenOnce';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -88,9 +88,9 @@ export function QuestPhone({ quest, isRelayEnabled, className }: QuestPhoneProps
       <div className="flex w-full max-w-[360px] flex-wrap justify-center gap-3">
         {quest.isDone ? (
           <>
-            <Link ref={createRef} href="/duel/create" className={buttonVariants({ className: CONTROL })}>
+            <LocaleLink ref={createRef} href="/duel/create" className={buttonVariants({ className: CONTROL })}>
               {t('hero.cta')}
-            </Link>
+            </LocaleLink>
             <Button variant="paper" onClick={replay} className={CONTROL}>
               {t('start.replay')}
             </Button>

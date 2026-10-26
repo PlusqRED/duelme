@@ -1,10 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { translations, type TranslationKey } from '@/i18n/translations';
+import { pageTranslations } from '@/i18n/pageTranslations';
+import { serverDictionaries } from '@/i18n/serverTranslation';
+import { translations } from '@/i18n/translations';
+import { isFormal } from '@/lib/__tests__/helpers/russianVoice';
 import { sourceFiles } from '@/lib/__tests__/helpers/sourceFiles';
 
-const keys = Object.keys(translations.en) as TranslationKey[];
+const dictionaries: Record<'en' | 'ru', Record<string, string>> = serverDictionaries;
 
-const code = sourceFiles(['.ts', '.tsx'])
+const keys = Object.keys(dictionaries.en);
+
+const files = sourceFiles(['.ts', '.tsx']);
+
+const code = files
   .filter((file) => !file.path.startsWith('i18n/translations'))
   .map((file) => file.text)
   .join('\n');
@@ -25,29 +32,22 @@ function isUsed(key: string): boolean {
   return isQuoted(key) || (PLURAL_FORM.test(key) && isQuoted(key.replace(PLURAL_FORM, '')));
 }
 
-/** «Вы» and its forms. */
-const FORMAL_PRONOUN = /(?<![а-яё])(?:вы|вас|вам|вами|ваш[а-яё]*)(?![а-яё])/iu;
-
-/** A verb that agrees with «вы» even where it is left out: «попробуйте», «проверьте», «можете», «поделитесь». */
-const FORMAL_VERB = /(?<![а-яё])[а-яё]+(?:ите|йте|ьте|ете|ёте)(?:сь)?(?![а-яё])/giu;
-
-/**
- * A noun in the case after «в», «на», «о» or «при» ends like such a verb («в тестнете», «на сайте»,
- * «в личном кабинете»), so a word right after one of them, or after one and an adjective, is no verb.
- */
-const AFTER_PREPOSITION = /(?<![а-яё])(?:в|во|на|о|об|обо|при)\s+(?:[а-яё]+(?:ом|ем|ём|ой|ей)\s+)?$/iu;
-
-function isFormal(text: string): boolean {
-  return (
-    FORMAL_PRONOUN.test(text) ||
-    [...text.matchAll(FORMAL_VERB)].some((verb) => !AFTER_PREPOSITION.test(text.slice(0, verb.index)))
-  );
-}
-
 const FORMAL_EXAMPLES = ['Попробуйте ещё раз', 'Проверьте сеть', 'Вы можете отменить', 'На кнопку нажмите'];
 const INFORMAL_EXAMPLES = ['Дуэль в тестнете', 'Ссылка на сайте', 'Ответ в отчёте', 'Всё в личном кабинете'];
 
 describe('translations', () => {
+  it('gives no key to both the browser’s words and the pages’ own', () => {
+    expect(Object.keys(pageTranslations.en).filter((key) => key in translations.en)).toEqual([]);
+  });
+
+  it('keeps the pages’ own words out of the browser: only the server’s translator reads them', () => {
+    const readers = files
+      .filter((file) => !file.path.includes('__tests__') && /import \{[^}]*\bpageTranslations\b/.test(file.text))
+      .map((file) => file.path);
+
+    expect(readers).toEqual(['i18n/serverTranslation.ts']);
+  });
+
   it('uses every key somewhere', () => {
     expect(keys.filter((key) => !isUsed(key))).toEqual([]);
   });
@@ -66,13 +66,13 @@ describe('translations', () => {
 
   it('keeps every amount on the line of its unit, with a no-break space between them', () => {
     const split = (['en', 'ru'] as const).flatMap((language) =>
-      keys.filter((key) => /\} (?:USDT|ETH)\b/.test(translations[language][key])).map((key) => `${language}:${key}`)
+      keys.filter((key) => /\} (?:USDT|ETH)\b/.test(dictionaries[language][key])).map((key) => `${language}:${key}`)
     );
 
     expect(split).toEqual([]);
   });
 
   it('says «ты» in Russian', () => {
-    expect(keys.filter((key) => isFormal(translations.ru[key]))).toEqual([]);
+    expect(keys.filter((key) => isFormal(dictionaries.ru[key]))).toEqual([]);
   });
 });

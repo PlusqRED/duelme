@@ -5,7 +5,8 @@ interface SectionHeadProps {
   /** The heading's id, for the section's `aria-labelledby`. */
   titleId: string;
   title: string;
-  subtitle: string;
+  /** What the section is for, under its title; a section whose title says it all has none. */
+  subtitle?: string;
   /** Beside the title: a count, say. */
   badge?: ReactNode;
   /** Under the subtitle: the way to the rest, say. */
@@ -38,7 +39,7 @@ export function SectionHead({
         </Heading>
         {badge}
       </div>
-      <p className={cn('max-w-[60ch] text-lg', isOnNavy ? 'text-paper/74' : 'text-ink-2')}>{subtitle}</p>
+      {subtitle && <p className={cn('max-w-[60ch] text-lg', isOnNavy ? 'text-paper/74' : 'text-ink-2')}>{subtitle}</p>}
       {children}
     </div>
   );

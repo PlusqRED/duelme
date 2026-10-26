@@ -1,4 +1,6 @@
 import { encodeAbiParameters, isHex, keccak256, size, toHex } from 'viem';
+import { shareableAddress } from '@/i18n/localePath';
+import type { Language } from '@/i18n/translations';
 
 const INVITE_STORAGE_PREFIX = 'duelme-invite';
 
@@ -30,8 +32,13 @@ export function isInviteSecret(value: string | null | undefined): value is `0x${
   return typeof value === 'string' && isHex(value, { strict: true }) && size(value) === 32;
 }
 
-export function buildInviteLink(duelId: number, inviteSecret: `0x${string}`): string {
-  return `${window.location.origin}/duel/${duelId}#${inviteSecret}`;
+/** A duel's page as a full address in the sender's language, which is the one they read the site in. */
+function duelAddress(duelId: number, language: Language): string {
+  return shareableAddress(`/duel/${duelId}`, language);
+}
+
+export function buildInviteLink(duelId: number, inviteSecret: `0x${string}`, language: Language): string {
+  return `${duelAddress(duelId, language)}#${inviteSecret}`;
 }
 
 /**
@@ -136,9 +143,14 @@ export function canPresentInvite(
 }
 
 /** Build a shareable link for any duel type. Public duels get a clean URL. */
-export function buildDuelLink(duelId: number, inviteHash: `0x${string}`, inviteSecret?: `0x${string}` | null): string {
+export function buildDuelLink(
+  duelId: number,
+  inviteHash: `0x${string}`,
+  language: Language,
+  inviteSecret?: `0x${string}` | null
+): string {
   if (isPublicDuel(inviteHash)) {
-    return `${window.location.origin}/duel/${duelId}`;
+    return duelAddress(duelId, language);
   }
-  return inviteSecret ? buildInviteLink(duelId, inviteSecret) : `${window.location.origin}/duel/${duelId}`;
+  return inviteSecret ? buildInviteLink(duelId, inviteSecret, language) : duelAddress(duelId, language);
 }

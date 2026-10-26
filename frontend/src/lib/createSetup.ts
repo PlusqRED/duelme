@@ -1,4 +1,4 @@
-import type { Game, GameCategory } from '@/lib/game';
+import { uncataloguedGame, type Game, type GameCategory } from '@/lib/game';
 import { findGameByName, normalizeGameName } from '@/lib/gameSearch';
 
 /**
@@ -81,15 +81,7 @@ export function addedGame(games: readonly Game[], name: string, category: GameCa
   const known = findGameByName(games, name);
   if (known) return known;
   const trimmed = name.trim();
-  return {
-    slug: `${NEW_GAME}${normalizeGameName(trimmed)}`,
-    name: trimmed,
-    iconUrl: null,
-    category,
-    duelCount: 0,
-    createdAt: null,
-    updatedAt: null,
-  };
+  return uncataloguedGame({ slug: `${NEW_GAME}${normalizeGameName(trimmed)}`, name: trimmed, category });
 }
 
 /** A game added on this page, not in the catalog yet. */

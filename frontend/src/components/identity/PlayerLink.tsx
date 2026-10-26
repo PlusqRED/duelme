@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import Link from 'next/link';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { profilePath } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 
@@ -17,12 +17,12 @@ interface PlayerLinkProps {
  */
 export function PlayerLink({ address, children, className }: PlayerLinkProps) {
   return (
-    <Link
+    <LocaleLink
       href={profilePath(address)}
       prefetch={false}
       className={cn('underline decoration-line-strong decoration-[1.5px] underline-offset-4 hover:decoration-current', className)}
     >
       {children}
-    </Link>
+    </LocaleLink>
   );
 }

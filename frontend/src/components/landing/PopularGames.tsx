@@ -1,8 +1,8 @@
 'use client';
 
-import Link from 'next/link';
 import { useId, useRef } from 'react';
 import { GameTile } from '@/components/identity/GameTile';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useSeenOnce } from '@/hooks/useSeenOnce';
 import { useTranslation } from '@/i18n/useTranslation';
 import { getCategoryLabelKey, type Game } from '@/lib/game';
@@ -81,9 +81,9 @@ export function PopularGames({ games, isLoading, picked, onPick, className }: Po
         ))}
       </ol>
       {!isLoading && games.length === 0 && <p className="mb-2 text-ink-2">{t('popularGames.empty')}</p>}
-      <Link href="/games" className="link inline-flex min-h-11 items-center">
+      <LocaleLink href="/games" className="link inline-flex min-h-11 items-center">
         {t('popularGames.viewAll')}
-      </Link>
+      </LocaleLink>
     </section>
   );
 }

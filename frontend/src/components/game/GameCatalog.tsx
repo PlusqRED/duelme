@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useMemo, useRef, useState } from 'react';
+import { useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { CatalogGame } from '@/components/game/CatalogGame';
 import { CreateDuelInvite } from '@/components/landing/CreateDuelInvite';
 import { SectionHead } from '@/components/landing/SectionHead';
@@ -13,12 +13,17 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { byPopularity, GAME_CATEGORIES, getCategoryLabelKey, type GameCategory } from '@/lib/game';
 import { gameInk } from '@/lib/gameTile';
 
+interface GameCatalogProps {
+  /** Under the heading: the way to the games with a guide, drawn on the server. */
+  shortcuts?: ReactNode;
+}
+
 /**
  * Every game players have duelled in, the most played first: a search, the categories as pills
  * each in its own ink, and the games as cartridges on a shelf whose bars grow to their share the
  * first time the shelf is seen. A game that is not here is added by naming it in a new duel.
  */
-export function GameCatalog() {
+export function GameCatalog({ shortcuts }: GameCatalogProps) {
   const { t } = useTranslation();
   const titleId = useId();
   const [category, setCategory] = useState<GameCategory | null>(null);
@@ -35,6 +40,7 @@ export function GameCatalog() {
   return (
     <PageColumn>
       <SectionHead isPageTitle titleId={titleId} title={t('games.title')} subtitle={t('games.subtitle')} />
+      {shortcuts}
       <div className="mb-6 grid gap-3">
         <SearchField value={query} onChange={setQuery} placeholder={t('games.searchPlaceholder')} />
         <div role="group" aria-label={t('games.categoryFilterLabel')} className="flex flex-wrap gap-2 max-xs:swipe-strip max-xs:flex-nowrap">

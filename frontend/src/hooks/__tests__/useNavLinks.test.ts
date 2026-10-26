@@ -50,6 +50,20 @@ describe('useNavLinks', () => {
     ]);
   });
 
+  it('marks the page you are in at its Russian address too', () => {
+    session.pathname = '/ru/games/counter-strike-2';
+    const { result } = renderHook(() => useNavLinks());
+
+    expect(result.current.filter((link) => link.current).map((link) => link.href)).toEqual(['/games']);
+  });
+
+  it('knows the Russian home page for the landing', () => {
+    session.pathname = '/ru';
+    const { result } = renderHook(() => useNavLinks());
+
+    expect(result.current[0].href).toBe('#public-duels');
+  });
+
   it('lists the landing’s own sections on the landing, by name', () => {
     session.pathname = '/';
     const { result } = renderHook(() => useNavLinks());

@@ -15,7 +15,7 @@ import { cn, subscribeToNothing } from '@/lib/utils';
  * cannot let anyone in.
  */
 export function CopyInviteButton({ duelId }: { duelId: number }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { copied, copy } = useCopyFeedback('toast.copyFailed');
   const contractAddress = DUELME_ADDRESSES[DEFAULT_CHAIN_ID] ?? ZERO_ADDRESS;
   const secret = useSyncExternalStore(
@@ -29,7 +29,7 @@ export function CopyInviteButton({ duelId }: { duelId: number }) {
   return (
     <button
       type="button"
-      onClick={() => void copy(buildInviteLink(duelId, secret))}
+      onClick={() => void copy(buildInviteLink(duelId, secret, language))}
       className={cn(
         buttonVariants({ size: 'sm' }),
         'px-3.5',

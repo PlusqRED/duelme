@@ -5,16 +5,11 @@ import { Providers } from '@/components/providers/Providers';
 import { Header } from '@/components/header/Header';
 import { Footer } from '@/components/layout/Footer';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { getLanguage } from '@/i18n/serverTranslation';
+import { getTranslation } from '@/i18n/serverTranslation';
 import { brandColors } from '@/lib/brandColors';
 import { getRelayerStatus } from '@/lib/relayerConfig';
-import { SITE_NAME, SITE_URL } from '@/lib/constants';
-import {
-  SEO_DESCRIPTION_EN,
-  SEO_KEYWORDS,
-  SEO_TITLE_EN,
-  SEO_TITLE_TEMPLATE,
-} from '@/lib/seo';
+import { SITE_NAME, SITE_URL, TITLE_TEMPLATE } from '@/lib/constants';
+import { organizationSchema, webApplicationSchema } from '@/lib/structuredData';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,62 +19,33 @@ const geologica = Geologica({
   display: 'swap',
 });
 
-// `alternates` (canonical + hreflang) is intentionally NOT set at the root
-// layout: Next.js merges metadata top-down, so child routes that don't
-// override would inherit the homepage canonical/hreflang. Each route sets
-// its own; hreflang lives only on the homepage until language-specific URLs
-// exist.
-export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
-  title: {
-    default: SEO_TITLE_EN,
-    template: SEO_TITLE_TEMPLATE,
-  },
-  description: SEO_DESCRIPTION_EN,
-  applicationName: SITE_NAME,
-  keywords: [...SEO_KEYWORDS],
-  authors: [{ name: SITE_NAME, url: SITE_URL }],
-  creator: SITE_NAME,
-  publisher: SITE_NAME,
-  category: 'games',
-  classification: 'Crypto Gaming, PvP, Blockchain, Web3',
-  openGraph: {
-    title: SEO_TITLE_EN,
-    description: SEO_DESCRIPTION_EN,
-    url: SITE_URL,
-    siteName: SITE_NAME,
-    type: 'website',
-    locale: 'en_US',
-    alternateLocale: ['ru_RU'],
-    // OG image auto-injected from `app/opengraph-image.tsx` (Next.js File Convention).
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: SEO_TITLE_EN,
-    description: SEO_DESCRIPTION_EN,
-    // Twitter image auto-injected from `app/twitter-image.tsx`.
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-      'max-video-preview': -1,
+/**
+ * What every page shares, in its language. The tags that name one page — its address, the same page
+ * in the other language, its share preview, whether search engines list it — are each page's own
+ * (`lib/pageMetadata.ts`): set here, they would reach every page that forgot them, home page address
+ * included, and a missing page would carry a robots tag beside the one Next.js gives it.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getTranslation();
+  return {
+    metadataBase: new URL(SITE_URL),
+    title: { default: t('seo.home.title'), template: TITLE_TEMPLATE },
+    description: t('seo.site.description'),
+    applicationName: SITE_NAME,
+    authors: [{ name: SITE_NAME, url: SITE_URL }],
+    creator: SITE_NAME,
+    publisher: SITE_NAME,
+    // The favicon and the home-screen icon come from `app/icon.tsx` and `app/apple-icon.tsx`.
+    formatDetection: {
+      email: false,
+      address: false,
+      telephone: false,
     },
-  },
-  // The favicon and the home-screen icon come from `app/icon.tsx` and `app/apple-icon.tsx`.
-  formatDetection: {
-    email: false,
-    address: false,
-    telephone: false,
-  },
-  verification: {
-    yandex: '0277876dfbec9b54',
-  },
-};
+    verification: {
+      yandex: '0277876dfbec9b54',
+    },
+  };
+}
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -92,16 +58,14 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const language = await getLanguage();
+  const { t, language } = await getTranslation();
 
   return (
     <html lang={language} className={geologica.variable} data-scroll-behavior="smooth">
       <body>
-        {/* Organization + WebApplication are global brand identity — safe on every page. */}
-        {/* FAQ is intentionally NOT here: it must live only on the page where the */}
-        {/* matching content is visible (homepage). See `app/page.tsx`. */}
-        <JsonLd type="organization" />
-        <JsonLd type="webApplication" />
+        {/* Who runs the site and what it is: the same on every page. */}
+        <JsonLd data={organizationSchema(t('seo.site.description'))} />
+        <JsonLd data={webApplicationSchema(t('seo.site.description'))} />
         <Providers language={language} relayerStatus={getRelayerStatus()}>
           <div className="flex min-h-dvh flex-col">
             <Header />

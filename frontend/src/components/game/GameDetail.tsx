@@ -1,7 +1,6 @@
 'use client';
 
-import Link from 'next/link';
-import { useId, useMemo, useState } from 'react';
+import { useId, useMemo, useState, type ReactNode } from 'react';
 import { BackLink } from '@/components/duel/room/BackLink';
 import { PartialDataNotice } from '@/components/duel/PartialDataNotice';
 import { DuelFeed } from '@/components/feed/DuelFeed';
@@ -11,22 +10,35 @@ import { SectionHead } from '@/components/landing/SectionHead';
 import { LostPage } from '@/components/layout/LostPage';
 import { PageColumn } from '@/components/layout/PageColumn';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useFeedDuels } from '@/hooks/useFeedDuels';
 import { useGame } from '@/hooks/useGame';
 import { useGameDuels } from '@/hooks/useGameDuels';
 import { useTranslation } from '@/i18n/useTranslation';
 import { DEFAULT_CHAIN_ID } from '@/lib/constants';
 import { recentDuelsOf } from '@/lib/duelFeed';
+import type { KnownGame } from '@/lib/game';
 import { openPublicDuelsOf } from '@/lib/publicDuelsFilters';
+
+interface GameDetailProps {
+  slug: string;
+  /** What the page server knows of the game; without a settled one the page reads it here. */
+  knownGame?: KnownGame;
+  /** The guide's word on what a duel in this game is, under the heading. */
+  lead?: string;
+  /** Drawn on the server, after the duels: the game's guide and the way to the other guides. */
+  after?: ReactNode;
+}
 
 /**
  * A game's own page: its head with the money and duels it has seen, the duels in it waiting for a
- * second player, then every duel someone joined in it, searchable and in pages.
+ * second player, then every duel someone joined in it, searchable and in pages, and the game's
+ * guide when it has one, with the way to the others.
  */
-export function GameDetail({ slug }: { slug: string }) {
+export function GameDetail({ slug, knownGame, lead, after }: GameDetailProps) {
   const { t } = useTranslation();
   const feedTitleId = useId();
-  const { game, isLoading: isGameLoading, isError: isGameError, refetch } = useGame(slug);
+  const { game, isLoading: isGameLoading, isError: isGameError, refetch } = useGame(slug, knownGame);
   const { duels, metaByDuelId, totalVolume, duelsPlayed, isLoading, isError, retry } = useGameDuels(
     game?.slug,
     DEFAULT_CHAIN_ID
@@ -36,7 +48,7 @@ export function GameDetail({ slug }: { slug: string }) {
   const feed = useFeedDuels(joined, metaByDuelId);
   const [query, setQuery] = useState('');
 
-  if (isGameLoading) {
+  if (isGameLoading && !game) {
     return (
       <PageColumn>
         <div aria-hidden="true" className="flex items-center gap-6">
@@ -55,9 +67,9 @@ export function GameDetail({ slug }: { slug: string }) {
       </LostPage>
     ) : (
       <LostPage glyphs={['4', '0', '4']} title={t('game.notFound')} text={t('game.notFoundText')}>
-        <Link href="/games" className={buttonVariants({ variant: 'navy' })}>
+        <LocaleLink href="/games" className={buttonVariants({ variant: 'navy' })}>
           {t('popularGames.viewAll')}
-        </Link>
+        </LocaleLink>
       </LostPage>
     );
   }
@@ -65,7 +77,13 @@ export function GameDetail({ slug }: { slug: string }) {
   return (
     <PageColumn>
       <BackLink href="/games">{t('nav.games')}</BackLink>
-      <GameHead game={game} totalVolume={totalVolume} duelsPlayed={duelsPlayed} isUnknown={isLoading || isError} />
+      <GameHead
+        game={game}
+        lead={lead}
+        totalVolume={totalVolume}
+        duelsPlayed={duelsPlayed}
+        isUnknown={isLoading || isError}
+      />
       <PartialDataNotice when={isError} onRetry={retry} />
       <GameOpenDuels gameName={game.name} duels={open} isLoading={isLoading} />
       <section aria-labelledby={feedTitleId}>
@@ -86,6 +104,7 @@ export function GameDetail({ slug }: { slug: string }) {
           }
         />
       </section>
+      {after}
     </PageColumn>
   );
 }

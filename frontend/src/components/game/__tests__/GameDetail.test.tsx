@@ -56,9 +56,21 @@ describe('GameDetail', () => {
   it('heads the page with the game, its category and the money it has seen', () => {
     render(<GameDetail slug="chess" />);
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Chess' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: /^Chess\s*1v1 duels for USDT$/ })).toBeTruthy();
     expect(screen.getByText('Strategy')).toBeTruthy();
     expect(screen.getByText('10.00 USDT')).toBeTruthy();
+  });
+
+  it('says what a duel in the game is, under its heading, when it has a guide', () => {
+    render(<GameDetail slug="chess" lead="Two players, one board." />);
+
+    expect(screen.getByText('Two players, one board.')).toBeTruthy();
+  });
+
+  it('follows the duels with what the page server drew after them', () => {
+    render(<GameDetail slug="chess" after={<p>The guide</p>} />);
+
+    expect(screen.getByText('The guide')).toBeTruthy();
   });
 
   it('lists the game’s open duels and the duels someone joined in it', () => {
@@ -91,6 +103,20 @@ describe('GameDetail', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: translations.en['game.notFound'] })).toBeTruthy();
     expect(screen.getByRole('link', { name: translations.en['popularGames.viewAll'] }).getAttribute('href')).toBe('/games');
+  });
+
+  it('shows the game it has while the read runs: a guide’s, drawn on the server', () => {
+    page.isGameLoading = true;
+    render(<GameDetail slug="chess" />);
+
+    expect(screen.getByRole('heading', { level: 1, name: /^Chess/ })).toBeTruthy();
+  });
+
+  it('holds the page’s place while the read runs with no game to show', () => {
+    Object.assign(page, { game: null, isGameLoading: true });
+    render(<GameDetail slug="chess" />);
+
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
   });
 
   it('tells a failed read from a missing game, and reads it again on request', () => {

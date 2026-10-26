@@ -8,8 +8,8 @@ import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useSeenOnce } from '@/hooks/useSeenOnce';
 import type { TranslationKey } from '@/i18n/translations';
 import { useTranslation } from '@/i18n/useTranslation';
-import { CONTRACT_TESTS, contractCoverage } from '@/lib/contractFacts';
-import { cn, formatCount, formatPercent } from '@/lib/utils';
+import { contractCoverage, contractTestsLabel } from '@/lib/contractFacts';
+import { cn, formatPercent } from '@/lib/utils';
 
 const guarantees: readonly { icon: IconName; title: TranslationKey; desc: TranslationKey }[] = [
   { icon: 'key', title: 'trust.cred.noncustodial.title', desc: 'trust.cred.noncustodial.desc' },
@@ -41,7 +41,7 @@ export function Guarantees({ className }: GuaranteesProps) {
   const listRef = useRef<HTMLUListElement>(null);
   const reducedMotion = useReducedMotion();
   const isUnlocked = useSeenOnce(listRef, 0.5) || reducedMotion;
-  const tests = `${formatCount(CONTRACT_TESTS, language)} ${plural('trust.tests', CONTRACT_TESTS)}`;
+  const tests = contractTestsLabel(plural, language);
 
   return (
     <ul

@@ -1,8 +1,8 @@
 'use client';
 
-import Link from 'next/link';
 import { BrandMark } from '@/components/identity/BrandMark';
 import { buttonVariants } from '@/components/ui/button';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useTranslation } from '@/i18n/useTranslation';
 import { cn } from '@/lib/utils';
 
@@ -44,12 +44,12 @@ export function CreateDuelInvite({ variant, isEmpty = false, title, description,
           {description ?? t('publicDuels.createDesc')}
         </p>
       </div>
-      <Link
+      <LocaleLink
         href="/duel/create"
         className={buttonVariants({ variant: isStrip ? 'paper' : 'navy', className: isStrip ? undefined : 'mt-2' })}
       >
         {t('hero.cta')}
-      </Link>
+      </LocaleLink>
     </div>
   );
 }

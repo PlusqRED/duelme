@@ -90,6 +90,9 @@ services:
       - "127.0.0.1:3002:3001"
     environment:
       APP_ENV: prod
+      # The backend as the page server reaches it on this stack's network: game pages read their
+      # game on the server, where the browser's relative /api/v1 means nothing.
+      API_INTERNAL_URL: http://backend:8080/api/v1
       # Hot wallet that pays gas for relayed duel actions. Dedicated key, funded with only
       # what the daily budgets can spend — it signs nothing but ERC2771Forwarder.execute.
       RELAYER_PRIVATE_KEY: ${RELAYER_PRIVATE_KEY:-}

@@ -56,7 +56,7 @@ describe('buildDuelLink', () => {
   });
 
   it('returns clean URL for public duels (no fragment)', () => {
-    const url = buildDuelLink(42, OPEN_DUEL_INVITE_HASH);
+    const url = buildDuelLink(42, OPEN_DUEL_INVITE_HASH, 'en');
     expect(url).toBe(`${origin}/duel/42`);
     expect(url).not.toContain('#');
   });
@@ -64,22 +64,33 @@ describe('buildDuelLink', () => {
   it('returns invite URL with fragment for private duels with secret', () => {
     const secret = '0xabcdef0000000000000000000000000000000000000000000000000000000001' as `0x${string}`;
     const privateHash = hashInviteSecret(secret, CONTRACT, CHAIN_ID);
-    const url = buildDuelLink(7, privateHash, secret);
+    const url = buildDuelLink(7, privateHash, 'en', secret);
     expect(url).toBe(`${origin}/duel/7#${secret}`);
   });
 
   it('returns clean URL for private duels without secret', () => {
     const secret = '0xabcdef0000000000000000000000000000000000000000000000000000000001' as `0x${string}`;
     const privateHash = hashInviteSecret(secret, CONTRACT, CHAIN_ID);
-    const url = buildDuelLink(7, privateHash);
+    const url = buildDuelLink(7, privateHash, 'en');
     expect(url).toBe(`${origin}/duel/7`);
   });
 
   it('ignores inviteSecret param for public duels', () => {
     const someSecret = '0xdeadbeef00000000000000000000000000000000000000000000000000000000' as `0x${string}`;
-    const url = buildDuelLink(10, OPEN_DUEL_INVITE_HASH, someSecret);
+    const url = buildDuelLink(10, OPEN_DUEL_INVITE_HASH, 'en', someSecret);
     expect(url).toBe(`${origin}/duel/10`);
     expect(url).not.toContain('#');
+  });
+
+  it('leads to the duel in the sender’s language', () => {
+    expect(buildDuelLink(42, OPEN_DUEL_INVITE_HASH, 'ru')).toBe(`${origin}/ru/duel/42`);
+  });
+
+  it('keeps a private duel’s key after the language’s address', () => {
+    const secret = '0xabcdef0000000000000000000000000000000000000000000000000000000001' as `0x${string}`;
+    const privateHash = hashInviteSecret(secret, CONTRACT, CHAIN_ID);
+
+    expect(buildDuelLink(7, privateHash, 'ru', secret)).toBe(`${origin}/ru/duel/7#${secret}`);
   });
 });
 

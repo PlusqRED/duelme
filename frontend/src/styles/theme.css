@@ -111,6 +111,8 @@
   --shadow-sheet: 0 -18px 40px -24px rgb(18 26 62 / 0.4);
   /* The contract's navy safe standing on its edge, like a keycap. */
   --shadow-safe: 0 5px 0 var(--color-ink-edge);
+  /* A guide part's number badge, standing on a thin ink edge. */
+  --shadow-badge: 0 3px 0 var(--color-ink);
   /* The landing's demo duel, a card laid on the page. */
   --shadow-stage: 0 32px 64px -40px rgb(18 26 62 / 0.5);
   /* The landing's quest phone, held up a little off the page. */

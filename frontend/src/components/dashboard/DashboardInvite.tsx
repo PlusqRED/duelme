@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
-import Link from 'next/link';
 import { BrandMark } from '@/components/identity/BrandMark';
 import { buttonVariants } from '@/components/ui/button';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useTranslation } from '@/i18n/useTranslation';
 
 interface DashboardInviteProps {
@@ -27,9 +27,9 @@ export function DashboardInvite({ title, text, action }: DashboardInviteProps) {
       <p className="max-w-[46ch] text-ink-2">{text}</p>
       <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-2.5 max-xs:self-stretch max-xs:*:flex-[1_1_100%]">
         {action}
-        <Link href="/duels/public" className={buttonVariants({ variant: 'paper', size: 'lg' })}>
+        <LocaleLink href="/duels/public" className={buttonVariants({ variant: 'paper', size: 'lg' })}>
           {t('nav.publicDuels')}
-        </Link>
+        </LocaleLink>
       </div>
     </section>
   );

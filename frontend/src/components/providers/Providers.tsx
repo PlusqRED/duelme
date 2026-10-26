@@ -4,8 +4,9 @@ import { type ReactNode, useCallback, useEffect, useRef } from 'react';
 import { PrivyProvider, usePrivy, type PrivyClientConfig } from '@privy-io/react-auth';
 import { WagmiProvider } from '@privy-io/wagmi';
 import type { SetActiveWalletForWagmiType } from '@privy-io/wagmi';
-import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
+import { QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { wagmiConfig, supportedChains } from '@/lib/wagmi';
+import { getQueryClient } from '@/lib/queryClient';
 import { selectWallet } from '@/lib/walletSelection';
 import { useContractConfig } from '@/hooks/useContractConfig';
 import { RelayerStatusContext } from '@/hooks/useRelayerStatus';
@@ -16,15 +17,6 @@ import type { Language } from '@/i18n/translations';
 import { BrandMark } from '@/components/identity/BrandMark';
 import { Toaster } from '@/components/ui/toaster';
 import { Analytics } from '@/components/analytics/Analytics';
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
 
 /** Clears the React Query cache when the Privy user changes (logout / account switch). */
 function QueryCacheManager() {
@@ -79,6 +71,7 @@ interface ProvidersProps {
 }
 
 export function Providers({ children, language, relayerStatus }: ProvidersProps) {
+  const queryClient = getQueryClient();
   const selectActiveWallet = useCallback<SetActiveWalletForWagmiType>(
     ({ wallets, user }) => selectWallet(wallets, user) ?? undefined,
     []

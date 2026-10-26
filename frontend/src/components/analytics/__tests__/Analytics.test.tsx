@@ -68,7 +68,7 @@ describe('Analytics', () => {
   it('counts every profile as one page, so a path names no wallet', () => {
     render(<Analytics />);
 
-    expect(JSON.parse(screen.getByTestId('tracker').dataset.mask ?? '[]')).toEqual(['/profile/*']);
+    expect(JSON.parse(screen.getByTestId('tracker').dataset.mask ?? '[]')).toEqual(['/profile/*', '/ru/profile/*']);
   });
 
   it('holds the recording back until there is a yes', () => {
