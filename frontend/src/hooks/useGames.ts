@@ -10,5 +10,6 @@ export function useGames(category?: GameCategory, search?: string) {
     // A search typed letter by letter keeps the last list on screen until the next one arrives.
     placeholderData: keepPreviousData,
   });
-  return { games: data ?? [], isLoading };
+  // `isRead`: the catalog has answered at least once, so an empty list means no games, not none yet.
+  return { games: data ?? [], isLoading, isRead: data !== undefined };
 }

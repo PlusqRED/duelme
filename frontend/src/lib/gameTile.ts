@@ -40,6 +40,9 @@ export const GAME_TONES: Record<GameCategory, { tile: string; ink: string }> = {
   FIGHTING: { tile: 'bg-game-fighting text-game-fighting-ink', ink: 'var(--color-game-fighting-ink)' },
   RACING: { tile: 'bg-game-racing text-game-racing-ink', ink: 'var(--color-game-racing-ink)' },
   CARD: { tile: 'bg-game-card text-game-card-ink', ink: 'var(--color-game-card-ink)' },
+  BOARD: { tile: 'bg-game-board text-game-board-ink', ink: 'var(--color-game-board-ink)' },
+  MMO: { tile: 'bg-game-mmo text-game-mmo-ink', ink: 'var(--color-game-mmo-ink)' },
+  OFFLINE: { tile: 'bg-game-offline text-game-offline-ink', ink: 'var(--color-game-offline-ink)' },
   OTHER: { tile: 'bg-game-other text-game-other-ink', ink: 'var(--color-game-other-ink)' },
 };
 

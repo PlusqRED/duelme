@@ -27,7 +27,7 @@ test.describe('Game catalog', () => {
   test('/games page has category filters', async ({ page }) => {
     await page.goto('/games');
     await expect(page.getByRole('button', { name: /^(All|Все)/ })).toBeVisible();
-    await expect(page.getByRole('button', { name: /FPS|Шутер/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^(Shooter|Шутер)/ })).toBeVisible();
   });
 
   test('/games page has a search field that takes input', async ({ page }) => {
@@ -84,7 +84,7 @@ test.describe('Game catalog', () => {
 
   test('A category filter toggles on click', async ({ page }) => {
     await page.goto('/games');
-    const fps = page.getByRole('button', { name: /FPS|Шутер/ });
+    const fps = page.getByRole('button', { name: /^(Shooter|Шутер)/ });
     await fps.click();
     await expect(fps).toHaveAttribute('aria-pressed', 'true');
     await fps.click();

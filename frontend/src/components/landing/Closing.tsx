@@ -4,10 +4,17 @@ import { buttonVariants } from '@/components/ui/button';
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { Note } from '@/components/ui/note';
 import { getTranslation } from '@/i18n/serverTranslation';
+import { featuredGuides } from '@/lib/gameGuides';
 
 const TITLE_ID = 'closing-title';
 
-/** The page's last word: the brand, what a duel takes, the games with a guide, that any other can be added, and the way to make one. */
+/** How many games the closing offers before the way to the rest: two rows on a wide screen. */
+const GAMES_SHOWN = 12;
+
+/**
+ * The page's last word: the brand, what a duel takes, a dozen games with a guide from every category
+ * and the way to the rest, that any other can be added, and the way to make one.
+ */
 export async function Closing() {
   const { t } = await getTranslation();
 
@@ -19,7 +26,7 @@ export async function Closing() {
           {t('cta.title')}
         </h2>
         <p className="max-w-[48ch] text-lg text-ink-2">{t('cta.subtitle')}</p>
-        <GuideShortcuts className="mt-1" />
+        <GuideShortcuts guides={featuredGuides(GAMES_SHOWN)} className="mt-1" />
         <div className="max-w-[60ch]">
           <Note icon="plus" tone="plain">
             {t('cta.anyGame')}

@@ -10,9 +10,9 @@ export const seoTranslations = defineSection({
     'seo.site.description':
       'Challenge a friend or a stranger to a 1v1 in CS2, Dota 2, chess or any game. A smart contract holds both USDT stakes and pays the winner. 0% fee.',
     'seo.home.title': 'DuelMe — play 1v1 for money in any game, 0% fee',
-    'seo.games.title': 'Games to play 1v1 for money: CS2, CoD, FIFA, chess',
+    'seo.games.title': 'Games to play 1v1 for money: CS2, poker, chess',
     'seo.games.description':
-      'CS2, Call of Duty, EA FC, Dota 2, Valorant, chess and more: pick a game, set a USDT stake and play a friend 1v1. The winner takes the whole pot.',
+      'CS2, Dota 2, Fortnite, poker, backgammon, chess, pool and more: pick a game, set a USDT stake and play a friend 1v1. The winner takes the whole pot.',
     'seo.game.title': '{game} 1v1 for money',
     'seo.game.description':
       'Open and recent 1v1 duels for USDT in {game}. Find an opponent, set the stake and play: the winner takes the whole pot, 0% platform fee.',
@@ -52,9 +52,9 @@ export const seoTranslations = defineSection({
     'seo.site.description':
       'Вызови друга или соперника на 1 на 1 в CS2, Dota 2, шахматах или любой другой игре. USDT обоих держит смарт-контракт, победитель забирает всё.',
     'seo.home.title': 'DuelMe — 1 на 1 на деньги в любой игре, комиссия 0%',
-    'seo.games.title': 'Игры 1 на 1 на деньги: CS2, Dota 2, шахматы',
+    'seo.games.title': 'Игры 1 на 1 на деньги: CS2, покер, нарды, шахматы',
     'seo.games.description':
-      'CS2, Dota 2, шахматы, FIFA и другие: выбери игру и сумму в USDT и сыграй с другом 1 на 1. Победитель забирает всё, комиссия платформы 0%.',
+      'CS2, Dota 2, Standoff 2, покер, нарды, шахматы, бильярд и другие: выбери игру и сумму в USDT и сыграй с другом 1 на 1. Победитель забирает всё, комиссия 0%.',
     'seo.game.title': '{game} 1 на 1 на деньги',
     'seo.game.description':
       'Открытые и недавние дуэли 1 на 1 на USDT в {game}. Найди соперника, выбери сумму и играй: победитель забирает всё, комиссия 0%.',

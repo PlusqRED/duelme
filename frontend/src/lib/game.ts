@@ -1,11 +1,32 @@
 import type { TranslationKey } from '@/i18n/translations';
 import { isRecord } from '@/lib/parsing';
 
-export type GameCategory = 'FPS' | 'MOBA' | 'SPORT' | 'STRATEGY' | 'FIGHTING' | 'RACING' | 'CARD' | 'OTHER';
+export type GameCategory =
+  | 'FPS'
+  | 'MOBA'
+  | 'SPORT'
+  | 'STRATEGY'
+  | 'FIGHTING'
+  | 'RACING'
+  | 'CARD'
+  | 'BOARD'
+  | 'MMO'
+  | 'OFFLINE'
+  | 'OTHER';
 
 /** A category's name as the screens write it. */
 export function getCategoryLabelKey(category: GameCategory): TranslationKey {
   return `category.${category}`;
+}
+
+/** A category as the catalog titles its shelf: its games, «Шутеры». */
+export function getCategoryShelfKey(category: GameCategory): TranslationKey {
+  return `category.shelf.${category}`;
+}
+
+/** What a duel in a category is like, in a line under its shelf's title. */
+export function getCategoryNoteKey(category: GameCategory): TranslationKey {
+  return `category.note.${category}`;
 }
 
 export interface Game {
@@ -31,7 +52,7 @@ export interface DuelMeta {
 }
 
 export const GAME_CATEGORIES: GameCategory[] = [
-  'FPS', 'MOBA', 'SPORT', 'STRATEGY', 'FIGHTING', 'RACING', 'CARD', 'OTHER',
+  'FPS', 'MOBA', 'SPORT', 'STRATEGY', 'FIGHTING', 'RACING', 'CARD', 'BOARD', 'MMO', 'OFFLINE', 'OTHER',
 ];
 
 /** The games played most first; of games played as often, by name. */

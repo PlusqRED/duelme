@@ -7,10 +7,13 @@ import { JsonLd } from '@/components/seo/JsonLd';
 import { localePath } from '@/i18n/localePath';
 import { getTranslation } from '@/i18n/serverTranslation';
 import { uncataloguedGame, type Game, type KnownGame } from '@/lib/game';
-import { gameGuide, type GameGuide } from '@/lib/gameGuides';
+import { gameGuide, relatedGuides, type GameGuide } from '@/lib/gameGuides';
 import { pageMetadata } from '@/lib/pageMetadata';
 import { readGame } from '@/lib/serverGame';
 import { breadcrumbSchema } from '@/lib/structuredData';
+
+/** How many other games a game's page offers at its foot, its category's first. */
+const RELATED_SHOWN = 8;
 
 interface GamePageProps {
   params: Promise<{ slug: string }>;
@@ -89,7 +92,11 @@ export default async function GamePage({ params }: GamePageProps) {
         after={
           <>
             {guide && <GameGuideBody guide={guide} />}
-            <GuideShortcuts except={slug} className="mt-[clamp(32px,4vw,48px)]" />
+            <GuideShortcuts
+              guides={relatedGuides(slug, named?.category, RELATED_SHOWN)}
+              except={slug}
+              className="mt-[clamp(32px,4vw,48px)]"
+            />
           </>
         }
       />
