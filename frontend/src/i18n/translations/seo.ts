@@ -31,6 +31,15 @@ export const seoTranslations = defineSection({
     'seo.duel.description':
       'See the game, the stake and the creator’s reputation, then take the challenge. A smart contract holds the pot and pays it to the winner.',
     'seo.profile.title': 'Your profile',
+    'seo.howItWorks.title': 'How 1v1 duels for USDT work',
+    'seo.howItWorks.description':
+      'Every step of a DuelMe duel: create it, play the match, settle the result. A smart contract holds both stakes, the winner takes the pot, 0% fee.',
+    'seo.safety.title': 'Is DuelMe safe? How the money is kept',
+    'seo.safety.description':
+      'The stakes sit in a public, verified smart contract that DuelMe cannot use to pick a winner or move money. What it guarantees, and what it cannot.',
+    'seo.about.title': 'About DuelMe — 1v1 duels with no platform cut',
+    'seo.about.description':
+      'Who builds DuelMe, why it takes no fee, where it stands and how to reach its developer.',
     'seo.player.title': 'Player profile',
     'seo.player.description': 'A DuelMe player’s reputation on the blockchain, linked accounts and 1v1 duel history.',
     'seo.crumb.home': 'Home',
@@ -64,6 +73,14 @@ export const seoTranslations = defineSection({
     'seo.duel.description':
       'Посмотри игру, сумму и репутацию автора и прими вызов. Банк держит смарт-контракт и отдаёт его победителю.',
     'seo.profile.title': 'Твой профиль',
+    'seo.howItWorks.title': 'Как работают дуэли 1 на 1 на USDT',
+    'seo.howItWorks.description':
+      'Каждый шаг дуэли в DuelMe: создай её, сыграй матч, засчитай результат. USDT обоих держит смарт-контракт, победитель забирает банк, комиссия 0%.',
+    'seo.safety.title': 'Безопасен ли DuelMe и где хранятся деньги',
+    'seo.safety.description':
+      'Суммы игроков лежат в открытом проверенном смарт-контракте, через который DuelMe не может выбрать победителя или сдвинуть деньги. Что он гарантирует, а что нет.',
+    'seo.about.title': 'О DuelMe — дуэли 1 на 1 без доли платформы',
+    'seo.about.description': 'Кто делает DuelMe, почему он не берёт комиссию, что уже готово и как связаться с разработчиком.',
     'seo.player.title': 'Профиль игрока',
     'seo.player.description': 'Репутация игрока DuelMe в блокчейне, привязанные аккаунты и история дуэлей 1 на 1.',
     'seo.crumb.home': 'Главная',

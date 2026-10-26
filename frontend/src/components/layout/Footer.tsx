@@ -11,9 +11,19 @@ const channels = [
 
 const FOOTER_LINK = 'inline-flex min-h-11 items-center text-ink underline-offset-4 hover:underline';
 
+/** The pages that explain DuelMe, linked from every page so readers and search engines find them. */
+const PAGES = [
+  { href: '/how-it-works', labelKey: 'nav.howItWorks' },
+  { href: '/safety', labelKey: 'nav.safety' },
+  { href: '/games', labelKey: 'nav.games' },
+  { href: '/about', labelKey: 'footer.about' },
+  { href: '/privacy', labelKey: 'footer.privacy' },
+] as const;
+
 /**
  * The foot of every page, as the landing's demo draws it: the mark, what DuelMe is, its channels,
- * who to write to and the rights — stacked on a phone, one line from a wide screen up.
+ * who to write to and the rights — stacked on a phone, one line from a wide screen up — over the
+ * pages that explain DuelMe.
  */
 export async function Footer() {
   const { t } = await getTranslation();
@@ -46,11 +56,19 @@ export async function Footer() {
           </a>
         </p>
         <p>
-          © {new Date().getFullYear()} {SITE_NAME}. {t('footer.rights')}{' '}
-          <LocaleLink href="/privacy" className={FOOTER_LINK}>
-            {t('footer.privacy')}
-          </LocaleLink>
+          © {new Date().getFullYear()} {SITE_NAME}. {t('footer.rights')}
         </p>
+        <nav aria-label={t('footer.pages')} className="wide:col-span-full">
+          <ul className="-ml-0.5 flex flex-wrap gap-x-6">
+            {PAGES.map(({ href, labelKey }) => (
+              <li key={href}>
+                <LocaleLink href={href} className={FOOTER_LINK}>
+                  {t(labelKey)}
+                </LocaleLink>
+              </li>
+            ))}
+          </ul>
+        </nav>
       </div>
     </footer>
   );

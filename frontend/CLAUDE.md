@@ -376,6 +376,8 @@ test can check.
 | `frontend/src/hooks/useAnalyticsIdentity.ts` | Sign-ins and sign-outs as events, and the player's Privy id and wallet given to analytics only after a yes |
 | `frontend/src/hooks/useSigningAnalytics.ts` | The signing window's events, each sent once from the change between two renders (`lib/signingAnalytics.ts`) |
 | `frontend/src/app/privacy/page.tsx` | What DuelMe keeps and where, and the answer on analytics to change |
+| `frontend/src/app/how-it-works/page.tsx`, `safety/page.tsx`, `about/page.tsx` | The pages that explain DuelMe — a duel step by step, where the money sits and what the contract cannot do, who runs it — linked from the footer on every page. Their facts come from the code (`lib/contractFacts.ts`, `DUELME_ADDRESSES`), never typed into the copy |
+| `frontend/src/components/layout/Prose.tsx` | The frame of a page of plain text (`ProsePage`) and its parts (`ProseSection`), shared by the privacy page and the explainers |
 
 ## Environment
 

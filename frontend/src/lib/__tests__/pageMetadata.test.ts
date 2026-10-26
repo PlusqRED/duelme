@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { LANGUAGE_HEADER } from '@/i18n/language';
+import { LANGUAGE_HEADER, LANGUAGES } from '@/i18n/language';
+import { translations, type TranslationKey } from '@/i18n/translations';
 
 const requestHeaders = new Headers();
 
@@ -64,5 +65,19 @@ describe('pageMetadata', () => {
     const metadata = await pageMetadata({ ...games, path: '/dashboard', indexed: false });
 
     expect([metadata.robots, metadata.alternates?.languages]).toEqual([{ index: false, follow: true }, undefined]);
+  });
+});
+
+describe('search copy', () => {
+  const seoKeys = (Object.keys(translations.en) as TranslationKey[]).filter((key) => key.startsWith('seo.'));
+
+  it.each(LANGUAGES)('keeps every %s title whole in a result once the site’s name follows it', (language) => {
+    const long = seoKeys.filter((key) => key.endsWith('.title') && key !== 'seo.home.title');
+
+    expect(long.filter((key) => `${translations[language][key]} | DuelMe`.length > 60)).toEqual([]);
+  });
+
+  it.each(LANGUAGES)('keeps every %s description within what a result shows', (language) => {
+    expect(seoKeys.filter((key) => key.endsWith('.description') && translations[language][key].length > 160)).toEqual([]);
   });
 });

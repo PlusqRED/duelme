@@ -12,6 +12,9 @@ const INDEXED_PAGES = [
   '/duels/public',
   '/duels/recent',
   '/duel/create',
+  '/how-it-works',
+  '/safety',
+  '/about',
   '/privacy',
 ];
 

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LanguageProvider } from '@/i18n/LanguageContext';
 import { LANGUAGE_HEADER } from '@/i18n/language';
@@ -24,6 +24,19 @@ describe('Footer', () => {
     render(<LanguageProvider language="ru">{await Footer()}</LanguageProvider>);
 
     expect(screen.getByRole('link', { name: translations.ru['footer.privacy'] }).getAttribute('href')).toBe('/ru/privacy');
+  });
+
+  it('links the pages that explain DuelMe, in the reader’s language', async () => {
+    render(<LanguageProvider language="ru">{await Footer()}</LanguageProvider>);
+    const nav = screen.getByRole('navigation', { name: translations.ru['footer.pages'] });
+
+    expect(within(nav).getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
+      '/ru/how-it-works',
+      '/ru/safety',
+      '/ru/games',
+      '/ru/about',
+      '/ru/privacy',
+    ]);
   });
 
   it('links both channels by name, opening them in a new tab', async () => {
