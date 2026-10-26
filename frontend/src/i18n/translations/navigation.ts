@@ -15,7 +15,6 @@ export const navigationTranslations = defineSection({
     'nav.main': 'Main',
     'footer.tagline': 'Fair PvP duels. Zero fees. Powered by smart contracts.',
     'footer.rights': 'All rights reserved.',
-    'footer.developer': 'Developer & contact',
   },
   ru: {
     'nav.dashboard': 'Мои дуэли',
@@ -31,6 +30,5 @@ export const navigationTranslations = defineSection({
     'nav.main': 'Основное',
     'footer.tagline': 'Честные PvP-дуэли. Комиссия 0%. На смарт-контрактах.',
     'footer.rights': 'Все права защищены.',
-    'footer.developer': 'Разработчик и связь',
   },
 });
