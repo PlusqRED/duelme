@@ -3,7 +3,7 @@ import { AnalyticsChoice } from '@/components/analytics/AnalyticsChoice';
 import { ProsePage } from '@/components/layout/ProsePage';
 import { PROSE_TEXT, ProseSection } from '@/components/layout/ProseSection';
 import { getTranslation } from '@/i18n/serverTranslation';
-import { DEVELOPER_EMAIL } from '@/lib/constants';
+import { DEVLOG_HANDLE, DEVLOG_URL } from '@/lib/constants';
 import { pageMetadata } from '@/lib/pageMetadata';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -44,8 +44,8 @@ export default async function PrivacyPage() {
       <ProseSection title={t('privacy.rights.title')}>
         <p className={PROSE_TEXT}>
           {t('privacy.rights.text')}{' '}
-          <a href={`mailto:${DEVELOPER_EMAIL}`} className="link">
-            {DEVELOPER_EMAIL}
+          <a href={DEVLOG_URL} target="_blank" rel="noopener noreferrer" className="link">
+            {DEVLOG_HANDLE}
           </a>
           . {t('privacy.rights.chain')}
         </p>

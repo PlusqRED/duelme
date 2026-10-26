@@ -68,11 +68,9 @@ export const infoPagesTranslations = defineSection({
       'DuelMe has no company or investors behind it yet: its developer builds it, runs it and answers for it. It is not run for profit: there is no fee, and no plan to add one.',
     'about.status.title': 'Where it stands',
     'about.status.text':
-      'Duels work today on Arbitrum, and the rest is still being built. Decisions and devlogs are posted in the open, and the code is public.',
+      'Duels work today on Arbitrum, and the rest is still being built. Decisions and devlogs are posted in the open, and the contract’s code is public and verified.',
     'about.contact.title': 'Get in touch',
-    'about.contact.email': 'Write to the developer',
     'about.contact.devlog': 'Devlog on Telegram',
-    'about.contact.source': 'Source code on GitHub',
   },
   ru: {
     'footer.about': 'О проекте',
@@ -140,10 +138,8 @@ export const infoPagesTranslations = defineSection({
       'Компании и инвесторов за DuelMe пока нет: разработчик сам его делает, ведёт и за него отвечает. Он работает не ради прибыли: комиссии нет и не планируется.',
     'about.status.title': 'Что уже есть',
     'about.status.text':
-      'Дуэли уже работают в сети Arbitrum, остальное ещё в разработке. Решения и девлоги публикуются открыто, код тоже открыт.',
+      'Дуэли уже работают в сети Arbitrum, остальное ещё в разработке. Решения и девлоги публикуются открыто, код контракта открыт и верифицирован.',
     'about.contact.title': 'Связаться',
-    'about.contact.email': 'Написать разработчику',
     'about.contact.devlog': 'Девлог в Telegram',
-    'about.contact.source': 'Исходный код на GitHub',
   },
 });

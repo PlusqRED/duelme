@@ -1,7 +1,7 @@
 import { LANGUAGES } from '@/i18n/language';
 import { absoluteAddress, localePath } from '@/i18n/localePath';
 import type { Language } from '@/i18n/translations';
-import { DEVLOG_URL, SITE_NAME, SITE_URL, SOURCE_CODE_URL } from './constants';
+import { DEVLOG_URL, SITE_NAME, SITE_URL } from './constants';
 
 /** One schema.org object as a page carries it in JSON-LD. */
 export type StructuredData = Record<string, unknown>;
@@ -23,7 +23,7 @@ export function organizationSchema(description: string): StructuredData {
     url: SITE_URL,
     logo: { '@type': 'ImageObject', url: `${SITE_URL}/logo.png`, width: 512, height: 512 },
     description,
-    sameAs: [DEVLOG_URL, SOURCE_CODE_URL],
+    sameAs: [DEVLOG_URL],
   };
 }
 

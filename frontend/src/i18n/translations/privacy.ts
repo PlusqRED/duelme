@@ -42,7 +42,7 @@ export const privacyTranslations = defineSection({
     'privacy.choice.text': 'You can change it at any time; it applies in this browser.',
     'privacy.rights.title': 'Your rights',
     'privacy.rights.text':
-      'You can ask what is kept about you, have it corrected or deleted, or object to its use. Write to',
+      'You can ask what is kept about you, have it corrected or deleted, or object to its use. Write to us through the devlog on Telegram:',
     'privacy.rights.chain': 'What is on the blockchain stays there.',
   },
   ru: {
@@ -86,7 +86,7 @@ export const privacyTranslations = defineSection({
     'privacy.choice.text': 'Его можно поменять в любой момент; он действует в этом браузере.',
     'privacy.rights.title': 'Твои права',
     'privacy.rights.text':
-      'Можно узнать, что о тебе хранится, исправить или удалить это либо возразить против обработки. Пиши на',
+      'Можно узнать, что о тебе хранится, исправить или удалить это либо возразить против обработки. Пиши через девлог в Telegram:',
     'privacy.rights.chain': 'То, что в блокчейне, остаётся там.',
   },
 });

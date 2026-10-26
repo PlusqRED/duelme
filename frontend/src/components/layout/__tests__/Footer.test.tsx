@@ -5,6 +5,7 @@ import { LANGUAGE_HEADER } from '@/i18n/language';
 import { pageTranslations } from '@/i18n/pageTranslations';
 import { translations } from '@/i18n/translations';
 import { renderIn } from '@/lib/__tests__/helpers/renderIn';
+import { DEVLOG_URL } from '@/lib/constants';
 
 vi.mock('next/headers', () => ({
   headers: async () => new Headers({ [LANGUAGE_HEADER]: 'ru' }),
@@ -40,13 +41,12 @@ describe('Footer', () => {
     ]);
   });
 
-  it('links both channels by name, opening them in a new tab', async () => {
+  it('links the devlog by name in a new tab, and no other place off the site', async () => {
     render(await Footer());
+    const offSite = screen.getAllByRole('link').filter((link) => !link.getAttribute('href')?.startsWith('/'));
 
-    for (const name of ['Telegram', 'Instagram']) {
-      const link = screen.getByRole('link', { name });
-      expect(link.getAttribute('target')).toBe('_blank');
-      expect(link.getAttribute('rel')).toBe('noopener noreferrer');
-    }
+    expect(
+      offSite.map((link) => [link.getAttribute('href'), link.getAttribute('aria-label'), link.getAttribute('target'), link.getAttribute('rel')])
+    ).toEqual([[DEVLOG_URL, pageTranslations.ru['about.contact.devlog'], '_blank', 'noopener noreferrer']]);
   });
 });

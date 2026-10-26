@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEVLOG_URL, SITE_URL, SOURCE_CODE_URL } from '@/lib/constants';
+import { DEVLOG_URL, SITE_URL } from '@/lib/constants';
 import {
   breadcrumbSchema,
   organizationSchema,
@@ -8,8 +8,8 @@ import {
 } from '@/lib/structuredData';
 
 describe('organizationSchema', () => {
-  it('names the devlog and the source code as the brand’s other places', () => {
-    expect(organizationSchema('About').sameAs).toEqual([DEVLOG_URL, SOURCE_CODE_URL]);
+  it('names the devlog as the brand’s one other place', () => {
+    expect(organizationSchema('About').sameAs).toEqual([DEVLOG_URL]);
   });
 
   it('points at the logo at its fixed address', () => {

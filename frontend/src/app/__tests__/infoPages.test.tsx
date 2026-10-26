@@ -5,7 +5,7 @@ import { LANGUAGE_HEADER } from '@/i18n/language';
 import { serverDictionaries } from '@/i18n/serverTranslation';
 import { translator } from '@/i18n/translate';
 import { renderIn } from '@/lib/__tests__/helpers/renderIn';
-import { DEFAULT_CHAIN_ID, DUELME_ADDRESSES, DEVELOPER_EMAIL, SOURCE_CODE_URL } from '@/lib/constants';
+import { DEFAULT_CHAIN_ID, DEVLOG_HANDLE, DEVLOG_URL, DUELME_ADDRESSES } from '@/lib/constants';
 import { contractTestsLabel, emergencyDelayLabel } from '@/lib/contractFacts';
 import { explorerLink } from '@/lib/explorer';
 
@@ -14,6 +14,7 @@ vi.mock('next/headers', () => ({ headers: async () => new Headers({ [LANGUAGE_HE
 const { default: HowItWorksPage } = await import('@/app/how-it-works/page');
 const { default: SafetyPage } = await import('@/app/safety/page');
 const { default: AboutPage } = await import('@/app/about/page');
+const { default: PrivacyPage } = await import('@/app/privacy/page');
 
 const ru = serverDictionaries.ru;
 
@@ -67,10 +68,17 @@ describe('safety', () => {
 });
 
 describe('about', () => {
-  it('gives the ways to reach the developer', async () => {
+  it('gives the devlog as the one way to reach the developer', async () => {
     renderIn('ru', await AboutPage());
 
-    expect(screen.getByRole('link', { name: ru['about.contact.email'] }).getAttribute('href')).toBe(`mailto:${DEVELOPER_EMAIL}`);
-    expect(screen.getByRole('link', { name: ru['about.contact.source'] }).getAttribute('href')).toBe(SOURCE_CODE_URL);
+    expect(screen.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([DEVLOG_URL]);
+  });
+});
+
+describe('privacy', () => {
+  it('sends a request about the reader’s data to the devlog', async () => {
+    renderIn('ru', await PrivacyPage());
+
+    expect(screen.getByRole('link', { name: DEVLOG_HANDLE }).getAttribute('href')).toBe(DEVLOG_URL);
   });
 });
