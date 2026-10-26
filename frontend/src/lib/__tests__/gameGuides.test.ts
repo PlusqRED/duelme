@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { LANGUAGES } from '@/i18n/language';
-import { GAME_GUIDES, gameGuide, guideGame } from '@/lib/gameGuides';
+import { GAME_GUIDES } from '@/content/gameGuides';
+import { gameGuide } from '@/lib/gameGuides';
 import { isFormal } from './helpers/russianVoice';
+import { RESULT_DESCRIPTION_LIMIT, RESULT_TITLE_LIMIT, resultTitle } from './helpers/searchResult';
 
 /** The backend's `GameService.toSlug` for a Latin name: the slug a game gets when a player names it in a duel. */
 function backendSlug(name: string): string {
@@ -28,11 +30,11 @@ describe('game guides', () => {
   });
 
   it('keeps every title whole in a search result once the site’s name follows it', () => {
-    expect(copies.filter(({ copy }) => `${copy.title} | DuelMe`.length > 60).map(({ guide, language }) => `${guide.slug}:${language}`)).toEqual([]);
+    expect(copies.filter(({ copy }) => resultTitle(copy.title).length > RESULT_TITLE_LIMIT).map(({ guide, language }) => `${guide.slug}:${language}`)).toEqual([]);
   });
 
   it('keeps every description within what a search result shows', () => {
-    expect(copies.filter(({ copy }) => copy.description.length > 160).map(({ guide, language }) => `${guide.slug}:${language}`)).toEqual([]);
+    expect(copies.filter(({ copy }) => copy.description.length > RESULT_DESCRIPTION_LIMIT).map(({ guide, language }) => `${guide.slug}:${language}`)).toEqual([]);
   });
 
   it('gives every guide the same parts in every language', () => {
@@ -49,9 +51,5 @@ describe('game guides', () => {
 
   it('finds a guide by its slug, and none for a game without one', () => {
     expect([gameGuide('cs2')?.name, gameGuide('lineage-2')]).toEqual(['CS2', null]);
-  });
-
-  it('turns a guide into a game nobody has duelled in yet', () => {
-    expect(guideGame(GAME_GUIDES[0])).toMatchObject({ slug: 'cs2', name: 'CS2', category: 'FPS', duelCount: 0 });
   });
 });

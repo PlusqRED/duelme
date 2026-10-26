@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import sitemap from '@/app/sitemap';
-import { GAME_GUIDES } from '@/lib/gameGuides';
+import { GAME_GUIDES } from '@/content/gameGuides';
 
 const entries = sitemap();
 

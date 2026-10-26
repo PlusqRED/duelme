@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LANGUAGE_HEADER, LANGUAGES } from '@/i18n/language';
-import { translations, type TranslationKey } from '@/i18n/translations';
+import { pageTranslations, type PageTranslationKey } from '@/i18n/pageTranslations';
+import { RESULT_DESCRIPTION_LIMIT, RESULT_TITLE_LIMIT, resultTitle } from './helpers/searchResult';
 
 const requestHeaders = new Headers();
 
@@ -61,23 +62,34 @@ describe('pageMetadata', () => {
     expect(metadata.robots).toMatchObject({ index: true, follow: true, googleBot: { 'max-image-preview': 'large' } });
   });
 
-  it('keeps a private page out of search results, with no other languages to offer', async () => {
-    const metadata = await pageMetadata({ ...games, path: '/dashboard', indexed: false });
+  it('keeps a page the list leaves out of search results, with no other languages to offer', async () => {
+    const metadata = await pageMetadata({ ...games, path: '/duel/7' });
 
     expect([metadata.robots, metadata.alternates?.languages]).toEqual([{ index: false, follow: true }, undefined]);
+  });
+
+  it('lists a game’s page only when it has a guide', async () => {
+    const [guided, unguided] = await Promise.all([
+      pageMetadata({ ...games, path: '/games/cs2' }),
+      pageMetadata({ ...games, path: '/games/lineage-2' }),
+    ]);
+
+    expect([guided.robots, unguided.robots]).toEqual([expect.objectContaining({ index: true }), { index: false, follow: true }]);
   });
 });
 
 describe('search copy', () => {
-  const seoKeys = (Object.keys(translations.en) as TranslationKey[]).filter((key) => key.startsWith('seo.'));
+  const seoKeys = (Object.keys(pageTranslations.en) as PageTranslationKey[]).filter((key) => key.startsWith('seo.'));
 
   it.each(LANGUAGES)('keeps every %s title whole in a result once the site’s name follows it', (language) => {
     const long = seoKeys.filter((key) => key.endsWith('.title') && key !== 'seo.home.title');
 
-    expect(long.filter((key) => `${translations[language][key]} | DuelMe`.length > 60)).toEqual([]);
+    expect(long.filter((key) => resultTitle(pageTranslations[language][key]).length > RESULT_TITLE_LIMIT)).toEqual([]);
   });
 
   it.each(LANGUAGES)('keeps every %s description within what a result shows', (language) => {
-    expect(seoKeys.filter((key) => key.endsWith('.description') && translations[language][key].length > 160)).toEqual([]);
+    expect(
+      seoKeys.filter((key) => key.endsWith('.description') && pageTranslations[language][key].length > RESULT_DESCRIPTION_LIMIT)
+    ).toEqual([]);
   });
 });

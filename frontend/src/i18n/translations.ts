@@ -20,9 +20,6 @@ import { signingTranslations } from './translations/signing';
 import { browseTranslations } from './translations/browse';
 import { signingActionsTranslations } from './translations/signingActions';
 import { privacyTranslations } from './translations/privacy';
-import { seoTranslations } from './translations/seo';
-import { faqTranslations } from './translations/faq';
-import { infoPagesTranslations } from './translations/infoPages';
 
 export const translations = {
   en: {
@@ -48,9 +45,6 @@ export const translations = {
     ...browseTranslations.en,
     ...signingActionsTranslations.en,
     ...privacyTranslations.en,
-    ...seoTranslations.en,
-    ...faqTranslations.en,
-    ...infoPagesTranslations.en,
   },
   ru: {
     ...navigationTranslations.ru,
@@ -75,9 +69,6 @@ export const translations = {
     ...browseTranslations.ru,
     ...signingActionsTranslations.ru,
     ...privacyTranslations.ru,
-    ...seoTranslations.ru,
-    ...faqTranslations.ru,
-    ...infoPagesTranslations.ru,
   },
 } as const;
 

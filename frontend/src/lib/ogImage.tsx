@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ImageResponse } from 'next/og';
-import { translator } from '@/i18n/translate';
+import { serverTranslator } from '@/i18n/serverTranslation';
 import type { Language } from '@/i18n/translations';
 import { brandColors } from '@/lib/brandColors';
 import { BrandMarkImage } from '@/lib/brandImage';
@@ -13,7 +13,7 @@ export const OG_IMAGE_CONTENT_TYPE = 'image/png';
 /** The motto's size, as large as its longest line allows on one line of the image: Russian runs longer. */
 const MOTTO_SIZE: Record<Language, number> = { en: 92, ru: 72 };
 
-/** Where a page's share image is, in the page's language: `app/og/[language]/route.tsx` draws it. */
+/** Where a page's share image is, in the page's language: `app/og/[language]/route.ts` draws it. */
 export function shareImagePath(language: Language): string {
   return `/og/${language}`;
 }
@@ -27,7 +27,7 @@ async function geologica(weight: 400 | 700 | 800) {
 
 /** The image a shared link shows, in the page's language: the mark, the motto, what a duel is, and the site. */
 export async function renderBrandOgImage(language: Language) {
-  const { t } = translator(language);
+  const { t } = serverTranslator(language);
   const motto = [t('motto.1'), t('motto.2')];
   const facts = [t('seo.image.fee'), t('seo.image.escrow'), 'Arbitrum'];
 

@@ -8,7 +8,7 @@ import { pageMetadata } from '@/lib/pageMetadata';
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getTranslation();
-  return pageMetadata({ path: '/dashboard', title: t('nav.dashboard'), description: t('seo.site.description'), indexed: false });
+  return pageMetadata({ path: '/dashboard', title: t('nav.dashboard'), description: t('seo.site.description') });
 }
 
 export default async function DashboardPage() {

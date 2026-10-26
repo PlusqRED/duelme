@@ -30,7 +30,7 @@ export function OAuthCallbackHandler() {
     if (!platformStatus) return;
     const returnTo = takeOAuthReturn();
     if (returnTo !== null && returnTo !== language) {
-      window.location.replace(`${localePath('/profile', returnTo)}${window.location.search}`);
+      window.location.replace(localePath(`/profile${window.location.search}`, returnTo));
       return;
     }
 

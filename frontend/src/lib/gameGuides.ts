@@ -1,6 +1,6 @@
 import { GAME_GUIDES } from '@/content/gameGuides';
 import type { Language } from '@/i18n/translations';
-import type { Game, GameCategory } from '@/lib/game';
+import type { GameCategory } from '@/lib/game';
 
 /** One part of a game's guide: how its duels are played, set up or settled. */
 export interface GameGuideSection {
@@ -32,21 +32,6 @@ export interface GameGuide {
   copy: Record<Language, GameGuideCopy>;
 }
 
-export { GAME_GUIDES };
-
 export function gameGuide(slug: string): GameGuide | null {
   return GAME_GUIDES.find((guide) => guide.slug === slug) ?? null;
-}
-
-/** A guide's game before anyone has duelled in it: the catalog does not have it yet. */
-export function guideGame(guide: GameGuide): Game {
-  return {
-    slug: guide.slug,
-    name: guide.name,
-    iconUrl: null,
-    category: guide.category,
-    duelCount: 0,
-    createdAt: null,
-    updatedAt: null,
-  };
 }

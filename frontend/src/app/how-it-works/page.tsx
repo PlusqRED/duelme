@@ -3,7 +3,7 @@ import { PROSE_TEXT, ProsePage, ProseSection } from '@/components/layout/Prose';
 import { buttonVariants } from '@/components/ui/button';
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { getTranslation } from '@/i18n/serverTranslation';
-import type { TranslationKey } from '@/i18n/translations';
+import type { PageTranslationKey } from '@/i18n/pageTranslations';
 import { pageMetadata } from '@/lib/pageMetadata';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -12,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /** A duel from sign-in to payout, the keys written out so the translation guard sees them used. */
-const STEPS: readonly (readonly [TranslationKey, TranslationKey])[] = [
+const STEPS: readonly (readonly [PageTranslationKey, PageTranslationKey])[] = [
   ['howItWorks.step1.title', 'howItWorks.step1.text'],
   ['howItWorks.step2.title', 'howItWorks.step2.text'],
   ['howItWorks.step3.title', 'howItWorks.step3.text'],
@@ -30,10 +30,7 @@ export default async function HowItWorksPage() {
 
   return (
     <ProsePage title={t('howItWorks.title')} intro={t('howItWorks.intro')}>
-      <section aria-labelledby="steps-title" className="grid gap-5 border-t border-line pt-6">
-        <h2 id="steps-title" className="text-lead">
-          {t('howItWorks.stepsTitle')}
-        </h2>
+      <ProseSection title={t('howItWorks.stepsTitle')} className="gap-5">
         <ol className="grid gap-6">
           {STEPS.map(([title, text], index) => (
             <li key={title} className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5">
@@ -48,17 +45,11 @@ export default async function HowItWorksPage() {
             </li>
           ))}
         </ol>
-      </section>
+      </ProseSection>
 
-      <ProseSection title={t('howItWorks.trouble.title')}>
-        <p className={PROSE_TEXT}>{t('howItWorks.trouble.text')}</p>
-      </ProseSection>
-      <ProseSection title={t('howItWorks.reputation.title')}>
-        <p className={PROSE_TEXT}>{t('howItWorks.reputation.text')}</p>
-      </ProseSection>
-      <ProseSection title={t('howItWorks.fee.title')}>
-        <p className={PROSE_TEXT}>{t('howItWorks.fee.text')}</p>
-      </ProseSection>
+      <ProseSection title={t('howItWorks.trouble.title')} text={t('howItWorks.trouble.text')} />
+      <ProseSection title={t('howItWorks.reputation.title')} text={t('howItWorks.reputation.text')} />
+      <ProseSection title={t('howItWorks.fee.title')} text={t('howItWorks.fee.text')} />
 
       <div className="flex flex-wrap gap-3 border-t border-line pt-7">
         <LocaleLink href="/duel/create" className={buttonVariants({ size: 'lg', className: 'max-xs:basis-full' })}>

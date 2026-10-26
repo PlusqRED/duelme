@@ -9,6 +9,10 @@ interface FilterPillProps {
   children: ReactNode;
 }
 
+/** A pill's face: the filter pills', and the links to the games' guides that sit above them. */
+export const PILL_FACE =
+  'inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border-[1.5px] border-line-strong bg-paper text-body-sm font-label whitespace-nowrap text-ink transition-[border-color,background-color,color,translate] duration-200 ease-press active:translate-y-px';
+
 /** One filter of a list: a pill that turns navy while it is on, with how many it holds beside its name. */
 export function FilterPill({ isPressed, onClick, count, children }: FilterPillProps) {
   return (
@@ -17,8 +21,8 @@ export function FilterPill({ isPressed, onClick, count, children }: FilterPillPr
       aria-pressed={isPressed}
       onClick={onClick}
       className={cn(
-        'group/pill relative inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full border-[1.5px] border-line-strong bg-paper px-3.5 text-body-sm font-label whitespace-nowrap text-ink transition-[border-color,background-color,color,translate] duration-200 ease-press',
-        'hover:border-ink-3 active:translate-y-px aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-paper'
+        PILL_FACE,
+        'group/pill relative cursor-pointer px-3.5 hover:border-ink-3 aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-paper'
       )}
     >
       {children}

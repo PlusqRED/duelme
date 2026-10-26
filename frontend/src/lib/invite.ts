@@ -1,5 +1,5 @@
 import { encodeAbiParameters, isHex, keccak256, size, toHex } from 'viem';
-import { localePath } from '@/i18n/localePath';
+import { shareableAddress } from '@/i18n/localePath';
 import type { Language } from '@/i18n/translations';
 
 const INVITE_STORAGE_PREFIX = 'duelme-invite';
@@ -34,7 +34,7 @@ export function isInviteSecret(value: string | null | undefined): value is `0x${
 
 /** A duel's page as a full address in the sender's language, which is the one they read the site in. */
 function duelAddress(duelId: number, language: Language): string {
-  return `${window.location.origin}${localePath(`/duel/${duelId}`, language)}`;
+  return shareableAddress(`/duel/${duelId}`, language);
 }
 
 export function buildInviteLink(duelId: number, inviteSecret: `0x${string}`, language: Language): string {

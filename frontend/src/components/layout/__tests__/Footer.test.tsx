@@ -1,9 +1,10 @@
 // @vitest-environment happy-dom
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { LanguageProvider } from '@/i18n/LanguageContext';
 import { LANGUAGE_HEADER } from '@/i18n/language';
+import { pageTranslations } from '@/i18n/pageTranslations';
 import { translations } from '@/i18n/translations';
+import { renderIn } from '@/lib/__tests__/helpers/renderIn';
 
 vi.mock('next/headers', () => ({
   headers: async () => new Headers({ [LANGUAGE_HEADER]: 'ru' }),
@@ -21,14 +22,14 @@ describe('Footer', () => {
   });
 
   it('links the privacy page in the reader’s language', async () => {
-    render(<LanguageProvider language="ru">{await Footer()}</LanguageProvider>);
+    renderIn('ru', await Footer());
 
     expect(screen.getByRole('link', { name: translations.ru['footer.privacy'] }).getAttribute('href')).toBe('/ru/privacy');
   });
 
   it('links the pages that explain DuelMe, in the reader’s language', async () => {
-    render(<LanguageProvider language="ru">{await Footer()}</LanguageProvider>);
-    const nav = screen.getByRole('navigation', { name: translations.ru['footer.pages'] });
+    renderIn('ru', await Footer());
+    const nav = screen.getByRole('navigation', { name: pageTranslations.ru['footer.pages'] });
 
     expect(within(nav).getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
       '/ru/how-it-works',

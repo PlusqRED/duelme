@@ -5,10 +5,10 @@ import { Providers } from '@/components/providers/Providers';
 import { Header } from '@/components/header/Header';
 import { Footer } from '@/components/layout/Footer';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { getLanguage, getTranslation } from '@/i18n/serverTranslation';
+import { getTranslation } from '@/i18n/serverTranslation';
 import { brandColors } from '@/lib/brandColors';
 import { getRelayerStatus } from '@/lib/relayerConfig';
-import { SITE_NAME, SITE_URL } from '@/lib/constants';
+import { SITE_NAME, SITE_URL, TITLE_TEMPLATE } from '@/lib/constants';
 import { organizationSchema, webApplicationSchema } from '@/lib/structuredData';
 
 export const dynamic = 'force-dynamic';
@@ -29,7 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getTranslation();
   return {
     metadataBase: new URL(SITE_URL),
-    title: { default: t('seo.home.title'), template: `%s | ${SITE_NAME}` },
+    title: { default: t('seo.home.title'), template: TITLE_TEMPLATE },
     description: t('seo.site.description'),
     applicationName: SITE_NAME,
     authors: [{ name: SITE_NAME, url: SITE_URL }],
@@ -58,8 +58,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const language = await getLanguage();
-  const { t } = await getTranslation();
+  const { t, language } = await getTranslation();
 
   return (
     <html lang={language} className={geologica.variable} data-scroll-behavior="smooth">

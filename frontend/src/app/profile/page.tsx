@@ -9,7 +9,6 @@ export async function generateMetadata(): Promise<Metadata> {
     path: '/profile',
     title: t('seo.profile.title'),
     description: t('seo.player.description'),
-    indexed: false,
   });
 }
 

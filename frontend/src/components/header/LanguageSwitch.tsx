@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { LANGUAGES } from '@/i18n/language';
-import { localePath, stripLanguage } from '@/i18n/localePath';
+import { localePath } from '@/i18n/localePath';
 import type { Language } from '@/i18n/translations';
 import { useTranslation } from '@/i18n/useTranslation';
 import { cn } from '@/lib/utils';
@@ -28,7 +28,7 @@ export function LanguageSwitch({ className }: LanguageSwitchProps) {
     if (next === language) return;
     setPicked(next);
     const { pathname, search, hash } = window.location;
-    window.location.replace(`${localePath(stripLanguage(pathname), next)}${search}${hash}`);
+    window.location.replace(localePath(`${pathname}${search}${hash}`, next));
   }
 
   return (

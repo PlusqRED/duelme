@@ -1,11 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { translations, type TranslationKey } from '@/i18n/translations';
+import { pageTranslations } from '@/i18n/pageTranslations';
+import { translations } from '@/i18n/translations';
 import { isFormal } from '@/lib/__tests__/helpers/russianVoice';
 import { sourceFiles } from '@/lib/__tests__/helpers/sourceFiles';
 
-const keys = Object.keys(translations.en) as TranslationKey[];
+/** Every word, the browser's and the ones only pages say, in both languages. */
+const dictionaries: Record<'en' | 'ru', Record<string, string>> = {
+  en: { ...translations.en, ...pageTranslations.en },
+  ru: { ...translations.ru, ...pageTranslations.ru },
+};
 
-const code = sourceFiles(['.ts', '.tsx'])
+const keys = Object.keys(dictionaries.en);
+
+const files = sourceFiles(['.ts', '.tsx']);
+
+const code = files
   .filter((file) => !file.path.startsWith('i18n/translations'))
   .map((file) => file.text)
   .join('\n');
@@ -30,6 +39,18 @@ const FORMAL_EXAMPLES = ['Попробуйте ещё раз', 'Проверьт
 const INFORMAL_EXAMPLES = ['Дуэль в тестнете', 'Ссылка на сайте', 'Ответ в отчёте', 'Всё в личном кабинете'];
 
 describe('translations', () => {
+  it('gives no key to both the browser’s words and the pages’ own', () => {
+    expect(Object.keys(pageTranslations.en).filter((key) => key in translations.en)).toEqual([]);
+  });
+
+  it('keeps the pages’ own words out of the browser: only the server’s translator reads them', () => {
+    const readers = files
+      .filter((file) => !file.path.includes('__tests__') && /import \{[^}]*\bpageTranslations\b/.test(file.text))
+      .map((file) => file.path);
+
+    expect(readers).toEqual(['i18n/serverTranslation.ts']);
+  });
+
   it('uses every key somewhere', () => {
     expect(keys.filter((key) => !isUsed(key))).toEqual([]);
   });
@@ -48,13 +69,13 @@ describe('translations', () => {
 
   it('keeps every amount on the line of its unit, with a no-break space between them', () => {
     const split = (['en', 'ru'] as const).flatMap((language) =>
-      keys.filter((key) => /\} (?:USDT|ETH)\b/.test(translations[language][key])).map((key) => `${language}:${key}`)
+      keys.filter((key) => /\} (?:USDT|ETH)\b/.test(dictionaries[language][key])).map((key) => `${language}:${key}`)
     );
 
     expect(split).toEqual([]);
   });
 
   it('says «ты» in Russian', () => {
-    expect(keys.filter((key) => isFormal(translations.ru[key]))).toEqual([]);
+    expect(keys.filter((key) => isFormal(dictionaries.ru[key]))).toEqual([]);
   });
 });

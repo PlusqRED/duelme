@@ -18,12 +18,9 @@ export default async function PrivacyPage() {
 
   return (
     <ProsePage title={t('privacy.title')} note={t('privacy.updated')} intro={t('privacy.intro')}>
-      <ProseSection title={t('privacy.chain.title')}>
-        <p className={PROSE_TEXT}>{t('privacy.chain.text')}</p>
-      </ProseSection>
+      <ProseSection title={t('privacy.chain.title')} text={t('privacy.chain.text')} />
 
-      <ProseSection title={t('privacy.account.title')}>
-        <p className={PROSE_TEXT}>{t('privacy.account.text')}</p>
+      <ProseSection title={t('privacy.account.title')} text={t('privacy.account.text')}>
         <p className={PROSE_TEXT}>
           <a href={PRIVY_POLICY_URL} target="_blank" rel="noopener noreferrer" className="link">
             {t('privacy.account.link')}
@@ -31,21 +28,15 @@ export default async function PrivacyPage() {
         </p>
       </ProseSection>
 
-      <ProseSection title={t('privacy.profile.title')}>
-        <p className={PROSE_TEXT}>{t('privacy.profile.text')}</p>
-      </ProseSection>
+      <ProseSection title={t('privacy.profile.title')} text={t('privacy.profile.text')} />
 
-      <ProseSection title={t('privacy.analytics.title')}>
-        <p className={PROSE_TEXT}>{t('privacy.analytics.text')}</p>
+      <ProseSection title={t('privacy.analytics.title')} text={t('privacy.analytics.text')}>
         <p className={PROSE_TEXT}>{t('privacy.analytics.consent')}</p>
       </ProseSection>
 
-      <ProseSection title={t('privacy.browser.title')}>
-        <p className={PROSE_TEXT}>{t('privacy.browser.text')}</p>
-      </ProseSection>
+      <ProseSection title={t('privacy.browser.title')} text={t('privacy.browser.text')} />
 
-      <ProseSection title={t('privacy.choice.title')}>
-        <p className={PROSE_TEXT}>{t('privacy.choice.text')}</p>
+      <ProseSection title={t('privacy.choice.title')} text={t('privacy.choice.text')}>
         <AnalyticsChoice />
       </ProseSection>
 

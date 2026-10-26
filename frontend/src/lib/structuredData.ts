@@ -1,3 +1,6 @@
+import { LANGUAGES } from '@/i18n/language';
+import { absoluteAddress, localePath } from '@/i18n/localePath';
+import type { Language } from '@/i18n/translations';
 import { DEVLOG_URL, SITE_NAME, SITE_URL, SOURCE_CODE_URL } from './constants';
 
 /** One schema.org object as a page carries it in JSON-LD. */
@@ -5,7 +8,7 @@ export type StructuredData = Record<string, unknown>;
 
 export interface BreadcrumbItem {
   name: string;
-  /** The page's path on the site, as a link to it would carry it. */
+  /** The page's address in English, as a link to it is written: `/games`. */
   path: string;
 }
 
@@ -36,21 +39,21 @@ export function webApplicationSchema(description: string): StructuredData {
     applicationCategory: 'GameApplication',
     operatingSystem: 'Web',
     browserRequirements: 'Requires JavaScript.',
-    inLanguage: ['en', 'ru'],
+    inLanguage: [...LANGUAGES],
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     publisher: { '@id': ORGANIZATION_ID },
   };
 }
 
-/** The way from the home page down to this one, each step a page of the site. */
-export function breadcrumbSchema(items: readonly BreadcrumbItem[]): StructuredData {
+/** The way from the home page down to this one, each step a page of the site in the reader's language. */
+export function breadcrumbSchema(items: readonly BreadcrumbItem[], language: Language): StructuredData {
   return {
     '@type': 'BreadcrumbList',
     itemListElement: items.map((item, index) => ({
       '@type': 'ListItem',
       position: index + 1,
       name: item.name,
-      item: `${SITE_URL}${item.path}`,
+      item: absoluteAddress(localePath(item.path, language)),
     })),
   };
 }

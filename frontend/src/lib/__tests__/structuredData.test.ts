@@ -36,15 +36,30 @@ describe('webApplicationSchema', () => {
 
 describe('breadcrumbSchema', () => {
   it('numbers the steps from one and makes each path a full address', () => {
-    const list = breadcrumbSchema([
-      { name: 'Home', path: '/' },
-      { name: 'Games', path: '/games' },
-    ]);
+    const list = breadcrumbSchema(
+      [
+        { name: 'Home', path: '/' },
+        { name: 'Games', path: '/games' },
+      ],
+      'en'
+    );
 
     expect(list.itemListElement).toEqual([
-      { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE_URL}/` },
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
       { '@type': 'ListItem', position: 2, name: 'Games', item: `${SITE_URL}/games` },
     ]);
+  });
+
+  it('leads each step to its page in the reader’s language', () => {
+    const list = breadcrumbSchema(
+      [
+        { name: 'Главная', path: '/' },
+        { name: 'Игры', path: '/games' },
+      ],
+      'ru'
+    );
+
+    expect((list.itemListElement as { item: string }[]).map((step) => step.item)).toEqual([`${SITE_URL}/ru`, `${SITE_URL}/ru/games`]);
   });
 });
 

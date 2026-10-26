@@ -6,7 +6,7 @@ import { TurnPanel } from '@/components/duel/room/TurnPanel';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { LocaleLink } from '@/components/ui/LocaleLink';
-import { localePath } from '@/i18n/localePath';
+import { shareableAddress } from '@/i18n/localePath';
 import { useTranslation } from '@/i18n/useTranslation';
 
 interface CreatedPanelProps {
@@ -36,7 +36,7 @@ export function CreatedPanel({ pointAt, path, wager, isPublic, onAgain }: Create
       text={t('room.created.creator.text', { wager })}
       className="animate-swap"
     >
-      <InviteLinkBox link={`${window.location.origin}${localePath(path, language)}`} isPublic={isPublic} />
+      <InviteLinkBox link={shareableAddress(path, language)} isPublic={isPublic} />
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 max-xs:*:flex-[1_1_100%]">
         <LocaleLink href={path} data-action className={buttonVariants({ size: 'lg' })}>
           {t('create.goToDuel')}

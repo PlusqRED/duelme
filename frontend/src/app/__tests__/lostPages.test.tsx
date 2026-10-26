@@ -1,9 +1,9 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { LanguageProvider } from '@/i18n/LanguageContext';
 import { LANGUAGE_HEADER } from '@/i18n/language';
 import { translations } from '@/i18n/translations';
+import { renderIn } from '@/lib/__tests__/helpers/renderIn';
 
 vi.mock('next/headers', () => ({
   headers: async () => new Headers({ [LANGUAGE_HEADER]: 'ru' }),
@@ -22,7 +22,7 @@ describe('NotFound', () => {
   });
 
   it('leads home and to the open duels, at the language’s addresses', async () => {
-    render(<LanguageProvider language="ru">{await NotFound()}</LanguageProvider>);
+    renderIn('ru', await NotFound());
 
     expect(screen.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual(['/ru', '/ru/duels/public']);
   });

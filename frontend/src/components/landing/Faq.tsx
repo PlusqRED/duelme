@@ -1,12 +1,12 @@
 import { SectionHead } from '@/components/landing/SectionHead';
 import { Icon } from '@/components/ui/icon';
 import { getTranslation } from '@/i18n/serverTranslation';
-import type { TranslationKey } from '@/i18n/translations';
+import type { PageTranslationKey } from '@/i18n/pageTranslations';
 
 const TITLE_ID = 'faq-title';
 
 /** Each question with its answer, the keys written out so the translation guard sees them used. */
-const QUESTIONS: readonly (readonly [TranslationKey, TranslationKey])[] = [
+const QUESTIONS: readonly (readonly [PageTranslationKey, PageTranslationKey])[] = [
   ['faq.what.q', 'faq.what.a'],
   ['faq.games.q', 'faq.games.a'],
   ['faq.winner.q', 'faq.winner.a'],

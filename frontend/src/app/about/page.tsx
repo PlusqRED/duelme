@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { PROSE_TEXT, ProsePage, ProseSection } from '@/components/layout/Prose';
 import { getTranslation } from '@/i18n/serverTranslation';
-import { DEVELOPER_EMAIL, DEVLOG_URL, SOURCE_CODE_URL } from '@/lib/constants';
+import { DEVELOPER_EMAIL, DEVLOG_HANDLE, DEVLOG_URL, SOURCE_CODE_HANDLE, SOURCE_CODE_URL } from '@/lib/constants';
 import { pageMetadata } from '@/lib/pageMetadata';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -14,21 +14,15 @@ export default async function AboutPage() {
   const { t } = await getTranslation();
   const contacts = [
     { href: `mailto:${DEVELOPER_EMAIL}`, label: t('about.contact.email'), detail: DEVELOPER_EMAIL },
-    { href: DEVLOG_URL, label: t('about.contact.devlog'), detail: DEVLOG_URL.replace('https://', '') },
-    { href: SOURCE_CODE_URL, label: t('about.contact.source'), detail: SOURCE_CODE_URL.replace('https://', '') },
+    { href: DEVLOG_URL, label: t('about.contact.devlog'), detail: DEVLOG_HANDLE },
+    { href: SOURCE_CODE_URL, label: t('about.contact.source'), detail: SOURCE_CODE_HANDLE },
   ];
 
   return (
     <ProsePage title={t('about.title')} intro={t('about.intro')}>
-      <ProseSection title={t('about.why.title')}>
-        <p className={PROSE_TEXT}>{t('about.why.text')}</p>
-      </ProseSection>
-      <ProseSection title={t('about.who.title')}>
-        <p className={PROSE_TEXT}>{t('about.who.text')}</p>
-      </ProseSection>
-      <ProseSection title={t('about.status.title')}>
-        <p className={PROSE_TEXT}>{t('about.status.text')}</p>
-      </ProseSection>
+      <ProseSection title={t('about.why.title')} text={t('about.why.text')} />
+      <ProseSection title={t('about.who.title')} text={t('about.who.text')} />
+      <ProseSection title={t('about.status.title')} text={t('about.status.text')} />
       <ProseSection title={t('about.contact.title')}>
         <ul className="grid gap-2">
           {contacts.map(({ href, label, detail }) => (

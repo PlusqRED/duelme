@@ -37,3 +37,8 @@ export const GAME_CATEGORIES: GameCategory[] = [
 export function byPopularity(a: Game, b: Game): number {
   return b.duelCount - a.duelCount || a.name.localeCompare(b.name);
 }
+
+/** A game the catalog does not have yet, so nobody has duelled in it: one a guide names, or a player adds. */
+export function uncataloguedGame({ slug, name, category }: Pick<Game, 'slug' | 'name' | 'category'>): Game {
+  return { slug, name, iconUrl: null, category, duelCount: 0, createdAt: null, updatedAt: null };
+}

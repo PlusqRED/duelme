@@ -23,7 +23,6 @@ export async function generateMetadata({ params }: DuelPageProps): Promise<Metad
     path: `/duel/${id}`,
     title: duelId === null ? t('notFound.title') : t('seo.duel.title', { id: duelId }),
     description: t('seo.duel.description'),
-    indexed: false,
   });
 }
 

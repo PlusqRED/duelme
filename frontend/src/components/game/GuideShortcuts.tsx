@@ -1,8 +1,10 @@
 import { GameTile } from '@/components/identity/GameTile';
+import { PILL_FACE } from '@/components/lists/FilterPill';
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { getTranslation } from '@/i18n/serverTranslation';
-import { GAME_GUIDES } from '@/lib/gameGuides';
+import { GAME_GUIDES } from '@/content/gameGuides';
 import { gameInk } from '@/lib/gameTile';
+import { cn } from '@/lib/utils';
 
 interface GuideShortcutsProps {
   /** The game whose page this is, left out of its own list. */
@@ -26,7 +28,7 @@ export async function GuideShortcuts({ except, className }: GuideShortcutsProps)
             <LocaleLink
               href={`/games/${guide.slug}`}
               style={{ '--tone': gameInk(guide.category) }}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border-[1.5px] border-line-strong bg-paper py-1 pr-3.5 pl-1 text-body-sm font-label whitespace-nowrap text-ink transition-[border-color,translate] duration-200 ease-press hover:border-(--tone) active:translate-y-px"
+              className={cn(PILL_FACE, 'py-1 pr-3.5 pl-1 hover:border-(--tone)')}
             >
               <GameTile name={guide.name} category={guide.category} className="size-8 rounded-full text-[0.6875rem]" />
               {guide.name}

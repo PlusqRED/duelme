@@ -16,7 +16,6 @@ export async function generateMetadata({ params }: PlayerProfilePageProps): Prom
     path: profilePath(walletAddress),
     title: t('seo.player.title'),
     description: t('seo.player.description'),
-    indexed: false,
   });
 }
 

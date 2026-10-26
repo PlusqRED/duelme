@@ -1,3 +1,4 @@
+import { SITE_URL } from '@/lib/constants';
 import { DEFAULT_LANGUAGE, LANGUAGES } from './language';
 import type { Language } from './translations';
 
@@ -44,4 +45,14 @@ export function languageAddresses(path: string): Record<Language | 'x-default', 
     addresses[language] = localePath(path, language);
   }
   return addresses;
+}
+
+/** An address on the site in full, as a search engine reads it: the home page with no trailing slash. */
+export function absoluteAddress(address: string): string {
+  return address === '/' ? SITE_URL : `${SITE_URL}${address}`;
+}
+
+/** A page in full on the site this tab has open, in a language: the link a player copies to send. */
+export function shareableAddress(path: string, language: Language): string {
+  return `${window.location.origin}${localePath(path, language)}`;
 }

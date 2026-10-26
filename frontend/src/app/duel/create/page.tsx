@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import { CreateDuelRoom } from '@/components/duel/create/CreateDuelRoom';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { localePath } from '@/i18n/localePath';
-import { getLanguage, getTranslation } from '@/i18n/serverTranslation';
+import { getTranslation } from '@/i18n/serverTranslation';
 import { pageMetadata } from '@/lib/pageMetadata';
 import { breadcrumbSchema } from '@/lib/structuredData';
 
@@ -12,16 +11,18 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function CreateDuelPage() {
-  const { t } = await getTranslation();
-  const language = await getLanguage();
+  const { t, language } = await getTranslation();
 
   return (
     <>
       <JsonLd
-        data={breadcrumbSchema([
-          { name: t('seo.crumb.home'), path: localePath('/', language) },
-          { name: t('hero.cta'), path: localePath('/duel/create', language) },
-        ])}
+        data={breadcrumbSchema(
+          [
+            { name: t('seo.crumb.home'), path: '/' },
+            { name: t('hero.cta'), path: '/duel/create' },
+          ],
+          language
+        )}
       />
       <CreateDuelRoom />
     </>
