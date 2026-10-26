@@ -2,6 +2,7 @@
 import { cleanup, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LANGUAGE_HEADER } from '@/i18n/language';
+import { pageTranslations } from '@/i18n/pageTranslations';
 import { translations } from '@/i18n/translations';
 import { renderIn } from '@/lib/__tests__/helpers/renderIn';
 
@@ -28,5 +29,11 @@ describe('Closing', () => {
     renderIn('ru', await Closing());
 
     expect(screen.getByRole('navigation', { name: 'Guides' })).toBeTruthy();
+  });
+
+  it('says a game missing from the guides, on a screen or not, can be added', async () => {
+    renderIn('ru', await Closing());
+
+    expect(screen.getByText(pageTranslations.ru['cta.anyGame'])).toBeTruthy();
   });
 });

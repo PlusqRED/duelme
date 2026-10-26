@@ -154,4 +154,16 @@ test.describe('Landing', () => {
 
     await expect(lab.getByText(/^Too many ignored/)).toBeVisible();
   });
+
+  test('fits a small phone without scrolling sideways, its closing card too', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 780 });
+    // The hero's note tilts in from just past the edge; what has to fit is the page at rest.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+
+    await page.goto('/');
+    await expect(page.getByRole('heading', { name: 'Pick a game, set a stake, send the link.' })).toBeAttached();
+
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBe(0);
+  });
 });
