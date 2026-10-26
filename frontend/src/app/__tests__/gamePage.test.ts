@@ -50,9 +50,9 @@ describe('a game page', () => {
     await expect(metadataOf('CS2')).rejects.toMatchObject({ digest: expect.stringContaining(';/games/cs2;308;') });
   });
 
-  it('gives no 404 when there is no backend to ask', async () => {
+  it('gives no 404 when there is no backend to ask, and names the game by its address', async () => {
     const metadata = await metadataOf('zork');
 
-    expect(metadata.robots).toEqual({ index: false, follow: true });
+    expect([metadata.title, metadata.robots]).toEqual(['zork 1v1 for money', { index: false, follow: true }]);
   });
 });

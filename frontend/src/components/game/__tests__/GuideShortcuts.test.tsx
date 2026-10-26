@@ -2,7 +2,7 @@
 import { cleanup, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LANGUAGE_HEADER } from '@/i18n/language';
-import { translations } from '@/i18n/translations';
+import { pageTranslations } from '@/i18n/pageTranslations';
 import { GAME_GUIDES } from '@/content/gameGuides';
 import { renderIn } from '@/lib/__tests__/helpers/renderIn';
 
@@ -13,7 +13,7 @@ const { GuideShortcuts } = await import('@/components/game/GuideShortcuts');
 afterEach(cleanup);
 
 function links() {
-  const nav = screen.getByRole('navigation', { name: translations.ru['games.guidesLabel'] });
+  const nav = screen.getByRole('navigation', { name: pageTranslations.ru['games.guidesLabel'] });
   return within(nav).getAllByRole('link').map((link) => link.getAttribute('href'));
 }
 

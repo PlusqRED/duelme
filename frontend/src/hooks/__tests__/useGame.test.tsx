@@ -29,6 +29,17 @@ describe('useGame', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('puts the server’s game in no cache: on the page server one is shared by every request', () => {
+    mockFetch();
+    const client = new QueryClient();
+
+    renderHook(() => useGame('chess', CHESS), {
+      wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,
+    });
+
+    expect(client.getQueryData(['game', 'chess'])).toBeUndefined();
+  });
+
   it('reads the game itself without one', async () => {
     mockFetch({ json: async () => CHESS });
 

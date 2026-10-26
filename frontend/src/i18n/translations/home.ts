@@ -5,7 +5,6 @@ export const homeTranslations = defineSection({
   en: {
     'motto.1': 'Skill should pay you.',
     'motto.2': 'Not the platform.',
-    'hero.title': '1v1 duels for USDT in any game',
     'hero.lede2':
       'You and your opponent put in the same stake, a smart contract holds it, and the winner gets the whole pot. DuelMe takes 0% and can’t pick the winner.',
     'hero.cta': 'Create a duel',
@@ -37,7 +36,6 @@ export const homeTranslations = defineSection({
   ru: {
     'motto.1': 'Скилл должен платить тебе.',
     'motto.2': 'Не платформе.',
-    'hero.title': 'Дуэли 1 на 1 на USDT в любой игре',
     'hero.lede2':
       'Оба игрока вносят одну и ту же сумму, её хранит смарт-контракт, а победитель получает весь банк. DuelMe берёт 0% и не может выбрать победителя.',
     'hero.cta': 'Создать дуэль',

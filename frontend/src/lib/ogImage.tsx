@@ -15,7 +15,9 @@ const mottoSize: Record<Language, number> = { en: 92, ru: 72 };
 
 /** Where a page's share image is, in the page's language: `app/og/[language]/route.ts` draws it. */
 export function shareImagePath(language: Language): string {
-  return `/og/${language}`;
+  // The release in the address, so a link preview cached by image address takes up a new image.
+  const release = process.env.APP_RELEASE?.trim();
+  return release ? `/og/${language}?v=${encodeURIComponent(release)}` : `/og/${language}`;
 }
 
 // `ImageResponse` reads TTF, OTF and WOFF but not the WOFF2 `next/font` serves, so the share

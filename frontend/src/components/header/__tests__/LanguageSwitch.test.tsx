@@ -73,13 +73,17 @@ describe('LanguageSwitch', () => {
     expect(screen.getByRole('button', { name: 'RU' }).getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('lets a second press before the page leaves win', async () => {
-    renderAt('/games', 'en');
+  it('lets a second press before the page leaves win: back to its own language, the move stops', async () => {
+    // happy-dom has no window.stop; a browser stops the pending move with it.
+    const stop = vi.fn();
+    Object.defineProperty(window, 'stop', { value: stop, configurable: true });
+    renderAt('/duel/7#0xabc', 'en');
 
     await press('RU');
     await press('EN');
 
-    expect(replace.mock.calls.map(([address]) => address)).toEqual(['/ru/games', '/games']);
+    expect([replace.mock.calls.length, stop.mock.calls.length]).toEqual([1, 1]);
+    expect(screen.getByRole('button', { name: 'EN' }).getAttribute('aria-pressed')).toBe('true');
   });
 
   it('shows the page’s own language again when the browser brings the page back from its cache', async () => {

@@ -11,7 +11,10 @@ const { pageMetadata } = await import('@/lib/pageMetadata');
 
 const games = { path: '/games', title: 'Games', description: 'Pick a game.' };
 
-afterEach(() => requestHeaders.delete(LANGUAGE_HEADER));
+afterEach(() => {
+  requestHeaders.delete(LANGUAGE_HEADER);
+  vi.unstubAllEnvs();
+});
 
 describe('pageMetadata', () => {
   it('names the page’s own address as canonical, in its language', async () => {
@@ -48,6 +51,14 @@ describe('pageMetadata', () => {
     const metadata = await pageMetadata(games);
 
     expect(metadata.openGraph?.images).toEqual([expect.objectContaining({ url: '/og/ru', width: 1200, height: 630 })]);
+  });
+
+  it('gives the share image a new address with each release, so cached previews take up a new one', async () => {
+    vi.stubEnv('APP_RELEASE', 'abc123');
+
+    const metadata = await pageMetadata(games);
+
+    expect(metadata.openGraph?.images).toEqual([expect.objectContaining({ url: '/og/en?v=abc123' })]);
   });
 
   it('keeps a title that names the site itself whole, in the share preview too', async () => {

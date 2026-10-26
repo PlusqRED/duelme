@@ -34,7 +34,7 @@ export default async function SafetyPage() {
             href={explorerLink(DEFAULT_CHAIN_ID, 'address', contract) ?? undefined}
             target="_blank"
             rel="noopener noreferrer"
-            className="link [overflow-wrap:anywhere]"
+            className="link inline-block py-2.5 [overflow-wrap:anywhere]"
           >
             {t('safety.contract.link')}: <span className="text-body-sm tabular-nums">{contract}</span>
           </a>

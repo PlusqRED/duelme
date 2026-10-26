@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { pageTranslations } from '@/i18n/pageTranslations';
 import { translations } from '@/i18n/translations';
 
 vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
@@ -17,14 +18,14 @@ describe('Hero', () => {
   it('heads the page with what the site is, in the words people search for it by', async () => {
     render(await Hero());
 
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(translations.en['hero.title']);
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(pageTranslations.en['hero.title']);
   });
 
   it('keeps the motto above the heading, as its own line', async () => {
     const { container } = render(await Hero());
 
     expect(container.querySelector('hgroup')?.textContent).toBe(
-      `${translations.en['motto.1']}${translations.en['motto.2']}${translations.en['hero.title']}`
+      `${translations.en['motto.1']}${translations.en['motto.2']}${pageTranslations.en['hero.title']}`
     );
   });
 

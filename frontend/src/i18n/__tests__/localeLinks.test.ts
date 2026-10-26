@@ -15,7 +15,11 @@ describe('links stay in the page’s language', () => {
   });
 
   it('never redirect on the server to a bare page address', () => {
-    expect(filesMatching(/\bredirect\(\s*['`]\//)).toEqual([]);
+    expect(filesMatching(/\b(?:redirect|permanentRedirect)\(\s*['`]\//)).toEqual([]);
+  });
+
+  it('never link a page with a plain anchor, which keeps no language', () => {
+    expect(filesMatching(/<a\b[^>]*\bhref=\{?\s*['"`]\/(?!\/)/)).toEqual([]);
   });
 
   it('never build a full address to a page by hand: localePath gives the language’s one', () => {

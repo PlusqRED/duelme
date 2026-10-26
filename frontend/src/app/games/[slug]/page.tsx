@@ -51,11 +51,12 @@ export async function generateMetadata({ params }: GamePageProps): Promise<Metad
   const { game, fallbackGame, guide } = await pageGame(slug);
   const { t, language } = await getTranslation();
   const copy = guide?.copy[language];
-  const named = game ?? fallbackGame;
+  // With no game read, the address names it: the page is about that game, not the catalog.
+  const name = (game ?? fallbackGame)?.name ?? slug;
   return pageMetadata({
     path: `/games/${slug}`,
-    title: copy?.title ?? (named ? t('seo.game.title', { game: named.name }) : t('seo.games.title')),
-    description: copy?.description ?? (named ? t('seo.game.description', { game: named.name }) : t('seo.games.description')),
+    title: copy?.title ?? t('seo.game.title', { game: name }),
+    description: copy?.description ?? t('seo.game.description', { game: name }),
   });
 }
 
