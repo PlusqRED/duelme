@@ -14,11 +14,17 @@ const { Hero } = await import('@/components/landing/Hero');
 afterEach(cleanup);
 
 describe('Hero', () => {
-  it('opens the page with the motto as its one heading', async () => {
+  it('heads the page with what the site is, in the words people search for it by', async () => {
     render(await Hero());
 
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(
-      `${translations.en['motto.1']}${translations.en['motto.2']}`
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(translations.en['hero.title']);
+  });
+
+  it('keeps the motto above the heading, as its own line', async () => {
+    const { container } = render(await Hero());
+
+    expect(container.querySelector('hgroup')?.textContent).toBe(
+      `${translations.en['motto.1']}${translations.en['motto.2']}${translations.en['hero.title']}`
     );
   });
 

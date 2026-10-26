@@ -107,7 +107,7 @@ export const profileGamesTranslations = defineSection({
     'profile.removeGame': 'Убрать {game}',
     'profile.repError': 'Не удалось прочитать счёт из сети. Обнови страницу, чтобы попробовать снова.',
     'profile.record.title': 'Счёт дуэлей',
-    'games.title': 'Игры для дуэлей 1 на 1',
+    'games.title': 'Игры для дуэлей 1 на 1',
     'games.subtitle': 'Все игры, в которых уже играли дуэли, сначала самые популярные. Выбери игру — увидишь её открытые дуэли и чем закончились сыгранные.',
     'games.guidesLabel': 'Как играть дуэли в популярных играх',
     'games.searchPlaceholder': 'Найти игру',

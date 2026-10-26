@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Closing } from '@/components/landing/Closing';
+import { Faq } from '@/components/landing/Faq';
 import { GettingStarted } from '@/components/landing/GettingStarted';
 import { Hero } from '@/components/landing/Hero';
 import { OpenDuels } from '@/components/landing/OpenDuels';
@@ -23,6 +24,7 @@ export default function HomePage() {
       <GettingStarted />
       <Safety />
       <ReputationLab />
+      <Faq />
       <Closing />
     </>
   );

@@ -68,7 +68,7 @@ export const browseTranslations = defineSection({
     'games.addByDuel': 'Укажи её, когда создаёшь дуэль, — и она попадёт в каталог.',
     'game.notFound': 'Такой игры в каталоге нет',
     'game.notFoundText': 'В адресе может быть опечатка, или игра называется иначе. Поищи её в каталоге.',
-    'game.headline': 'Дуэли 1 на 1 на USDT',
+    'game.headline': 'Дуэли 1 на 1 на USDT',
     'game.guideTitle': 'Как проходит дуэль в {game}',
     'game.openTitle': 'Открытые дуэли',
     'game.openSubtitle': 'Дуэли в {game}, которые ждут второго игрока.',
