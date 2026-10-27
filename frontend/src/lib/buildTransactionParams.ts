@@ -1,9 +1,5 @@
 import type { usePublicClient } from 'wagmi';
-import { SUPPORTED_CHAINS } from '@/lib/constants';
-import {
-  getBufferedTestnetTransactionParams,
-  getMainnetTransactionParams,
-} from '@/lib/testnetGas';
+import { bufferedGasLimit, feeParamsFor } from '@/lib/testnetGas';
 
 export type DuelPublicClient = NonNullable<ReturnType<typeof usePublicClient>>;
 export type EstimateGasFn = (publicClient: DuelPublicClient) => Promise<bigint>;
@@ -35,19 +31,9 @@ export async function buildTransactionParams(
     publicClient.getTransactionCount({ address: account, blockTag: 'pending' }),
   ]);
 
-  const gasParams =
-    chainId === SUPPORTED_CHAINS.arbitrumSepolia.id
-      ? getBufferedTestnetTransactionParams({
-          estimatedGas,
-          minimumGas: minimumTestnetGas,
-          feeEstimate: estimatedFees,
-          baseFeePerGas: latestBlock.baseFeePerGas,
-        })
-      : getMainnetTransactionParams({
-          estimatedGas,
-          feeEstimate: estimatedFees,
-          baseFeePerGas: latestBlock.baseFeePerGas,
-        });
-
-  return { ...gasParams, nonce };
+  return {
+    gas: bufferedGasLimit(chainId, estimatedGas, minimumTestnetGas),
+    ...feeParamsFor(chainId, estimatedFees, latestBlock.baseFeePerGas),
+    nonce,
+  };
 }

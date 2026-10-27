@@ -97,7 +97,9 @@ export function useWriteWithGas(chainId: number) {
   /**
    * Owns the pending → confirming → hash sequence for every write this hook sends itself.
    * `onSubmitted` marks the point where the user is done and the network has it, which the
-   * relayer reaches after signing and the embedded path after broadcast.
+   * relayer reaches after signing and the embedded path after broadcast. Handed out as
+   * `relaySigned` for a write the relayer sends outside the forwarder — the wallet menu's USDT
+   * transfer, which the token takes on the player's own signature — so it is followed the same way.
    */
   const runManagedSend = useCallback(
     async (send: (onSubmitted: () => void) => Promise<Hex>) => {
@@ -259,6 +261,7 @@ export function useWriteWithGas(chainId: number) {
     () => ({
       writeWithGas,
       relayWrite,
+      relaySigned: runManagedSend,
       isRelayEnabled,
       hash,
       isPending,
@@ -271,6 +274,7 @@ export function useWriteWithGas(chainId: number) {
     [
       writeWithGas,
       relayWrite,
+      runManagedSend,
       isRelayEnabled,
       hash,
       isPending,

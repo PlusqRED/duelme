@@ -2015,6 +2015,42 @@ export const transferAbi = [
   },
 ] as const;
 
+/**
+ * EIP-3009 as mainnet USD₮0 has it and MockUSDT mirrors it. The wallet menu's transfer goes out
+ * through `transferWithAuthorization` when the relayer pays its fee: the player signs the
+ * authorization, the relayer sends it to the token. `authorizationState` says whether a signed
+ * nonce is spent, and so whether the day's relayed transfer is still there (`relayedTransfer.ts`).
+ */
+export const transferWithAuthorizationAbi = [
+  {
+    type: 'function',
+    name: 'authorizationState',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'authorizer', type: 'address' },
+      { name: 'nonce', type: 'bytes32' },
+    ],
+    outputs: [{ name: '', type: 'bool' }],
+  },
+  {
+    type: 'function',
+    name: 'transferWithAuthorization',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'from', type: 'address' },
+      { name: 'to', type: 'address' },
+      { name: 'value', type: 'uint256' },
+      { name: 'validAfter', type: 'uint256' },
+      { name: 'validBefore', type: 'uint256' },
+      { name: 'nonce', type: 'bytes32' },
+      { name: 'v', type: 'uint8' },
+      { name: 'r', type: 'bytes32' },
+      { name: 's', type: 'bytes32' },
+    ],
+    outputs: [],
+  },
+] as const;
+
 // Reads straight from SUPPORTED_CHAINS. This used to inline its own copy of the map to
 // "avoid a circular import" — constants.ts imports nothing, so there was no cycle, and the
 // second copy went stale the first time MockUSDT was redeployed: the permit path then read

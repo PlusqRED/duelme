@@ -18,4 +18,9 @@ library DuelMeTestConstants {
     ///      assignment would silently create duels anyone can join, and every invite assertion in
     ///      it would pass for the wrong reason. This value fails as "Invalid invite" instead.
     bytes32 internal constant UNSET_INVITE_HASH = keccak256("DuelMeTestConstants: invite hash not set in setUp");
+
+    /// @dev The wallet menu's relayed transfer, as the frontend makes it (`relayedTransfer.ts`): the
+    ///      nonce of one sample UTC day, and how long a signed authorization stays valid.
+    bytes32 internal constant RELAYED_TRANSFER_NONCE = keccak256("duelme:relayed-transfer:20000");
+    uint256 internal constant RELAYED_TRANSFER_VALIDITY = 10 minutes;
 }

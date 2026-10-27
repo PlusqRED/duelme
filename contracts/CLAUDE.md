@@ -146,11 +146,12 @@ Run coverage as `forge coverage --profile coverage --report summary`: without th
   `_createFundAndClaim` and `_assertPayouts`. Call `_deployFixture()` from `setUp`. Extra players
   get `_fund(player)`; a suite needing a different token overrides `_deployToken()`, as
   `DuelMeTokenSafety` does for fee-on-transfer.
-- `MetaTxSigner` — EIP-712 signing for the ERC-2771 and EIP-2612 suites, which build on it
-  instead of `DuelMeFixture` because they need signer keys rather than plain addresses. It
+- `MetaTxSigner` — EIP-712 signing for the ERC-2771, EIP-2612 and EIP-3009 suites, which build on
+  it instead of `DuelMeFixture` because they need signer keys rather than plain addresses. It
   re-exports the same constants and `ForwarderConfig.NAME`.
 - `PlainUsdt` — the wager token for suites that only need a balance. `src/MockUSDT.sol` is the
-  testnet deployment and carries mainnet USD₮0's permit quirks; use it only when testing permits.
+  testnet deployment and carries mainnet USD₮0's permit and transfer-authorization quirks; use it
+  only when testing those.
 
 Re-declaring `WAGER`, `MIN_WAGER`, `DEFAULT_INVITE_SECRET` or a forwarder name in a suite means
 that suite is testing a different world than its neighbours — which is the drift the helpers were
@@ -162,6 +163,7 @@ against.
 | File | Purpose |
 |------|---------|
 | `contracts/src/DuelMe.sol` | Core duel contract |
+| `contracts/src/MockUSDT.sol` | The testnet token: USD₮0's name, permit and EIP-3009 `transferWithAuthorization`, with mainnet's revert strings |
 | `contracts/script/ForwarderConfig.sol` | Forwarder EIP-712 domain name shared by both deploy scripts |
 | `contracts/script/TokenFeeProbe.sol` | Deploy-time check that the wager token delivers transfers in full |
 | `contracts/test/helpers/DuelMeFixture.sol` | Shared `setUp` for the duel suites (token + forwarder + contract + funded alice/bob) |
@@ -213,7 +215,8 @@ against.
   its date beside it.
 - Three contract-side rules live in `frontend/CLAUDE.md`, beside the code that depends on them:
   `ForwarderConfig.NAME` has a copy there (the `FORWARDER_NAME` pitfall); `MockUSDT` keeps USD₮0's
-  permit quirks so dev catches mainnet permit bugs (the USD₮0 pitfalls); a new player-facing
-  function is relayed only once it is in `RELAYABLE_DUEL_FUNCTIONS` ("Gasless Duel Actions").
+  permit and transfer-authorization quirks so dev catches mainnet bugs in them (the USD₮0
+  pitfalls); a new player-facing function is relayed only once it is in `RELAYABLE_DUEL_FUNCTIONS`
+  ("Gasless Duel Actions").
 
 Source of truth for current deploys: `contracts/broadcast/Deploy.s.sol/421614/run-latest.json` (Arbitrum Sepolia / dev) and `contracts/broadcast/DeployMainnet.s.sol/42161/run-latest.json` (Arbitrum One / prod), mirrored into `README.md` and `frontend/src/lib/constants.ts`.

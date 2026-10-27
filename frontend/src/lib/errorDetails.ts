@@ -1,3 +1,18 @@
+import {
+  BaseError,
+  ContractFunctionRevertedError,
+  ExecutionRevertedError,
+  FeeCapTooHighError,
+  InsufficientFundsError,
+  IntrinsicGasTooHighError,
+  IntrinsicGasTooLowError,
+  NonceMaxValueError,
+  TipAboveFeeCapError,
+  TransactionTypeNotSupportedError,
+} from 'viem';
+import { getNodeError } from 'viem/utils';
+import { quotesCustomError } from '@/lib/customErrors';
+
 /**
  * Collects every human-readable detail from an error graph (message /
  * shortMessage / details / reason, walking cause / error / data recursively),
@@ -55,6 +70,18 @@ export function isWalletRefusal(error: unknown): boolean {
   return collectErrorDetails(error).some((detail) => REFUSAL_WORDS.some((word) => detail.includes(word)));
 }
 
+// viem's "Execution reverted for an unknown reason." wraps what a node said about the send, such as
+// a nonce it would not take, which is no word from the contract.
+const REVERT_WORDS = /execution reverted(?! for an unknown reason)|reverted with the following (?:reason|signature)/;
+
+/** Whether the contract itself refused the call, rather than the node, the wallet or the network. */
+export function isContractRevert(error: unknown, details: readonly string[] = collectErrorDetails(error)): boolean {
+  const revert =
+    error instanceof BaseError &&
+    error.walk((cause) => cause instanceof ContractFunctionRevertedError || cause instanceof ExecutionRevertedError);
+  return !!revert || details.some((line) => REVERT_WORDS.test(line) || quotesCustomError(line));
+}
+
 /**
  * The one detail worth showing a person, or undefined when the graph carries nothing but
  * noise.
@@ -83,4 +110,30 @@ function addDetail(details: Set<string>, value: unknown) {
   if (normalized) {
     details.add(normalized);
   }
+}
+
+/**
+ * Refusals that never answer a copy the network already took. Gas, fee caps, type and nonce range
+ * are read off the signed bytes, the same in every copy, so a node that took one would have
+ * refused it too. Funds are checked after the nonce, so a copy already taken reads as "already
+ * known" or "nonce too low" first. A fee cap under the base fee is not among them: the base fee
+ * moves, so a copy may have gone in before it rose.
+ */
+const OUTRIGHT_REFUSALS = [
+  InsufficientFundsError,
+  IntrinsicGasTooHighError,
+  IntrinsicGasTooLowError,
+  FeeCapTooHighError,
+  TipAboveFeeCapError,
+  TransactionTypeNotSupportedError,
+  NonceMaxValueError,
+];
+
+export function isRefusedOutright(broadcastError: unknown): boolean {
+  if (!(broadcastError instanceof BaseError)) {
+    return false;
+  }
+
+  const nodeError = getNodeError(broadcastError, {});
+  return OUTRIGHT_REFUSALS.some((refusal) => nodeError instanceof refusal);
 }

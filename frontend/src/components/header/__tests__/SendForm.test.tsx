@@ -6,7 +6,9 @@ import { SendForm } from '@/components/header/SendForm';
 import type { NetworkBalances } from '@/hooks/useWalletBalances';
 import { SUPPORTED_CHAINS } from '@/lib/constants';
 import type { FaucetOffer } from '@/lib/faucetApi';
-import type { SendDraft, Transfer } from '@/lib/sendUsdt';
+import type { FreeTransferStatus, SendDraft, Transfer } from '@/lib/sendUsdt';
+import { formatTime } from '@/lib/utils';
+import type { WriteRoute } from '@/lib/writeRoute';
 
 const MINE = '0x4BFa1486661d6FAa5300923bd684F261AE4776a5';
 const THEIRS = '0x32a3FE56F4FeE248E4f19ca3D4374a018ac9AA23';
@@ -16,17 +18,37 @@ const NETWORK: NetworkBalances = {
   eth: { kind: 'ready', raw: 7_736_000_000_000_000n },
 };
 const NO_FAUCET: FaucetOffer = { kind: 'none' };
+const NEXT_FREE_AT = Date.UTC(2026, 9, 27);
+const NO_ETH: NetworkBalances = { ...NETWORK, eth: { kind: 'ready', raw: 0n } };
+
+interface FormSetup {
+  network?: NetworkBalances;
+  faucetOffer?: FaucetOffer;
+  route?: WriteRoute;
+  free?: FreeTransferStatus;
+}
 
 afterEach(cleanup);
 
-function Harness({ network, faucetOffer, onSubmit }: { network: NetworkBalances; faucetOffer: FaucetOffer; onSubmit: (transfer: Transfer) => void }) {
+function Harness({ setup, onSubmit }: { setup: Required<FormSetup>; onSubmit: (transfer: Transfer) => void }) {
   const [draft, setDraft] = useState<SendDraft>({ to: '', amount: '' });
-  return <SendForm address={MINE} network={network} faucetOffer={faucetOffer} draft={draft} onDraft={setDraft} onSubmit={onSubmit} />;
+  return (
+    <SendForm
+      address={MINE}
+      network={setup.network}
+      faucetOffer={setup.faucetOffer}
+      route={setup.route}
+      freeTransfer={{ status: setup.free, nextAt: NEXT_FREE_AT }}
+      draft={draft}
+      onDraft={setDraft}
+      onSubmit={onSubmit}
+    />
+  );
 }
 
-function renderForm(network = NETWORK, faucetOffer = NO_FAUCET) {
+function renderForm({ network = NETWORK, faucetOffer = NO_FAUCET, route = 'self', free = 'off' }: FormSetup = {}) {
   const onSubmit = vi.fn();
-  render(<Harness network={network} faucetOffer={faucetOffer} onSubmit={onSubmit} />);
+  render(<Harness setup={{ network, faucetOffer, route, free }} onSubmit={onSubmit} />);
   return {
     onSubmit,
     to: screen.getByLabelText('To'),
@@ -80,29 +102,58 @@ describe('SendForm', () => {
 
     send();
 
-    expect(onSubmit).toHaveBeenCalledWith({ to: THEIRS, raw: 10_000_000n });
+    expect(onSubmit).toHaveBeenCalledWith({ to: THEIRS, raw: 10_000_000n, route: 'self' });
   });
 
-  it('stops a wallet with no ETH for the fee, and points at the faucet when it can help', () => {
-    const offer: FaucetOffer = { kind: 'ready', usdtAmountRaw: 100_000_000n, ethAmountWei: 1_000_000_000_000_000n };
-    const { to, amount, send, onSubmit } = renderForm({ ...NETWORK, eth: { kind: 'ready', raw: 0n } }, offer);
+  it('says DuelMe pays the fee of the transfer it relays, and asks no ETH for it', () => {
+    const { to, amount, send, onSubmit } = renderForm({ network: NO_ETH, route: 'relay', free: 'available' });
+    expect(screen.getByText('The network fee for this transfer is on DuelMe.')).toBeTruthy();
     fireEvent.change(to, { target: { value: THEIRS } });
     fireEvent.change(amount, { target: { value: '10' } });
 
     send();
 
-    expect(screen.getByText('No ETH for the network fee on Arbitrum Sepolia. The faucet gives 0.001 ETH once.')).toBeTruthy();
+    expect(onSubmit).toHaveBeenCalledWith({ to: THEIRS, raw: 10_000_000n, route: 'relay' });
+  });
+
+  it('says when DuelMe pays again for a wallet with no ETH whose transfer for today is used', () => {
+    const { to, amount, send, onSubmit } = renderForm({ network: NO_ETH, route: 'self', free: 'used' });
+    fireEvent.change(to, { target: { value: THEIRS } });
+    fireEvent.change(amount, { target: { value: '10' } });
+
+    send();
+
+    const time = formatTime(NEXT_FREE_AT, 'en');
+    expect(
+      screen.getByText(
+        `No ETH for the network fee on Arbitrum Sepolia. DuelMe pays the fee of one transfer a day, and today’s has gone out; the next one is on DuelMe from ${time}. To send now, add ETH with Top up.`
+      )
+    ).toBeTruthy();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('stops a wallet with no ETH for the fee, and points at the faucet when it can help', () => {
+    const offer: FaucetOffer = { kind: 'ready', usdtAmountRaw: 100_000_000n, ethAmountWei: 1_000_000_000_000_000n };
+    const { to, amount, send, onSubmit } = renderForm({ network: NO_ETH, faucetOffer: offer });
+    fireEvent.change(to, { target: { value: THEIRS } });
+    fireEvent.change(amount, { target: { value: '10' } });
+
+    send();
+
+    expect(
+      screen.getByText('No ETH for the network fee on Arbitrum Sepolia. Add some with Top up to send. The faucet gives 0.001 ETH once.')
+    ).toBeTruthy();
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
   it('does not point at a faucet that has no ETH left to give this wallet', () => {
     const offer: FaucetOffer = { kind: 'ready', usdtAmountRaw: 100_000_000n, ethAmountWei: 0n };
-    const { to, amount, send } = renderForm({ ...NETWORK, eth: { kind: 'ready', raw: 0n } }, offer);
+    const { to, amount, send } = renderForm({ network: NO_ETH, faucetOffer: offer });
     fireEvent.change(to, { target: { value: THEIRS } });
     fireEvent.change(amount, { target: { value: '10' } });
 
     send();
 
-    expect(screen.getByText('No ETH for the network fee on Arbitrum Sepolia.')).toBeTruthy();
+    expect(screen.getByText('No ETH for the network fee on Arbitrum Sepolia. Add some with Top up to send.')).toBeTruthy();
   });
 });

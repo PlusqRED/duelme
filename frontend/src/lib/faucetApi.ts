@@ -128,3 +128,13 @@ export function faucetGift(offer: Exclude<FaucetOffer, { kind: 'none' }>, langua
     ? t('wallet.faucet.gift', { usdt, eth: formatEth(offer.ethAmountWei, language) })
     : t('wallet.faucet.giftUsdt', { usdt });
 }
+
+/**
+ * The sentence after a word that the wallet needs ETH, where the faucet still gives some, with the
+ * space that sets it after: on any other network, or once claimed, nothing.
+ */
+export function faucetEthNote(offer: FaucetOffer, language: Language, t: Translator['t']): string {
+  return offer.kind === 'ready' && offer.ethAmountWei > 0n
+    ? ` ${t('send.err.eth.faucet', { eth: formatEth(offer.ethAmountWei, language) })}`
+    : '';
+}

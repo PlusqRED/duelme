@@ -8,11 +8,11 @@ export const SUPPORTED_CHAINS = {
     id: 421614,
     name: 'Arbitrum Sepolia',
     testnet: true,
-    usdt: '0x44d213D601C19ec98Bf61A1bCa3935D6da07F05D' as `0x${string}`,
-    duelMe: '0x588A54Fa8c00c8aC003e41BD8ee26FBC8994105f' as `0x${string}`,
+    usdt: '0x4a313B0F6ddD36456BA2fFCFa4C36F494BA8F3b9' as `0x${string}`,
+    duelMe: '0x296e1dB6ec3F3916c723F1D40D90CbAE56D7D792' as `0x${string}`,
     // ERC-2771 forwarder the DuelMe on this chain trusts. Omit it and the chain simply has
     // no relaying — /api/relay refuses it and duel writes stay self-paid.
-    forwarder: '0xBd9C168Fd94bE86771b7a3FCAfe3E21526b0eFAa' as `0x${string}` | undefined,
+    forwarder: '0xFf923258Df9B2349C1115c57e05B7c592fa462d7' as `0x${string}` | undefined,
     explorer: 'https://sepolia.arbiscan.io',
     rpc: 'https://sepolia-rollup.arbitrum.io/rpc',
   },

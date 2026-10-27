@@ -12,9 +12,18 @@ const NETWORK: NetworkBalances = {
   eth: { kind: 'ready', raw: 7_736_000_000_000_000n },
 };
 
-const sending = vi.hoisted(() => ({ send: vi.fn(), reset: vi.fn() }));
+const sending = vi.hoisted(() => ({ send: vi.fn(), reset: vi.fn(), route: 'self' as 'self' | 'relay' }));
 vi.mock('@/hooks/useSendUsdt', () => ({
-  useSendUsdt: () => ({ send: sending.send, reset: sending.reset, hash: undefined, isConfirming: false, isSuccess: false, error: null }),
+  useSendUsdt: () => ({
+    send: sending.send,
+    reset: sending.reset,
+    route: sending.route,
+    freeTransfer: { status: 'available', nextAt: 0 },
+    hash: undefined,
+    isConfirming: false,
+    isSuccess: false,
+    failure: null,
+  }),
 }));
 
 const { SendView } = await import('@/components/header/SendView');
@@ -28,6 +37,7 @@ function fillAndGoOn() {
 
 beforeEach(() => {
   sending.send.mockClear();
+  sending.route = 'self';
 });
 
 afterEach(cleanup);
@@ -45,8 +55,18 @@ describe('SendView', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Send 10 USDT' }));
 
-    expect(sending.send).toHaveBeenCalledWith(THEIRS, 10_000_000n);
+    expect(sending.send).toHaveBeenCalledWith({ to: THEIRS, raw: 10_000_000n, route: 'self' });
     expect(screen.getByText('Your wallet is sending the transfer…')).toBeTruthy();
+  });
+
+  it('testSendViewSendsTheTransferTheWayTheFormSaidItWouldGo', () => {
+    sending.route = 'relay';
+    fillAndGoOn();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send 10 USDT' }));
+
+    expect(sending.send).toHaveBeenCalledWith({ to: THEIRS, raw: 10_000_000n, route: 'relay' });
+    expect(screen.getByText('Your wallet is signing the transfer…')).toBeTruthy();
   });
 
   it('testSendViewGoesBackToTheFormAsFilledInToChangeIt', () => {

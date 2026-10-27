@@ -61,7 +61,17 @@ const relayErrorCodes = [
   'RATE_LIMITED',
   'RELAY_PENDING',
   'RELAYER_UNAVAILABLE',
+  // The node did not take the transaction cleanly, yet may have it: a timeout after the sequencer
+  // took it, or a retry answered "already known". Nothing says it was not sent.
+  'BROADCAST_UNCERTAIN',
   'EXECUTION_REVERTED',
+  // The relayed transfer's own (/api/relay/transfer): the day's transfer is already spent, the
+  // authorization signs another day's, it runs out too soon to be sent, and the wallet holds less
+  // than it sends.
+  'TRANSFER_USED',
+  'TRANSFER_WRONG_DAY',
+  'TRANSFER_EXPIRED',
+  'INSUFFICIENT_BALANCE',
 ] as const;
 
 export type RelayErrorCode = (typeof relayErrorCodes)[number];
@@ -158,9 +168,42 @@ export function relayGasLimit(requestGas: bigint, executeEstimate: bigint): bigi
   return executeEstimate + (requestGas * 64n) / 63n + FORWARDER_EXECUTE_OVERHEAD;
 }
 
-export type RelayPayloadResult =
-  | { ok: true; body: RelayRequestBody; functionName: string }
-  | { ok: false; code: RelayErrorCode; error: string };
+export type RelayPayloadFailure = { ok: false; code: RelayErrorCode; error: string };
+
+export type RelayPayloadResult = { ok: true; body: RelayRequestBody; functionName: string } | RelayPayloadFailure;
+
+/**
+ * What every relayed body is checked for first, whatever it carries: a JSON object for this
+ * relayer's chain, holding the signed object under `field`.
+ */
+export function parseRelayEnvelope(
+  payload: unknown,
+  servedChainId: number,
+  field: string
+): { ok: true; chainId: number; signed: Record<string, unknown> } | RelayPayloadFailure {
+  if (!isRecord(payload)) {
+    return invalidPayload('Request body must be a JSON object.');
+  }
+
+  const { chainId } = payload;
+  const signed = payload[field];
+
+  if (typeof chainId !== 'number' || !Number.isInteger(chainId) || chainId <= 0) {
+    return invalidPayload('chainId must be a positive integer.');
+  }
+
+  // The chain check belongs with the other admission rules, not in the route: it is the one
+  // that stops a signature valid on another deployment from being replayed here, and it is
+  // covered by the same test suite as its siblings.
+  if (chainId !== servedChainId) {
+    return { ok: false, code: 'NOT_RELAYABLE', error: `This relayer only serves chain ${servedChainId}.` };
+  }
+
+  if (!isRecord(signed)) {
+    return invalidPayload(`${field} must be an object.`);
+  }
+  return { ok: true, chainId, signed };
+}
 
 /**
  * Validates an untrusted request body down to the duel function it would call. Everything
@@ -173,39 +216,20 @@ export interface RelayTarget {
 }
 
 export function parseRelayPayload(payload: unknown, target: RelayTarget): RelayPayloadResult {
-  if (!isRecord(payload)) {
-    return invalid('Request body must be a JSON object.');
+  const envelope = parseRelayEnvelope(payload, target.chainId, 'request');
+  if (!envelope.ok) {
+    return envelope;
   }
 
-  const { chainId, request } = payload;
-
-  if (typeof chainId !== 'number' || !Number.isInteger(chainId) || chainId <= 0) {
-    return invalid('chainId must be a positive integer.');
-  }
-
-  // The chain check belongs with the other admission rules, not in the route: it is the one
-  // that stops a signature valid on another deployment from being replayed here, and it is
-  // covered by the same test suite as its siblings.
-  if (chainId !== target.chainId) {
-    return {
-      ok: false,
-      code: 'NOT_RELAYABLE',
-      error: `This relayer only serves chain ${target.chainId}.`,
-    };
-  }
-
-  if (!isRecord(request)) {
-    return invalid('request must be an object.');
-  }
-
+  const { chainId, signed: request } = envelope;
   const { from, to, value, gas, deadline, data, signature } = request;
 
   if (typeof from !== 'string' || !isAddress(from)) {
-    return invalid('request.from must be an address.');
+    return invalidPayload('request.from must be an address.');
   }
 
   if (typeof to !== 'string' || !isAddress(to)) {
-    return invalid('request.to must be an address.');
+    return invalidPayload('request.to must be an address.');
   }
 
   if (!target.duelMeAddress || to.toLowerCase() !== target.duelMeAddress.toLowerCase()) {
@@ -215,24 +239,24 @@ export function parseRelayPayload(payload: unknown, target: RelayTarget): RelayP
   const parsedValue = parseUintString(value);
   if (parsedValue === null || parsedValue !== 0n) {
     // DuelMe has no payable entry point, and the relayer never funds one.
-    return invalid('request.value must be "0".');
+    return invalidPayload('request.value must be "0".');
   }
 
   const parsedGas = parseUintString(gas);
   if (parsedGas === null || parsedGas === 0n || parsedGas > MAX_RELAY_REQUEST_GAS) {
-    return invalid(`request.gas must be between 1 and ${MAX_RELAY_REQUEST_GAS}.`);
+    return invalidPayload(`request.gas must be between 1 and ${MAX_RELAY_REQUEST_GAS}.`);
   }
 
   if (typeof deadline !== 'number' || !Number.isInteger(deadline) || deadline < 0 || deadline > MAX_UINT48) {
-    return invalid('request.deadline must be a uint48.');
+    return invalidPayload('request.deadline must be a uint48.');
   }
 
   if (typeof data !== 'string' || !isHex(data) || data.length < 10) {
-    return invalid('request.data must be hex calldata.');
+    return invalidPayload('request.data must be hex calldata.');
   }
 
   if (typeof signature !== 'string' || !isHex(signature)) {
-    return invalid('request.signature must be hex.');
+    return invalidPayload('request.signature must be hex.');
   }
 
   let functionName: string;
@@ -269,6 +293,7 @@ export function toForwardRequestArgs(request: RelayForwardRequest) {
   } as const;
 }
 
-function invalid(error: string): RelayPayloadResult {
+/** A body that is not what the relayer takes: malformed, or out of the bounds it serves. */
+export function invalidPayload(error: string): RelayPayloadFailure {
   return { ok: false, code: 'INVALID_REQUEST', error };
 }
