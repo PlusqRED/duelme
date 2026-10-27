@@ -38,7 +38,7 @@ export function SendView({ address, network, faucetOffer, isInAppWallet, onBack 
 
   function send(next: Transfer) {
     setIsSent(true);
-    void sending.send(next.to, next.raw);
+    void sending.send(next);
   }
 
   function retry() {
@@ -63,6 +63,8 @@ export function SendView({ address, network, faucetOffer, isInAppWallet, onBack 
           address={address}
           network={network}
           faucetOffer={faucetOffer}
+          route={sending.route}
+          freeTransfer={sending.freeTransfer}
           draft={draft}
           onDraft={setDraft}
           onSubmit={setTransfer}
@@ -76,7 +78,9 @@ export function SendView({ address, network, faucetOffer, isInAppWallet, onBack 
           transfer={transfer}
           network={network.chain}
           hash={sending.hash}
-          error={sending.error}
+          failure={sending.failure}
+          nextFreeAt={sending.freeTransfer.nextAt}
+          faucetOffer={faucetOffer}
           isInAppWallet={isInAppWallet}
           onDone={onBack}
           onRetry={retry}

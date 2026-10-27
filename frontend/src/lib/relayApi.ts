@@ -1,5 +1,6 @@
 import { isHash, type Hex } from 'viem';
 import { isRecord } from '@/lib/parsing';
+import type { RelayTransfer } from '@/lib/relayedTransfer';
 import {
   isRelayErrorCode,
   type RelayErrorCode,
@@ -7,6 +8,7 @@ import {
 } from '@/lib/relayRequest';
 
 const RELAY_ENDPOINT = '/api/relay';
+const RELAY_TRANSFER_ENDPOINT = '/api/relay/transfer';
 
 /**
  * Ceiling on one relayed write, every post of it included. The server answers only once the
@@ -56,7 +58,30 @@ export class RelayAnswerLostError extends Error {
  * RelayAnswerLostError when no answer came back at all.
  */
 export async function submitRelayRequest(chainId: number, request: RelayForwardRequest): Promise<Hex> {
-  const answer = await postUntilAnswered(JSON.stringify({ chainId, request }));
+  return relayedHash(await postUntilAnswered(RELAY_ENDPOINT, JSON.stringify({ chainId, request })));
+}
+
+/**
+ * Hands the day's signed transfer authorization to the relayer, with the same answers and the same
+ * reposts as a duel write. A repost is as safe here: the relayer answers every copy with the first
+ * one's outcome, and the token spends the day's nonce once whatever happens.
+ *
+ * But a refusal of a repost says nothing about the post before it, whose answer never came: the
+ * rate limit runs before the repeat check, a relayer that restarted forgot the first post and finds
+ * the day's nonce spent, by that very post, and the day or the window may have run out meanwhile.
+ * So any refusal of a repost is an answer lost, never "nothing was sent": the wallet would pay for
+ * the same transfer again.
+ */
+export async function submitRelayTransfer(chainId: number, transfer: RelayTransfer): Promise<Hex> {
+  const answer = await postUntilAnswered(RELAY_TRANSFER_ENDPOINT, JSON.stringify({ chainId, transfer }));
+  if (answer.isRepost && !answer.ok) {
+    throw new RelayAnswerLostError('An earlier post of this transfer may have gone out.');
+  }
+  return relayedHash(answer);
+}
+
+/** The relayer's answer as the transaction hash, or the error it stands for. */
+function relayedHash(answer: RelayAnswer): Hex {
   const fields = isRecord(answer.body) ? answer.body : {};
 
   if (!answer.ok) {
@@ -84,15 +109,17 @@ interface RelayAnswer {
   ok: boolean;
   status: number;
   body: unknown;
+  /** The answer came to a repost: an earlier post of the same body got none back. */
+  isRepost: boolean;
 }
 
 /** Posts the body until the relayer answers at all. Any answer, a refusal included, is final. */
-async function postUntilAnswered(body: string): Promise<RelayAnswer> {
+async function postUntilAnswered(endpoint: string, body: string): Promise<RelayAnswer> {
   const deadline = AbortSignal.timeout(RELAY_TIMEOUT_MS);
 
   for (let repost = 0; ; repost++) {
     try {
-      return await post(body, deadline);
+      return { ...(await post(endpoint, body, deadline)), isRepost: repost > 0 };
     } catch (error) {
       if (deadline.aborted || repost === RELAY_REPOST_DELAYS_MS.length) {
         throw new RelayAnswerLostError(
@@ -107,8 +134,8 @@ async function postUntilAnswered(body: string): Promise<RelayAnswer> {
 }
 
 /** One post. Throws when no answer came back: no response at all, or a success without its body. */
-async function post(body: string, deadline: AbortSignal): Promise<RelayAnswer> {
-  const response = await fetch(RELAY_ENDPOINT, {
+async function post(endpoint: string, body: string, deadline: AbortSignal): Promise<Omit<RelayAnswer, 'isRepost'>> {
+  const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body,

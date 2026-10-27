@@ -1,3 +1,5 @@
+import { SUPPORTED_CHAINS } from '@/lib/constants';
+
 export const ARBITRUM_SEPOLIA_APPROVE_MIN_GAS = 120_000n;
 export const ARBITRUM_SEPOLIA_CREATE_DUEL_MIN_GAS = 400_000n;
 // Floor for every other action on Sepolia, whose eth_estimateGas occasionally under-reports;
@@ -27,10 +29,6 @@ type TestnetFeeEstimate = {
 type TestnetFeeParams = {
   maxFeePerGas: bigint;
   maxPriorityFeePerGas: bigint;
-};
-
-type TestnetTransactionParams = TestnetFeeParams & {
-  gas: bigint;
 };
 
 export function getBufferedTestnetGasLimit(
@@ -74,40 +72,24 @@ export function getBufferedTestnetFeeParams(
   };
 }
 
-export function getBufferedTestnetTransactionParams({
-  estimatedGas,
-  minimumGas,
-  feeEstimate,
-  baseFeePerGas,
-}: {
-  estimatedGas: bigint;
-  minimumGas: bigint;
-  feeEstimate: TestnetFeeEstimate;
-  baseFeePerGas: bigint | null | undefined;
-}): TestnetTransactionParams {
-  return {
-    gas: getBufferedTestnetGasLimit(estimatedGas, minimumGas),
-    ...getBufferedTestnetFeeParams(feeEstimate, baseFeePerGas),
-  };
+const isTestnet = (chainId: number) => chainId === SUPPORTED_CHAINS.arbitrumSepolia.id;
+
+/**
+ * The gas limit a write sets on `chainId`: on the test network buffered and floored at
+ * `minimumTestnetGas`, since its estimates under-report; on mainnet only buffered, as Arbitrum
+ * One's estimates hold.
+ */
+export function bufferedGasLimit(chainId: number, estimatedGas: bigint, minimumTestnetGas: bigint): bigint {
+  return isTestnet(chainId) ? getBufferedTestnetGasLimit(estimatedGas, minimumTestnetGas) : getBufferedMainnetGasLimit(estimatedGas);
 }
 
-// Mainnet variant — same shape as the testnet helper but without a minimum-gas
-// floor (Arbitrum One eth_estimateGas is reliable) and with smaller fee headroom.
-//
-// IMPORTANT: this is also the workaround for Privy embedded wallets, which
-// otherwise sign transactions with all-zero gas params and broadcast fails. By
-// passing gas / maxFeePerGas / maxPriorityFeePerGas explicitly to writeContract,
-// we bypass Privy's internal prepareTransactionRequest path entirely.
-export function getMainnetTransactionParams({
-  estimatedGas,
-  feeEstimate,
-  baseFeePerGas,
-}: {
-  estimatedGas: bigint;
-  feeEstimate: TestnetFeeEstimate;
-  baseFeePerGas: bigint | null | undefined;
-}): TestnetTransactionParams {
-  return { gas: getBufferedMainnetGasLimit(estimatedGas), ...getMainnetFeeParams(feeEstimate, baseFeePerGas) };
+/**
+ * The fees a write offers on `chainId`, the test network's headroom and fallbacks or mainnet's.
+ * Every write states them, and its gas limit, itself: Privy embedded wallets sign all-zero gas
+ * params when left to fill them in, so the wallet's own preparation never runs.
+ */
+export function feeParamsFor(chainId: number, feeEstimate: TestnetFeeEstimate, baseFeePerGas: bigint | null | undefined): TestnetFeeParams {
+  return isTestnet(chainId) ? getBufferedTestnetFeeParams(feeEstimate, baseFeePerGas) : getMainnetFeeParams(feeEstimate, baseFeePerGas);
 }
 
 export function getBufferedMainnetGasLimit(estimatedGas: bigint): bigint {

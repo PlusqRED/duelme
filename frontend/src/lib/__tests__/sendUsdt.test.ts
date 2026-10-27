@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { checkTransfer, parseUsdtAmount, sendStage, type SendDraft, type SendWallet } from '@/lib/sendUsdt';
+import { checkTransfer, parseUsdtAmount, resolveSendRoute, sendStage, type SendDraft, type SendWallet } from '@/lib/sendUsdt';
 
 const OWN = '0x4bfa000000000000000000000000000000076a5a';
 const OTHER = '0x1111111111111111111111111111111111111111';
-const WALLET: SendWallet = { address: OWN, usdtRaw: 46_700_000n, ethWei: 7_700_000_000_000_000n };
+const WALLET: SendWallet = { address: OWN, usdtRaw: 46_700_000n, ethWei: 7_700_000_000_000_000n, route: 'self' };
 
 describe('parseUsdtAmount', () => {
   it.each([
@@ -51,6 +51,10 @@ describe('checkTransfer', () => {
     expect(problemsOf({ to: OTHER, amount: '1' }, { ...WALLET, ethWei: 0n }).eth).toBe('none');
   });
 
+  it('wants no ETH from a wallet whose fee DuelMe pays', () => {
+    expect(problemsOf({ to: OTHER, amount: '1' }, { ...WALLET, ethWei: 0n, route: 'relay' })).toEqual({});
+  });
+
   it('stops nothing on a balance it does not know yet', () => {
     expect(problemsOf({ to: OTHER, amount: '1000' }, { ...WALLET, usdtRaw: null, ethWei: null })).toEqual({});
   });
@@ -58,7 +62,13 @@ describe('checkTransfer', () => {
   it('reads the address and the amount a sound draft asks for', () => {
     const TO = '0x32a3FE56F4FeE248E4f19ca3D4374a018ac9AA23';
 
-    expect(checkTransfer({ to: ` ${TO} `, amount: '2,5' }, WALLET).transfer).toEqual({ to: TO, raw: 2_500_000n });
+    expect(checkTransfer({ to: ` ${TO} `, amount: '2,5' }, WALLET).transfer).toEqual({ to: TO, raw: 2_500_000n, route: 'self' });
+  });
+
+  it('fixes who pays the fee on the transfer it hands on', () => {
+    const wallet: SendWallet = { ...WALLET, ethWei: 0n, route: 'relay' };
+
+    expect(checkTransfer({ to: OTHER, amount: '1' }, wallet).transfer?.route).toBe('relay');
   });
 
   it.each([
@@ -71,8 +81,28 @@ describe('checkTransfer', () => {
   });
 });
 
+describe('resolveSendRoute', () => {
+  it('has DuelMe pay for the day\'s first transfer', () => {
+    expect(resolveSendRoute('available', false)).toBe('relay');
+  });
+
+  it('has the wallet pay once the day\'s transfer is used, and where DuelMe does not relay', () => {
+    expect(resolveSendRoute('used', false)).toBe('self');
+    expect(resolveSendRoute('off', false)).toBe('self');
+  });
+
+  it('leaves a status still being read to the relayer', () => {
+    expect(resolveSendRoute('unknown', false)).toBe('relay');
+  });
+
+  it('has the wallet pay once the relayed way failed with nothing sent, so the form asks for its ETH', () => {
+    expect(resolveSendRoute('available', true)).toBe('self');
+    expect(resolveSendRoute('unknown', true)).toBe('self');
+  });
+});
+
 describe('sendStage', () => {
-  const idle = { isConfirming: false, isSuccess: false, error: null };
+  const idle = { isConfirming: false, isSuccess: false, failure: null };
 
   it('waits for the wallet to confirm before there is a transaction', () => {
     expect(sendStage(idle)).toBe('confirm');
@@ -90,8 +120,7 @@ describe('sendStage', () => {
     expect(sendStage({ ...idle, hash: '0xabc', isSuccess: true })).toBe('done');
   });
 
-  it('tells a transfer turned down in the wallet from one that failed', () => {
-    expect(sendStage({ ...idle, error: new Error('User rejected the request.') })).toBe('rejected');
-    expect(sendStage({ ...idle, error: new Error('insufficient funds for gas') })).toBe('failed');
+  it('stops once the transfer has a failure, whatever its kind', () => {
+    expect(sendStage({ ...idle, hash: '0xabc', failure: { kind: 'reverted', detail: null, canRetry: true } })).toBe('failed');
   });
 });

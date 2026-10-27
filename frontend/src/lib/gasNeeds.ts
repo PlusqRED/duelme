@@ -1,14 +1,11 @@
 import { formatUnits } from 'viem';
 import type { Language } from '@/i18n/translations';
-import { SUPPORTED_CHAINS } from '@/lib/constants';
 import {
   ARBITRUM_SEPOLIA_APPROVE_MIN_GAS,
   ARBITRUM_SEPOLIA_CREATE_DUEL_MIN_GAS,
   ARBITRUM_SEPOLIA_DEFAULT_MIN_GAS,
-  getBufferedMainnetGasLimit,
-  getBufferedTestnetFeeParams,
-  getBufferedTestnetGasLimit,
-  getMainnetFeeParams,
+  bufferedGasLimit,
+  feeParamsFor,
 } from '@/lib/testnetGas';
 import { isDecimal, perLanguage } from '@/lib/utils';
 
@@ -39,13 +36,9 @@ interface FeeEstimate {
   maxPriorityFeePerGas?: bigint | null;
 }
 
-const isSepolia = (chainId: number) => chainId === SUPPORTED_CHAINS.arbitrumSepolia.id;
-
 /** The fees the app's writes will carry on `chainId`, by the same rules as `buildTransactionParams`. */
 export function quoteFees(chainId: number, estimate: FeeEstimate, baseFeePerGas: bigint | null | undefined): FeeQuote {
-  const offered = isSepolia(chainId)
-    ? getBufferedTestnetFeeParams(estimate, baseFeePerGas)
-    : getMainnetFeeParams(estimate, baseFeePerGas);
+  const offered = feeParamsFor(chainId, estimate, baseFeePerGas);
   const charged = baseFeePerGas === null || baseFeePerGas === undefined ? offered.maxFeePerGas : baseFeePerGas + offered.maxPriorityFeePerGas;
   return { maxFeePerGas: offered.maxFeePerGas, gasPrice: charged < offered.maxFeePerGas ? charged : offered.maxFeePerGas };
 }
@@ -55,13 +48,9 @@ export function quoteFees(chainId: number, estimate: FeeEstimate, baseFeePerGas:
  * its writes. A transaction over several duels takes the gas of each, under one buffer and one floor.
  */
 export function gasLimitFor(kind: GasKind, chainId: number, times = 1): bigint {
-  const gas = TYPICAL_GAS[kind] * BigInt(times);
-  if (!isSepolia(chainId)) {
-    return getBufferedMainnetGasLimit(gas);
-  }
   const floor =
     kind === 'approve' ? ARBITRUM_SEPOLIA_APPROVE_MIN_GAS : kind === 'create' ? ARBITRUM_SEPOLIA_CREATE_DUEL_MIN_GAS : ARBITRUM_SEPOLIA_DEFAULT_MIN_GAS;
-  return getBufferedTestnetGasLimit(gas, floor);
+  return bufferedGasLimit(chainId, TYPICAL_GAS[kind] * BigInt(times), floor);
 }
 
 /** What a transaction of this kind costs at the network's price now: the fee a player should expect. */

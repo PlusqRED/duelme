@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { RelayAnswerLostError, submitRelayRequest } from '@/lib/relayApi';
+import { RelayAnswerLostError, submitRelayRequest, submitRelayTransfer } from '@/lib/relayApi';
+import type { RelayTransfer } from '@/lib/relayedTransfer';
 import type { RelayForwardRequest } from '@/lib/relayRequest';
 import { DUELME_ADDRESSES, SUPPORTED_CHAINS } from '@/lib/constants';
 
@@ -223,5 +224,65 @@ describe('submitRelayRequest', () => {
     const [first, second] = vi.mocked(fetch).mock.calls.map(([, init]) => init?.signal);
     expect(first).toBeInstanceOf(AbortSignal);
     expect(second).toBe(first);
+  });
+});
+
+describe('submitRelayTransfer', () => {
+  const signedTransfer: RelayTransfer = {
+    from: '0x328809Bc894f92807417D2dAD6b7C998c1aFdac6',
+    to: '0x32a3FE56F4FeE248E4f19ca3D4374a018ac9AA23',
+    value: '5000000',
+    validBefore: 1_800_000_000,
+    nonce: `0x${'33'.repeat(32)}`,
+    signature: `0x${'11'.repeat(65)}`,
+  };
+
+  it('posts the chain id and the signed authorization to the transfer route', async () => {
+    vi.mocked(fetch).mockReturnValue(respond(200, { hash: HASH }));
+
+    await expect(submitRelayTransfer(42161, signedTransfer)).resolves.toBe(HASH);
+
+    const [endpoint, init] = vi.mocked(fetch).mock.calls[0];
+    expect(endpoint).toBe('/api/relay/transfer');
+    expect(JSON.parse(String(init?.body))).toEqual({ chainId: 42161, transfer: signedTransfer });
+  });
+
+  it('surfaces the transfer route\'s own codes', async () => {
+    vi.mocked(fetch).mockReturnValue(respond(409, { code: 'TRANSFER_USED', error: 'Already sent today.' }));
+
+    await expect(submitRelayTransfer(42161, signedTransfer)).rejects.toMatchObject({
+      name: 'RelayRequestError',
+      code: 'TRANSFER_USED',
+    });
+  });
+
+  it('posts the same authorization again while its answer keeps getting lost', async () => {
+    vi.mocked(fetch)
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockReturnValue(respond(200, { hash: HASH }));
+
+    const submitted = submitRelayTransfer(42161, signedTransfer);
+    await vi.runAllTimersAsync();
+
+    await expect(submitted).resolves.toBe(HASH);
+    const bodies = vi.mocked(fetch).mock.calls.map(([, init]) => init?.body);
+    expect(bodies).toHaveLength(2);
+    expect(bodies[1]).toBe(bodies[0]);
+  });
+
+  it.each([
+    ['TRANSFER_USED', 409],
+    ['RATE_LIMITED', 429],
+    ['TRANSFER_EXPIRED', 400],
+  ])('reads %s on a repost as an answer lost, since the first post may have gone out', async (code, status) => {
+    vi.mocked(fetch)
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockReturnValue(respond(status, { code, error: 'refused' }));
+
+    const submitted = submitRelayTransfer(42161, signedTransfer);
+    const settled = expect(submitted).rejects.toBeInstanceOf(RelayAnswerLostError);
+    await vi.runAllTimersAsync();
+
+    await settled;
   });
 });

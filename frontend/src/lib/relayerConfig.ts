@@ -1,7 +1,7 @@
 import { createPublicClient, createWalletClient, http, parseEther, type Account, type Chain } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrum, arbitrumSepolia } from 'viem/chains';
-import { DEFAULT_CHAIN, DEFAULT_CHAIN_ID, DUELME_ADDRESSES, FORWARDER_ADDRESSES } from '@/lib/constants';
+import { DEFAULT_CHAIN, DEFAULT_CHAIN_ID, DUELME_ADDRESSES, FORWARDER_ADDRESSES, USDT_ADDRESSES } from '@/lib/constants';
 import { parseUintString } from '@/lib/parsing';
 import type { RelayerStatus } from '@/lib/relayRequest';
 
@@ -45,6 +45,8 @@ export interface RelayerConfig {
   chainId: number;
   duelMeAddress: `0x${string}`;
   forwarderAddress: `0x${string}`;
+  /** The chain's USDT, which the relayed transfer is sent to (`/api/relay/transfer`). */
+  usdtAddress: `0x${string}`;
   dailyBudgetWei: bigint;
   globalDailyBudgetWei: bigint;
   publicClient: ReturnType<typeof createPublicClient>;
@@ -99,8 +101,9 @@ function buildRelayerConfig(): RelayerConfigResult {
   const chain = CHAIN_BY_ID[DEFAULT_CHAIN_ID];
   const duelMeAddress = DUELME_ADDRESSES[DEFAULT_CHAIN_ID];
   const forwarderAddress = FORWARDER_ADDRESSES[DEFAULT_CHAIN_ID];
+  const usdtAddress = USDT_ADDRESSES[DEFAULT_CHAIN_ID];
 
-  if (!chain || !duelMeAddress) {
+  if (!chain || !duelMeAddress || !usdtAddress) {
     return { ok: false, reason: `No DuelMe deployment recorded for chain ${DEFAULT_CHAIN_ID}.` };
   }
 
@@ -146,6 +149,7 @@ function buildRelayerConfig(): RelayerConfigResult {
       chainId: DEFAULT_CHAIN_ID,
       duelMeAddress,
       forwarderAddress,
+      usdtAddress,
       dailyBudgetWei: dailyBudget,
       globalDailyBudgetWei: globalDailyBudget,
       publicClient: createPublicClient({ chain, transport }),

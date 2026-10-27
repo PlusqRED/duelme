@@ -12,7 +12,10 @@ import { sourceFiles } from '@/lib/__tests__/helpers/sourceFiles';
 const SIGNING_FILES = [
   // The relayer's own key, on the server: no player's wallet.
   'app/api/relay/route.ts',
+  'app/api/relay/transfer/route.ts',
   'hooks/useDuelPermit.ts',
+  // The day's relayed transfer, signed from `SendReview`'s press.
+  'hooks/useSendUsdt.ts',
   'hooks/useWriteWithGas.ts',
   'lib/forwardRequest.ts',
   'lib/permitSignature.ts',

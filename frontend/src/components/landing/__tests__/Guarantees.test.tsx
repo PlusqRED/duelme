@@ -23,7 +23,7 @@ describe('Guarantees', () => {
   it('names how many tests the contract has and how much of it they cover', () => {
     render(<Guarantees />);
 
-    expect(screen.getByRole('heading', { name: '294\u00a0tests, 94.9% coverage' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: '311\u00a0tests, 94.9% coverage' })).toBeTruthy();
   });
 
   it('keeps the badges locked until they are seen', () => {

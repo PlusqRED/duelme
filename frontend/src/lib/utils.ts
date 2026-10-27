@@ -61,6 +61,7 @@ const dateTimeFormats = perLanguage(
   (locale) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' })
 );
 const dateFormats = perLanguage((locale) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }));
+const timeFormats = perLanguage((locale) => new Intl.DateTimeFormat(locale, { timeStyle: 'short' }));
 
 /**
  * A USDT amount the way the language writes numbers, with up to the token's 6 decimals, so 4.123456
@@ -133,6 +134,11 @@ export function formatDate(date: string | Date, language: Language): string {
   if (Number.isNaN(day.getTime())) return '—';
 
   return dateFormats[language].format(day);
+}
+
+/** A moment as the reader's clock shows it, for a time within the next day: `3:00 AM`, `03:00`. */
+export function formatTime(milliseconds: number, language: Language): string {
+  return timeFormats[language].format(new Date(milliseconds));
 }
 
 /**

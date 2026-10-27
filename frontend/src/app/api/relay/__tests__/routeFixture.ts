@@ -2,7 +2,7 @@ import { vi } from 'vitest';
 import { encodeFunctionData, type Hex } from 'viem';
 import { POST } from '@/app/api/relay/route';
 import { duelMeAbi } from '@/lib/contracts';
-import { DEFAULT_CHAIN_ID, DUELME_ADDRESSES } from '@/lib/constants';
+import { DEFAULT_CHAIN_ID, DUELME_ADDRESSES, USDT_ADDRESSES } from '@/lib/constants';
 import { getRelayerConfig, type RelayerConfig } from '@/lib/relayerConfig';
 import { resetDailyBudgets } from '@/lib/relayerBudget';
 import { resetRelayDedup } from '@/lib/relayerDedup';
@@ -12,7 +12,7 @@ import { resetSignerHolds } from '@/lib/relayerSignerHold';
 import type { RelayForwardRequest } from '@/lib/relayRequest';
 
 /**
- * Shared scaffolding for the POST /api/relay suites. Each suite must call
+ * Shared scaffolding for the POST /api/relay and /api/relay/transfer suites. Each suite must call
  * `vi.mock('@/lib/relayerConfig', () => ({ getRelayerConfig: vi.fn() }))` itself — the mock
  * is hoisted per file — and `resetRelayRoute()` from its `beforeEach`.
  */
@@ -34,14 +34,19 @@ export function forwardRequest(duelId: bigint): RelayForwardRequest {
   };
 }
 
-export function post(body: unknown, client = '203.0.113.7') {
-  return POST(
-    new Request('http://127.0.0.1/api/relay', {
+/** Posts `body` to a relay route's handler at `path`, from the client address given. */
+export function postTo(handler: (request: Request) => Promise<Response>, path: string, body: unknown, client = '203.0.113.7') {
+  return handler(
+    new Request(`http://127.0.0.1${path}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-forwarded-for': client },
       body: typeof body === 'string' ? body : JSON.stringify(body),
     })
   );
+}
+
+export function post(body: unknown, client?: string) {
+  return postTo(POST, '/api/relay', body, client);
 }
 
 export function postRequest(request: RelayForwardRequest, client?: string) {
@@ -73,6 +78,7 @@ const configFields = {
   chainId: DEFAULT_CHAIN_ID,
   duelMeAddress: DUELME_ADDRESSES[DEFAULT_CHAIN_ID],
   forwarderAddress: FORWARDER,
+  usdtAddress: USDT_ADDRESSES[DEFAULT_CHAIN_ID],
   dailyBudgetWei: BUDGET_WEI,
   globalDailyBudgetWei: BUDGET_WEI,
   publicClient,

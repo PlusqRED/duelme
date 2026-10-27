@@ -11,7 +11,9 @@ import { refusal, type RelayRefusal } from '@/lib/relayRequest';
  * is posted again as the same request, and the repeat check does recognise that.)
  *
  * The hold is lifted by the transaction's receipt. If the relayer stops waiting before one
- * arrives, the hold outlives the request, since the transaction may still land.
+ * arrives, the hold outlives the request, since the transaction may still land. A broadcast that
+ * threw without saying whether the node took it holds the signer with no hash, until the hold runs
+ * out.
  *
  * State is in-memory and per-process, with the same reach as the budget ledger.
  */
@@ -20,7 +22,8 @@ import { refusal, type RelayRefusal } from '@/lib/relayRequest';
 export const SIGNER_HOLD_MS = 10 * 60_000;
 
 interface Hold {
-  hash: Hex;
+  /** Null for a transaction whose hash the relayer never got back. */
+  hash: Hex | null;
   expiresAt: number;
 }
 
@@ -38,7 +41,7 @@ export function refuseWhileHeld(signer: string, now: number = Date.now()): Relay
     : null;
 }
 
-export function holdSigner(signer: string, hash: Hex, now: number = Date.now()): void {
+export function holdSigner(signer: string, hash: Hex | null, now: number = Date.now()): void {
   for (const [held, hold] of holds) {
     if (hold.expiresAt <= now) {
       holds.delete(held);

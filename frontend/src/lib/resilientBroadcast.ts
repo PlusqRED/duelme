@@ -1,23 +1,15 @@
 import type { useSignTransaction } from '@privy-io/react-auth';
 import {
-  BaseError,
   encodeFunctionData,
-  FeeCapTooHighError,
-  InsufficientFundsError,
-  IntrinsicGasTooHighError,
-  IntrinsicGasTooLowError,
   keccak256,
-  NonceMaxValueError,
-  TipAboveFeeCapError,
   toHex,
-  TransactionTypeNotSupportedError,
   type Abi,
   type Chain,
   type Hex,
   type PublicClient,
   type Transport,
 } from 'viem';
-import { getNodeError } from 'viem/utils';
+import { isRefusedOutright } from '@/lib/errorDetails';
 
 /** EIP-1559's transaction type, as the number Privy's wallet API takes. */
 const EIP1559_TRANSACTION_TYPE = 2;
@@ -107,32 +99,6 @@ export async function broadcastWithFallback(params: ResilientBroadcastArgs): Pro
 
     throw broadcastError;
   }
-}
-
-/**
- * Refusals that never answer a copy the network already took. Gas, fee caps, type and nonce range
- * are read off the signed bytes, the same in every copy, so a node that took one would have
- * refused it too. Funds are checked after the nonce, so a copy already taken reads as "already
- * known" or "nonce too low" first. A fee cap under the base fee is not among them: the base fee
- * moves, so a copy may have gone in before it rose.
- */
-const OUTRIGHT_REFUSALS = [
-  InsufficientFundsError,
-  IntrinsicGasTooHighError,
-  IntrinsicGasTooLowError,
-  FeeCapTooHighError,
-  TipAboveFeeCapError,
-  TransactionTypeNotSupportedError,
-  NonceMaxValueError,
-];
-
-function isRefusedOutright(broadcastError: unknown): boolean {
-  if (!(broadcastError instanceof BaseError)) {
-    return false;
-  }
-
-  const nodeError = getNodeError(broadcastError, {});
-  return OUTRIGHT_REFUSALS.some((refusal) => nodeError instanceof refusal);
 }
 
 /** Lookups after a failed broadcast, spaced out because a provider can lag the sequencer briefly. */

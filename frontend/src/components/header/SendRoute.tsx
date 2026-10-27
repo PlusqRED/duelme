@@ -16,7 +16,7 @@ interface SendRouteProps {
  */
 export function SendRoute({ stage, from, to }: SendRouteProps) {
   const isDone = stage === 'done';
-  const isStopped = stage === 'rejected' || stage === 'failed';
+  const isStopped = stage === 'failed';
 
   return (
     <div aria-hidden="true" className="grid grid-cols-[40px_minmax(0,1fr)_40px] items-center rounded-tile bg-canvas px-3 py-2.5">

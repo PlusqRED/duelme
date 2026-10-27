@@ -4,9 +4,13 @@ import {
   ARBITRUM_SEPOLIA_CREATE_DUEL_MIN_GAS,
   getBufferedTestnetFeeParams,
   getBufferedTestnetGasLimit,
-  getBufferedTestnetTransactionParams,
-  getMainnetTransactionParams,
+  bufferedGasLimit,
+  feeParamsFor,
 } from '@/lib/testnetGas';
+import { SUPPORTED_CHAINS } from '@/lib/constants';
+
+const SEPOLIA = SUPPORTED_CHAINS.arbitrumSepolia.id;
+const ONE = SUPPORTED_CHAINS.arbitrum.id;
 
 describe('getBufferedTestnetGasLimit', () => {
   it('applies a 1.5x safety buffer to the estimate', () => {
@@ -62,86 +66,44 @@ describe('getBufferedTestnetFeeParams', () => {
   });
 });
 
-describe('getBufferedTestnetTransactionParams', () => {
-  it('combines buffered gas and buffered fee params', () => {
-    expect(
-      getBufferedTestnetTransactionParams({
-        estimatedGas: 100_000n,
-        minimumGas: ARBITRUM_SEPOLIA_APPROVE_MIN_GAS,
-        feeEstimate: {
-          maxFeePerGas: 20_002_000n,
-          maxPriorityFeePerGas: 2_000n,
-        },
-        baseFeePerGas: 20_006_000n,
-      })
-    ).toEqual({
-      gas: 150_000n,
+describe('bufferedGasLimit and feeParamsFor on the test network', () => {
+  it('buffer the gas over its floor and the fees over the base fee', () => {
+    expect(bufferedGasLimit(SEPOLIA, 100_000n, ARBITRUM_SEPOLIA_APPROVE_MIN_GAS)).toBe(150_000n);
+    expect(feeParamsFor(SEPOLIA, { maxFeePerGas: 20_002_000n, maxPriorityFeePerGas: 2_000n }, 20_006_000n)).toEqual({
       maxFeePerGas: 40_014_000n,
       maxPriorityFeePerGas: 2_000n,
     });
   });
 });
 
-describe('getMainnetTransactionParams', () => {
-  it('returns all three gas params populated — Privy needs the full set', () => {
-    const result = getMainnetTransactionParams({
-      estimatedGas: 50_000n,
-      feeEstimate: { maxFeePerGas: 30_000_000n, maxPriorityFeePerGas: 0n, gasPrice: 20_000_000n },
-      baseFeePerGas: 20_000_000n,
-    });
+describe('bufferedGasLimit and feeParamsFor on mainnet', () => {
+  it('populate all three gas params — Privy needs the full set', () => {
+    const fees = feeParamsFor(ONE, { maxFeePerGas: 30_000_000n, maxPriorityFeePerGas: 0n, gasPrice: 20_000_000n }, 20_000_000n);
 
-    expect(result.gas).toBeGreaterThan(0n);
-    expect(result.maxFeePerGas).toBeGreaterThan(0n);
-    expect(result.maxPriorityFeePerGas).toBeGreaterThan(0n);
+    expect(bufferedGasLimit(ONE, 50_000n, ARBITRUM_SEPOLIA_APPROVE_MIN_GAS)).toBeGreaterThan(0n);
+    expect(fees.maxFeePerGas).toBeGreaterThan(0n);
+    expect(fees.maxPriorityFeePerGas).toBeGreaterThan(0n);
   });
 
   it('applies a 1.2x buffer to the gas estimate', () => {
-    expect(
-      getMainnetTransactionParams({
-        estimatedGas: 50_000n,
-        feeEstimate: { maxFeePerGas: 1n, maxPriorityFeePerGas: 0n },
-        baseFeePerGas: 1n,
-      }).gas
-    ).toBe(60_000n);
+    expect(bufferedGasLimit(ONE, 50_000n, 0n)).toBe(60_000n);
   });
 
   it('falls back to a 1-wei priority fee when the RPC reports zero — Arbitrum has no MEV', () => {
-    expect(
-      getMainnetTransactionParams({
-        estimatedGas: 50_000n,
-        feeEstimate: { maxFeePerGas: 0n, maxPriorityFeePerGas: undefined },
-        baseFeePerGas: 0n,
-      }).maxPriorityFeePerGas
-    ).toBe(1n);
+    expect(feeParamsFor(ONE, { maxFeePerGas: 0n, maxPriorityFeePerGas: undefined }, 0n).maxPriorityFeePerGas).toBe(1n);
   });
 
   it('floors maxFeePerGas at gasPrice to survive a base-fee spike between estimate and send', () => {
-    expect(
-      getMainnetTransactionParams({
-        estimatedGas: 50_000n,
-        feeEstimate: { gasPrice: 100_000_000n, maxFeePerGas: 0n, maxPriorityFeePerGas: 1n },
-        baseFeePerGas: 1n,
-      }).maxFeePerGas
-    ).toBe(100_000_000n);
+    expect(feeParamsFor(ONE, { gasPrice: 100_000_000n, maxFeePerGas: 0n, maxPriorityFeePerGas: 1n }, 1n).maxFeePerGas).toBe(100_000_000n);
   });
 
   it('caps at buffered baseFee + priority when that is the highest signal', () => {
-    expect(
-      getMainnetTransactionParams({
-        estimatedGas: 50_000n,
-        feeEstimate: { maxFeePerGas: 1n, maxPriorityFeePerGas: 1n, gasPrice: 1n },
-        baseFeePerGas: 20_000_000n,
-      }).maxFeePerGas
-    ).toBe(30_000_001n); // 20_000_000 * 1.5 + 1 priority
+    expect(feeParamsFor(ONE, { maxFeePerGas: 1n, maxPriorityFeePerGas: 1n, gasPrice: 1n }, 20_000_000n).maxFeePerGas).toBe(
+      30_000_001n // 20_000_000 * 1.5 + 1 priority
+    );
   });
 
-  it('does not need a minimum gas floor — eth_estimateGas is reliable on mainnet', () => {
-    expect(
-      getMainnetTransactionParams({
-        estimatedGas: 21_000n,
-        feeEstimate: { maxFeePerGas: 1n, maxPriorityFeePerGas: 0n },
-        baseFeePerGas: 1n,
-      }).gas
-    ).toBe(25_200n); // exactly 1.2x, no floor
+  it('does not take the test network\'s floor — eth_estimateGas is reliable on mainnet', () => {
+    expect(bufferedGasLimit(ONE, 21_000n, ARBITRUM_SEPOLIA_CREATE_DUEL_MIN_GAS)).toBe(25_200n); // exactly 1.2x, no floor
   });
 });

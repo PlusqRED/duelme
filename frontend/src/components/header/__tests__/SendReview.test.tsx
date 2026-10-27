@@ -5,7 +5,7 @@ import { SendReview } from '@/components/header/SendReview';
 import { SUPPORTED_CHAINS } from '@/lib/constants';
 
 const FROM = '0x4BFa1486661d6FAa5300923bd684F261AE4776a5';
-const TRANSFER = { to: '0x32a3FE56F4FeE248E4f19ca3D4374a018ac9AA23', raw: 12_500_000n } as const;
+const TRANSFER = { to: '0x32a3FE56F4FeE248E4f19ca3D4374a018ac9AA23', raw: 12_500_000n, route: 'self' } as const;
 
 afterEach(cleanup);
 
