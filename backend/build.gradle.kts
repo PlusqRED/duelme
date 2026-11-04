@@ -1,7 +1,7 @@
 plugins {
     java
-    id("org.springframework.boot") version "4.1.1"
-    id("org.graalvm.buildtools.native") version "1.1.16"
+    id("org.springframework.boot") version "4.1.2"
+    id("org.graalvm.buildtools.native") version "1.1.17"
 }
 
 group = "pro.duelme"
@@ -25,7 +25,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("com.nimbusds:nimbus-jose-jwt:10.10")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0")
     // web3j powers the dev-only testnet faucet (signing + JSON-RPC). Kept in
     // core deps so JVM + native builds both include it; on-off is gated at
     // runtime inside FaucetService via `duelme.faucet.enabled`.
